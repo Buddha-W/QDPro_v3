@@ -37,6 +37,11 @@
 - [x] ESQD Calculations (main.py - /calculate-esqd/)
 - [x] Report Generation (reports.py)
 - [x] Safety Analysis (main.py - /reports/safety)
+- [x] Legacy Database Import (.essbackup support)
+- [x] Multi-format Export (CSV, JSON, Legacy)
+- [x] Real-time Database Maintenance
+- [x] Automated Database Optimization
+- [x] Intelligent Data Recovery
 
 ## Export Capabilities
 - [x] PDF Export (static/index.html - exportPDF())

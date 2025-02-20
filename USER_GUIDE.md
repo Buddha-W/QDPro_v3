@@ -61,7 +61,28 @@
    - Log out after each session
    - Don't share access tokens
 
+## Advanced Analysis Features
+1. PES to ES Analysis
+   - Select Potential Explosion Site (PES)
+   - System automatically identifies Exposed Sites (ES)
+   - View detailed safety calculations
+   - Generate compliance reports
+
+2. Database Management
+   - Import legacy databases (.essbackup)
+   - Export data in multiple formats
+   - Monitor database performance
+   - Access automated maintenance reports
+
+3. Optimization Features
+   - Real-time performance monitoring
+   - Automated database maintenance
+   - Smart query optimization
+   - Intelligent data recovery
+
 ## Troubleshooting
 - If map doesn't load, check your internet connection
 - For access issues, contact your system administrator
 - Report technical issues through the support portal
+- Database issues? Use the automated recovery tool
+- Analysis errors? Check input parameters
