@@ -48,7 +48,13 @@ class LicenseManager:
         except:
             self.storage.secure_write("activation_count", 1)
             return True
-            
+
+    def validate_license(self, license_key: str) -> Dict[str, Any]:
+        try:
+            if not self._verify_activation_count():
+                return {"valid": False, "reason": "Maximum activations reached"}
+                
+            current_hardware_id = self.generate_hardware_id()
             # Add additional entropy to prevent time tampering
             current_time = datetime.now()
             time_hash = hashlib.sha256(str(current_time.timestamp()).encode()).hexdigest()
