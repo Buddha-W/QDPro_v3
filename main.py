@@ -15,7 +15,13 @@ import secrets
 from audit import log_activity # Added import for logging
 
 
-app = FastAPI(title="QDPro GIS System", version="1.0.0")
+app = FastAPI(
+    title="QDPro",
+    description="Advanced GIS System for DoD/DoE Facilities",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+)
 
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
