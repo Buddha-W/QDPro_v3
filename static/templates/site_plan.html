@@ -7,16 +7,82 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
     <style>
         #map {
-            height: 100vh;
+            height: calc(100vh - 60px);
             width: 100%;
+            margin-top: 60px;
         }
         body {
             margin: 0;
             padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #2b2d42;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        .tool-group {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .tool-group select, .tool-group button {
+            margin: 0 5px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            background: #4a4e69;
+            color: white;
+            cursor: pointer;
+        }
+        .tool-group select:hover, .tool-group button:hover {
+            background: #6b7299;
+        }
+        .tool-divider {
+            width: 1px;
+            height: 30px;
+            background: #4a4e69;
+            margin: 0 15px;
         }
     </style>
 </head>
 <body>
+    <div class="toolbar">
+        <div class="tool-group">
+            <select id="orgSelect">
+                <option value="DOD">DoD</option>
+                <option value="DOE">DoE</option>
+                <option value="NATO">NATO</option>
+            </select>
+            <select id="facilityType">
+                <option value="default">Standard QD</option>
+                <option value="public_traffic_route">Public Traffic Route</option>
+                <option value="inhabited_building">Inhabited Building</option>
+                <option value="military_boundary">Military Boundary</option>
+                <option value="process_building">Process Building</option>
+            </select>
+        </div>
+        <div class="tool-divider"></div>
+        <div class="tool-group">
+            <button id="measureDistance">Measure Distance</button>
+            <button id="drawArc">Draw Safety Arc</button>
+            <button id="analyzeQD">Analyze QD</button>
+        </div>
+        <div class="tool-divider"></div>
+        <div class="tool-group">
+            <button id="generateReport">Generate Report</button>
+            <button id="exportData">Export Data</button>
+        </div>
+    </div>
     <div id="map"></div>
     <script>
         const map = L.map('map').setView([40.7128, -74.0060], 13);
@@ -55,6 +121,49 @@
         L.control.layers(baseLayers).addTo(map);
 
         // Fetch and display facilities
+        // Initialize tools
+        let measureControl = null;
+        let drawControl = null;
+
+        document.getElementById('orgSelect').addEventListener('change', function(e) {
+            updateFacilityTypes(e.target.value);
+        });
+
+        document.getElementById('measureDistance').addEventListener('click', function() {
+            if (!measureControl) {
+                measureControl = L.control.measure({
+                    primaryLengthUnit: 'feet',
+                    secondaryLengthUnit: 'miles',
+                    primaryAreaUnit: 'sqfeet',
+                    secondaryAreaUnit: 'acres'
+                });
+                measureControl.addTo(map);
+            }
+        });
+
+        document.getElementById('drawArc').addEventListener('click', function() {
+            if (!drawControl) {
+                drawControl = new L.Control.Draw({
+                    draw: {
+                        circle: true,
+                        rectangle: false,
+                        polygon: false,
+                        polyline: false,
+                        marker: true,
+                        circlemarker: false
+                    }
+                });
+                map.addControl(drawControl);
+            }
+        });
+
+        document.getElementById('analyzeQD').addEventListener('click', async function() {
+            const org = document.getElementById('orgSelect').value;
+            const facilityType = document.getElementById('facilityType').value;
+            // Implement QD analysis logic here
+        });
+
+        // Load facilities
         fetch('/reports/facilities')
             .then(response => response.json())
             .then(facilities => {
