@@ -26,6 +26,7 @@ Everything in Essential, plus:
 
 ## Enterprise Tier
 Everything in Professional, plus:
+- Self-hosted deployment option
 - Custom map provider integration
 - AI-powered threat detection
 - Advanced security features
@@ -33,6 +34,7 @@ Everything in Professional, plus:
 - FedRAMP Moderate compliance
 - 24/7 priority support
 - Custom feature development
+- Dedicated deployment engineer
 - Price: Contact for pricing
 
 ## Security Features By Tier

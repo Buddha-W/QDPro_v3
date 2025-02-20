@@ -39,3 +39,36 @@ CREATE TABLE projects (
     coordinate_system VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- License management
+CREATE TABLE licenses (
+    id SERIAL PRIMARY KEY,
+    license_key VARCHAR(255) UNIQUE,
+    organization_name VARCHAR(255),
+    tier VARCHAR(50),
+    valid_until TIMESTAMP,
+    max_users INTEGER,
+    features JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Audit trail
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER,
+    action VARCHAR(100),
+    resource_type VARCHAR(50),
+    resource_id INTEGER,
+    changes JSONB,
+    ip_address INET,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Usage metrics
+CREATE TABLE usage_metrics (
+    id SERIAL PRIMARY KEY,
+    license_id INTEGER REFERENCES licenses(id),
+    metric_type VARCHAR(50),
+    value INTEGER,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
