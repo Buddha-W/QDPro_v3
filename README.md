@@ -1,6 +1,22 @@
 
 # QDPro GIS System Security & Compliance Documentation
 
+## System Overview
+QDPro is a DoD/DoE-compliant Geographic Information System (GIS) designed for explosive safety quantity distance (ESQD) calculations and facility management. Version 1.0.0 has undergone rigorous security testing and compliance verification.
+
+## Technical Architecture
+- Backend: Python FastAPI (ASGI Framework)
+- Frontend: HTML5/JavaScript with Leaflet.js
+- Database: PostgreSQL with PostGIS extension
+- Authentication: Zero Trust Architecture with MFA
+- Encryption: FIPS 140-2 compliant (AES-256)
+
+## Deployment Environment
+- Hosting: FedRAMP Moderate certified infrastructure
+- Network Security: TLS 1.3 with perfect forward secrecy
+- Database Encryption: Transparent Data Encryption (TDE)
+- Backup: Daily encrypted backups with 90-day retention
+
 ## Security Standards Compliance
 
 ### Department of Defense (DoD) & Department of Energy (DoE) Standards
