@@ -7,6 +7,25 @@
     <link rel="icon" type="image/png" href="/static/favicon.png">
     <meta name="description" content="QDPro - Advanced GIS System for DoD/DoE Facilities">
     <meta name="application-name" content="QDPro">
+
+<style>
+.status-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 8px 15px;
+    border-radius: 20px;
+    background: #4CAF50;
+    color: white;
+    transition: all 0.3s;
+    z-index: 1000;
+}
+.status-indicator.offline {
+    background: #f44336;
+}
+</style>
+<div id="statusIndicator" class="status-indicator">Online</div>
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
         #map { height: 600px; }

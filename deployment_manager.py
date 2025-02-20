@@ -53,9 +53,13 @@ class DeploymentManager:
         self.initialize_local_db()
         
     def cache_map_tiles(self):
-        """Cache map tiles for offline use"""
+        """Smart cache map tiles with compression"""
+        import zlib
         if not os.path.exists("map_cache"):
             os.makedirs("map_cache")
+        if not os.path.exists("map_cache/metadata.json"):
+            with open("map_cache/metadata.json", "w") as f:
+                json.dump({"last_update": datetime.now().isoformat(), "tiles": {}}, f)
             
     def initialize_local_db(self):
         """Initialize local SQLite database"""

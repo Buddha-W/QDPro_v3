@@ -98,14 +98,20 @@ class OfflineSyncManager:
         thread.start()
         
     def _check_connection(self) -> bool:
-        """Check internet connection"""
-        try:
-            # Minimal connection check
-            import socket
-            socket.create_connection(("8.8.8.8", 53), timeout=3)
-            return True
-        except:
-            return False
+        """Smart connection check with fallback"""
+        endpoints = [
+            ("8.8.8.8", 53),
+            ("1.1.1.1", 53),
+            ("208.67.222.222", 53)
+        ]
+        for endpoint in endpoints:
+            try:
+                import socket
+                socket.create_connection(endpoint, timeout=2)
+                return True
+            except:
+                continue
+        return False
             
     def _process_sync_queue(self):
         """Process queued operations when online"""
