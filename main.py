@@ -621,12 +621,8 @@ async def update_feedback_status(
     return {"status": "success", "message": "Feedback status updated"}
 
 if __name__ == "__main__":
-    print("Starting QDPro server on http://0.0.0.0:8080")
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080, reload=True)
-
-    if not all(check_results.values()):
-        print("Pre-deployment checks failed:")
         for check, result in check_results.items():
             if not result:
                 print(f"- {check} check failed")
