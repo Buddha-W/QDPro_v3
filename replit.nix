@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.unixODBC
     pkgs.zlib
     pkgs.tk
     pkgs.tcl
