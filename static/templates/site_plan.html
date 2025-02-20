@@ -42,6 +42,10 @@
         .map-container {
             flex: 1;
             height: 100vh;
+            width: 100%;
+            position: absolute;
+            right: 0;
+            z-index: 1;
         }
         #map {
             height: 100%;
@@ -141,12 +145,21 @@
 
         function initMap() {
             if (!map) {
-                map = L.map('map').setView([38.889484, -77.035278], 13);
+                map = L.map('map', {
+                    center: [38.889484, -77.035278],
+                    zoom: 13,
+                    zoomControl: true
+                });
+                
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '© OpenStreetMap contributors'
                 }).addTo(map);
-                map.invalidateSize();
+                
+                // Force a resize to ensure proper display
+                setTimeout(() => {
+                    map.invalidateSize(true);
+                }, 100);
             }
         }
 
