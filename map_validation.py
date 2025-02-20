@@ -23,14 +23,38 @@ class MapDataValidator:
     def validate_mgrs_grid(self, grid_reference: str) -> bool:
         pattern = r'^\d{1,2}[A-Z]{3}\d{10}$'
         return bool(re.match(pattern, grid_reference))
-def validate_explosive_weight(self, weight: float, org_type: str) -> bool:
+def validate_explosive_weight(self, weight: float, org_type: str, facility_type: str = None) -> bool:
         if weight <= 0:
             return False
         
         max_weights = {
             'DOD': 500000,
             'DOE': 100000,
-            'AIR_FORCE': 500000
+            'AIR_FORCE': {
+                'default': 500000,
+                'flight_line': 300000,
+                'maintenance': 100000,
+                'storage': 500000
+            },
+            'NATO': {
+                'default': 500000,
+                'storage': 450000,
+                'process': 250000
+            }
         }
         
+        if org_type in ['AIR_FORCE', 'NATO']:
+            org_limits = max_weights.get(org_type, {})
+            limit = org_limits.get(facility_type, org_limits.get('default', 500000))
+            return weight <= limit
+            
         return weight <= max_weights.get(org_type, 500000)
+
+    def validate_nato_storage(self, quantity: float, storage_type: str) -> bool:
+        """Validate NATO storage requirements per AASTP-1"""
+        nato_limits = {
+            'standard': 500000,
+            'reduced_quantity': 250000,
+            'basic': 100000
+        }
+        return quantity <= nato_limits.get(storage_type, nato_limits['standard'])
