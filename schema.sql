@@ -129,3 +129,21 @@ CREATE INDEX idx_facilities_location ON facilities USING GIST(location);
 CREATE INDEX idx_safety_arcs_geometry ON safety_arcs USING GIST(arc_geometry);
 CREATE INDEX idx_sync_status_device ON sync_status(device_id);
 CREATE INDEX idx_analysis_results_project ON analysis_results(project_id);
+
+-- Add validation triggers
+CREATE OR REPLACE FUNCTION validate_explosive_site() RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.net_explosive_weight <= 0 THEN
+        RAISE EXCEPTION 'Net explosive weight must be positive';
+    END IF;
+    IF NEW.k_factor <= 0 THEN
+        RAISE EXCEPTION 'K-factor must be positive';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER explosive_site_validation
+    BEFORE INSERT OR UPDATE ON explosive_sites
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_explosive_site();

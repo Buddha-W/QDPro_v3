@@ -151,6 +151,14 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.post("/facilities/")
 async def create_facility(facility: FacilityBase):
+    # Validate coordinates
+    if not (-90 <= facility.latitude <= 90) or not (-180 <= facility.longitude <= 180):
+        raise HTTPException(status_code=400, detail="Invalid coordinates")
+        
+    # Validate facility number format
+    if not re.match(r'^[A-Z0-9]{3,10}$', facility.facility_number):
+        raise HTTPException(status_code=400, detail="Invalid facility number format")
+        
     point = Point(facility.longitude, facility.latitude)
     query = """
         INSERT INTO facilities (facility_number, description, category_code, location)
