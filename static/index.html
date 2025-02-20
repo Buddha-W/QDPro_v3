@@ -52,7 +52,8 @@
             <button onclick="exportMap()">Export Map</button>
             <button onclick="toggleMeasurement()">Measure Distance</button>
             <button onclick="toggleAreaCalculation()">Calculate Area</button>
-            <button onclick="analyzeBuffer()">Buffer Analysis</button>
+            <button onclick="analyzeBuffer()">Multi-Ring Buffer</button>
+            <button onclick="analyzeProximity()">Proximity Analysis</button>
             <button onclick="exportPDF()">Export PDF</button>
         </div>
     </div>
@@ -239,18 +240,51 @@
         }
 
         function analyzeBuffer() {
-            const radius = prompt('Enter buffer radius (in meters):', '1000');
-            if (radius) {
+            const distances = [1000, 2000, 5000]; // Default distances in meters
+            map.once('click', function(e) {
+                distances.forEach((distance, index) => {
+                    L.circle(e.latlng, {
+                        radius: distance,
+                        color: `hsl(${120 + index * 40}, 50%, 50%)`,
+                        fillOpacity: 0.1,
+                        weight: 2
+                    }).addTo(map)
+                    .bindPopup(`Buffer zone: ${distance/1000} km`);
+                });
+            });
+            alert('Click on the map to create multiple buffer zones');
+        }
+
+        function analyzeProximity() {
+            const searchRadius = 5000; // 5km radius
+            map.once('click', function(e) {
+                const clickedPoint = e.latlng;
+                let foundFacilities = 0;
+                
                 map.eachLayer((layer) => {
                     if (layer instanceof L.Marker) {
-                        L.circle(layer.getLatLng(), {
-                            radius: parseInt(radius),
-                            color: 'orange',
-                            fillOpacity: 0.2
-                        }).addTo(map);
+                        const distance = clickedPoint.distanceTo(layer.getLatLng());
+                        if (distance <= searchRadius) {
+                            foundFacilities++;
+                            L.circle(layer.getLatLng(), {
+                                radius: 100,
+                                color: 'purple',
+                                fillOpacity: 0.5
+                            }).addTo(map)
+                            .bindPopup(`Facility within ${(distance/1000).toFixed(2)} km`);
+                        }
                     }
                 });
-            }
+
+                L.circle(clickedPoint, {
+                    radius: searchRadius,
+                    color: 'blue',
+                    fillOpacity: 0.1,
+                    weight: 2
+                }).addTo(map)
+                .bindPopup(`Found ${foundFacilities} facilities within ${searchRadius/1000}km`);
+            });
+            alert('Click on the map to analyze facility proximity');
         }
 
         function exportPDF() {
