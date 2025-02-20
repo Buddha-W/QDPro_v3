@@ -223,6 +223,28 @@ if __name__ == "__main__":
     from fedramp_compliance import FedRAMPControls
     from license_control import LicenseManager
     from anti_tampering import AntiTampering
+    from license_recovery import LicenseRecovery
+    from threat_detection import ThreatDetection
+    
+    # Initialize additional security systems
+    license_recovery = LicenseRecovery()
+    threat_detector = ThreatDetection()
+    
+    # Schedule threat detection
+    def check_threats():
+        threats = threat_detector.analyze_logs()
+        for threat in threats:
+            log_activity(
+                user_id="SYSTEM",
+                action="THREAT_DETECTED",
+                resource="system",
+                status="ALERT",
+                details=threat
+            )
+    
+    import threading
+    threat_check = threading.Timer(900.0, check_threats)  # Check every 15 minutes
+    threat_check.start()
     
     # Initialize protection systems
     license_manager = LicenseManager()
