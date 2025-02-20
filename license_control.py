@@ -27,9 +27,24 @@ class LicenseManager:
     def validate_license(self, license_key: str) -> Dict[str, Any]:
         try:
             current_hardware_id = self.generate_hardware_id()
-            license_data = self.storage.secure_read(
-                f"licenses/{hashlib.sha256(license_key.encode()).hexdigest()}.encrypted"
-            )
+            
+            # Add additional entropy to prevent time tampering
+            current_time = datetime.now()
+            time_hash = hashlib.sha256(str(current_time.timestamp()).encode()).hexdigest()
+            
+            license_file = f"licenses/{hashlib.sha256(license_key.encode()).hexdigest()}.encrypted"
+            if not os.path.exists(license_file):
+                return {"valid": False, "reason": "License not found"}
+                
+            license_data = self.storage.secure_read(license_file)
+            
+            # Verify time integrity
+            if abs(current_time.timestamp() - license_data.get("last_check", 0)) > 86400:
+                return {"valid": False, "reason": "System time manipulation detected"}
+                
+            # Update last check time
+            license_data["last_check"] = current_time.timestamp()
+            self.storage.secure_write(license_file, license_data)
             
             if not self._verify_license_integrity(license_data):
                 return {"valid": False, "reason": "License integrity check failed"}
@@ -81,3 +96,28 @@ class LicenseManager:
             return "hypervisor" in platform.processor().lower()
         except:
             return False
+            
+    def generate_license(self, duration_years: int, features: List[str] = None) -> str:
+        license_key = uuid.uuid4().hex
+        expiration = datetime.now() + timedelta(days=365 * duration_years)
+        
+        license_data = {
+            "key": license_key,
+            "expiration": expiration.isoformat(),
+            "features": features or ["basic"],
+            "device_ids": [],
+            "last_check": datetime.now().timestamp(),
+            "creation_date": datetime.now().isoformat()
+        }
+        
+        # Add integrity hash
+        verification_data = f"{license_data['key']}{license_data['expiration']}{license_data.get('hardware_id', '')}"
+        license_data["integrity_hash"] = hashlib.sha384(verification_data.encode()).hexdigest()
+        
+        # Encrypt and store
+        self.storage.secure_write(
+            f"licenses/{hashlib.sha256(license_key.encode()).hexdigest()}.encrypted",
+            license_data
+        )
+        
+        return license_key
