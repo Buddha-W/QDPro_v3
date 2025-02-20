@@ -12,6 +12,7 @@ class LicenseManager:
     def __init__(self):
         self.storage = SecureStorage()
         self.grace_period = timedelta(days=7)
+        self.deployment_types = ["ON_PREMISE", "AWS_GOVCLOUD", "AZURE_GOVERNMENT"]
         
     def generate_hardware_id(self) -> str:
         system_info = [
@@ -111,7 +112,10 @@ class LicenseManager:
         except:
             return False
             
-    def generate_license(self, duration_years: int, features: List[str] = None) -> str:
+    def generate_license(self, duration_years: int, features: List[str] = None, deployment_type: str = "ON_PREMISE", max_instances: int = 1) -> str:
+        if deployment_type not in self.deployment_types:
+            raise ValueError(f"Deployment type must be one of {self.deployment_types}")
+            
         license_key = uuid.uuid4().hex
         expiration = datetime.now() + timedelta(days=365 * duration_years)
         
@@ -120,6 +124,9 @@ class LicenseManager:
             "expiration": expiration.isoformat(),
             "features": features or ["basic"],
             "device_ids": [],
+            "deployment_type": deployment_type,
+            "max_instances": max_instances,
+            "current_instances": 0,
             "last_check": datetime.now().timestamp(),
             "creation_date": datetime.now().isoformat()
         }
