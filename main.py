@@ -31,8 +31,16 @@ import re
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+rate_limiter = RateLimiter()
+usage_monitor = UsageMonitor()
+
 @app.middleware("http")
 async def security_middleware(request: Request, call_next):
+    start_time = datetime.now()
+    user_id = request.headers.get("X-User-ID", "anonymous")
+    
+    if not rate_limiter.check_limit(user_id, "API_CALLS"):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
     request_id = secrets.token_hex(16)
     request.state.request_id = request_id
 
@@ -117,10 +125,16 @@ class ExplosiveSiteBase(BaseModel):
 
 @app.get("/health")
 async def health_check():
+    system_health = usage_monitor.get_system_health()
+    crypto_status = crypto.validate_crypto_operations({"test": "data"})
+    
     return {
-        "status": "healthy",
+        "status": system_health["status"],
         "version": "1.0.0",
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "metrics": system_health["metrics"],
+        "crypto_status": "operational" if crypto_status else "failed",
+        "security_status": anti_tampering._verify_system_integrity({})
     }
 
 @app.get("/")

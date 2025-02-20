@@ -5,8 +5,36 @@ from typing import Dict, Any
 class UsageMonitor:
     def __init__(self):
         self.storage = SecureStorage()
-        self.current_standard = "Standard A" #Example - needs to be dynamically set
-        self.calculation_count = 0 #Example - needs to be dynamically updated
+        self.metrics = {
+            "api_calls": 0,
+            "calculations": 0,
+            "exports": 0,
+            "memory_usage": 0,
+            "response_times": []
+        }
+        
+    def track_metric(self, metric_type: str, value: float) -> None:
+        if metric_type in self.metrics:
+            if isinstance(self.metrics[metric_type], list):
+                self.metrics[metric_type].append(value)
+            else:
+                self.metrics[metric_type] += value
+                
+        self.storage.secure_write("system_metrics", self.metrics)
+        
+    def get_system_health(self) -> Dict[str, Any]:
+        return {
+            "status": "healthy" if self._check_health() else "degraded",
+            "metrics": self.metrics,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+    def _check_health(self) -> bool:
+        if len(self.metrics["response_times"]) > 0:
+            avg_response = sum(self.metrics["response_times"]) / len(self.metrics["response_times"])
+            if avg_response > 2.0:  # 2 seconds threshold
+                return False
+        return True
 
     def track_usage(self, user_id: str, feature: str) -> None:
         usage_data = {
