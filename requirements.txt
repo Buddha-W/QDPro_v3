@@ -22,3 +22,4 @@ psutil
 pyodbc
 pandas
 alembic
+jinja2

@@ -16,6 +16,12 @@ from audit import log_activity # Added import for logging
 from datetime import datetime, timedelta, timezone
 import sys
 
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+
 app = FastAPI(
     title="QDPro",
     description="Advanced GIS System for DoD/DoE Facilities",
@@ -23,6 +29,13 @@ app = FastAPI(
     docs_url="/api/docs",
     redoc_url="/api/redoc"
 )
+
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "static" / "templates"))
+
+@app.get("/")
+async def root(request: Request):
+    return templates.TemplateResponse("site_plan.html", {"request": request})
 
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
