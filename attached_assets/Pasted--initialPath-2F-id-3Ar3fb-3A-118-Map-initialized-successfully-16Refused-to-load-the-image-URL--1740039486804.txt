@@ -1,0 +1,47 @@
+?initialPath=%2F&id=%3Ar3fb%3A:118 Map initialized successfully
+16Refused to load the image '<URL>' because it violates the following Content Security Policy directive: "img-src 'self' data: <URL>".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://a.tile.openstreetmap.org/13/2342/3133.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://b.tile.openstreetmap.org/13/2343/3133.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://b.tile.openstreetmap.org/13/2342/3134.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://c.tile.openstreetmap.org/13/2343/3134.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://c.tile.openstreetmap.org/13/2342/3132.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://a.tile.openstreetmap.org/13/2343/3132.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://c.tile.openstreetmap.org/13/2342/3135.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://a.tile.openstreetmap.org/13/2343/3135.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://c.tile.openstreetmap.org/13/2341/3133.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://c.tile.openstreetmap.org/13/2344/3133.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://a.tile.openstreetmap.org/13/2341/3134.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://a.tile.openstreetmap.org/13/2344/3134.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://b.tile.openstreetmap.org/13/2341/3132.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://b.tile.openstreetmap.org/13/2344/3132.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://b.tile.openstreetmap.org/13/2341/3135.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev/:1 Refused to load the image 'https://b.tile.openstreetmap.org/13/2344/3135.png' because it violates the following Content Security Policy directive: "img-src 'self' data: https://unpkg.com".
+
+/reports/facilities:1 
+        
+        
+       Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/reports/facilities:1 
+        
+        
+       Failed to load resource: the server responded with a status of 401 (Unauthorized)
+/reports/safety:1 
+        
+        
+       Failed to load resource: the server responded with a status of 401 (Unauthorized)
