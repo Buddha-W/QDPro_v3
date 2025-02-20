@@ -175,4 +175,14 @@ async def get_safety_analysis(current_user: str = Depends(get_current_user)):
     return await generate_safety_analysis(engine)
 
 if __name__ == "__main__":
+    # Initialize security controls
+    from system_hardening import SystemHardening
+    from crypto_validation import CryptoValidator
+    
+    hardening = SystemHardening()
+    crypto = CryptoValidator()
+    
+    # Enforce security controls before starting
+    hardening.enforce_security_controls()
+    
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
