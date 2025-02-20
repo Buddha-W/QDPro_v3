@@ -23,3 +23,14 @@ class MapDataValidator:
     def validate_mgrs_grid(self, grid_reference: str) -> bool:
         pattern = r'^\d{1,2}[A-Z]{3}\d{10}$'
         return bool(re.match(pattern, grid_reference))
+def validate_explosive_weight(self, weight: float, org_type: str) -> bool:
+        if weight <= 0:
+            return False
+        
+        max_weights = {
+            'DOD': 500000,
+            'DOE': 100000,
+            'AIR_FORCE': 500000
+        }
+        
+        return weight <= max_weights.get(org_type, 500000)

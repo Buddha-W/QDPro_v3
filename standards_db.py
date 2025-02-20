@@ -13,9 +13,9 @@ class Standards:
             'description': 'Standards for Quantity-Distance relationships'
         },
         'air_force': {
-            'ref': 'AFMAN 91-201',
-            'chapters': ['Chapter 12', 'Chapter 14'],
-            'description': 'Air Force Explosives Safety Standards'
+            'ref': 'DESR 6055.09_DAFMAN 91-201',
+            'chapters': ['Chapter 12', 'Chapter 14', 'Chapter 15'],
+            'description': 'Air Force Explosives Safety Standards and Supplements'
         },
         'aircraft_siting': {
             'ref': 'DoD 6055.09-M',

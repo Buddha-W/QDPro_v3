@@ -1,4 +1,3 @@
-<replit_final_file>
 from typing import Dict, List, Tuple, Optional
 from geoalchemy2 import functions as gfunc
 from shapely.geometry import Point, Polygon
@@ -31,12 +30,23 @@ class ExplosionAnalysis:
                 'flight_line': 45,
                 'munitions_storage': 38,
                 'maintenance_facility': 42,
-                'alert_aircraft': 50
-            },
-                'aircraft_parking': 30,
-                'runway': 40,
-                'taxi_way': 35,
-                'maintenance_facility': 40
+                'alert_aircraft': 50,
+                'aircraft_parking': {
+                    'combat': 35,
+                    'cargo': 40,
+                    'passenger': 45,
+                    'alert_status': 50
+                },
+                'runway': {
+                    'active': 45,
+                    'inactive': 35,
+                    'taxiway': 30
+                },
+                'maintenance_facility': {
+                    'major_repair': 45,
+                    'minor_repair': 35,
+                    'loading': 50
+                }
             },
             'DOE': {
                 'default': 50,
