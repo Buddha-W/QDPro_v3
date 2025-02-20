@@ -29,7 +29,7 @@ from fastapi.responses import FileResponse
 from feedback_system import FeedbackSystem, Feedback
 from rate_limiter import RateLimiter
 from usage_monitor import UsageMonitor
-from deployment_checker import DeploymentChecker
+from deployment_checklist import DeploymentChecker
 from map_service import MapService
 from system_hardening import SystemHardening
 from crypto_validation import crypto
