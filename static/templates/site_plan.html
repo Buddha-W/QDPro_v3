@@ -14,6 +14,7 @@
         .main-container {
             display: flex;
             height: 100vh;
+            position: relative;
         }
         .sidebar {
             width: 320px;
@@ -23,6 +24,8 @@
             display: flex;
             flex-direction: column;
             transition: transform 0.3s ease;
+            position: absolute;
+            height: 100%;
         }
         .header {
             background: #1a237e;
@@ -137,11 +140,24 @@
         let markers = [];
 
         function initMap() {
-            map = L.map('map').setView([38.889484, -77.035278], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+            if (!map) {
+                map = L.map('map').setView([38.889484, -77.035278], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+                map.invalidateSize();
+            }
         }
+
+        window.addEventListener('load', function() {
+            initMap();
+            loadFacilityReports();
+            // Force map to recognize container size
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 100);
+        });
 
         async function loadFacilityReports() {
             try {
