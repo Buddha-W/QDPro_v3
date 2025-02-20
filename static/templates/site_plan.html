@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,63 +6,37 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-        }
-        .main-container {
-            display: flex;
-            height: 100vh;
-            position: relative;
-        }
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        .main-container { position: relative; width: 100vw; height: 100vh; }
         .sidebar {
-            width: 320px;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 300px;
+            height: 100vh;
             background: #fff;
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
             z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+        .map-container {
             position: absolute;
+            left: 300px;
+            top: 0;
+            right: 0;
+            bottom: 0;
+        }
+        #map {
+            width: 100%;
             height: 100%;
         }
         .header {
             background: #1a237e;
             color: white;
             padding: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
-        .header h1 {
-            margin: 0;
-            font-size: 1.25rem;
-        }
-        .map-container {
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 320px;
-            z-index: 1;
-        }
-        #map {
-            position: absolute;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: 0;
-            z-index: 1;
-        }
-        @media (max-width: 768px) {
-            .map-container {
-                left: 0;
-            }
-        }
-        .control-panel {
-            padding: 1rem;
-        }
+        .header h1 { margin: 0; font-size: 1.25rem; }
+        .control-panel { padding: 1rem; }
         .button-group {
             display: flex;
             flex-direction: column;
@@ -77,12 +50,9 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-weight: 500;
             transition: background 0.2s;
         }
-        .action-button:hover {
-            background: #283593;
-        }
+        .action-button:hover { background: #283593; }
         .status-panel {
             margin: 1rem;
             padding: 1rem;
@@ -90,37 +60,16 @@
             border-radius: 4px;
         }
         #status {
-            padding: 0.75rem;
+            padding: 0.5rem;
             margin-top: 0.5rem;
             border-radius: 4px;
             display: none;
-        }
-        @media (max-width: 768px) {
-            .sidebar {
-                position: absolute;
-                transform: translateX(-100%);
-            }
-            .sidebar.active {
-                transform: translateX(0);
-            }
-            .toggle-sidebar {
-                position: absolute;
-                left: 10px;
-                top: 10px;
-                z-index: 1001;
-                background: white;
-                border: none;
-                padding: 0.5rem;
-                border-radius: 4px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            }
         }
     </style>
 </head>
 <body>
     <div class="main-container">
-        <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
-        <div class="sidebar" id="sidebar">
+        <div class="sidebar">
             <div class="header">
                 <h1>QDPro GIS System</h1>
             </div>
@@ -136,11 +85,11 @@
                     <button class="action-button" onclick="calculateESQD()">Calculate ESQD</button>
                     <button class="action-button" onclick="runComplianceCheck()">Compliance Check</button>
                 </div>
-            </div>
-            <div class="status-panel">
-                <h3>System Status</h3>
-                <div id="status"></div>
-                <div id="facilityCount">Loading facilities...</div>
+                <div class="status-panel">
+                    <h3>System Status</h3>
+                    <div id="status"></div>
+                    <div id="facilityCount">Loading facilities...</div>
+                </div>
             </div>
         </div>
         <div class="map-container">
@@ -148,74 +97,39 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        let map = null;
+        let map;
         let markers = [];
 
         function initMap() {
-            if (!map) {
-                map = L.map('map', {
-                    center: [38.889484, -77.035278],
-                    zoom: 13,
-                    zoomControl: true,
-                    minZoom: 3,
-                    maxZoom: 18
-                });
-                
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
-                
-                map.invalidateSize();
-                
-                // Add a scale control
-                L.control.scale().addTo(map);
-            }
+            map = L.map('map').setView([38.889484, -77.035278], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
         }
-
-        // Initialize map when DOM is fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            initMap();
-            loadFacilityReports();
-        });
-
-        window.addEventListener('load', function() {
-            initMap();
-            loadFacilityReports();
-            // Force map to recognize container size
-            setTimeout(function() {
-                map.invalidateSize();
-            }, 100);
-        });
 
         async function loadFacilityReports() {
             try {
                 showStatus('Loading facilities...', 'info');
                 const response = await fetch('/reports/facilities');
                 const data = await response.json();
-                
+
                 clearMarkers();
-                
+
                 if (data.data && data.data.facilities) {
                     data.data.facilities.forEach(facility => {
                         const location = JSON.parse(facility.location);
                         const marker = L.marker([location.coordinates[1], location.coordinates[0]])
                             .bindPopup(`
-                                <div style="padding: 10px">
-                                    <h3>Facility ${facility.facility_number}</h3>
-                                    <p>${facility.description}</p>
-                                    <p>Category: ${facility.category_code}</p>
-                                    <button onclick="viewDetails('${facility.facility_number}')" 
-                                            style="padding: 5px 10px; background: #1a237e; color: white; border: none; border-radius: 4px; cursor: pointer;">
-                                        View Details
-                                    </button>
-                                </div>
+                                <strong>Facility ${facility.facility_number}</strong><br>
+                                ${facility.description}<br>
+                                Category: ${facility.category_code}
                             `);
                         markers.push(marker);
                         marker.addTo(map);
                     });
-                    document.getElementById('facilityCount').textContent = `${data.data.facilities.length} facilities found`;
+                    document.getElementById('facilityCount').textContent = 
+                        `${data.data.facilities.length} facilities found`;
                     showStatus('Facilities loaded successfully', 'success');
                 }
             } catch (error) {
@@ -227,6 +141,23 @@
             markers.forEach(marker => map.removeLayer(marker));
             markers = [];
         }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.style.backgroundColor = type === 'success' ? '#d4edda' : 
+                                         type === 'error' ? '#f8d7da' : '#e3f2fd';
+            status.style.color = type === 'success' ? '#155724' : 
+                                type === 'error' ? '#721c24' : '#004085';
+            status.textContent = message;
+            setTimeout(() => status.style.display = 'none', 3000);
+        }
+
+        // Initialize map and load facilities when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            loadFacilityReports();
+        });
 
         async function loadSafetyAnalysis() {
             showStatus('Loading safety analysis...', 'info');
@@ -271,30 +202,6 @@
         function viewDetails(facilityNumber) {
             showStatus(`Loading details for facility ${facilityNumber}...`, 'info');
         }
-
-        function showStatus(message, type) {
-            const status = document.getElementById('status');
-            status.style.display = 'block';
-            status.style.backgroundColor = 
-                type === 'success' ? '#d4edda' : 
-                type === 'error' ? '#f8d7da' : '#e3f2fd';
-            status.style.color = 
-                type === 'success' ? '#155724' : 
-                type === 'error' ? '#721c24' : '#004085';
-            status.textContent = message;
-            setTimeout(() => {
-                status.style.display = 'none';
-            }, 3000);
-        }
-
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('active');
-        }
-
-        // Initialize map and load facilities on page load
-        initMap();
-        loadFacilityReports();
     </script>
 </body>
 </html>
