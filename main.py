@@ -406,10 +406,15 @@ async def calculate_esqd(site_id: int):
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/", response_class=HTMLResponse)
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+# Mount the static directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
 async def serve_frontend():
-    with open("static/index.html") as f:
-        return HTMLResponse(content=f.read())
+    return FileResponse("static/index.html")
 
 @app.get("/reports/facilities")
 async def get_facility_report(current_user: str = Depends(get_current_user)):
