@@ -1,5 +1,6 @@
 
 from datetime import datetime, timedelta
+import os
 from typing import Dict, Tuple
 from secure_storage import SecureStorage
 
@@ -15,6 +16,10 @@ class RateLimiter:
     def check_limit(self, user_id: str, action_type: str) -> bool:
         if action_type not in self.limits:
             return True
+            
+        # Create rate_limits directory if it doesn't exist
+        if not os.path.exists("rate_limits"):
+            os.makedirs("rate_limits")
             
         limit, window = self.limits[action_type]
         current_time = datetime.now()
