@@ -19,6 +19,9 @@ CREATE TABLE explosive_sites (
     net_explosive_weight DECIMAL,
     k_factor DECIMAL DEFAULT 50,
     hazard_type VARCHAR(50),
+    organization_type VARCHAR(10) CHECK (organization_type IN ('DOD', 'DOE')),
+    facility_type VARCHAR(50),
+    lab_designation VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
