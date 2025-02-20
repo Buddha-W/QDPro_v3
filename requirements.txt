@@ -21,3 +21,4 @@ geopandas
 psutil
 pyodbc
 pandas
+alembic
