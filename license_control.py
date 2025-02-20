@@ -13,6 +13,12 @@ class LicenseManager:
         self.storage = SecureStorage()
         self.grace_period = timedelta(days=7)
         self.deployment_types = ["ON_PREMISE", "AWS_GOVCLOUD", "AZURE_GOVERNMENT"]
+        self.hosting_types = ["SELF_HOSTED", "VENDOR_HOSTED"]
+        self.tier_limits = {
+            "BASIC": {"max_users": 10, "features": ["basic"]},
+            "PROFESSIONAL": {"max_users": 50, "features": ["basic", "advanced"]},
+            "ENTERPRISE": {"max_users": 1000, "features": ["basic", "advanced", "classified"]}
+        }
         
     def generate_hardware_id(self) -> str:
         system_info = [
@@ -112,9 +118,18 @@ class LicenseManager:
         except:
             return False
             
-    def generate_license(self, duration_years: int, features: List[str] = None, deployment_type: str = "ON_PREMISE", max_instances: int = 1) -> str:
+    def generate_license(self, 
+                        duration_years: int,
+                        tier: str = "BASIC",
+                        hosting_type: str = "SELF_HOSTED",
+                        deployment_type: str = "ON_PREMISE",
+                        max_instances: int = 1) -> str:
         if deployment_type not in self.deployment_types:
             raise ValueError(f"Deployment type must be one of {self.deployment_types}")
+        if hosting_type not in self.hosting_types:
+            raise ValueError(f"Hosting type must be one of {self.hosting_types}")
+        if tier not in self.tier_limits:
+            raise ValueError(f"Tier must be one of {list(self.tier_limits.keys())}")
             
         license_key = uuid.uuid4().hex
         expiration = datetime.now() + timedelta(days=365 * duration_years)
@@ -122,13 +137,17 @@ class LicenseManager:
         license_data = {
             "key": license_key,
             "expiration": expiration.isoformat(),
-            "features": features or ["basic"],
-            "device_ids": [],
+            "tier": tier,
+            "features": self.tier_limits[tier]["features"],
+            "max_users": self.tier_limits[tier]["max_users"],
+            "hosting_type": hosting_type,
             "deployment_type": deployment_type,
             "max_instances": max_instances,
             "current_instances": 0,
+            "device_ids": [],
             "last_check": datetime.now().timestamp(),
-            "creation_date": datetime.now().isoformat()
+            "creation_date": datetime.now().isoformat(),
+            "vendor_hosted_url": f"https://qdpro-{license_key[:8]}.repl.co" if hosting_type == "VENDOR_HOSTED" else None
         }
         
         # Add integrity hash
