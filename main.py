@@ -79,9 +79,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database connection
+# Database connection with connection pooling
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/qdpro")
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=5,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=1800
+)
 
 # Models
 class FacilityBase(BaseModel):
