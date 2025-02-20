@@ -72,3 +72,60 @@ CREATE TABLE usage_metrics (
     value INTEGER,
     recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Offline sync tracking
+CREATE TABLE sync_status (
+    id SERIAL PRIMARY KEY,
+    device_id VARCHAR(255),
+    last_sync TIMESTAMP,
+    sync_type VARCHAR(50),
+    status VARCHAR(50),
+    details JSONB
+);
+
+-- Map layers
+CREATE TABLE map_layers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    source_type VARCHAR(50),
+    provider VARCHAR(100),
+    layer_config JSONB,
+    is_active BOOLEAN DEFAULT true
+);
+
+-- User preferences
+CREATE TABLE user_preferences (
+    user_id INTEGER PRIMARY KEY,
+    default_coordinate_system VARCHAR(50),
+    default_map_provider VARCHAR(100),
+    ui_settings JSONB,
+    notification_settings JSONB
+);
+
+-- Analysis results
+CREATE TABLE analysis_results (
+    id SERIAL PRIMARY KEY,
+    project_id INTEGER REFERENCES projects(id),
+    analysis_type VARCHAR(100),
+    input_parameters JSONB,
+    result_geometry GEOMETRY,
+    result_data JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Scheduled tasks
+CREATE TABLE scheduled_tasks (
+    id SERIAL PRIMARY KEY,
+    task_type VARCHAR(100),
+    frequency VARCHAR(50),
+    last_run TIMESTAMP,
+    next_run TIMESTAMP,
+    parameters JSONB,
+    status VARCHAR(50)
+);
+
+-- Create indexes
+CREATE INDEX idx_facilities_location ON facilities USING GIST(location);
+CREATE INDEX idx_safety_arcs_geometry ON safety_arcs USING GIST(arc_geometry);
+CREATE INDEX idx_sync_status_device ON sync_status(device_id);
+CREATE INDEX idx_analysis_results_project ON analysis_results(project_id);
