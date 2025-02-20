@@ -236,6 +236,45 @@ async def get_facility_report(current_user: str = Depends(get_current_user)):
 async def get_safety_analysis(current_user: str = Depends(get_current_user)):
     return await generate_safety_analysis(engine)
 
+@app.post("/site-plan/submit/{site_id}")
+async def submit_site_plan(
+    site_id: int,
+    site_data: Dict[str, Any],
+    current_user: str = Depends(get_current_user)
+):
+    validator = MapDataValidator()
+    validation_result = validator.validate_site_plan(site_data)
+    
+    if not validation_result["overall_valid"]:
+        raise HTTPException(status_code=400, detail=validation_result)
+        
+    # Update site plan status
+    query = """
+    UPDATE explosive_sites 
+    SET approval_status = 'pending_review',
+        submission_date = CURRENT_TIMESTAMP,
+        submitted_by = :user
+    WHERE id = :site_id
+    RETURNING id
+    """
+    
+    with engine.connect() as conn:
+        result = conn.execute(
+            text(query),
+            {"site_id": site_id, "user": current_user}
+        )
+        if not result.rowcount:
+            raise HTTPException(status_code=404, detail="Site not found")
+            
+    return {"status": "submitted", "validation": validation_result}
+
+@app.get("/site-plan/{site_id}")
+async def get_site_plan(
+    site_id: int,
+    current_user: str = Depends(get_current_user)
+):
+    return await generate_site_plan_report(engine, site_id)
+
 @app.get("/analysis/pes/{pes_id}/exposed-sites")
 async def analyze_exposed_sites(pes_id: int, current_user: str = Depends(get_current_user)):
     """Get all exposed sites for a PES"""

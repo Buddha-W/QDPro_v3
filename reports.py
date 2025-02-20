@@ -43,10 +43,42 @@ async def generate_safety_analysis(engine) -> Report:
         ST_AsGeoJSON(ST_Buffer(
             f.location::geography, 
             (es.net_explosive_weight ^ (1.0/3.0)) * es.k_factor
-        )::geometry) as safety_arc
+        )::geometry) as safety_arc,
+        es.approval_status,
+        es.review_date,
+        es.reviewer_comments
     FROM explosive_sites es
     JOIN facilities f ON es.facility_id = f.id
     """
+
+async def generate_site_plan_report(engine, site_id: int) -> Report:
+    query = """
+    SELECT 
+        f.facility_number,
+        f.description,
+        es.net_explosive_weight,
+        es.hazard_type,
+        es.approval_status,
+        es.review_date,
+        es.reviewer_comments,
+        ST_AsGeoJSON(f.location) as location,
+        ST_AsGeoJSON(ST_Buffer(
+            f.location::geography, 
+            (es.net_explosive_weight ^ (1.0/3.0)) * es.k_factor
+        )::geometry) as safety_arc
+    FROM explosive_sites es
+    JOIN facilities f ON es.facility_id = f.id
+    WHERE es.id = :site_id
+    """
+    with engine.connect() as conn:
+        result = conn.execute(text(query), {"site_id": site_id})
+        site_data = dict(result.fetchone())
+    
+    return Report(
+        title="Site Plan Review Report",
+        generated_at=datetime.now(),
+        data={"site_plan": site_data}
+    )
     with engine.connect() as conn:
         result = conn.execute(text(query))
         analysis = [dict(row) for row in result]

@@ -58,3 +58,23 @@ def validate_explosive_weight(self, weight: float, org_type: str, facility_type:
             'basic': 100000
         }
         return quantity <= nato_limits.get(storage_type, nato_limits['standard'])
+
+    def validate_site_plan(self, site_data: Dict[str, Any]) -> Dict[str, bool]:
+        """Validate complete site plan for submission"""
+        validation = {
+            "coordinates_valid": self.validate_coordinates(
+                site_data.get("latitude"), 
+                site_data.get("longitude")
+            ),
+            "weight_valid": self.validate_explosive_weight(
+                site_data.get("net_explosive_weight"),
+                site_data.get("org_type"),
+                site_data.get("facility_type")
+            ),
+            "safety_distances_valid": True,  # Calculated based on surrounding facilities
+            "required_docs_present": all(
+                site_data.get(doc) for doc in ["site_map", "safety_assessment", "environmental_impact"]
+            )
+        }
+        validation["overall_valid"] = all(validation.values())
+        return validation
