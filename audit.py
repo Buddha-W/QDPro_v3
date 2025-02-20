@@ -7,9 +7,16 @@ import socket
 import os
 from secure_storage import SecureStorage
 
+from typing import Optional, Dict, Any
+from datetime import datetime, timedelta, timezone
+import hashlib
+import hmac
+import os
+
 class SecureAuditLogger:
     def __init__(self):
         self.storage = SecureStorage()
+        self.integrity_key = os.getenv("AUDIT_INTEGRITY_KEY", os.urandom(32))
         self.security_events = {
             "AUTH_FAILURE": "Authentication Failure",
             "ACCESS_DENIED": "Access Denied",
@@ -37,9 +44,32 @@ class SecureAuditLogger:
     def sanitize_data(self, data: str) -> str:
         return ''.join(char for char in data if char.isprintable())
     
+    def calculate_integrity_hash(self, entry: Dict[str, Any]) -> str:
+        message = f"{entry['timestamp']}{entry['user_id']}{entry['action']}{entry['resource']}"
+        return hmac.new(self.integrity_key, message.encode(), hashlib.sha384).hexdigest()
+
     def log_activity(self, user_id: str, action: str, resource: str, status: str, details: dict = None):
         hostname = socket.gethostname()
         timestamp = datetime.now(timezone.utc)
+        
+        # Enhanced metadata collection
+        entry = {
+            'system_id': hashlib.sha384(hostname.encode()).hexdigest(),
+            'event_id': hashlib.sha384(f"{timestamp.timestamp()}:{user_id}".encode()).hexdigest(),
+            'timestamp': timestamp.isoformat(),
+            'user_id': self.sanitize_data(user_id),
+            'action': self.sanitize_data(action),
+            'resource': self.sanitize_data(resource),
+            'status': self.sanitize_data(status),
+            'details': details,
+            'source_ip': os.getenv('REPL_OWNER'),
+            'classification': 'CONTROLLED_UNCLASSIFIED',
+            'process_id': os.getpid(),
+            'thread_id': threading.get_ident()
+        }
+        
+        # Add integrity hash
+        entry['integrity_hash'] = self.calculate_integrity_hash(entry)
         
         log_entry = {
             'system_id': hashlib.sha256(hostname.encode()).hexdigest(),
