@@ -18,3 +18,4 @@ pyjwt
 pyotp
 qrcode
 geopandas
+psutil
