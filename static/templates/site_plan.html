@@ -152,10 +152,10 @@
         // Fetch and display facilities
         // Initialize tools
         let measureControl = null;
-        let drawControl = null;
 
         document.getElementById('orgSelect').addEventListener('change', function(e) {
-            updateFacilityTypes(e.target.value);
+            // TODO: Implement updateFacilityTypes
+            console.log('Selected organization:', e.target.value);
         });
 
         document.getElementById('measureDistance').addEventListener('click', function() {
@@ -171,18 +171,10 @@
         });
 
         document.getElementById('drawArc').addEventListener('click', function() {
-            if (!drawControl) {
-                drawControl = new L.Control.Draw({
-                    draw: {
-                        circle: true,
-                        rectangle: false,
-                        polygon: false,
-                        polyline: false,
-                        marker: true,
-                        circlemarker: false
-                    }
-                });
-                map.addControl(drawControl);
+            // Toggle existing draw control visibility
+            const drawToolbar = document.querySelector('.leaflet-draw');
+            if (drawToolbar) {
+                drawToolbar.style.display = drawToolbar.style.display === 'none' ? 'block' : 'none';
             }
         });
 
