@@ -34,7 +34,7 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 templates = Jinja2Templates(directory=str(BASE_DIR / "static" / "templates"))
 
 @app.get("/")
-async def root(request: Request):
+async def serve_frontend(request: Request):
     return templates.TemplateResponse("site_plan.html", {"request": request})
 
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -51,7 +51,7 @@ usage_monitor = UsageMonitor()
 async def security_middleware(request: Request, call_next):
     start_time = datetime.now()
     user_id = request.headers.get("X-User-ID", "anonymous")
-    
+
     if not rate_limiter.check_limit(user_id, "API_CALLS"):
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
     request_id = secrets.token_hex(16)
@@ -141,10 +141,10 @@ async def system_status():
     """Get detailed system status"""
     checker = DeploymentChecker()
     check_results = checker.run_pre_deployment_checks()
-    
+
     monitor = UsageMonitor()
     metrics = monitor.get_system_metrics()
-    
+
     return {
         "database": check_results["database"],
         "security": check_results["security"],
@@ -161,14 +161,14 @@ async def health_check():
         map_status = await MapService().verify_services()
         cache_status = await usage_monitor.verify_cache()
         security_status = await SystemHardening().verify_status()
-        
+
         overall_health = all([
             db_status["healthy"],
             map_status["healthy"],
             cache_status["healthy"],
             security_status["healthy"]
         ])
-        
+
         return {
             "status": "healthy" if overall_health else "degraded",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -192,12 +192,12 @@ async def health_check():
     try:
         system_health = usage_monitor.get_system_health()
         crypto_status = crypto.validate_crypto_operations({"test": "data"})
-        
+
         # Check database connectivity and version
         with engine.connect() as conn:
             db_version = conn.execute(text("SELECT version()")).scalar()
             conn.execute(text("SELECT 1"))  # Basic connectivity test
-            
+
             # Get database size and activity
             db_stats = conn.execute(text("""
                 SELECT 
@@ -206,7 +206,7 @@ async def health_check():
                 FROM pg_stat_activity
                 WHERE datname = current_database()
             """)).fetchone()
-            
+
         return {
             "status": "healthy",
             "version": "1.0.0",
@@ -229,7 +229,7 @@ async def health_check():
         }
     system_health = usage_monitor.get_system_health()
     crypto_status = crypto.validate_crypto_operations({"test": "data"})
-    
+
     return {
         "status": system_health["status"],
         "version": "1.0.0",
@@ -239,7 +239,7 @@ async def health_check():
         "security_status": anti_tampering._verify_system_integrity({})
     }
 
-@app.get("/")
+@app.get("/api/")
 async def root():
     return {"message": "QDPro GIS System API"}
 
@@ -254,9 +254,9 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         500: "An unexpected error occurred. Our team has been notified.",
         503: "The system is temporarily unavailable. Please try again shortly."
     }
-    
+
     user_message = error_messages.get(exc.status_code, exc.detail)
-    
+
     # Log the error
     log_activity(
         user_id=request.headers.get("X-User-ID", "anonymous"),
@@ -270,7 +270,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "request_id": request.state.request_id
         }
     )
-    
+
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -280,7 +280,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
     )
-    
+
     # Attempt recovery for known error conditions
     if exc.status_code == 503:  # Service Unavailable
         try:
@@ -289,7 +289,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             return {"detail": "Service recovered", "status_code": 200}
         except Exception as e:
             pass
-            
+
     return {"detail": exc.detail, "status_code": exc.status_code, "recovery_attempted": True}
 
 @app.post("/facilities/")
@@ -306,21 +306,21 @@ async def create_facility(facility: FacilityBase):
                     "details": "Latitude must be between -90 and 90, longitude between -180 and 180"
                 }
             )
-            
+
         point = Point(facility.longitude, facility.latitude)
         query = """
             INSERT INTO facilities (facility_number, description, category_code, location)
             VALUES (%s, %s, %s, ST_SetSRID(ST_GeomFromText(%s), 4326))
             RETURNING id, facility_number
         """
-        
+
         with engine.connect() as conn:
             result = conn.execute(
                 query,
                 (facility.facility_number, facility.description, facility.category_code, point.wkt)
             )
             new_id, facility_number = result.fetchone()
-            
+
             return JSONResponse(
                 status_code=201,
                 content={
@@ -350,11 +350,11 @@ async def create_facility(facility: FacilityBase):
     # Validate coordinates
     if not (-90 <= facility.latitude <= 90) or not (-180 <= facility.longitude <= 180):
         raise HTTPException(status_code=400, detail="Invalid coordinates")
-        
+
     # Validate facility number format
     if not re.match(r'^[A-Z0-9]{3,10}$', facility.facility_number):
         raise HTTPException(status_code=400, detail="Invalid facility number format")
-        
+
     point = Point(facility.longitude, facility.latitude)
     query = """
         INSERT INTO facilities (facility_number, description, category_code, location)
@@ -444,10 +444,10 @@ async def submit_site_plan(
 ):
     validator = MapDataValidator()
     validation_result = validator.validate_site_plan(site_data)
-    
+
     if not validation_result["overall_valid"]:
         raise HTTPException(status_code=400, detail=validation_result)
-        
+
     # Update site plan status
     query = """
     UPDATE explosive_sites 
@@ -457,7 +457,7 @@ async def submit_site_plan(
     WHERE id = :site_id
     RETURNING id
     """
-    
+
     with engine.connect() as conn:
         result = conn.execute(
             text(query),
@@ -465,7 +465,7 @@ async def submit_site_plan(
         )
         if not result.rowcount:
             raise HTTPException(status_code=404, detail="Site not found")
-            
+
     return {"status": "submitted", "validation": validation_result}
 
 @app.get("/site-plan/{site_id}")
@@ -613,30 +613,30 @@ async def update_feedback_status(
     """Update feedback status (admin only)"""
     if not is_admin(current_user):
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
     success = feedback_system.update_feedback_status(feedback_id, status)
     if not success:
         raise HTTPException(status_code=404, detail="Feedback not found")
-    
+
     return {"status": "success", "message": "Feedback status updated"}
 
 if __name__ == "__main__":
     print("Starting QDPro server on http://0.0.0.0:8080")
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
-    
+
     if not all(check_results.values()):
         print("Pre-deployment checks failed:")
         for check, result in check_results.items():
             if not result:
                 print(f"- {check} check failed")
         sys.exit(1)
-    
+
     # Initialize database maintenance
     from database_maintenance import DatabaseMaintenance
     db_maintenance = DatabaseMaintenance(DATABASE_URL)
     asyncio.create_task(db_maintenance.schedule_maintenance())
-    
+
     # Initialize deployment and offline sync managers
     from deployment_manager import DeploymentManager
     from offline_sync import OfflineSyncManager
@@ -723,14 +723,14 @@ async def export_table(format: str, table: str):
         export_id = secrets.token_hex(16)
         exporter = DatabaseExporter(DATABASE_URL)
         file_path = f"temp_export_{table}.{format}"
-        
+
         # Initialize progress tracking
         import_status[export_id] = {
             'status': 'starting',
             'progress': 0.0,
             'message': 'Initializing export'
         }
-        
+
         if format == 'csv':
             exporter.export_to_csv(table, file_path)
         elif format == 'json':
@@ -739,7 +739,7 @@ async def export_table(format: str, table: str):
             exporter.export_to_legacy(file_path)
         else:
             raise HTTPException(status_code=400, detail="Unsupported format")
-            
+
         return FileResponse(file_path)
     finally:
         if os.path.exists(file_path):
