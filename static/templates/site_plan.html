@@ -2,79 +2,75 @@
 <html>
 <head>
     <title>Site Plan - QDPro</title>
-    <link rel="stylesheet" href="/static/templates/forms.css">
-    <style>
-        .help-icon {
-            cursor: help;
-            margin-left: 5px;
-        }
-    </style>
 </head>
 <body>
-    <div class="site-plan-container">
-        <header class="report-header">
-            <div class="logo-section">
-                <img src="/static/logo.png" alt="QDPro Logo">
-                <h1>Quantity Distance Site Plan</h1>
-            </div>
-            <div class="metadata">
-                <p>Date: <span id="current-date"></span></p>
-                <p>Report ID: <span id="report-id"></span></p>
-            </div>
-        </header>
-
-        <div class="map-container">
-            <div id="site-map" class="map-view"></div>
-            <div class="map-controls">
-                <button class="control-btn" onclick="toggleLayers()">Toggle Layers</button>
-                <button class="control-btn" onclick="showESQD()">Show ESQD</button>
-                <button class="control-btn" onclick="measureDistance()">Measure</button>
-            </div>
-        </div>
-
-        <div class="form-section">
-            <h2>Site Information</h2>
-            <form id="site-details">
-                <div class="form-group">
-                    <label>Facility Number: <span class="help-icon" title="Enter the unique facility identifier (Format: A-Z0-9)">ℹ️</span></label>
-                    <input type="text" name="facility_number" required pattern="[A-Z0-9]{3,10}">
+    <h1>Site Plan View</h1>
+    <div id="site-content">
+        <div class="site-plan-container">
+            <header class="report-header">
+                <div class="logo-section">
+                    <img src="/static/logo.png" alt="QDPro Logo">
+                    <h1>Quantity Distance Site Plan</h1>
                 </div>
-                <div class="form-group">
-                    <label>NEW (lbs):</label>
-                    <input type="number" name="new" required min="0">
+                <div class="metadata">
+                    <p>Date: <span id="current-date"></span></p>
+                    <p>Report ID: <span id="report-id"></span></p>
                 </div>
-                <div class="form-group">
-                    <label>Standard:</label>
-                    <select name="standard">
-                        <option value="dod">DoD 4145.26-M</option>
-                        <option value="nato">NATO AASTP-1</option>
-                        <option value="doe">DOE Standards</option>
-                    </select>
+            </header>
+
+            <div class="map-container">
+                <div id="site-map" class="map-view"></div>
+                <div class="map-controls">
+                    <button class="control-btn" onclick="toggleLayers()">Toggle Layers</button>
+                    <button class="control-btn" onclick="showESQD()">Show ESQD</button>
+                    <button class="control-btn" onclick="measureDistance()">Measure</button>
                 </div>
-            </form>
-        </div>
-
-        <div class="analysis-results">
-            <h2>Analysis Results</h2>
-            <table class="results-table">
-                <tr>
-                    <th>Parameter</th>
-                    <th>Value</th>
-                    <th>Status</th>
-                </tr>
-                <tbody id="results-body">
-                </tbody>
-            </table>
-        </div>
-
-        <div class="approval-section">
-            <div class="signature-block">
-                <p>Prepared By: _________________</p>
-                <p>Date: _________________</p>
             </div>
-            <div class="signature-block">
-                <p>Approved By: _________________</p>
-                <p>Date: _________________</p>
+
+            <div class="form-section">
+                <h2>Site Information</h2>
+                <form id="site-details">
+                    <div class="form-group">
+                        <label>Facility Number: <span class="help-icon" title="Enter the unique facility identifier (Format: A-Z0-9)">ℹ️</span></label>
+                        <input type="text" name="facility_number" required pattern="[A-Z0-9]{3,10}">
+                    </div>
+                    <div class="form-group">
+                        <label>NEW (lbs):</label>
+                        <input type="number" name="new" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Standard:</label>
+                        <select name="standard">
+                            <option value="dod">DoD 4145.26-M</option>
+                            <option value="nato">NATO AASTP-1</option>
+                            <option value="doe">DOE Standards</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <div class="analysis-results">
+                <h2>Analysis Results</h2>
+                <table class="results-table">
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                    </tr>
+                    <tbody id="results-body">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="approval-section">
+                <div class="signature-block">
+                    <p>Prepared By: _________________</p>
+                    <p>Date: _________________</p>
+                </div>
+                <div class="signature-block">
+                    <p>Approved By: _________________</p>
+                    <p>Date: _________________</p>
+                </div>
             </div>
         </div>
     </div>
