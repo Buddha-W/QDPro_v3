@@ -356,3 +356,23 @@ async def get_import_status(import_id: str):
     if import_id not in import_status:
         raise HTTPException(status_code=404, detail="Import job not found")
     return import_status[import_id]
+
+@app.get("/export/{format}/{table}")
+async def export_table(format: str, table: str):
+    try:
+        exporter = DatabaseExporter(DATABASE_URL)
+        file_path = f"temp_export_{table}.{format}"
+        
+        if format == 'csv':
+            exporter.export_to_csv(table, file_path)
+        elif format == 'json':
+            exporter.export_to_json(table, file_path)
+        elif format == 'legacy':
+            exporter.export_to_legacy(file_path)
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported format")
+            
+        return FileResponse(file_path)
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
