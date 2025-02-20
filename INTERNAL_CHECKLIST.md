@@ -20,8 +20,10 @@
 - [x] Proximity Analysis
 - [x] ESQD Arc Calculations
 - [x] Facility Management
-- [x] Weather Overlay Integration
 - [x] Line of Sight Analysis
+
+## Reserved Features (Code Ready)
+- [ ] Weather Overlay Integration
 - [x] Terrain Analysis
 - [x] Distance/Area Measurements
 

@@ -5,8 +5,10 @@
 - [x] Basic Map Display (Leaflet.js)
 - [x] Multi-Ring Buffer Analysis (static/index.html - analyzeBuffer())
 - [x] Proximity Analysis (static/index.html - analyzeProximity())
-- [x] Weather Overlay Integration (static/index.html - toggleWeatherOverlay())
 - [x] Line of Sight Analysis (static/index.html - analyzeLineOfSight())
+
+## Future Features
+- [ ] Weather Overlay Integration
 - [x] Terrain Analysis (static/index.html - showTerrainAnalysis())
 - [x] MGRS Coordinate Support (static/index.html - updateCoordinateSystem())
 - [x] Distance Measurement (static/index.html - toggleMeasurement())
