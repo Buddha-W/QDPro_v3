@@ -217,6 +217,16 @@ async def get_safety_analysis(current_user: str = Depends(get_current_user)):
     return await generate_safety_analysis(engine)
 
 if __name__ == "__main__":
+    # Initialize deployment manager
+    from deployment_manager import DeploymentManager
+    deployment_mgr = DeploymentManager()
+    
+    if not deployment_mgr.validate_environment():
+        print("Missing required environment variables")
+        sys.exit(1)
+        
+    config = deployment_mgr.configure_deployment()
+    
     # Initialize security controls
     from system_hardening import SystemHardening
     from crypto_validation import CryptoValidator
