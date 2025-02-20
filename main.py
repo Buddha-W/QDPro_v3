@@ -210,6 +210,17 @@ if __name__ == "__main__":
     from system_hardening import SystemHardening
     from crypto_validation import CryptoValidator
     from fedramp_compliance import FedRAMPControls
+    from license_control import LicenseManager
+    from anti_tampering import AntiTampering
+    
+    # Initialize protection systems
+    license_manager = LicenseManager()
+    if not license_manager.validate_license(os.getenv("LICENSE_KEY"))["valid"]:
+        print("Invalid license")
+        sys.exit(1)
+        
+    anti_tampering = AntiTampering()
+    anti_tampering.initialize_protection()
     
     fedramp = FedRAMPControls()
     fedramp_status = fedramp.validate_compliance()
