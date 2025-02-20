@@ -1,15 +1,30 @@
 
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, Optional, BinaryIO
 from secure_config import SecureConfigManager
+import geopandas as gpd
+from shapely.geometry import shape
+import json
 
 class MapProvider(Enum):
     OSM = "openstreetmap"
+    GOOGLE = "google"
     USGS = "usgs"
     NGA = "nga"
     DOD = "dod"
     ESRI = "esri"
     DIGITAL_GLOBE = "digitalglobe"
+
+class ShapefileHandler:
+    @staticmethod
+    def import_shapefile(file: BinaryIO) -> dict:
+        gdf = gpd.read_file(file)
+        return json.loads(gdf.to_json())
+
+    @staticmethod
+    def export_geojson_to_shapefile(geojson: dict, output_path: str):
+        gdf = gpd.GeoDataFrame.from_features(geojson['features'])
+        gdf.to_file(output_path, driver='ESRI Shapefile')
 
 class MapProviderService:
     def __init__(self):
@@ -19,6 +34,7 @@ class MapProviderService:
     def get_tile_url(self, provider: MapProvider) -> str:
         base_urls = {
             MapProvider.OSM: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            MapProvider.GOOGLE: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
             MapProvider.USGS: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
             MapProvider.NGA: 'https://gis.nga.mil/arcgis/rest/services/DOD_NGA/MapServer/tile/{z}/{y}/{x}',
             MapProvider.DOD: 'https://tiles.arcgis.com/tiles/Federal_DOD/arcgis/rest/services/MapServer/tile/{z}/{y}/{x}'
