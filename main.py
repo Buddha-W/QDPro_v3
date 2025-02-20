@@ -314,6 +314,11 @@ async def import_database(file: UploadFile):
 
 
 if __name__ == "__main__":
+    # Initialize database maintenance
+    from database_maintenance import DatabaseMaintenance
+    db_maintenance = DatabaseMaintenance(DATABASE_URL)
+    asyncio.create_task(db_maintenance.schedule_maintenance())
+    
     # Initialize deployment and offline sync managers
     from deployment_manager import DeploymentManager
     from offline_sync import OfflineSyncManager

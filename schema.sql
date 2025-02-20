@@ -129,6 +129,58 @@ CREATE INDEX idx_facilities_location ON facilities USING GIST(location);
 CREATE INDEX idx_safety_arcs_geometry ON safety_arcs USING GIST(arc_geometry);
 CREATE INDEX idx_sync_status_device ON sync_status(device_id);
 CREATE INDEX idx_analysis_results_project ON analysis_results(project_id);
+CREATE INDEX idx_explosive_sites_facility ON explosive_sites(facility_id);
+CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
+CREATE INDEX idx_usage_metrics_recorded ON usage_metrics(recorded_at);
+
+-- Create materialized view for frequently accessed analysis data
+CREATE MATERIALIZED VIEW analysis_summary AS
+SELECT 
+    p.name as project_name,
+    COUNT(ar.id) as analysis_count,
+    MAX(ar.created_at) as last_analysis,
+    jsonb_agg(DISTINCT ar.analysis_type) as analysis_types
+FROM projects p
+LEFT JOIN analysis_results ar ON p.id = ar.project_id
+GROUP BY p.id, p.name
+WITH DATA;
+
+CREATE UNIQUE INDEX idx_analysis_summary ON analysis_summary (project_name);
+
+-- Add automatic refresh function
+CREATE OR REPLACE FUNCTION refresh_analysis_summary()
+RETURNS TRIGGER AS $$
+BEGIN
+    REFRESH MATERIALIZED VIEW CONCURRENTLY analysis_summary;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER refresh_analysis_summary_trigger
+AFTER INSERT OR UPDATE OR DELETE ON analysis_results
+FOR EACH STATEMENT
+EXECUTE FUNCTION refresh_analysis_summary();
+
+-- Add database maintenance function
+CREATE OR REPLACE FUNCTION maintain_database()
+RETURNS void AS $$
+BEGIN
+    -- Vacuum analyze tables
+    VACUUM ANALYZE facilities;
+    VACUUM ANALYZE explosive_sites;
+    VACUUM ANALYZE safety_arcs;
+    VACUUM ANALYZE analysis_results;
+    
+    -- Refresh materialized views
+    REFRESH MATERIALIZED VIEW CONCURRENTLY analysis_summary;
+    
+    -- Update statistics
+    ANALYZE facilities;
+    ANALYZE explosive_sites;
+    ANALYZE safety_arcs;
+    ANALYZE analysis_results;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Add validation triggers
 CREATE OR REPLACE FUNCTION validate_explosive_site() RETURNS TRIGGER AS $$
