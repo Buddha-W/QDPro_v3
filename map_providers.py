@@ -31,10 +31,20 @@ class MapProviderService:
         self.config = SecureConfigManager()
         self.premium_keys = self.config.load_config().get('map_providers', {})
 
-    def get_tile_url(self, provider: MapProvider) -> str:
+    def get_tile_url(self, provider: MapProvider, layer_type: str = 'standard') -> str:
         base_urls = {
-            MapProvider.OSM: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            MapProvider.GOOGLE: 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+            MapProvider.OSM: {
+                'standard': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                'humanitarian': 'https://tile-{s}.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+                'terrain': 'https://tile.thunderforest.com/landscape/{z}/{x}/{y}.png',
+                'transport': 'https://tile.thunderforest.com/transport/{z}/{x}/{y}.png'
+            },
+            MapProvider.GOOGLE: {
+                'standard': 'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+                'satellite': 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                'hybrid': 'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+                'terrain': 'https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}'
+            },
             MapProvider.USGS: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
             MapProvider.NGA: 'https://gis.nga.mil/arcgis/rest/services/DOD_NGA/MapServer/tile/{z}/{y}/{x}',
             MapProvider.DOD: 'https://tiles.arcgis.com/tiles/Federal_DOD/arcgis/rest/services/MapServer/tile/{z}/{y}/{x}'
