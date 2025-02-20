@@ -63,11 +63,13 @@ class ExplosionAnalysis:
 
         # Lab-specific configurations
         self.doe_labs = {
-            'LANL': {'factor_adjustment': 1.1},
-            'LLNL': {'factor_adjustment': 1.05},
-            'SNL': {'factor_adjustment': 1.15},
-            'ORNL': {'factor_adjustment': 1.0},
-            'PNNL': {'factor_adjustment': 1.08}
+            'LANL': {'factor_adjustment': 1.15},
+            'LLNL': {'factor_adjustment': 1.12},
+            'SNL': {'factor_adjustment': 1.18},
+            'ORNL': {'factor_adjustment': 1.1},
+            'PNNL': {'factor_adjustment': 1.12},
+            'Y12': {'factor_adjustment': 1.15},
+            'Pantex': {'factor_adjustment': 1.2}
         }
 
     @lru_cache(maxsize=1000)

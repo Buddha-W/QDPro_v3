@@ -29,30 +29,30 @@ class Standards:
             'description': 'DOE to DoD standard cross-references'
         },
         'storage_compatibility': {
-            'ref': 'DESR 6055.09 Edition 1',
-            'chapters': ['V1.E6.4', 'V1.E6.5'],
+            'ref': 'DESR 6055.09 Edition 2',
+            'chapters': ['V1.E6.4', 'V1.E6.5', 'V1.E6.6'],
             'description': 'Explosive compatibility storage requirements'
         },
         'handling': {
-            'ref': 'DA PAM 385-64',
-            'chapters': ['Chapter 5'],
+            'ref': 'DA PAM 385-64 2023',
+            'chapters': ['Chapter 5', 'Chapter 6'],
             'description': 'Ammunition and explosives handling requirements'
         }
     }
     
     DOE_REFERENCES = {
         'facility_safety': {
-            'ref': 'DOE-STD-1212-2019',
+            'ref': 'DOE-STD-1212-2023',
             'chapters': ['Chapter 3', 'Chapter 4'],
             'description': 'Explosives safety requirements for facilities'
         },
         'storage_limits': {
-            'ref': 'DOE O 440.1B',
-            'chapters': ['Attachment 2'],
+            'ref': 'DOE O 440.1C',
+            'chapters': ['Attachment 2', 'Attachment 3'],
             'description': 'Storage limits and requirements'
         },
         'laboratory_operations': {
-            'ref': 'DOE-STD-1212-2025',
+            'ref': 'DOE-STD-1212-2023',
             'chapters': ['Chapter 11'],
             'description': 'Laboratory operations with explosives'
         }
