@@ -4,6 +4,7 @@ from typing import Dict, List
 class StandardType(Enum):
     DOD = "DOD"
     DOE = "DOE"
+    NATO = "NATO"
 
 class Standards:
     DOD_REFERENCES = {
@@ -36,6 +37,19 @@ class Standards:
             'ref': 'DA PAM 385-64 2023',
             'chapters': ['Chapter 5', 'Chapter 6'],
             'description': 'Ammunition and explosives handling requirements'
+        }
+    }
+
+    NATO_REFERENCES = {
+        'quantity_distance': {
+            'ref': 'AASTP-1',
+            'chapters': ['Part I', 'Part II'],
+            'description': 'NATO Guidelines for Storage of Military Ammunition and Explosives'
+        },
+        'risk_analysis': {
+            'ref': 'AASTP-4',
+            'chapters': ['All'],
+            'description': 'NATO Explosives Safety Risk Analysis'
         }
     }
 

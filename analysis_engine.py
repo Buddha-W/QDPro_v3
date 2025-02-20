@@ -15,6 +15,12 @@ class ExplosionAnalysis:
         self.thread_pool = ThreadPoolExecutor(max_workers=4)
 
         # Organization-specific K-factors
+        self.unit_conversions = {
+            'kg_to_lbs': 2.20462,
+            'g_to_lbs': 0.00220462,
+            'lbs_to_kg': 0.453592
+        }
+        
         self.k_factors = {
             'DOD': {
                 'default': 40,
@@ -47,6 +53,13 @@ class ExplosionAnalysis:
                     'minor_repair': 35,
                     'loading': 50
                 }
+            },
+            'NATO': {
+                'default': 44.4,
+                'public_traffic_route': 22.2,
+                'inhabited_building': 44.4,
+                'process_building': 33.3,
+                'storage': 25
             },
             'DOE': {
                 'default': 50,
@@ -83,7 +96,7 @@ class ExplosionAnalysis:
         }
 
     @lru_cache(maxsize=1000)
-    def calculate_distance(self, NEW: float, org_type: str, facility_type: str, lab: str = None) -> float:
+    def calculate_distance(self, NEW: float, org_type: str, facility_type: str, lab: str = None, unit: str = 'lbs') -> float:
         """Calculate QD based on organization type and facility"""
         try:
             k_factor = self.k_factors[org_type].get(facility_type, 
@@ -93,6 +106,12 @@ class ExplosionAnalysis:
             if org_type == 'DOE' and lab in self.doe_labs:
                 k_factor *= self.doe_labs[lab]['factor_adjustment']
 
+            # Convert units if needed
+            if unit == 'kg':
+                NEW = NEW * self.unit_conversions['kg_to_lbs']
+            elif unit == 'g':
+                NEW = NEW * self.unit_conversions['g_to_lbs']
+                
             # Calculate using cube root formula
             return k_factor * math.pow(NEW, 1/3)
         except Exception as e:
