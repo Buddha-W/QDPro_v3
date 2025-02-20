@@ -131,6 +131,13 @@
         }
 
         loadFacilities();
+
+        // Add click handler for coordinates
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(6);
+            const lng = e.latlng.lng.toFixed(6);
+            document.getElementById('coord-display').textContent = `${lat}, ${lng}`;
+        });
     </script>
 </body>
 </html>
