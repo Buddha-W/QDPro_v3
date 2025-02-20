@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from reports import generate_facility_report, generate_safety_analysis
 from auth import get_current_user, create_access_token, User
 from fastapi.middleware.cors import CORSMiddleware
