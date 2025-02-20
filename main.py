@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -12,6 +11,9 @@ from typing import List, Optional
 import uvicorn
 from pydantic import BaseModel
 import os
+import secrets
+from audit import log_activity # Added import for logging
+
 
 app = FastAPI(title="QDPro GIS System", version="1.0.0")
 
@@ -23,21 +25,43 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 @app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    if not re.match("^[a-zA-Z0-9_\-./]*$", request.url.path):
-        raise HTTPException(status_code=400, detail="Invalid characters in URL")
-    
+async def security_middleware(request: Request, call_next):
+    request_id = secrets.token_hex(16)
+    request.state.request_id = request_id
+
+    # Log incoming request
+    log_activity(
+        user_id=request.headers.get("X-User-ID", "anonymous"),
+        action="REQUEST",
+        resource=str(request.url),
+        status="INITIATED",
+        details={"request_id": request_id, "method": request.method}
+    )
+
     response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
-    response.headers["Cache-Control"] = "no-store, max-age=0"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; object-src 'none'"
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Cache-Control"] = "no-store, max-age=0"
+
+    # Enhanced security headers
+    response.headers.update({
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        "Cache-Control": "no-store, max-age=0",
+        "Content-Security-Policy": "default-src 'self'; script-src 'self'; object-src 'none'",
+        "X-XSS-Protection": "1; mode=block",
+        "X-Request-ID": request_id,
+        "X-Permitted-Cross-Domain-Policies": "none",
+        "Referrer-Policy": "strict-origin-when-cross-origin"
+    })
+
+    # Log response
+    log_activity(
+        user_id=request.headers.get("X-User-ID", "anonymous"),
+        action="REQUEST",
+        resource=str(request.url),
+        status="COMPLETED",
+        details={"request_id": request_id, "status_code": response.status_code}
+    )
+
     return response
 
 # Configure CORS

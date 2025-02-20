@@ -9,3 +9,4 @@ pydantic
 shapely
 sqlalchemy
 uvicorn
+cryptography
