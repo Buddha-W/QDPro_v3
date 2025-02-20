@@ -50,9 +50,14 @@
                 <option value="utm">UTM</option>
             </select>
             <button onclick="exportMap()">Export Map</button>
+            <button onclick="toggleMeasurement()">Measure Distance</button>
+            <button onclick="toggleAreaCalculation()">Calculate Area</button>
+            <button onclick="analyzeBuffer()">Buffer Analysis</button>
+            <button onclick="exportPDF()">Export PDF</button>
         </div>
     </div>
     <div id="map"></div>
+    <div id="measurement-info" style="position: absolute; bottom: 20px; left: 20px; background: white; padding: 10px; border-radius: 5px; display: none;"></div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
@@ -174,9 +179,113 @@
             }
         }
 
+        let measureTool = null;
+        let areaTool = null;
+
+        function toggleMeasurement() {
+            if (measureTool) {
+                map.removeLayer(measureTool);
+                measureTool = null;
+                document.getElementById('measurement-info').style.display = 'none';
+            } else {
+                measureTool = new L.Polyline([], {color: 'red'});
+                map.addLayer(measureTool);
+                map.on('click', addMeasurePoint);
+                document.getElementById('measurement-info').style.display = 'block';
+            }
+        }
+
+        function addMeasurePoint(e) {
+            if (measureTool) {
+                measureTool.addLatLng(e.latlng);
+                updateMeasurement();
+            }
+        }
+
+        function updateMeasurement() {
+            const distance = calculateDistance(measureTool.getLatLngs());
+            document.getElementById('measurement-info').innerHTML = `Distance: ${distance.toFixed(2)} km`;
+        }
+
+        function calculateDistance(latlngs) {
+            let totalDistance = 0;
+            for (let i = 1; i < latlngs.length; i++) {
+                totalDistance += latlngs[i].distanceTo(latlngs[i-1]) / 1000;
+            }
+            return totalDistance;
+        }
+
+        function toggleAreaCalculation() {
+            if (areaTool) {
+                map.removeLayer(areaTool);
+                areaTool = null;
+            } else {
+                areaTool = new L.Polygon([], {color: 'blue'});
+                map.addLayer(areaTool);
+                map.on('click', addAreaPoint);
+            }
+        }
+
+        function addAreaPoint(e) {
+            if (areaTool) {
+                areaTool.addLatLng(e.latlng);
+                updateArea();
+            }
+        }
+
+        function updateArea() {
+            const area = L.GeometryUtil.geodesicArea(areaTool.getLatLngs()[0]);
+            document.getElementById('measurement-info').innerHTML = `Area: ${(area / 1000000).toFixed(2)} km²`;
+        }
+
+        function analyzeBuffer() {
+            const radius = prompt('Enter buffer radius (in meters):', '1000');
+            if (radius) {
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.Marker) {
+                        L.circle(layer.getLatLng(), {
+                            radius: parseInt(radius),
+                            color: 'orange',
+                            fillOpacity: 0.2
+                        }).addTo(map);
+                    }
+                });
+            }
+        }
+
+        function exportPDF() {
+            const mapImage = map.getCanvas().toDataURL();
+            const doc = new jsPDF();
+            doc.addImage(mapImage, 'PNG', 10, 10, 190, 180);
+            doc.save('map.pdf');
+        }
+
         function exportMap() {
             const format = prompt('Export format (KML/GPX/SHP):', 'KML');
-            // Implement export functionality
+            const layers = [];
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker || layer instanceof L.Polygon) {
+                    layers.push(layer.toGeoJSON());
+                }
+            });
+            const geojson = {
+                type: 'FeatureCollection',
+                features: layers
+            };
+            
+            downloadGeoJSON(geojson, `map.${format.toLowerCase()}`);
+        }
+
+        function downloadGeoJSON(geojson, filename) {
+            const blob = new Blob([JSON.stringify(geojson)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         // Add click handler for coordinates
