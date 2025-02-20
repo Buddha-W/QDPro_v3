@@ -1,4 +1,3 @@
-
 from enum import Enum
 from typing import Dict, List
 
@@ -39,10 +38,10 @@ class Standards:
             'description': 'Ammunition and explosives handling requirements'
         }
     }
-    
+
     DOE_REFERENCES = {
         'facility_safety': {
-            'ref': 'DOE-STD-1212-2023',
+            'ref': 'DOE-STD-1212-2025',
             'chapters': ['Chapter 3', 'Chapter 4'],
             'description': 'Explosives safety requirements for facilities'
         },
@@ -52,7 +51,7 @@ class Standards:
             'description': 'Storage limits and requirements'
         },
         'laboratory_operations': {
-            'ref': 'DOE-STD-1212-2023',
+            'ref': 'DOE-STD-1212-2025',
             'chapters': ['Chapter 11'],
             'description': 'Laboratory operations with explosives'
         }
