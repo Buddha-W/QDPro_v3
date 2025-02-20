@@ -41,6 +41,7 @@
 - Coordinate Systems: MGRS, WGS84, UTM
 - Buffer Analysis: PostGIS ST_Buffer with variable distances
 - ESQD Calculations: DoD 6055.09-M compliant
+- Custom Map API Integration: Support for proprietary tile servers
 
 ### Security Implementation
 - Authentication: Zero Trust (zero_trust.py)

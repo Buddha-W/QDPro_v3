@@ -14,6 +14,7 @@ class MapProvider(Enum):
     DOD = "dod"
     ESRI = "esri"
     DIGITAL_GLOBE = "digitalglobe"
+    CUSTOM = "custom"
 
 class ShapefileHandler:
     @staticmethod
@@ -31,7 +32,7 @@ class MapProviderService:
         self.config = SecureConfigManager()
         self.premium_keys = self.config.load_config().get('map_providers', {})
 
-    def get_tile_url(self, provider: MapProvider, layer_type: str = 'standard') -> str:
+    def get_tile_url(self, provider: MapProvider, layer_type: str = 'standard', custom_url: Optional[str] = None) -> str:
         base_urls = {
             MapProvider.OSM: {
                 'standard': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -54,6 +55,10 @@ class MapProviderService:
             MapProvider.ESRI: f'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}?token={self.premium_keys.get("esri_key", "")}',
             MapProvider.DIGITAL_GLOBE: f'https://services.digitalglobe.com/earthservice/tmsaccess/tms/1.0.0/DigitalGlobe:ImageryTileService@EPSG:3857/{{z}}/{{x}}/{{y}}.png?connectId={self.premium_keys.get("digitalglobe_key", "")}'
         }
+
+        # Handle custom API URL
+        if provider == MapProvider.CUSTOM and custom_url:
+            return custom_url
 
         # Combine base and premium URLs
         all_urls = {**base_urls, **premium_urls}

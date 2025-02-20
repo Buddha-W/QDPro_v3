@@ -15,6 +15,7 @@
 
 ## Completed Mapping Features
 - [x] Multi-Provider Support (OSM, Google, USGS, NGA, DOD)
+- [x] Custom Map API Integration
 - [x] MGRS Coordinate System
 - [x] Multi-Ring Buffer Analysis
 - [x] Proximity Analysis
