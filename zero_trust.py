@@ -49,6 +49,30 @@ class ZeroTrustEnforcer:
             device_data = self.storage.secure_read(
                 f"devices/{hashlib.sha256(device_id.encode()).hexdigest()}.encrypted"
             )
-            return device_data.get("trusted", False)
+            if not device_data.get("trusted", False):
+                return False
+            
+            # File integrity monitoring
+            if not self._verify_system_integrity(device_data.get("baseline_hashes", {})):
+                self.report_incident("INTEGRITY_VIOLATION", "HIGH", {
+                    "device_id": device_id,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                })
+                return False
+            return True
         except:
             return False
+
+def _verify_system_integrity(self, baseline_hashes: Dict[str, str]) -> bool:
+        critical_files = [
+            "main.py", "auth.py", "audit.py", "secure_storage.py",
+            "zero_trust.py", "rbac.py", "mfa.py"
+        ]
+        for file in critical_files:
+            if not os.path.exists(file):
+                return False
+            with open(file, 'rb') as f:
+                current_hash = hashlib.sha384(f.read()).hexdigest()
+                if baseline_hashes.get(file) != current_hash:
+                    return False
+        return True

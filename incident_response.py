@@ -45,13 +45,29 @@ class IncidentManager:
                 "ISOLATE_AFFECTED_SYSTEMS",
                 "NOTIFY_SECURITY_TEAM",
                 "PRESERVE_EVIDENCE",
-                "INITIATE_SYSTEM_BACKUP"
+                "INITIATE_SYSTEM_BACKUP",
+                "ENABLE_FIPS_MODE",
+                "REVOKE_ACTIVE_SESSIONS",
+                "INCREASE_LOGGING_LEVEL"
             ],
             "notification_chain": [
                 "SECURITY_LEAD",
                 "SYSTEM_ADMIN",
-                "COMPLIANCE_OFFICER"
-            ]
+                "COMPLIANCE_OFFICER",
+                "ISSM",
+                "FSO"
+            ],
+            "compliance_requirements": [
+                "NIST_SP_800_171R2",
+                "CMMC_2_0",
+                "FIPS_140_2"
+            ],
+            "automated_response": {
+                "network_isolation": True,
+                "session_termination": True,
+                "evidence_collection": True,
+                "system_hardening": True
+            }
         }
         self.storage.secure_write(
             f"incidents/response_{incident['id']}.encrypted",

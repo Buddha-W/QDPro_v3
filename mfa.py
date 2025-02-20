@@ -13,7 +13,8 @@ class MFAManager:
         self.backup_codes_count = 10
         
     def generate_totp_secret(self, user_id: str) -> Dict[str, str]:
-        secret = pyotp.random_base32()
+        # Use FIPS 140-2 compliant key generation
+        secret = base64.b32encode(os.urandom(32)).decode('utf-8')
         totp = pyotp.TOTP(secret)
         provisioning_uri = totp.provisioning_uri(user_id, issuer_name="QDPro-GIS")
         
