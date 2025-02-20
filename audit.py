@@ -10,6 +10,17 @@ from secure_storage import SecureStorage
 class SecureAuditLogger:
     def __init__(self):
         self.storage = SecureStorage()
+        self.security_events = {
+            "AUTH_FAILURE": "Authentication Failure",
+            "ACCESS_DENIED": "Access Denied",
+            "PRIVILEGE_ESCALATION": "Privilege Escalation Attempt",
+            "DATA_ACCESS": "Sensitive Data Access",
+            "CONFIG_CHANGE": "Configuration Change",
+            "SYSTEM_ALERT": "System Security Alert"
+        }
+        self.retention_period = timedelta(days=365)
+        self.alert_threshold = 3
+        self.monitoring_interval = timedelta(minutes=5)
         self.log_path = "audit_logs"
         if not os.path.exists(self.log_path):
             os.makedirs(self.log_path)

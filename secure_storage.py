@@ -14,6 +14,11 @@ class SecureStorage:
             if not key:
                 raise ValueError("STORAGE_KEY environment variable must be set")
         
+        self.classification_levels = ["UNCLASSIFIED", "CONFIDENTIAL", "SECRET", "TOP_SECRET"]
+        self.encryption_standard = "FIPS-140-2"
+        self.key_rotation_interval = timedelta(days=30)
+        self.last_key_rotation = datetime.now()
+        
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,

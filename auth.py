@@ -48,6 +48,22 @@ class User(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
     disabled: Optional[bool] = None
+    clearance_level: str = "UNCLASSIFIED"
+    last_access: datetime = None
+    failed_attempts: int = 0
+    account_locked_until: Optional[datetime] = None
+    require_password_change: bool = False
+    last_password_change: datetime = None
+    session_id: Optional[str] = None
+
+class AccessControl:
+    def __init__(self):
+        self.max_session_time = timedelta(minutes=15)
+        self.password_expiry_days = 60
+        self.account_lockout_threshold = 3
+        self.min_password_length = 14
+        self.password_history_size = 10
+        self.session_timeout = timedelta(minutes=2)
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
