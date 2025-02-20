@@ -15,9 +15,25 @@ import os
 
 app = FastAPI(title="QDPro GIS System", version="1.0.0")
 
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+import re
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
+    if not re.match("^[a-zA-Z0-9_\-./]*$", request.url.path):
+        raise HTTPException(status_code=400, detail="Invalid characters in URL")
+    
     response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; object-src 'none'"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"

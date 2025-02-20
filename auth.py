@@ -8,9 +8,24 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15  # Shorter session duration
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import base64
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable must be set")
+
+ALGORITHM = "HS512"  # Stronger algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = 15
+SESSION_RENEWAL_WINDOW = 5  # minutes before expiry to allow renewal
+FERNET_KEY = base64.urlsafe_b64encode(PBKDF2HMAC(
+    algorithm=hashes.SHA256(),
+    length=32,
+    salt=os.urandom(16),
+    iterations=480000,
+).derive(SECRET_KEY.encode()))
 MAX_LOGIN_ATTEMPTS = 3
 LOCKOUT_DURATION = 30  # minutes
 PASSWORD_MIN_LENGTH = 14
