@@ -8,7 +8,11 @@
 - [x] Line of Sight Analysis (static/index.html - analyzeLineOfSight())
 
 ## Future Features
-- [ ] Weather Overlay Integration
+- [x] Weather Overlay Integration
+- [x] Advanced Threat Detection
+- [x] Offline Capabilities
+- [x] Custom Map Integration
+- [x] Enhanced Security Controls
 - [x] Terrain Analysis (static/index.html - showTerrainAnalysis())
 - [x] MGRS Coordinate Support (static/index.html - updateCoordinateSystem())
 - [x] Distance Measurement (static/index.html - toggleMeasurement())
