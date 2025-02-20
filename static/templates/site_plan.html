@@ -3,7 +3,8 @@
 <html>
 <head>
     <title>QDPro GIS System</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -40,16 +41,25 @@
             font-size: 1.25rem;
         }
         .map-container {
-            flex: 1;
-            height: 100vh;
-            width: 100%;
             position: absolute;
+            top: 0;
             right: 0;
+            bottom: 0;
+            left: 320px;
             z-index: 1;
         }
         #map {
-            height: 100%;
-            width: 100%;
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1;
+        }
+        @media (max-width: 768px) {
+            .map-container {
+                left: 0;
+            }
         }
         .control-panel {
             padding: 1rem;
@@ -148,20 +158,27 @@
                 map = L.map('map', {
                     center: [38.889484, -77.035278],
                     zoom: 13,
-                    zoomControl: true
+                    zoomControl: true,
+                    minZoom: 3,
+                    maxZoom: 18
                 });
                 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
                     attribution: '© OpenStreetMap contributors'
                 }).addTo(map);
                 
-                // Force a resize to ensure proper display
-                setTimeout(() => {
-                    map.invalidateSize(true);
-                }, 100);
+                map.invalidateSize();
+                
+                // Add a scale control
+                L.control.scale().addTo(map);
             }
         }
+
+        // Initialize map when DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadFacilityReports();
+        });
 
         window.addEventListener('load', function() {
             initMap();
