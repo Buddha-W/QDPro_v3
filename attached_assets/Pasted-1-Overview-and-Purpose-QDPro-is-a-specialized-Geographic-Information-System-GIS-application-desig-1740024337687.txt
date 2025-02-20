@@ -1,0 +1,39 @@
+1. Overview and Purpose
+QDPro is a specialized Geographic Information System (GIS) application designed for explosives safety professionals. Its primary goal is to automate the calculation and display of safety distances�known as Explosives Safety Quantify Distance (ESQD) arcs�around hazardous facilities. These arcs are used to ensure compliance with safety standards (for example, Department of Defense and Department of Energy regulations) and to develop comprehensive site plan packages. In essence, QDPro integrates multiple data sources (GIS maps, real property inventory data, and explosives safety data) to assess risk and guide site planning.
+
+2. Core Functional Areas
+A. Database and Project Management
+Project Creation and Upgrading:
+New Database Creation: Allows users to start a new project by creating a new database (in formats like Microsoft Access or SQL Server).
+Upgrade Legacy Databases: Provides a guided upgrade path from other databases (such as the Explosive Safety Siting (ESS) software)to the current system without modifying the old data. (using the .essbackup files)
+Backup/Restore and Archiving: Functions to back up projects, archive data, and restore from backup files, ensuring data integrity and historical tracking.
+Recent Database and Shortcut Features: Quickly re-open recent projects and create shortcuts for fast access.
+Reference: The File menu and Database Builder sections detail these operations extensively. 
+
+
+
+B. GIS Integration and Map Layer Management
+Coordinate System Setup:
+Users can configure the coordinate system for their projects by copying from various sources (personal geodatabases, shapefiles, images, etc.) or by manual entry. 
+Image Scaling Tools: Tools to scale scanned or unreferenced images by using known distance baselines to convert them into geo-referenced, scaled images. 
+Map Layers and Data Sources:
+Adding Layers: Supports a wide variety of GIS layers, including vector layers (from shapefiles, CAD files, geodatabases) and raster layers (background imagery). 
+Layer Sorting and Visibility: Offers interactive tools to arrange, show, or hide layers, ensuring that the map display is both functional and visually coherent. 
+Reference: Extensive details on GIS Setup, map layer addition, and background image scaling are provided in the guide. 
+C. Data Import, Classification, and Editing
+Data Import: 
+RPI (Real Property Inventory) Data: Imports facility data including facility numbers, descriptions, and category codes. This data is crucial for matching external records to on-screen facilities. 
+PES (Potential Explosive Sites) Data: Imports data related to explosive quantities, facility types, and hazards. Supports both standard and legacy formats. 
+Default Classification & Bulk Updates: 
+Catcode/Typecode Editor: Provides tools to automatically assign or update facility classification (e.g., category codes and type codes) based on predefined rules. 
+Bulk Editing Tools: Allows for large-scale adjustments to facility attributes, which is particularly useful for cleaning imported data or synchronizing multiple data sources. 
+Reference: The sections on Import RPI Data, Import PES Data, and the Default Classification tools illustrate these processes in detail. 
+D. Spatial Analysis and Safety Calculations
+Zone and Distance Calculations: 
+Evaluation Zone: Defines a distance (typically the maximum authorized range) to determine which facilities should be included in the analysis. 
+Spatial Analysis Zone: A larger zone used for initial spatial analysis that feeds into safety distance calculations. 
+QD (Quantify Distance) Analysis: Uses configurable policies (DoD and DoE) to calculate the proper separation distances (or ESQD arcs) based on facility attributes and spatial relationships. 
+Risk-Based Analysis and Advanced Features: 
+Risk and Violation Reporting: Analyzes facilities to detect potential safety violations, compute mitigation strategies, and generate detailed risk assessments. 
+Arc Analysis: Generates visual representations (arcs) on the map to indicate safe distances, and supports composite and detailed arc reports. 
+Reference: The Analysis menu details the process of running spatial and QD analyses, along with specialized reports for violations and risk assessments. 
