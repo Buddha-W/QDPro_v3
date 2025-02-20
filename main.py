@@ -417,17 +417,16 @@ async def calculate_esqd(site_id: int):
             "esqd_arc": row[1]
         }
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.templating import Jinja2Templates
 
-# Mount the static directory
+# Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="static/templates")
 
 @app.get("/")
-async def serve_frontend():
-    return FileResponse("static/index.html")
+async def serve_frontend(request: Request):
+    return templates.TemplateResponse("site_plan.html", {"request": request})
 
 @app.get("/reports/facilities")
 async def get_facility_report(current_user: str = Depends(get_current_user)):

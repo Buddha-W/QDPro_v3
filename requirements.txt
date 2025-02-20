@@ -23,3 +23,8 @@ pyodbc
 pandas
 alembic
 jinja2
+fastapi
+jinja2
+psycopg2-binary
+sqlalchemy
+uvicorn
