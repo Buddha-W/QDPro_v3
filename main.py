@@ -141,6 +141,40 @@ async def system_status():
 
 @app.get("/health")
 async def health_check():
+    """Comprehensive health check endpoint"""
+    try:
+        # Check critical systems
+        db_status = await DatabaseMaintenance(DATABASE_URL).quick_health_check()
+        map_status = await MapService().verify_services()
+        cache_status = await usage_monitor.verify_cache()
+        security_status = await SystemHardening().verify_status()
+        
+        overall_health = all([
+            db_status["healthy"],
+            map_status["healthy"],
+            cache_status["healthy"],
+            security_status["healthy"]
+        ])
+        
+        return {
+            "status": "healthy" if overall_health else "degraded",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "components": {
+                "database": db_status,
+                "map_services": map_status,
+                "cache": cache_status,
+                "security": security_status
+            },
+            "version": "1.0.0"
+        }
+    except Exception as e:
+        log_activity(
+            user_id="SYSTEM",
+            action="HEALTH_CHECK",
+            status="ERROR",
+            details={"error": str(e)}
+        )
+        return {"status": "error", "message": "Health check failed"}
     """Enhanced health check with database status"""
     try:
         system_health = usage_monitor.get_system_health()
@@ -198,13 +232,40 @@ async def root():
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    # Enhanced error handling with user-friendly messages
+    error_messages = {
+        401: "Your session has expired. Please log in again.",
+        403: "You don't have permission to access this resource.",
+        404: "The requested resource was not found.",
+        429: "Too many requests. Please try again in a few minutes.",
+        500: "An unexpected error occurred. Our team has been notified.",
+        503: "The system is temporarily unavailable. Please try again shortly."
+    }
+    
+    user_message = error_messages.get(exc.status_code, exc.detail)
+    
     # Log the error
     log_activity(
         user_id=request.headers.get("X-User-ID", "anonymous"),
         action="ERROR",
         resource=str(request.url),
         status="FAILED",
-        details={"error": exc.detail, "status_code": exc.status_code}
+        details={
+            "error": exc.detail,
+            "status_code": exc.status_code,
+            "user_message": user_message,
+            "request_id": request.state.request_id
+        }
+    )
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "message": user_message,
+            "request_id": request.state.request_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
     )
     
     # Attempt recovery for known error conditions

@@ -25,8 +25,52 @@ class ErrorRecovery:
 
     async def attempt_recovery(self, error_type: str, context: Dict[str, Any]) -> bool:
         self.logger.info(f"Attempting recovery for {error_type}")
-        # Add recovery logic here
-        return self.handle_recovery(error_type) # Integrate the new handle_recovery method
+        try:
+            if error_type == "DATABASE":
+                return await self._recover_database_connection()
+            elif error_type == "CALCULATION":
+                return await self._recover_calculation_error(context)
+            elif error_type == "SESSION":
+                return await self._recover_user_session(context)
+            elif error_type == "MAP":
+                return await self._recover_map_services()
+            
+            return self.handle_recovery(error_type)
+        except Exception as e:
+            self.logger.error(f"Recovery failed: {str(e)}")
+            return False
+
+    async def _recover_database_connection(self) -> bool:
+        try:
+            from database_maintenance import DatabaseMaintenance
+            db = DatabaseMaintenance(os.getenv("DATABASE_URL"))
+            return await db.reconnect_and_verify()
+        except:
+            return False
+
+    async def _recover_calculation_error(self, context: Dict[str, Any]) -> bool:
+        try:
+            self.reset_conversion_cache()
+            self.revalidate_calculations()
+            return True
+        except:
+            return False
+
+    async def _recover_user_session(self, context: Dict[str, Any]) -> bool:
+        try:
+            from auth import create_access_token
+            new_token = create_access_token(context.get("user_data", {}))
+            return bool(new_token)
+        except:
+            return False
+
+    async def _recover_map_services(self) -> bool:
+        try:
+            from map_providers import MapService
+            map_service = MapService()
+            return await map_service.reinitialize()
+        except:
+            return False # Integrate the new handle_recovery method
 
     def sync_standards_database(self):
         self.logger.info("Syncing standards database...")
