@@ -59,12 +59,21 @@
 </head>
 <body>
     <div id="toolbar">
+        <select id="orgSelector" onchange="switchOrganization()">
+            <option value="dod">Department of Defense</option>
+            <option value="doe">Department of Energy</option>
+        </select>
+        <select id="areaSelector" onchange="switchArea()">
+            <option value="">Select Area...</option>
+        </select>
         <button onclick="showAddFacility()">Add Facility</button>
         <button onclick="showAddExplosiveSite()">Add Explosive Site</button>
         <button onclick="generateReport()">Generate Report</button>
         <button onclick="toggleESQD()">Toggle ESQD</button>
         <button onclick="showAnalysis()">Analysis</button>
         <button onclick="showCompliance()">Compliance</button>
+        <button onclick="toggleDrawing()">Draw Area</button>
+        <button onclick="finishDrawing()" id="finishBtn" style="display:none">Finish Drawing</button>
     </div>
 
     <div id="map"></div>
@@ -92,6 +101,74 @@
     <script>
         let map;
         let markers = [];
+        let drawingMode = false;
+        let drawnPoints = [];
+        let drawnLayer = null;
+        let areaPolygon = null;
+
+        const areasByOrg = {
+            dod: ['Army', 'Navy', 'Air Force', 'Marines', 'Space Force'],
+            doe: ['NNSA', 'Science', 'Environmental Management', 'Nuclear Energy']
+        };
+
+        function switchOrganization() {
+            const org = document.getElementById('orgSelector').value;
+            const areaSelect = document.getElementById('areaSelector');
+            areaSelect.innerHTML = '<option value="">Select Area...</option>';
+            areasByOrg[org].forEach(area => {
+                areaSelect.innerHTML += `<option value="${area}">${area}</option>`;
+            });
+        }
+
+        function toggleDrawing() {
+            drawingMode = !drawingMode;
+            if (drawingMode) {
+                map.on('click', addDrawPoint);
+                document.getElementById('finishBtn').style.display = 'inline';
+            } else {
+                map.off('click', addDrawPoint);
+                document.getElementById('finishBtn').style.display = 'none';
+            }
+        }
+
+        function addDrawPoint(e) {
+            const point = [e.latlng.lat, e.latlng.lng];
+            drawnPoints.push(point);
+            
+            if (drawnLayer) {
+                map.removeLayer(drawnLayer);
+            }
+            
+            if (drawnPoints.length > 2) {
+                drawnLayer = L.polygon(drawnPoints, {color: 'red'}).addTo(map);
+            } else if (drawnPoints.length > 1) {
+                drawnLayer = L.polyline(drawnPoints, {color: 'red'}).addTo(map);
+            }
+            
+            L.marker(point).addTo(map)
+                .bindPopup(`Point ${drawnPoints.length}: [${point[0].toFixed(6)}, ${point[1].toFixed(6)}]`);
+        }
+
+        function finishDrawing() {
+            if (drawnPoints.length < 3) {
+                alert('Please select at least 3 points to create an area');
+                return;
+            }
+            
+            drawingMode = false;
+            map.off('click', addDrawPoint);
+            document.getElementById('finishBtn').style.display = 'none';
+            
+            // Store polygon for analysis
+            areaPolygon = drawnPoints;
+            
+            // Display coordinates
+            const coordsList = drawnPoints.map((p, i) => 
+                `Point ${i + 1}: [${p[0].toFixed(6)}, ${p[1].toFixed(6)}]`
+            ).join('\n');
+            
+            alert('Area created with coordinates:\n' + coordsList);
+        }
 
         function initMap() {
             try {
