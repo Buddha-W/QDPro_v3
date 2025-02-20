@@ -482,6 +482,50 @@ async def import_database(file: UploadFile):
             pass
 
 
+from feedback_system import FeedbackSystem, Feedback
+
+feedback_system = FeedbackSystem()
+
+@app.post("/feedback/submit")
+async def submit_feedback(
+    feedback_data: dict,
+    current_user: str = Depends(get_current_user)
+):
+    """Submit user feedback"""
+    try:
+        feedback = feedback_system.submit_feedback(feedback_data, current_user)
+        return {
+            "status": "success",
+            "feedback_id": feedback.id,
+            "message": "Feedback submitted successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/feedback/list")
+async def list_feedback(current_user: str = Depends(get_current_user)):
+    """Get all feedback"""
+    try:
+        return feedback_system.get_all_feedback()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/feedback/{feedback_id}/status")
+async def update_feedback_status(
+    feedback_id: str,
+    status: str,
+    current_user: str = Depends(get_current_user)
+):
+    """Update feedback status (admin only)"""
+    if not is_admin(current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    success = feedback_system.update_feedback_status(feedback_id, status)
+    if not success:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    
+    return {"status": "success", "message": "Feedback status updated"}
+
 if __name__ == "__main__":
     # Initialize database maintenance
     from database_maintenance import DatabaseMaintenance
