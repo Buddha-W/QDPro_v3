@@ -15,10 +15,27 @@ import secrets
 from audit import log_activity # Added import for logging
 from datetime import datetime, timedelta, timezone
 import sys
-
+import asyncio
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import HTTPException
+from fastapi import Depends
+from typing import Dict, Any
+from pydantic import BaseModel
+from fastapi import UploadFile
+from fastapi.responses import FileResponse
+from feedback_system import FeedbackSystem, Feedback
+from rate_limiter import RateLimiter
+from usage_monitor import UsageMonitor
+from deployment_checker import DeploymentChecker
+from map_service import MapService
+from system_hardening import SystemHardening
+from crypto_validation import crypto
+from anti_tampering import anti_tampering
+from database_exporter import DatabaseExporter
+
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -188,56 +205,6 @@ async def health_check():
             details={"error": str(e)}
         )
         return {"status": "error", "message": "Health check failed"}
-    """Enhanced health check with database status"""
-    try:
-        system_health = usage_monitor.get_system_health()
-        crypto_status = crypto.validate_crypto_operations({"test": "data"})
-
-        # Check database connectivity and version
-        with engine.connect() as conn:
-            db_version = conn.execute(text("SELECT version()")).scalar()
-            conn.execute(text("SELECT 1"))  # Basic connectivity test
-
-            # Get database size and activity
-            db_stats = conn.execute(text("""
-                SELECT 
-                    pg_size_pretty(pg_database_size(current_database())) as db_size,
-                    count(*) as active_connections
-                FROM pg_stat_activity
-                WHERE datname = current_database()
-            """)).fetchone()
-
-        return {
-            "status": "healthy",
-            "version": "1.0.0",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "database": {
-                "status": "connected",
-                "version": db_version,
-                "size": db_stats[0],
-                "active_connections": db_stats[1]
-            },
-            "metrics": system_health["metrics"],
-            "crypto_status": "operational" if crypto_status else "failed",
-            "security_status": anti_tampering._verify_system_integrity({})
-        }
-    except Exception as e:
-        return {
-            "status": "degraded",
-            "error": str(e),
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-    system_health = usage_monitor.get_system_health()
-    crypto_status = crypto.validate_crypto_operations({"test": "data"})
-
-    return {
-        "status": system_health["status"],
-        "version": "1.0.0",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "metrics": system_health["metrics"],
-        "crypto_status": "operational" if crypto_status else "failed",
-        "security_status": anti_tampering._verify_system_integrity({})
-    }
 
 @app.get("/api/")
 async def root():
@@ -281,16 +248,6 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         }
     )
 
-    # Attempt recovery for known error conditions
-    if exc.status_code == 503:  # Service Unavailable
-        try:
-            # Attempt to restart necessary services
-            deployment_mgr.restart_services()
-            return {"detail": "Service recovered", "status_code": 200}
-        except Exception as e:
-            pass
-
-    return {"detail": exc.detail, "status_code": exc.status_code, "recovery_attempted": True}
 
 @app.post("/facilities/")
 async def create_facility(facility: FacilityBase):
@@ -347,26 +304,6 @@ async def create_facility(facility: FacilityBase):
                 "timestamp": datetime.now().isoformat()
             }
         )
-    # Validate coordinates
-    if not (-90 <= facility.latitude <= 90) or not (-180 <= facility.longitude <= 180):
-        raise HTTPException(status_code=400, detail="Invalid coordinates")
-
-    # Validate facility number format
-    if not re.match(r'^[A-Z0-9]{3,10}$', facility.facility_number):
-        raise HTTPException(status_code=400, detail="Invalid facility number format")
-
-    point = Point(facility.longitude, facility.latitude)
-    query = """
-        INSERT INTO facilities (facility_number, description, category_code, location)
-        VALUES (%s, %s, %s, ST_SetSRID(ST_GeomFromText(%s), 4326))
-        RETURNING id
-    """
-    with engine.connect() as conn:
-        result = conn.execute(
-            query,
-            (facility.facility_number, facility.description, facility.category_code, point.wkt)
-        )
-        return {"id": result.fetchone()[0]}
 
 @app.post("/explosive-sites/")
 async def create_explosive_site(site: ExplosiveSiteBase):
@@ -416,9 +353,6 @@ async def calculate_esqd(site_id: int):
             "site_id": row[0],
             "esqd_arc": row[1]
         }
-
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -621,13 +555,6 @@ async def update_feedback_status(
     return {"status": "success", "message": "Feedback status updated"}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080, reload=True)
-        for check, result in check_results.items():
-            if not result:
-                print(f"- {check} check failed")
-        sys.exit(1)
-
     # Initialize database maintenance
     from database_maintenance import DatabaseMaintenance
     db_maintenance = DatabaseMaintenance(DATABASE_URL)
@@ -698,7 +625,7 @@ if __name__ == "__main__":
     # Enforce security controls before starting
     hardening.enforce_security_controls()
 
-    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8080, reload=True)
 
 class ImportProgress(BaseModel):
     status: str
@@ -740,3 +667,10 @@ async def export_table(format: str, table: str):
     finally:
         if os.path.exists(file_path):
             os.remove(file_path)
+from sqlalchmey import text
+from map_data_validator import MapDataValidator
+from explosion_analysis import ExplosionAnalysis
+from compliance_checker import ComplianceChecker
+from generate_site_plan_report import generate_site_plan_report
+from get_site_data import get_site_data
+from is_admin import is_admin
