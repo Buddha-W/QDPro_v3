@@ -32,7 +32,8 @@ from usage_monitor import UsageMonitor
 from deployment_checklist import DeploymentChecker
 from map_service import MapService
 from system_hardening import SystemHardening
-from crypto_validation import crypto
+from crypto_validation import CryptoValidator
+crypto = CryptoValidator()
 from anti_tampering import anti_tampering
 from database_exporter import DatabaseExporter
 
