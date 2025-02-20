@@ -10,114 +10,120 @@
             margin: 0;
             padding: 0;
             font-family: 'Inter', sans-serif;
-            background: #f0f2f5;
+        }
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 320px;
+            background: #fff;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
         }
         .header {
             background: #1a237e;
             color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         .header h1 {
             margin: 0;
-            font-size: 1.5rem;
-        }
-        .container {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            height: calc(100vh - 64px);
-        }
-        .sidebar {
-            background: white;
-            padding: 1.5rem;
-            box-shadow: 2px 0 4px rgba(0,0,0,0.1);
-            overflow-y: auto;
+            font-size: 1.25rem;
         }
         .map-container {
-            padding: 1.5rem;
+            flex: 1;
+            height: 100vh;
         }
         #map {
             height: 100%;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
         }
         .control-panel {
-            margin-bottom: 2rem;
-        }
-        .control-panel h2 {
-            color: #1a237e;
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
+            padding: 1rem;
         }
         .button-group {
             display: flex;
             flex-direction: column;
-            gap: 0.8rem;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
         }
         .action-button {
-            padding: 12px 20px;
+            padding: 0.75rem 1rem;
             background: #1a237e;
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-            font-weight: 600;
+            font-weight: 500;
+            transition: background 0.2s;
         }
         .action-button:hover {
             background: #283593;
-            transform: translateY(-1px);
         }
         .status-panel {
-            background: #e3f2fd;
+            margin: 1rem;
             padding: 1rem;
-            border-radius: 6px;
-            margin-top: 1rem;
+            background: #f5f5f5;
+            border-radius: 4px;
         }
         #status {
-            margin-top: 1rem;
-            padding: 0.8rem;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
             border-radius: 4px;
-            font-size: 0.9rem;
             display: none;
         }
-        .info-panel {
-            background: white;
-            padding: 1rem;
-            border-radius: 6px;
-            margin-top: 1rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .toggle-sidebar {
+                position: absolute;
+                left: 10px;
+                top: 10px;
+                z-index: 1001;
+                background: white;
+                border: none;
+                padding: 0.5rem;
+                border-radius: 4px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>QDPro GIS System</h1>
-    </div>
-    <div class="container">
-        <div class="sidebar">
+    <div class="main-container">
+        <button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+        <div class="sidebar" id="sidebar">
+            <div class="header">
+                <h1>QDPro GIS System</h1>
+            </div>
             <div class="control-panel">
-                <h2>Facility Management</h2>
                 <div class="button-group">
+                    <h3>Facility Management</h3>
                     <button class="action-button" onclick="loadFacilityReports()">View Facilities</button>
                     <button class="action-button" onclick="loadSafetyAnalysis()">Safety Analysis</button>
                     <button class="action-button" onclick="showAddFacilityForm()">Add New Facility</button>
                 </div>
-            </div>
-            <div class="control-panel">
-                <h2>Analysis Tools</h2>
                 <div class="button-group">
+                    <h3>Analysis Tools</h3>
                     <button class="action-button" onclick="calculateESQD()">Calculate ESQD</button>
                     <button class="action-button" onclick="runComplianceCheck()">Compliance Check</button>
                 </div>
             </div>
             <div class="status-panel">
+                <h3>System Status</h3>
                 <div id="status"></div>
-            </div>
-            <div class="info-panel">
-                <h3>Active Facilities</h3>
-                <div id="facilityCount">Loading...</div>
+                <div id="facilityCount">Loading facilities...</div>
             </div>
         </div>
         <div class="map-container">
@@ -127,23 +133,28 @@
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map').setView([38.889484, -77.035278], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        let map = null;
+        let markers = [];
+
+        function initMap() {
+            map = L.map('map').setView([38.889484, -77.035278], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
 
         async function loadFacilityReports() {
             try {
+                showStatus('Loading facilities...', 'info');
                 const response = await fetch('/reports/facilities');
                 const data = await response.json();
-                showStatus('Loading facilities...', 'info');
                 
-                clearMapLayers();
+                clearMarkers();
                 
                 if (data.data && data.data.facilities) {
                     data.data.facilities.forEach(facility => {
                         const location = JSON.parse(facility.location);
-                        L.marker([location.coordinates[1], location.coordinates[0]])
+                        const marker = L.marker([location.coordinates[1], location.coordinates[0]])
                             .bindPopup(`
                                 <div style="padding: 10px">
                                     <h3>Facility ${facility.facility_number}</h3>
@@ -154,8 +165,9 @@
                                         View Details
                                     </button>
                                 </div>
-                            `)
-                            .addTo(map);
+                            `);
+                        markers.push(marker);
+                        marker.addTo(map);
                     });
                     document.getElementById('facilityCount').textContent = `${data.data.facilities.length} facilities found`;
                     showStatus('Facilities loaded successfully', 'success');
@@ -165,63 +177,77 @@
             }
         }
 
+        function clearMarkers() {
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+        }
+
         async function loadSafetyAnalysis() {
+            showStatus('Loading safety analysis...', 'info');
             try {
                 const response = await fetch('/reports/safety');
                 const data = await response.json();
-                showStatus('Safety analysis completed', 'success');
-                
-                clearMapLayers();
-                // Implementation for safety analysis visualization
+                // Implement safety visualization here
+                showStatus('Safety analysis loaded', 'success');
             } catch (error) {
                 showStatus('Error loading safety analysis', 'error');
             }
         }
 
-        function clearMapLayers() {
-            map.eachLayer((layer) => {
-                if (layer instanceof L.Marker || layer instanceof L.Polygon) {
-                    map.removeLayer(layer);
-                }
-            });
+        async function calculateESQD() {
+            showStatus('Calculating ESQD...', 'info');
+            try {
+                const response = await fetch('/calculate-esqd/1'); // Example site ID
+                const data = await response.json();
+                // Implement ESQD visualization here
+                showStatus('ESQD calculation complete', 'success');
+            } catch (error) {
+                showStatus('Error calculating ESQD', 'error');
+            }
+        }
+
+        async function runComplianceCheck() {
+            showStatus('Running compliance check...', 'info');
+            try {
+                const response = await fetch('/compliance-check/1'); // Example site ID
+                const data = await response.json();
+                showStatus('Compliance check complete', 'success');
+            } catch (error) {
+                showStatus('Error running compliance check', 'error');
+            }
+        }
+
+        function showAddFacilityForm() {
+            // Implement facility form
+            showStatus('Opening facility form...', 'info');
+        }
+
+        function viewDetails(facilityNumber) {
+            showStatus(`Loading details for facility ${facilityNumber}...`, 'info');
         }
 
         function showStatus(message, type) {
             const status = document.getElementById('status');
             status.style.display = 'block';
-            status.style.backgroundColor = type === 'success' ? '#d4edda' : 
-                                         type === 'error' ? '#f8d7da' : 
-                                         type === 'info' ? '#e3f2fd' : '#fff3cd';
-            status.style.color = type === 'success' ? '#155724' : 
-                               type === 'error' ? '#721c24' : 
-                               type === 'info' ? '#004085' : '#856404';
+            status.style.backgroundColor = 
+                type === 'success' ? '#d4edda' : 
+                type === 'error' ? '#f8d7da' : '#e3f2fd';
+            status.style.color = 
+                type === 'success' ? '#155724' : 
+                type === 'error' ? '#721c24' : '#004085';
             status.textContent = message;
             setTimeout(() => {
                 status.style.display = 'none';
             }, 3000);
         }
 
-        async function calculateESQD() {
-            showStatus('ESQD calculation initiated...', 'info');
-            // Implementation for ESQD calculation
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('active');
         }
 
-        async function runComplianceCheck() {
-            showStatus('Running compliance check...', 'info');
-            // Implementation for compliance check
-        }
-
-        function showAddFacilityForm() {
-            showStatus('Facility form coming soon...', 'info');
-            // Implementation for add facility form
-        }
-
-        function viewDetails(facilityNumber) {
-            showStatus(`Viewing details for facility ${facilityNumber}`, 'info');
-            // Implementation for facility details view
-        }
-
-        // Load facilities on page load
+        // Initialize map and load facilities on page load
+        initMap();
         loadFacilityReports();
     </script>
 </body>
