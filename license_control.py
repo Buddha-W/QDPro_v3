@@ -49,6 +49,10 @@ class LicenseManager:
 
     def validate_license(self, license_key: str) -> Dict[str, Any]:
         try:
+            # Create licenses directory if it doesn't exist
+            if not os.path.exists("licenses"):
+                os.makedirs("licenses")
+                
             if not self._verify_activation_count():
                 return {"valid": False, "reason": "Maximum activations reached"}
 

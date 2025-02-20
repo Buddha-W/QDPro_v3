@@ -615,8 +615,9 @@ async def main():
 
     # Initialize protection systems
     license_manager = LicenseManager()
-    if not license_manager.validate_license(os.getenv("LICENSE_KEY"))["valid"]:
-        print("Invalid license")
+    license_result = license_manager.validate_license(os.getenv("LICENSE_KEY"))
+    if not license_result["valid"]:
+        print(f"Invalid license: {license_result.get('reason', 'Unknown error')}")
         sys.exit(1)
 
     anti_tampering = AntiTampering()
