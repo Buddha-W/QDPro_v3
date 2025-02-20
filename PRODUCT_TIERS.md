@@ -2,8 +2,12 @@
 # QDPro GIS System - Product Tiers
 
 ## Essential Tier
-- Basic map display and ESQD calculations
-- Standard facility management
+- Complete GIS analysis capabilities
+- ESQD calculations and arc generation
+- Multi-ring buffer analysis
+- Proximity analysis
+- Line of sight analysis
+- Facility management
 - Basic reporting
 - NIST SP 800-171r2 compliance
 - Role-based access control
@@ -12,13 +16,12 @@
 
 ## Professional Tier
 Everything in Essential, plus:
-- Advanced analysis tools
-- Multi-ring buffer analysis
-- Proximity analysis
-- Line of sight analysis
-- Offline capabilities
+- Custom API integration
+- Offline capabilities with sync
+- Advanced data export options
 - CMMC 2.0 Level 3 compliance
 - Enhanced audit logging
+- Priority support
 - Price: Contact for pricing
 
 ## Enterprise Tier

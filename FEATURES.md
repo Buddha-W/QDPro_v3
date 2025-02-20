@@ -1,11 +1,15 @@
 
 # QDPro GIS System Features Checklist
 
-## Core Mapping Features
-- [x] Basic Map Display (Leaflet.js)
+## Core Features (Available in All Tiers)
+- [x] Advanced Map Display (Leaflet.js)
 - [x] Multi-Ring Buffer Analysis (static/index.html - analyzeBuffer())
 - [x] Proximity Analysis (static/index.html - analyzeProximity())
 - [x] Line of Sight Analysis (static/index.html - analyzeLineOfSight())
+- [x] ESQD Arc Calculations
+- [x] Complete GIS Analysis Tools
+- [x] Facility Management
+- [x] Safety Analysis
 
 ## Future Features
 - [x] Weather Overlay Integration
