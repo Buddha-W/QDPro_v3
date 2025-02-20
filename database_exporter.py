@@ -23,6 +23,32 @@ class DatabaseExporter:
         df = pd.read_sql(query, self.engine)
         df.to_json(file_path, orient='records')
 
+    def export_to_nato_format(self, file_path: str):
+        """Export data in NATO AASTP-1 compatible format"""
+        try:
+            data = {
+                'header': {
+                    'standard': 'AASTP-1',
+                    'version': '1.0',
+                    'units': 'kg',
+                    'date': datetime.now().isoformat()
+                },
+                'facilities': self._export_facilities(),
+                'explosive_sites': [
+                    {**site, 
+                     'net_explosive_weight_kg': site['net_explosive_weight'] * 0.453592}
+                    for site in self._export_explosive_sites()
+                ],
+                'safety_arcs': self._export_safety_arcs()
+            }
+            
+            with open(file_path, 'w') as f:
+                json.dump(data, f, indent=2)
+            return True
+        except Exception as e:
+            self._update_progress(f"NATO export failed: {str(e)}", -1)
+            return False
+
     def export_to_legacy(self, file_path: str):
         """Export data to legacy format with progress tracking"""
         try:

@@ -38,6 +38,7 @@ async def generate_safety_analysis(engine) -> Report:
         es.id,
         f.facility_number,
         es.net_explosive_weight,
+        es.net_explosive_weight * 0.453592 as net_explosive_weight_kg,
         es.hazard_type,
         ST_AsGeoJSON(ST_Buffer(
             f.location::geography, 
