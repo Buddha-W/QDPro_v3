@@ -22,6 +22,17 @@ class ExplosionAnalysis:
                 'public_traffic_route': 24,
                 'inhabited_building': 40,
                 'military_boundary': 18,
+            },
+            'AIR_FORCE': {
+                'default': 40,
+                'public_traffic_route': 24,
+                'inhabited_building': 42,
+                'military_boundary': 18,
+                'flight_line': 45,
+                'munitions_storage': 38,
+                'maintenance_facility': 42,
+                'alert_aircraft': 50
+            },
                 'aircraft_parking': 30,
                 'runway': 40,
                 'taxi_way': 35,

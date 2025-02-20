@@ -13,6 +13,11 @@ class Standards:
             'chapters': ['V7.E4', 'V1.E6'],
             'description': 'Standards for Quantity-Distance relationships'
         },
+        'air_force': {
+            'ref': 'AFMAN 91-201',
+            'chapters': ['Chapter 12', 'Chapter 14'],
+            'description': 'Air Force Explosives Safety Standards'
+        },
         'aircraft_siting': {
             'ref': 'DoD 6055.09-M',
             'chapters': ['V4.E5.6', 'V4.E5.7'],
