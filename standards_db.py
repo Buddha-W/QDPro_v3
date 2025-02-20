@@ -13,6 +13,16 @@ class Standards:
             'chapters': ['V7.E4', 'V1.E6'],
             'description': 'Standards for Quantity-Distance relationships'
         },
+        'aircraft_siting': {
+            'ref': 'DoD 6055.09-M',
+            'chapters': ['V4.E5.6', 'V4.E5.7'],
+            'description': 'Aircraft and Airfield Quantity-Distance criteria'
+        },
+        'doe_crossref': {
+            'ref': 'DOE-STD-1212-2019',
+            'chapters': ['Chapter 3.4'],
+            'description': 'DOE to DoD standard cross-references'
+        },
         'storage_compatibility': {
             'ref': 'DESR 6055.09 Edition 1',
             'chapters': ['V1.E6.4', 'V1.E6.5'],

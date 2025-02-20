@@ -21,15 +21,33 @@ class ExplosionAnalysis:
                 'default': 40,
                 'public_traffic_route': 24,
                 'inhabited_building': 40,
-                'military_boundary': 18
+                'military_boundary': 18,
+                'aircraft_parking': 30,
+                'runway': 40,
+                'taxi_way': 35,
+                'maintenance_facility': 40
             },
             'DOE': {
                 'default': 50,
                 'public_area': 44,
                 'controlled_area': 32,
                 'laboratory': 40,
-                'storage': 25
+                'storage': 25,
+                # DoD cross-reference factors
+                'dod_equivalent_factors': {
+                    'public_area': 'inhabited_building',
+                    'controlled_area': 'military_boundary',
+                    'storage': 'default'
+                }
             }
+        }
+
+        # Aircraft siting parameters per DoD 6055.09-M
+        self.aircraft_parameters = {
+            'combat_aircraft': {'safe_distance_multiplier': 1.2},
+            'cargo_aircraft': {'safe_distance_multiplier': 1.4},
+            'passenger_aircraft': {'safe_distance_multiplier': 1.8},
+            'maintenance_area': {'safe_distance_multiplier': 1.3}
         }
 
         # Lab-specific configurations
@@ -59,12 +77,7 @@ class ExplosionAnalysis:
             return 0.0
 
     async def analyze_pes_to_es(self, pes_id: int, org_type: str) -> Dict:
-        """Analyze PES to ES relationships with organization-specific rules and standards"""
-        from standards_db import Standards, StandardType
-        
-        # Get applicable standards
-        std_type = StandardType.DOD if org_type == 'DOD' else StandardType.DOE
-        applicable_standards = Standards.get_all_references(std_type)
+        """Analyze PES to ES relationships with organization-specific rules"""
         try:
             query = """
             WITH pes AS (
@@ -120,24 +133,13 @@ class ExplosionAnalysis:
                         lab=row.lab_designation
                     )
 
-                    # Get applicable standard reference
-                    standard_ref = Standards.get_reference(
-                        StandardType.DOD if org_type == 'DOD' else StandardType.DOE,
-                        'quantity_distance'
-                    )
-
                     exposed_sites.append({
                         "facility_id": row.id,
                         "facility_number": row.facility_number,
                         "distance": row.distance,
                         "required_distance": distance,
                         "compliant": row.distance >= distance,
-                        "location": row.location,
-                        "standard_reference": {
-                            "document": standard_ref.get('ref'),
-                            "chapters": standard_ref.get('chapters'),
-                            "description": standard_ref.get('description')
-                        }
+                        "location": row.location
                     })
 
                 return {
