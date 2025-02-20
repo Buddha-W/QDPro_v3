@@ -105,7 +105,7 @@ async def security_middleware(request: Request, call_next):
         "X-Frame-Options": "DENY",
         "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
         "Cache-Control": "no-store, max-age=0",
-        "Content-Security-Policy": "default-src 'self' https:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://unpkg.com https://*.tile.openstreetmap.org; object-src 'none'",
+        "Content-Security-Policy": "default-src 'self' https:; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://unpkg.com https://*.tile.openstreetmap.org https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org; object-src 'none'",
         "X-XSS-Protection": "1; mode=block",
         "X-Request-ID": request_id,
         "X-Permitted-Cross-Domain-Policies": "none",
