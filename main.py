@@ -239,14 +239,20 @@ async def get_safety_analysis(current_user: str = Depends(get_current_user)):
 @app.get("/analysis/pes/{pes_id}/exposed-sites")
 async def analyze_exposed_sites(pes_id: int, current_user: str = Depends(get_current_user)):
     """Get all exposed sites for a PES"""
-    analysis = ExplosionAnalysis(engine)
-    return analysis.analyze_pes_to_es(pes_id)
+    try:
+        analysis = ExplosionAnalysis(engine)
+        return await analysis.analyze_pes_to_es(pes_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/analysis/pes/{pes_id}/safety-arc")
 async def get_safety_arc(pes_id: int, current_user: str = Depends(get_current_user)):
     """Get safety arc for a PES"""
-    analysis = ExplosionAnalysis(engine)
-    return analysis.generate_safety_arc(pes_id)
+    try:
+        analysis = ExplosionAnalysis(engine)
+        return await analysis.generate_safety_arc(pes_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 class DatabaseImporter:
