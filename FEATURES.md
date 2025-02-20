@@ -45,6 +45,9 @@
 
 ### Security Implementation
 - Authentication: Zero Trust (zero_trust.py)
+- Geofencing: Restricted Area Control (geofence_security.py)
+- Map Data Validation: Coordinate and GeoJSON Sanitization (map_validation.py)
+- Spatial Access Control: Clearance-based viewing restrictions
   - Session Duration: 15 minutes
   - Token Type: JWT with HS512
   - MFA: Time-based OTP (RFC 6238)
