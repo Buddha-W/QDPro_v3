@@ -5,6 +5,7 @@ import json
 import hashlib
 import socket
 import os
+import threading
 from secure_storage import SecureStorage
 
 from typing import Optional, Dict, Any
