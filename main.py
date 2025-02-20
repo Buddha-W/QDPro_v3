@@ -371,8 +371,16 @@ async def get_import_status(import_id: str):
 @app.get("/export/{format}/{table}")
 async def export_table(format: str, table: str):
     try:
+        export_id = secrets.token_hex(16)
         exporter = DatabaseExporter(DATABASE_URL)
         file_path = f"temp_export_{table}.{format}"
+        
+        # Initialize progress tracking
+        import_status[export_id] = {
+            'status': 'starting',
+            'progress': 0.0,
+            'message': 'Initializing export'
+        }
         
         if format == 'csv':
             exporter.export_to_csv(table, file_path)
