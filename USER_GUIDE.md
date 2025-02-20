@@ -45,6 +45,22 @@
 - Click "Export PDF" for printable reports
 - Use "Export Map" for map data in various formats
 
+## ESQD Calculations
+1. Select an explosive site
+2. Enter Net Explosive Weight (NEW)
+3. System automatically calculates ESQD arcs
+4. Review buffer zones and affected areas
+
+## Security Operations
+1. Multi-Factor Authentication (MFA)
+   - Use your registered device for 2FA
+   - Follow prompts for authentication
+
+2. Access Control
+   - Keep credentials secure
+   - Log out after each session
+   - Don't share access tokens
+
 ## Troubleshooting
 - If map doesn't load, check your internet connection
 - For access issues, contact your system administrator

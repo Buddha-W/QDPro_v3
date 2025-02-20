@@ -31,3 +31,11 @@
 ## Export Capabilities
 - [x] PDF Export (static/index.html - exportPDF())
 - [x] Map Export (static/index.html - exportMap())
+
+## API Endpoints
+- [x] Facility Management API (/facilities/)
+- [x] Explosive Site Management API (/explosive-sites/)
+- [x] ESQD Calculation API (/calculate-esqd/{site_id})
+- [x] Facility Reports API (/reports/facilities)
+- [x] Safety Analysis API (/reports/safety)
+- [x] Health Check API (/health)
