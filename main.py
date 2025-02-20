@@ -236,6 +236,18 @@ async def get_facility_report(current_user: str = Depends(get_current_user)):
 async def get_safety_analysis(current_user: str = Depends(get_current_user)):
     return await generate_safety_analysis(engine)
 
+@app.get("/analysis/pes/{pes_id}/exposed-sites")
+async def analyze_exposed_sites(pes_id: int, current_user: str = Depends(get_current_user)):
+    """Get all exposed sites for a PES"""
+    analysis = ExplosionAnalysis(engine)
+    return analysis.analyze_pes_to_es(pes_id)
+
+@app.get("/analysis/pes/{pes_id}/safety-arc")
+async def get_safety_arc(pes_id: int, current_user: str = Depends(get_current_user)):
+    """Get safety arc for a PES"""
+    analysis = ExplosionAnalysis(engine)
+    return analysis.generate_safety_arc(pes_id)
+
 
 class DatabaseImporter:
     def __init__(self, database_url):
