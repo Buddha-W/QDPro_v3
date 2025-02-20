@@ -4,7 +4,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
 class SecureStorage:
