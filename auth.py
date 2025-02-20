@@ -10,7 +10,16 @@ import os
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 15  # Shorter session duration
+MAX_LOGIN_ATTEMPTS = 3
+LOCKOUT_DURATION = 30  # minutes
+PASSWORD_MIN_LENGTH = 14
+PASSWORD_COMPLEXITY = {
+    'uppercase': 1,
+    'lowercase': 1,
+    'numbers': 1,
+    'special': 1
+}
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
