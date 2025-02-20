@@ -5,10 +5,14 @@ import os
 from secure_storage import SecureStorage
 
 class SystemHardening:
-    def __init__(self):
+    def __init__(self, enforce_controls: bool = True):
         self.storage = SecureStorage()
+        self.enforce_controls = enforce_controls
         
     def enforce_security_controls(self) -> Dict[str, bool]:
+        if not self.enforce_controls:
+            return {"security_disabled": True}
+            
         controls = {
             "file_permissions": self._enforce_file_permissions(),
             "network_hardening": self._harden_network_settings(),
