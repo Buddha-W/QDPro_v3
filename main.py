@@ -221,6 +221,11 @@ if __name__ == "__main__":
     from deployment_manager import DeploymentManager
     deployment_mgr = DeploymentManager()
     
+    # Check for air-gapped mode
+    air_gapped = os.getenv("AIR_GAPPED", "false").lower() == "true"
+    if air_gapped:
+        deployment_mgr.enable_offline_mode()
+    
     if not deployment_mgr.validate_environment():
         print("Missing required environment variables")
         sys.exit(1)

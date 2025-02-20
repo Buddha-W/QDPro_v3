@@ -6,8 +6,10 @@ import os
 class DeploymentManager:
     def __init__(self):
         self.storage = SecureStorage()
+        self.offline_mode = False
         
-    def configure_deployment(self, deployment_type: str = "self_hosted") -> Dict[str, Any]:
+    def configure_deployment(self, deployment_type: str = "self_hosted", air_gapped: bool = False) -> Dict[str, Any]:
+        self.offline_mode = air_gapped
         base_config = {
             "database_url": os.getenv("DATABASE_URL"),
             "port": int(os.getenv("PORT", "8080")),
@@ -30,7 +32,37 @@ class DeploymentManager:
                 "auto_scaling": True
             })
             
+        if self.offline_mode:
+            base_config.update({
+                "database_url": "sqlite:///local.db",
+                "offline_cache": True,
+                "local_storage": True,
+                "sync_when_online": True,
+                "map_cache_enabled": True,
+                "monitoring_enabled": True,
+                "backup_enabled": True,
+                "auto_scaling": False
+            })
+            
         return base_config
+        
+    def enable_offline_mode(self):
+        """Switch to offline/air-gapped mode"""
+        self.offline_mode = True
+        self.cache_map_tiles()
+        self.initialize_local_db()
+        
+    def cache_map_tiles(self):
+        """Cache map tiles for offline use"""
+        if not os.path.exists("map_cache"):
+            os.makedirs("map_cache")
+            
+    def initialize_local_db(self):
+        """Initialize local SQLite database"""
+        from sqlalchemy import create_engine
+        engine = create_engine("sqlite:///local.db")
+        with open("schema.sql") as f:
+            engine.execute(f.read())
         
     def validate_environment(self) -> bool:
         required_vars = [
