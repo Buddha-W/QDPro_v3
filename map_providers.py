@@ -32,7 +32,18 @@ class MapProviderService:
         self.config = SecureConfigManager()
         self.premium_keys = self.config.load_config().get('map_providers', {})
 
+    def __init__(self):
+        self.config = SecureConfigManager()
+        self.premium_keys = self.config.load_config().get('map_providers', {})
+        self.tile_cache = {}
+        self.cache_expiry = 3600  # 1 hour
+
     def get_tile_url(self, provider: MapProvider, layer_type: str = 'standard', custom_url: Optional[str] = None) -> str:
+        cache_key = f"{provider.value}_{layer_type}"
+        if cache_key in self.tile_cache:
+            cached_time, cached_url = self.tile_cache[cache_key]
+            if (datetime.now() - cached_time).seconds < self.cache_expiry:
+                return cached_url
         base_urls = {
             MapProvider.OSM: {
                 'standard': 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',

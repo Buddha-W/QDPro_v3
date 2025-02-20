@@ -1,9 +1,14 @@
-
 <!DOCTYPE html>
 <html>
 <head>
     <title>Site Plan - QDPro</title>
     <link rel="stylesheet" href="/static/templates/forms.css">
+    <style>
+        .help-icon {
+            cursor: help;
+            margin-left: 5px;
+        }
+    </style>
 </head>
 <body>
     <div class="site-plan-container">
@@ -31,7 +36,7 @@
             <h2>Site Information</h2>
             <form id="site-details">
                 <div class="form-group">
-                    <label>Facility Number:</label>
+                    <label>Facility Number: <span class="help-icon" title="Enter the unique facility identifier (Format: A-Z0-9)">ℹ️</span></label>
                     <input type="text" name="facility_number" required pattern="[A-Z0-9]{3,10}">
                 </div>
                 <div class="form-group">
