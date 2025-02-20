@@ -10,3 +10,10 @@ shapely
 sqlalchemy
 uvicorn
 cryptography
+pyjwt
+pyotp
+qrcode
+pillow
+pyjwt
+pyotp
+qrcode
