@@ -27,13 +27,42 @@ class OfflineSyncManager:
         conn.commit()
         conn.close()
         
-    def cache_data(self, key: str, data: Any):
-        """Cache data locally"""
+    def cache_data(self, key: str, data: Any, priority: int = 1):
+        """Cache data locally with priority levels"""
+        import zlib
+        
+        compressed = zlib.compress(json.dumps(data).encode())
         self.local_cache[key] = {
-            'data': data,
-            'timestamp': datetime.now(timezone.utc).isoformat()
+            'data': compressed,
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'priority': priority,
+            'compressed': True
         }
         self.storage.secure_write(f"offline_cache/{key}.cache", self.local_cache[key])
+        
+        # Manage cache size
+        self._cleanup_cache_if_needed()
+        
+    def _cleanup_cache_if_needed(self, max_size_mb: int = 500):
+        """Clean up cache when it exceeds size limit"""
+        current_size = 0
+        cache_items = []
+        
+        for key, data in self.local_cache.items():
+            size = len(data['data'])
+            current_size += size
+            cache_items.append((key, size, data['priority'], data['timestamp']))
+            
+        if current_size > max_size_mb * 1024 * 1024:
+            # Sort by priority (ascending) and timestamp (oldest first)
+            cache_items.sort(key=lambda x: (x[2], x[3]))
+            
+            # Remove items until we're under the limit
+            while current_size > max_size_mb * 1024 * 1024 and cache_items:
+                key, size, _, _ = cache_items.pop(0)
+                current_size -= size
+                del self.local_cache[key]
+                os.remove(f"offline_cache/{key}.cache")
         
     def get_cached_data(self, key: str) -> Any:
         """Retrieve cached data"""
@@ -98,3 +127,18 @@ class OfflineSyncManager:
                 print(f"Sync failed for operation {operation['id']}: {str(e)}")
                 
         conn.close()
+
+
+    def resolve_conflicts(self, local_data: Dict, remote_data: Dict) -> Dict:
+        """Resolve conflicts between local and remote data"""
+        resolved = {}
+        for key in set(local_data.keys()) | set(remote_data.keys()):
+            if key not in remote_data:
+                resolved[key] = local_data[key]
+            elif key not in local_data:
+                resolved[key] = remote_data[key]
+            else:
+                local_time = datetime.fromisoformat(local_data[key]['timestamp'])
+                remote_time = datetime.fromisoformat(remote_data[key]['timestamp'])
+                resolved[key] = local_data[key] if local_time > remote_time else remote_data[key]
+        return resolved
