@@ -125,6 +125,45 @@ class ExplosiveSiteBase(BaseModel):
 
 @app.get("/health")
 async def health_check():
+    """Enhanced health check with database status"""
+    try:
+        system_health = usage_monitor.get_system_health()
+        crypto_status = crypto.validate_crypto_operations({"test": "data"})
+        
+        # Check database connectivity and version
+        with engine.connect() as conn:
+            db_version = conn.execute(text("SELECT version()")).scalar()
+            conn.execute(text("SELECT 1"))  # Basic connectivity test
+            
+            # Get database size and activity
+            db_stats = conn.execute(text("""
+                SELECT 
+                    pg_size_pretty(pg_database_size(current_database())) as db_size,
+                    count(*) as active_connections
+                FROM pg_stat_activity
+                WHERE datname = current_database()
+            """)).fetchone()
+            
+        return {
+            "status": "healthy",
+            "version": "1.0.0",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "database": {
+                "status": "connected",
+                "version": db_version,
+                "size": db_stats[0],
+                "active_connections": db_stats[1]
+            },
+            "metrics": system_health["metrics"],
+            "crypto_status": "operational" if crypto_status else "failed",
+            "security_status": anti_tampering._verify_system_integrity({})
+        }
+    except Exception as e:
+        return {
+            "status": "degraded",
+            "error": str(e),
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
     system_health = usage_monitor.get_system_health()
     crypto_status = crypto.validate_crypto_operations({"test": "data"})
     
@@ -165,6 +204,59 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.post("/facilities/")
 async def create_facility(facility: FacilityBase):
+    """Create a new facility with enhanced feedback"""
+    try:
+        # Validate coordinates
+        if not (-90 <= facility.latitude <= 90) or not (-180 <= facility.longitude <= 180):
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "status": "error",
+                    "message": "Invalid coordinates",
+                    "details": "Latitude must be between -90 and 90, longitude between -180 and 180"
+                }
+            )
+            
+        point = Point(facility.longitude, facility.latitude)
+        query = """
+            INSERT INTO facilities (facility_number, description, category_code, location)
+            VALUES (%s, %s, %s, ST_SetSRID(ST_GeomFromText(%s), 4326))
+            RETURNING id, facility_number
+        """
+        
+        with engine.connect() as conn:
+            result = conn.execute(
+                query,
+                (facility.facility_number, facility.description, facility.category_code, point.wkt)
+            )
+            new_id, facility_number = result.fetchone()
+            
+            return JSONResponse(
+                status_code=201,
+                content={
+                    "status": "success",
+                    "message": f"Facility {facility_number} created successfully",
+                    "id": new_id,
+                    "facility_number": facility_number,
+                    "timestamp": datetime.now().isoformat()
+                }
+            )
+    except Exception as e:
+        log_activity(
+            user_id="system",
+            action="CREATE_FACILITY",
+            status="ERROR",
+            details={"error": str(e)}
+        )
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": "Failed to create facility",
+                "error_code": "DB_ERROR",
+                "timestamp": datetime.now().isoformat()
+            }
+        )
     # Validate coordinates
     if not (-90 <= facility.latitude <= 90) or not (-180 <= facility.longitude <= 180):
         raise HTTPException(status_code=400, detail="Invalid coordinates")
