@@ -575,7 +575,11 @@ async def main():
         deployment_mgr.enable_offline_mode()
 
     if not deployment_mgr.validate_environment():
-        print("Missing required environment variables")
+        print("Missing required environment variables:")
+        required_vars = ["DATABASE_URL", "LICENSE_KEY", "SECRET_KEY", "ENCRYPTION_KEY"]
+        for var in required_vars:
+            if not os.getenv(var):
+                print(f"- {var} is not set")
         sys.exit(1)
 
     config = deployment_mgr.configure_deployment()
