@@ -1,58 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>QDPro GIS System</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <title>QDPro Site Planner</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
-        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-        .main-container { position: relative; width: 100vw; height: 100vh; }
-        .sidebar {
+        body { margin: 0; padding: 0; }
+        #toolbar {
             position: fixed;
-            left: 0;
             top: 0;
-            width: 300px;
-            height: 100vh;
-            background: #fff;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-            z-index: 1000;
-            overflow-y: auto;
-        }
-        .map-container {
-            position: absolute;
-            left: 300px;
-            top: 0;
-            right: 0;
-            bottom: 0;
-        }
-        #map {
             width: 100%;
-            height: 100%;
+            background: #333;
+            padding: 10px;
+            z-index: 1000;
         }
-        .header {
-            background: #1a237e;
-            color: white;
-            padding: 1rem;
-        }
-        .header h1 { margin: 0; font-size: 1.25rem; }
-        .control-panel { padding: 1rem; }
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        .action-button {
-            padding: 0.75rem 1rem;
-            background: #1a237e;
+        #toolbar button {
+            margin: 0 5px;
+            padding: 8px 15px;
+            background: #4CAF50;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            transition: background 0.2s;
         }
-        .action-button:hover { background: #283593; }
+        #toolbar button:hover {
+            background: #45a049;
+        }
+        #map {
+            height: calc(100vh - 50px);
+            margin-top: 50px;
+        }
+        .form-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            z-index: 1001;
+        }
         .status-panel {
             margin: 1rem;
             padding: 1rem;
@@ -65,37 +54,40 @@
             border-radius: 4px;
             display: none;
         }
+
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="sidebar">
-            <div class="header">
-                <h1>QDPro GIS System</h1>
-            </div>
-            <div class="control-panel">
-                <div class="button-group">
-                    <h3>Facility Management</h3>
-                    <button class="action-button" onclick="loadFacilityReports()">View Facilities</button>
-                    <button class="action-button" onclick="loadSafetyAnalysis()">Safety Analysis</button>
-                    <button class="action-button" onclick="showAddFacilityForm()">Add New Facility</button>
-                </div>
-                <div class="button-group">
-                    <h3>Analysis Tools</h3>
-                    <button class="action-button" onclick="calculateESQD()">Calculate ESQD</button>
-                    <button class="action-button" onclick="runComplianceCheck()">Compliance Check</button>
-                </div>
-                <div class="status-panel">
-                    <h3>System Status</h3>
-                    <div id="status"></div>
-                    <div id="facilityCount">Loading facilities...</div>
-                </div>
-            </div>
-        </div>
-        <div class="map-container">
-            <div id="map"></div>
-        </div>
+    <div id="toolbar">
+        <button onclick="showAddFacility()">Add Facility</button>
+        <button onclick="showAddExplosiveSite()">Add Explosive Site</button>
+        <button onclick="generateReport()">Generate Report</button>
+        <button onclick="toggleESQD()">Toggle ESQD</button>
+        <button onclick="showAnalysis()">Analysis</button>
+        <button onclick="showCompliance()">Compliance</button>
     </div>
+
+    <div id="map"></div>
+
+    <div id="facilityForm" class="form-popup">
+        <h3>Add New Facility</h3>
+        <form id="newFacilityForm">
+            <input type="text" id="facilityNumber" placeholder="Facility Number" required><br>
+            <input type="text" id="description" placeholder="Description" required><br>
+            <input type="text" id="categoryCode" placeholder="Category Code" required><br>
+            <input type="number" id="latitude" placeholder="Latitude" step="any" required><br>
+            <input type="number" id="longitude" placeholder="Longitude" step="any" required><br>
+            <button type="submit">Submit</button>
+            <button type="button" onclick="hideAddFacility()">Cancel</button>
+        </form>
+    </div>
+
+    <div class="status-panel">
+        <h3>System Status</h3>
+        <div id="status"></div>
+        <div id="facilityCount">Loading facilities...</div>
+    </div>
+
 
     <script>
         let map;
@@ -110,7 +102,7 @@
                         minZoom: 3,
                         maxZoom: 18
                     });
-                    
+
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         attribution: '© OpenStreetMap contributors'
                     }).addTo(map);
@@ -144,7 +136,7 @@
                         markers.push(marker);
                         marker.addTo(map);
                     });
-                    document.getElementById('facilityCount').textContent = 
+                    document.getElementById('facilityCount').textContent =
                         `${data.data.facilities.length} facilities found`;
                     showStatus('Facilities loaded successfully', 'success');
                 }
@@ -161,10 +153,10 @@
         function showStatus(message, type) {
             const status = document.getElementById('status');
             status.style.display = 'block';
-            status.style.backgroundColor = type === 'success' ? '#d4edda' : 
-                                         type === 'error' ? '#f8d7da' : '#e3f2fd';
-            status.style.color = type === 'success' ? '#155724' : 
-                                type === 'error' ? '#721c24' : '#004085';
+            status.style.backgroundColor = type === 'success' ? '#d4edda' :
+                                             type === 'error' ? '#f8d7da' : '#e3f2fd';
+            status.style.color = type === 'success' ? '#155724' :
+                                   type === 'error' ? '#721c24' : '#004085';
             status.textContent = message;
             setTimeout(() => status.style.display = 'none', 3000);
         }
@@ -210,13 +202,79 @@
             }
         }
 
-        function showAddFacilityForm() {
-            // Implement facility form
-            showStatus('Opening facility form...', 'info');
+        function showAddFacility() {
+            document.getElementById('facilityForm').style.display = 'block';
         }
 
-        function viewDetails(facilityNumber) {
-            showStatus(`Loading details for facility ${facilityNumber}...`, 'info');
+        function hideAddFacility() {
+            document.getElementById('facilityForm').style.display = 'none';
+        }
+
+        document.getElementById('newFacilityForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const formData = {
+                facility_number: document.getElementById('facilityNumber').value,
+                description: document.getElementById('description').value,
+                category_code: document.getElementById('categoryCode').value,
+                latitude: parseFloat(document.getElementById('latitude').value),
+                longitude: parseFloat(document.getElementById('longitude').value)
+            };
+
+            try {
+                const response = await fetch('/facilities/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    L.marker([formData.latitude, formData.longitude])
+                        .addTo(map)
+                        .bindPopup(`Facility: ${formData.facility_number}`);
+                    hideAddFacility();
+                    alert('Facility added successfully!');
+                } else {
+                    alert('Failed to add facility');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error adding facility');
+            }
+        };
+
+        function showAnalysis() {
+            // Implement analysis view
+            alert('Analysis feature coming soon');
+        }
+
+        function showCompliance() {
+            // Implement compliance view
+            alert('Compliance feature coming soon');
+        }
+
+        function generateReport() {
+            // Implement report generation
+            alert('Report generation coming soon');
+        }
+
+        function toggleESQD() {
+            // Implement ESQD toggle
+            alert('ESQD toggle coming soon');
+        }
+
+        function showAddExplosiveSite() {
+            // Implement explosive site form
+            alert('Add explosive site feature coming soon');
+        }
+
+        // Get user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                map.setView([position.coords.latitude, position.coords.longitude], 13);
+            });
         }
     </script>
 </body>
