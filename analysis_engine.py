@@ -11,6 +11,24 @@ from concurrent.futures import ThreadPoolExecutor
 class ExplosionAnalysis:
     def __init__(self, engine):
         self.engine = engine
+        
+    async def batch_analyze_sites(self, site_ids: List[int]) -> Dict[int, Any]:
+        results = {}
+        for site_id in site_ids:
+            try:
+                safety_arc = await self.generate_safety_arc(site_id)
+                exposed_sites = await self.analyze_pes_to_es(site_id)
+                results[site_id] = {
+                    "safety_arc": safety_arc,
+                    "exposed_sites": exposed_sites,
+                    "status": "success"
+                }
+            except Exception as e:
+                results[site_id] = {
+                    "status": "error",
+                    "error": str(e)
+                }
+        return results
         self.error_recovery = ErrorRecovery()
         self.thread_pool = ThreadPoolExecutor(max_workers=4)
 

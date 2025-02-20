@@ -271,9 +271,33 @@ async def submit_site_plan(
 @app.get("/site-plan/{site_id}")
 async def get_site_plan(
     site_id: int,
+    format: str = None,
     current_user: str = Depends(get_current_user)
 ):
-    return await generate_site_plan_report(engine, site_id)
+    report = await generate_site_plan_report(engine, site_id)
+    if format == "print":
+        return templates.TemplateResponse(
+            "print_layout.html",
+            {"request": request, "report": report}
+        )
+    return report
+
+@app.post("/batch-analysis")
+async def batch_analysis(
+    site_ids: List[int],
+    current_user: str = Depends(get_current_user)
+):
+    analysis = ExplosionAnalysis(engine)
+    return await analysis.batch_analyze_sites(site_ids)
+
+@app.get("/compliance-check/{site_id}")
+async def check_site_compliance(
+    site_id: int,
+    current_user: str = Depends(get_current_user)
+):
+    site_data = await get_site_data(site_id)
+    checker = ComplianceChecker()
+    return checker.check_compliance(site_data)
 
 @app.get("/analysis/pes/{pes_id}/exposed-sites")
 async def analyze_exposed_sites(pes_id: int, current_user: str = Depends(get_current_user)):
