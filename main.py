@@ -584,41 +584,25 @@ async def main():
 
     config = deployment_mgr.configure_deployment()
 
-    # Initialize security controls
+    # Initialize basic security controls for beta testing
     from system_hardening import SystemHardening
     from crypto_validation import CryptoValidator
-    from fedramp_compliance import FedRAMPControls
-    from license_control import LicenseManager
-    from anti_tampering import AntiTampering
-    from license_recovery import LicenseRecovery
-    from threat_detection import ThreatDetection
-
-    # Initialize additional security systems
-    license_recovery = LicenseRecovery()
-    threat_detector = ThreatDetection()
-
-    # Schedule threat detection
-    def check_threats():
-        threats = threat_detector.analyze_logs()
-        for threat in threats:
-            log_activity(
-                user_id="SYSTEM",
-                action="THREAT_DETECTED",
-                resource="system",
-                status="ALERT",
-                details=threat
-            )
-
-    import threading
-    threat_check = threading.Timer(900.0, check_threats)  # Check every 15 minutes
-    threat_check.start()
-
-    # Initialize protection systems
-    license_manager = LicenseManager()
-    license_result = license_manager.validate_license(os.getenv("LICENSE_KEY"))
-    if not license_result["valid"]:
-        print(f"Invalid license: {license_result.get('reason', 'Unknown error')}")
-        sys.exit(1)
+    
+    # Beta testing mode - reduced security
+    os.environ['BETA_TESTING'] = 'true'
+    
+    # Initialize minimal protection systems
+    hardening = SystemHardening()
+    crypto = CryptoValidator()
+    
+    # Log beta testing mode
+    log_activity(
+        user_id="SYSTEM",
+        action="BETA_MODE",
+        resource="system",
+        status="ACTIVE",
+        details={"mode": "beta_testing"}
+    )
 
     anti_tampering = AntiTampering()
     anti_tampering.initialize_protection()
