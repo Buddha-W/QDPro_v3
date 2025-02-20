@@ -34,7 +34,8 @@ from map_service import MapService
 from system_hardening import SystemHardening
 from crypto_validation import CryptoValidator
 crypto = CryptoValidator()
-from anti_tampering import anti_tampering
+from anti_tampering import AntiTampering
+anti_tampering = AntiTampering()
 from database_exporter import DatabaseExporter
 
 
