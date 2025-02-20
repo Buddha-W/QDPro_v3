@@ -55,6 +55,9 @@ class User(BaseModel):
     require_password_change: bool = False
     last_password_change: datetime = None
     session_id: Optional[str] = None
+    devices: Dict[str, Dict] = {}  # Store device-specific data
+    is_mobile: bool = False
+    last_device: Optional[str] = None
 
 class AccessControl:
     def __init__(self):

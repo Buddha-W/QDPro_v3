@@ -34,6 +34,17 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 async def security_middleware(request: Request, call_next):
     request_id = secrets.token_hex(16)
     request.state.request_id = request_id
+    
+    # Handle device detection
+    user_agent = request.headers.get("user-agent", "").lower()
+    is_mobile = "mobile" in user_agent or "ipad" in user_agent or "iphone" in user_agent
+    request.state.is_mobile = is_mobile
+    
+    # Adjust response based on device
+    if is_mobile:
+        request.state.session_duration = timedelta(days=30)  # Longer sessions for mobile
+    else:
+        request.state.session_duration = timedelta(minutes=15)
 
     # Log incoming request
     log_activity(

@@ -34,8 +34,21 @@ class LicenseManager:
             if not self._verify_license_integrity(license_data):
                 return {"valid": False, "reason": "License integrity check failed"}
                 
-            if license_data["hardware_id"] != current_hardware_id:
-                return {"valid": False, "reason": "Invalid hardware configuration"}
+            # Store multiple device IDs per license
+            if "device_ids" not in license_data:
+                license_data["device_ids"] = [current_hardware_id]
+                self.storage.secure_write(
+                    f"licenses/{hashlib.sha256(license_key.encode()).hexdigest()}.encrypted",
+                    license_data
+                )
+            elif current_hardware_id not in license_data["device_ids"] and len(license_data["device_ids"]) < 5:
+                license_data["device_ids"].append(current_hardware_id)
+                self.storage.secure_write(
+                    f"licenses/{hashlib.sha256(license_key.encode()).hexdigest()}.encrypted",
+                    license_data
+                )
+            elif current_hardware_id not in license_data["device_ids"]:
+                return {"valid": False, "reason": "Maximum devices reached"}
                 
             expiration = datetime.fromisoformat(license_data["expiration"])
             if expiration < datetime.now():
