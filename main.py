@@ -326,36 +326,42 @@ async def create_explosive_site(site: ExplosiveSiteBase):
 @app.get("/calculate-esqd/{site_id}")
 async def calculate_esqd(site_id: int):
     """Calculate ESQD arc for an explosive site"""
-    query = """
-    WITH site_data AS (
+    try:
+        query = """
+        WITH site_data AS (
+            SELECT 
+                es.id,
+                es.net_explosive_weight,
+                es.k_factor,
+                f.location
+            FROM explosive_sites es
+            JOIN facilities f ON es.facility_id = f.id
+            WHERE es.id = %s
+        )
         SELECT 
-            es.id,
-            es.net_explosive_weight,
-            es.k_factor,
-            f.location
-        FROM explosive_sites es
-        JOIN facilities f ON es.facility_id = f.id
-        WHERE es.id = %s
-    )
-    SELECT 
-        id,
-        ST_AsGeoJSON(
-            ST_Buffer(
-                location::geography, 
-                (net_explosive_weight ^ (1.0/3.0)) * k_factor
-            )::geometry
-        ) as arc
-    FROM site_data
-    """
-    with engine.connect() as conn:
-        result = conn.execute(query, (site_id,))
-        row = result.fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Site not found")
-        return {
-            "site_id": row[0],
-            "esqd_arc": row[1]
-        }
+            id,
+            ST_AsGeoJSON(
+                ST_Buffer(
+                    location::geography, 
+                    (net_explosive_weight ^ (1.0/3.0)) * k_factor
+                )::geometry
+            ) as arc
+        FROM site_data
+        """
+        with engine.connect() as conn:
+            result = conn.execute(query, (site_id,))
+            row = result.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail="Site not found")
+            return {
+                "site_id": row[0],
+                "esqd_arc": row[1]
+            }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error calculating ESQD arc: {str(e)}"
+        )
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")

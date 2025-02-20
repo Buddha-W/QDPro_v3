@@ -84,14 +84,23 @@ def create_access_token(data: dict):
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Please log in to access this resource",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    if not token:
+        raise credentials_exception
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
+        # Verify session is still valid
+        if "exp" in payload and datetime.utcnow() > datetime.fromtimestamp(payload["exp"]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired. Please log in again.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return username
     except JWTError:
         raise credentials_exception
-    return username
