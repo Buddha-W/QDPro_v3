@@ -5,16 +5,57 @@
     <title>QDPro</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map { height: 600px; width: 100%; }
-        .controls { padding: 10px; }
-        .nav-button { margin: 5px; padding: 8px 16px; }
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-button {
+            margin: 5px;
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .nav-button:hover {
+            background-color: #2980b9;
+        }
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h1>QDPro GIS System</h1>
     <div class="controls">
-        <button class="nav-button" onclick="window.location.href='/reports/facilities'">Facility Reports</button>
-        <button class="nav-button" onclick="window.location.href='/reports/safety'">Safety Analysis</button>
+        <button class="nav-button" onclick="loadFacilityReports()">Facility Reports</button>
+        <button class="nav-button" onclick="loadSafetyAnalysis()">Safety Analysis</button>
+        <div id="status"></div>
     </div>
     <div id="map"></div>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -23,6 +64,59 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
+
+        async function loadFacilityReports() {
+            try {
+                const response = await fetch('/reports/facilities');
+                const data = await response.json();
+                showStatus('Facility reports loaded successfully', 'success');
+                
+                // Clear existing markers
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.Marker) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                // Add markers for facilities
+                data.data.facilities.forEach(facility => {
+                    const location = JSON.parse(facility.location);
+                    L.marker([location.coordinates[1], location.coordinates[0]])
+                        .bindPopup(`
+                            <b>Facility: ${facility.facility_number}</b><br>
+                            ${facility.description}<br>
+                            Category: ${facility.category_code}
+                        `)
+                        .addTo(map);
+                });
+            } catch (error) {
+                showStatus('Error loading facility reports', 'error');
+            }
+        }
+
+        async function loadSafetyAnalysis() {
+            try {
+                const response = await fetch('/reports/safety');
+                const data = await response.json();
+                showStatus('Safety analysis loaded successfully', 'success');
+                
+                // Display safety analysis data
+                // Add implementation here based on your data structure
+            } catch (error) {
+                showStatus('Error loading safety analysis', 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.style.backgroundColor = type === 'success' ? '#d4edda' : '#f8d7da';
+            status.style.color = type === 'success' ? '#155724' : '#721c24';
+            status.textContent = message;
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
     </script>
 </body>
 </html>
