@@ -23,6 +23,12 @@
     <div class="control-panel">
         <h2>QDPro GIS System</h2>
         <div>
+            <select onchange="setMapProvider(this.value)">
+                <option value="osm">OpenStreetMap</option>
+                <option value="usgs">USGS National Map</option>
+                <option value="nga">NGA</option>
+                <option value="dod">DOD</option>
+            </select>
             <button onclick="generateReport()">Generate Report</button>
             <button onclick="showSafetyAnalysis()">Safety Analysis</button>
         </div>
@@ -32,7 +38,40 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
         let map = L.map('map').setView([0, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        let currentLayer = null;
+
+        function setMapProvider(provider = 'osm') {
+            const providers = {
+                'osm': {
+                    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    attribution: '© OpenStreetMap contributors'
+                },
+                'usgs': {
+                    url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
+                    attribution: '© USGS National Map'
+                },
+                'nga': {
+                    url: 'https://gis.nga.mil/arcgis/rest/services/DOD_NGA/MapServer/tile/{z}/{y}/{x}',
+                    attribution: '© National Geospatial-Intelligence Agency'
+                },
+                'dod': {
+                    url: 'https://tiles.arcgis.com/tiles/Federal_DOD/arcgis/rest/services/MapServer/tile/{z}/{y}/{x}',
+                    attribution: '© Department of Defense'
+                }
+            };
+
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+
+            const providerConfig = providers[provider] || providers['osm'];
+            currentLayer = L.tileLayer(providerConfig.url, {
+                attribution: providerConfig.attribution
+            }).addTo(map);
+        }
+
+        // Initialize with default provider
+        setMapProvider('osm');
         
         async function loadFacilities() {
             const response = await fetch('/facilities');
