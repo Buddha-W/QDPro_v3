@@ -91,9 +91,28 @@ class ExplosiveSiteBase(BaseModel):
     k_factor: float = 50.0
     hazard_type: str
 
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
 @app.get("/")
 async def root():
     return {"message": "QDPro GIS System API"}
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    log_activity(
+        user_id=request.headers.get("X-User-ID", "anonymous"),
+        action="ERROR",
+        resource=str(request.url),
+        status="FAILED",
+        details={"error": exc.detail, "status_code": exc.status_code}
+    )
+    return {"detail": exc.detail, "status_code": exc.status_code}
 
 @app.post("/facilities/")
 async def create_facility(facility: FacilityBase):
