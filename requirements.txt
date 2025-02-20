@@ -20,3 +20,4 @@ qrcode
 geopandas
 psutil
 pyodbc
+pandas
