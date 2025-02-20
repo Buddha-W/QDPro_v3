@@ -123,6 +123,22 @@ class ExplosiveSiteBase(BaseModel):
     k_factor: float = 50.0
     hazard_type: str
 
+@app.get("/api/system/status")
+async def system_status():
+    """Get detailed system status"""
+    checker = DeploymentChecker()
+    check_results = checker.run_pre_deployment_checks()
+    
+    monitor = UsageMonitor()
+    metrics = monitor.get_system_metrics()
+    
+    return {
+        "database": check_results["database"],
+        "security": check_results["security"],
+        "compliance": check_results["compliance"],
+        "performance": metrics
+    }
+
 @app.get("/health")
 async def health_check():
     """Enhanced health check with database status"""
