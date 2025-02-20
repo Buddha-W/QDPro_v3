@@ -1,0 +1,60 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QDPro GIS System</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; }
+        .control-panel {
+            padding: 20px;
+            background: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <h2>QDPro GIS System</h2>
+        <div>
+            <button onclick="generateReport()">Generate Report</button>
+            <button onclick="showSafetyAnalysis()">Safety Analysis</button>
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        let map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        
+        async function loadFacilities() {
+            const response = await fetch('/facilities');
+            const facilities = await response.json();
+            facilities.forEach(f => {
+                L.marker([f.latitude, f.longitude])
+                 .bindPopup(`Facility: ${f.facility_number}`)
+                 .addTo(map);
+            });
+        }
+
+        async function generateReport() {
+            const response = await fetch('/reports/facilities');
+            const report = await response.json();
+            console.log(report);
+            // Add report display logic
+        }
+
+        async function showSafetyAnalysis() {
+            const response = await fetch('/reports/safety');
+            const analysis = await response.json();
+            // Add safety arc display logic
+        }
+
+        loadFacilities();
+    </script>
+</body>
+</html>

@@ -1,5 +1,9 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from reports import generate_facility_report, generate_safety_analysis
+from auth import get_current_user, create_access_token, User
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine
 from geoalchemy2 import functions as gfunc
@@ -105,6 +109,21 @@ async def calculate_esqd(site_id: int):
             "site_id": row[0],
             "esqd_arc": row[1]
         }
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    with open("static/index.html") as f:
+        return HTMLResponse(content=f.read())
+
+@app.get("/reports/facilities")
+async def get_facility_report(current_user: str = Depends(get_current_user)):
+    return await generate_facility_report(engine)
+
+@app.get("/reports/safety")
+async def get_safety_analysis(current_user: str = Depends(get_current_user)):
+    return await generate_safety_analysis(engine)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
