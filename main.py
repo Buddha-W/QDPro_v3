@@ -343,3 +343,16 @@ if __name__ == "__main__":
     hardening.enforce_security_controls()
 
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
+
+class ImportProgress(BaseModel):
+    status: str
+    progress: float
+    message: str
+
+import_status = {}
+
+@app.get("/import/status/{import_id}")
+async def get_import_status(import_id: str):
+    if import_id not in import_status:
+        raise HTTPException(status_code=404, detail="Import job not found")
+    return import_status[import_id]

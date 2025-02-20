@@ -57,8 +57,20 @@ class AccessImporter:
                 }
             }
             
-            # Import each table
+            # Validate database structure
+            def validate_table_structure(cursor, table_name, required_columns):
+                try:
+                    cursor.execute(f'SELECT * FROM {table_name} WHERE 1=0')
+                    columns = set(column[0] for column in cursor.description)
+                    return all(col in columns for col in required_columns)
+                except pyodbc.Error:
+                    return False
+
+            # Import each table with validation
             for old_table, mapping in table_mappings.items():
+                if not validate_table_structure(cursor, old_table, mapping['columns'].keys()):
+                    raise ValueError(f"Invalid table structure for {old_table}")
+                    
                 cursor.execute(f'SELECT * FROM {old_table}')
                 rows = cursor.fetchall()
                 columns = [column[0] for column in cursor.description]
@@ -82,3 +94,11 @@ class AccessImporter:
             
         finally:
             shutil.rmtree(temp_dir)
+def validate_imported_data(self, cursor, old_table, new_table):
+    """Validate that data was imported correctly"""
+    old_count = cursor.execute(f'SELECT COUNT(*) FROM {old_table}').fetchone()[0]
+    new_count = self.db_importer.get_count(new_table)
+    
+    if old_count != new_count:
+        raise ValueError(f"Data count mismatch for {old_table}: {old_count} vs {new_count}")
+    return True
