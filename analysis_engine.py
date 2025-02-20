@@ -59,7 +59,12 @@ class ExplosionAnalysis:
             return 0.0
 
     async def analyze_pes_to_es(self, pes_id: int, org_type: str) -> Dict:
-        """Analyze PES to ES relationships with organization-specific rules"""
+        """Analyze PES to ES relationships with organization-specific rules and standards"""
+        from standards_db import Standards, StandardType
+        
+        # Get applicable standards
+        std_type = StandardType.DOD if org_type == 'DOD' else StandardType.DOE
+        applicable_standards = Standards.get_all_references(std_type)
         try:
             query = """
             WITH pes AS (
@@ -115,13 +120,24 @@ class ExplosionAnalysis:
                         lab=row.lab_designation
                     )
 
+                    # Get applicable standard reference
+                    standard_ref = Standards.get_reference(
+                        StandardType.DOD if org_type == 'DOD' else StandardType.DOE,
+                        'quantity_distance'
+                    )
+
                     exposed_sites.append({
                         "facility_id": row.id,
                         "facility_number": row.facility_number,
                         "distance": row.distance,
                         "required_distance": distance,
                         "compliant": row.distance >= distance,
-                        "location": row.location
+                        "location": row.location,
+                        "standard_reference": {
+                            "document": standard_ref.get('ref'),
+                            "chapters": standard_ref.get('chapters'),
+                            "description": standard_ref.get('description')
+                        }
                     })
 
                 return {
