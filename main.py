@@ -632,7 +632,7 @@ async def main():
     # Enforce security controls before starting
     hardening.enforce_security_controls()
 
-    config = uvicorn.Config(app, host="0.0.0.0", port=8080, reload=True)
+    config = uvicorn.Config(app, host="0.0.0.0", port=8080, reload=True, access_log=True)
     server = uvicorn.Server(config)
     await server.serve()
 
