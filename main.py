@@ -113,7 +113,7 @@ app.add_middleware(
 )
 
 # Database connection with connection pooling
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/qdpro")
+DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(
     DATABASE_URL,
     pool_size=5,
