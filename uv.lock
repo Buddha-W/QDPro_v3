@@ -307,17 +307,21 @@ dependencies = [
     { name = "fastapi" },
     { name = "geoalchemy2" },
     { name = "psycopg2-binary" },
+    { name = "pydantic" },
     { name = "shapely" },
+    { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi" },
-    { name = "geoalchemy2" },
-    { name = "psycopg2-binary" },
-    { name = "shapely" },
-    { name = "uvicorn" },
+    { name = "fastapi", specifier = ">=0.115.8" },
+    { name = "geoalchemy2", specifier = ">=0.17.1" },
+    { name = "psycopg2-binary", specifier = ">=2.9.10" },
+    { name = "pydantic", specifier = ">=2.10.6" },
+    { name = "shapely", specifier = ">=2.0.7" },
+    { name = "sqlalchemy", specifier = ">=2.0.38" },
+    { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 
 [[package]]
