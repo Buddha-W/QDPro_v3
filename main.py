@@ -585,16 +585,18 @@ async def main():
 
     config = deployment_mgr.configure_deployment()
 
-    # Initialize basic security controls for beta testing
-    from system_hardening import SystemHardening
-    from crypto_validation import CryptoValidator
-    
-    # Beta testing mode - reduced security
+    # Beta Testing Mode Configuration
     os.environ['BETA_TESTING'] = 'true'
+    os.environ['DISABLE_AUTH'] = 'true'
+    os.environ['BYPASS_ZERO_TRUST'] = 'true'
+    os.environ['DISABLE_RATE_LIMITING'] = 'true'
     
-    # Initialize minimal protection systems
-    hardening = SystemHardening()
-    crypto = CryptoValidator()
+    # Initialize systems with reduced security for testing
+    hardening = SystemHardening(enforce_controls=False)
+    crypto = CryptoValidator(bypass_validation=True)
+    
+    # Log beta mode activation
+    print("Beta testing mode activated - Security features temporarily reduced")
     
     # Log beta testing mode
     log_activity(
