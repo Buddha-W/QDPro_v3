@@ -556,11 +556,11 @@ async def update_feedback_status(
 
     return {"status": "success", "message": "Feedback status updated"}
 
-if __name__ == "__main__":
+async def main():
     # Initialize database maintenance
     from database_maintenance import DatabaseMaintenance
     db_maintenance = DatabaseMaintenance(DATABASE_URL)
-    asyncio.create_task(db_maintenance.schedule_maintenance())
+    maintenance_task = asyncio.create_task(db_maintenance.schedule_maintenance())
 
     # Initialize deployment and offline sync managers
     from deployment_manager import DeploymentManager
@@ -627,7 +627,12 @@ if __name__ == "__main__":
     # Enforce security controls before starting
     hardening.enforce_security_controls()
 
-    uvicorn.run(app, host="0.0.0.0", port=8080, reload=True)
+    config = uvicorn.Config(app, host="0.0.0.0", port=8080, reload=True)
+    server = uvicorn.Server(config)
+    await server.serve()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 class ImportProgress(BaseModel):
     status: str
