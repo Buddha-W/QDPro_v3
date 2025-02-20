@@ -527,6 +527,18 @@ async def update_feedback_status(
     return {"status": "success", "message": "Feedback status updated"}
 
 if __name__ == "__main__":
+    # Run pre-deployment checks
+    from deployment_checklist import DeploymentChecker
+    checker = DeploymentChecker()
+    check_results = checker.run_pre_deployment_checks()
+    
+    if not all(check_results.values()):
+        print("Pre-deployment checks failed:")
+        for check, result in check_results.items():
+            if not result:
+                print(f"- {check} check failed")
+        sys.exit(1)
+    
     # Initialize database maintenance
     from database_maintenance import DatabaseMaintenance
     db_maintenance = DatabaseMaintenance(DATABASE_URL)
