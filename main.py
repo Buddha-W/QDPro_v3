@@ -178,6 +178,10 @@ if __name__ == "__main__":
     # Initialize security controls
     from system_hardening import SystemHardening
     from crypto_validation import CryptoValidator
+    from fedramp_compliance import FedRAMPControls
+    
+    fedramp = FedRAMPControls()
+    fedramp_status = fedramp.validate_compliance()
     
     hardening = SystemHardening()
     crypto = CryptoValidator()
