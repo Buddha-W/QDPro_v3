@@ -26,7 +26,21 @@ class LicenseManager:
 
     def validate_license(self, license_key: str) -> Dict[str, Any]:
         try:
+            if not self._verify_activation_count():
+                return {"valid": False, "reason": "Maximum activations reached"}
+                
             current_hardware_id = self.generate_hardware_id()
+            
+    def _verify_activation_count(self) -> bool:
+        try:
+            activations = self.storage.secure_read("activation_count")
+            if activations > 3:  # Limit to 3 hardware changes
+                return False
+            self.storage.secure_write("activation_count", activations + 1)
+            return True
+        except:
+            self.storage.secure_write("activation_count", 1)
+            return True
             
             # Add additional entropy to prevent time tampering
             current_time = datetime.now()
