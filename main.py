@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from reports import generate_facility_report, generate_safety_analysis
@@ -13,7 +13,8 @@ from pydantic import BaseModel
 import os
 import secrets
 from audit import log_activity # Added import for logging
-
+from datetime import datetime, timedelta, timezone
+import sys
 
 app = FastAPI(
     title="QDPro",
@@ -34,12 +35,12 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 async def security_middleware(request: Request, call_next):
     request_id = secrets.token_hex(16)
     request.state.request_id = request_id
-    
+
     # Handle device detection
     user_agent = request.headers.get("user-agent", "").lower()
     is_mobile = "mobile" in user_agent or "ipad" in user_agent or "iphone" in user_agent
     request.state.is_mobile = is_mobile
-    
+
     # Adjust response based on device
     if is_mobile:
         request.state.session_duration = timedelta(days=30)  # Longer sessions for mobile
@@ -216,25 +217,84 @@ async def get_facility_report(current_user: str = Depends(get_current_user)):
 async def get_safety_analysis(current_user: str = Depends(get_current_user)):
     return await generate_safety_analysis(engine)
 
+
+class DatabaseImporter:
+    def __init__(self, database_url):
+        self.database_url = database_url
+        # Add any database-specific initialization here
+
+    def process_file(self, file_path, file_type):
+        # Add file processing logic here based on file_type
+        pass
+
+
+class AccessImporter(DatabaseImporter):
+    def process_essbackup(self, file_path):
+        try:
+            # Add logic to read and process .essbackup file here.  This will likely
+            # involve using a library to read the .essbackup format, then transforming
+            # the data into a format suitable for insertion into the PostgreSQL database.
+            # Replace this with actual implementation.
+            print(f"Processing {file_path}...")
+            return True # Placeholder - Replace with actual success/failure check
+        except Exception as e:
+            print(f"Error processing .essbackup file: {e}")
+            return False
+
+
+@app.post("/import/database")
+async def import_database(file: UploadFile):
+    """Import data from various file formats including .essbackup"""
+    temp_path = f"temp_{file.filename}"
+    try:
+        with open(temp_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+
+        importer = DatabaseImporter(DATABASE_URL)
+        file_ext = file.filename.split('.')[-1].lower()
+
+        if file_ext == 'essbackup':
+            access_importer = AccessImporter(DATABASE_URL)
+            success = access_importer.process_essbackup(temp_path)
+            if success:
+                return {"message": "Legacy database import successful"}
+            else:
+                raise HTTPException(status_code=400, detail="Import failed")
+        elif file_ext == 'csv':
+            # Add CSV import logic here
+            pass
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred during import: {e}")
+    finally:
+        try:
+            os.remove(temp_path)
+        except FileNotFoundError:
+            pass
+
+
 if __name__ == "__main__":
     # Initialize deployment and offline sync managers
     from deployment_manager import DeploymentManager
     from offline_sync import OfflineSyncManager
-    
+
     deployment_mgr = DeploymentManager()
     offline_sync = OfflineSyncManager()
-    
+
     # Check for air-gapped mode
     air_gapped = os.getenv("AIR_GAPPED", "false").lower() == "true"
     if air_gapped:
         deployment_mgr.enable_offline_mode()
-    
+
     if not deployment_mgr.validate_environment():
         print("Missing required environment variables")
         sys.exit(1)
-        
+
     config = deployment_mgr.configure_deployment()
-    
+
     # Initialize security controls
     from system_hardening import SystemHardening
     from crypto_validation import CryptoValidator
@@ -243,11 +303,11 @@ if __name__ == "__main__":
     from anti_tampering import AntiTampering
     from license_recovery import LicenseRecovery
     from threat_detection import ThreatDetection
-    
+
     # Initialize additional security systems
     license_recovery = LicenseRecovery()
     threat_detector = ThreatDetection()
-    
+
     # Schedule threat detection
     def check_threats():
         threats = threat_detector.analyze_logs()
@@ -259,27 +319,27 @@ if __name__ == "__main__":
                 status="ALERT",
                 details=threat
             )
-    
+
     import threading
     threat_check = threading.Timer(900.0, check_threats)  # Check every 15 minutes
     threat_check.start()
-    
+
     # Initialize protection systems
     license_manager = LicenseManager()
     if not license_manager.validate_license(os.getenv("LICENSE_KEY"))["valid"]:
         print("Invalid license")
         sys.exit(1)
-        
+
     anti_tampering = AntiTampering()
     anti_tampering.initialize_protection()
-    
+
     fedramp = FedRAMPControls()
     fedramp_status = fedramp.validate_compliance()
-    
+
     hardening = SystemHardening()
     crypto = CryptoValidator()
-    
+
     # Enforce security controls before starting
     hardening.enforce_security_controls()
-    
+
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
