@@ -41,6 +41,15 @@
             </select>
             <button onclick="generateReport()">Generate Report</button>
             <button onclick="showSafetyAnalysis()">Safety Analysis</button>
+            <button onclick="toggleWeatherOverlay()">Weather Overlay</button>
+            <button onclick="analyzeLineOfSight()">Line of Sight</button>
+            <button onclick="showTerrainAnalysis()">Terrain Analysis</button>
+            <select id="coordSystem" onchange="updateCoordinateSystem(this.value)">
+                <option value="latlong">Lat/Long</option>
+                <option value="mgrs">MGRS</option>
+                <option value="utm">UTM</option>
+            </select>
+            <button onclick="exportMap()">Export Map</button>
         </div>
     </div>
     <div id="map"></div>
@@ -131,6 +140,44 @@
         }
 
         loadFacilities();
+
+        function toggleWeatherOverlay() {
+            // Integration with weather API service
+            const weatherLayer = L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=YOUR_API_KEY');
+            currentLayer ? map.removeLayer(weatherLayer) : weatherLayer.addTo(map);
+        }
+
+        function analyzeLineOfSight() {
+            map.on('click', function(e) {
+                // Implement line of sight analysis using elevation data
+                const viewshed = L.polyline([[e.latlng.lat, e.latlng.lng]], {color: 'red'});
+                map.addLayer(viewshed);
+            });
+        }
+
+        function showTerrainAnalysis() {
+            const terrainLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?access_token=YOUR_API_KEY');
+            map.addLayer(terrainLayer);
+        }
+
+        function updateCoordinateSystem(system) {
+            const coord = map.getCenter();
+            switch(system) {
+                case 'mgrs':
+                    // Convert to MGRS
+                    break;
+                case 'utm':
+                    // Convert to UTM
+                    break;
+                default:
+                    return `${coord.lat.toFixed(6)}, ${coord.lng.toFixed(6)}`;
+            }
+        }
+
+        function exportMap() {
+            const format = prompt('Export format (KML/GPX/SHP):', 'KML');
+            // Implement export functionality
+        }
 
         // Add click handler for coordinates
         map.on('click', function(e) {
