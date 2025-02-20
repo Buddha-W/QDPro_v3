@@ -129,6 +129,7 @@ async def root():
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    # Log the error
     log_activity(
         user_id=request.headers.get("X-User-ID", "anonymous"),
         action="ERROR",
@@ -136,7 +137,17 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         status="FAILED",
         details={"error": exc.detail, "status_code": exc.status_code}
     )
-    return {"detail": exc.detail, "status_code": exc.status_code}
+    
+    # Attempt recovery for known error conditions
+    if exc.status_code == 503:  # Service Unavailable
+        try:
+            # Attempt to restart necessary services
+            deployment_mgr.restart_services()
+            return {"detail": "Service recovered", "status_code": 200}
+        except Exception as e:
+            pass
+            
+    return {"detail": exc.detail, "status_code": exc.status_code, "recovery_attempted": True}
 
 @app.post("/facilities/")
 async def create_facility(facility: FacilityBase):

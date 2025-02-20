@@ -22,14 +22,27 @@ class DatabaseExporter:
         df.to_json(file_path, orient='records')
         
     def export_to_legacy(self, file_path: str):
-        """Export database in legacy-compatible format"""
+        """Export database in legacy-compatible format with validation"""
         tables = ['facilities', 'explosive_sites']
         data = {}
+        row_counts = {}
         
         for table in tables:
             query = f"SELECT * FROM {table}"
             df = pd.read_sql(query, self.engine)
             data[table] = df.to_dict(orient='records')
+            row_counts[table] = len(df)
+            
+        # Add validation metadata
+        data['_metadata'] = {
+            'row_counts': row_counts,
+            'export_timestamp': datetime.now().isoformat(),
+            'checksum': self._calculate_checksum(data)
+        }
             
         with open(file_path, 'w') as f:
             json.dump(data, f)
+            
+    def _calculate_checksum(self, data):
+        """Calculate checksum for data validation"""
+        return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()

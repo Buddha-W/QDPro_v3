@@ -66,8 +66,16 @@ class AccessImporter:
                 except pyodbc.Error:
                     return False
 
-            # Import each table with validation
-            for old_table, mapping in table_mappings.items():
+            # Import each table with validation and progress tracking
+            total_tables = len(table_mappings)
+            for idx, (old_table, mapping) in enumerate(table_mappings.items(), 1):
+                progress = (idx / total_tables) * 100
+                import_status[import_id] = {
+                    "status": "processing",
+                    "progress": progress,
+                    "message": f"Processing table {old_table}"
+                }
+                
                 if not validate_table_structure(cursor, old_table, mapping['columns'].keys()):
                     raise ValueError(f"Invalid table structure for {old_table}")
                     
