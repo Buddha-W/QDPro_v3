@@ -1,4 +1,3 @@
-
 # QDPro GIS System User Guide
 
 ## Quick Start
@@ -86,3 +85,10 @@
 - Report technical issues through the support portal
 - Database issues? Use the automated recovery tool
 - Analysis errors? Check input parameters
+
+## Standards Compliance
+- DoD 6055.09-M
+- DoE STD 1212-2025
+- DESR 6055.09_DAFMAN 91-201
+- NATO AASTP-1 and AASTP-4
+- Unit conversions (lbs, kg, g) supported
