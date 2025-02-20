@@ -367,7 +367,16 @@ async def serve_frontend(request: Request):
 
 @app.get("/reports/facilities")
 async def get_facility_report(current_user: str = Depends(get_current_user)):
-    return await generate_facility_report(engine)
+    try:
+        if not current_user:
+            raise HTTPException(
+                status_code=401,
+                detail="Authentication required",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        return await generate_facility_report(engine)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/reports/safety")
 async def get_safety_analysis(current_user: str = Depends(get_current_user)):
