@@ -19,7 +19,6 @@ localPort = 8080
 externalPort = 80
 
 [workflows]
-runButton = "QDPro"
 
 [[workflows.workflow]]
 name = "QDPro Development"
