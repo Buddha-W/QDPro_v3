@@ -28,7 +28,7 @@ async def render_web_page(request: Request):
     })
 
 @app.get("/reports/facilities")
-async def return_facilities_report(current_user: str = Depends(get_current_user)):
+async def return_facilities_report():
     """Provide report on facilities."""
     facilities = [
         {"id": 1, "name": "Facility A", "lat": 40.7128, "lng": -74.0060},
