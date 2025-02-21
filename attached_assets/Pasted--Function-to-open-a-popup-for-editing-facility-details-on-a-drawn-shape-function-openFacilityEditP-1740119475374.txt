@@ -1,0 +1,72 @@
+// Function to open a popup for editing facility details on a drawn shape
+function openFacilityEditPopup(layer) {
+  // Ensure the layer has a properties object in its GeoJSON feature
+  layer.feature = layer.feature || {};
+  layer.feature.properties = layer.feature.properties || {};
+
+  // Build the popup HTML form using unique element IDs
+  const formHtml = `
+    <div style="min-width: 220px;">
+      <div style="margin-bottom: 8px;">
+        <label for="editName">Facility Name:</label>
+        <input id="editName" type="text" value="${layer.feature.properties.name || ''}" style="width: 100%;" />
+      </div>
+      <div style="margin-bottom: 8px;">
+        <label for="editTypeCode">Type Code:</label>
+        <input id="editTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" />
+      </div>
+      <div style="margin-bottom: 8px;">
+        <label for="editDescription">Description:</label>
+        <textarea id="editDescription" style="width: 100%; height: 60px;">${layer.feature.properties.description || ''}</textarea>
+      </div>
+      <button id="popupSaveButton" style="width: 100%; padding: 5px;">Save</button>
+    </div>
+  `;
+
+  // Bind the popup to the layer and open it
+  layer.bindPopup(formHtml).openPopup();
+
+  // Use the 'popupopen' event to attach the event listener
+  layer.once('popupopen', function() {
+    const saveBtn = document.getElementById('popupSaveButton');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', function() {
+        // Retrieve values from the form inputs
+        const newName = document.getElementById('editName').value;
+        const newTypeCode = document.getElementById('editTypeCode').value;
+        const newDescription = document.getElementById('editDescription').value;
+
+        // Update the layer's feature properties
+        layer.feature.properties.name = newName;
+        layer.feature.properties.typeCode = newTypeCode;
+        layer.feature.properties.description = newDescription;
+
+        // Optionally update a tooltip to show updated info
+        layer.bindTooltip(`Name: ${newName}<br>Type: ${newTypeCode}`, { permanent: false });
+
+        // Call your persistence function to save changes to the database
+        saveToDatabase();
+
+        // Close the popup
+        layer.closePopup();
+      });
+    }
+  });
+}
+
+// When a shape is drawn, attach a click event so that clicking it opens the edit popup
+map.on('draw:created', function(e) {
+  const layer = e.layer;
+  // Initialize properties if missing
+  layer.feature = layer.feature || {};
+  layer.feature.properties = layer.feature.properties || {};
+  
+  // Attach a click event handler to the new shape
+  layer.on('click', function() {
+    openFacilityEditPopup(layer);
+  });
+
+  // Add the shape to the active drawing layer and save to persistence
+  activeDrawingLayer.addLayer(layer);
+  saveToDatabase();
+});
