@@ -42,28 +42,41 @@ async def save_layers(request: Request):
     """Save layer data to database."""
     data = await request.json()
     try:
-        # Here you would typically save to your database
-        # For now, we'll use a file-based storage
-        with open("layer_data.json", "w") as f:
-            json.dump(data, f)
+        # Ensure we have write permissions
+        import os
+        file_path = "layer_data.json"
+        
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else '.', exist_ok=True)
+        
+        # Write with proper permissions
+        with open(file_path, "w", encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        # Ensure file is readable
+        os.chmod(file_path, 0o666)
+        
         return JSONResponse(content={"status": "success"})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_details = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to save: {str(e)}\n{error_details}")
 
 @app.get("/api/load-layers")
 async def load_layers():
     """Load layer data from database."""
     try:
-        # Here you would typically load from your database
-        # For now, we'll use a file-based storage
-        try:
-            with open("layer_data.json", "r") as f:
-                data = json.load(f)
-        except FileNotFoundError:
-            data = {}
-        return JSONResponse(content=data)
+        file_path = "layer_data.json"
+        if not os.path.exists(file_path):
+            return JSONResponse(content={})
+            
+        with open(file_path, "r", encoding='utf-8') as f:
+            data = json.load(f)
+            return JSONResponse(content=data)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_details = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to load: {str(e)}\n{error_details}")
 
 if __name__ == "__main__":
     import uvicorn
