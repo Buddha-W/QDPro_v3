@@ -223,7 +223,31 @@
             font-size: 14px;
             color: #333;
         }
-
+        .workspace-selector-modal {
+            display: none; /* Initially hidden */
+            position: fixed;
+            z-index: 2001; /* Ensure it's on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .workspace-selector-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 5px;
+        }
+        .workspace-selector-item {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .workspace-selector-item:hover {
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
 <body>
@@ -231,10 +255,12 @@
         <div class="menu-item">
             File
             <div class="menu-dropdown">
-                <div class="menu-dropdown-item">New</div>
+                <div class="menu-dropdown-item" onclick="createNewWorkspace()">New Workspace</div>
+                <div class="menu-dropdown-item" onclick="showWorkspaceSelector()">Switch Workspace</div>
                 <div class="menu-dropdown-item">Open...</div>
                 <div class="menu-dropdown-item">Save</div>
                 <div class="menu-dropdown-item">Export...</div>
+                <div class="menu-dropdown-item">About</div>
             </div>
         </div>
         <div class="menu-item">
@@ -296,7 +322,7 @@
                 <i class="fas fa-map-marker-alt"></i>
             </button>
         </div>
-        <div id="workspaceStatus" style="margin-left: auto; padding: 0 10px; font-size: 14px; color: #333;">
+        <div id="workspaceStatus">
             Workspace: <span id="currentWorkspace">Default</span>
         </div>
     </div>
@@ -348,10 +374,21 @@
         </div>
     </div>
 
+    <!-- Workspace Selector Modal -->
+    <div id="workspaceSelectorModal" class="workspace-selector-modal">
+        <div class="workspace-selector-content">
+            <span class="modal-close" onclick="closeWorkspaceSelector()">&times;</span>
+            <h2>Select Workspace</h2>
+            <div id="workspaceList"></div>
+        </div>
+    </div>
+
     <script>
         let map;
         let drawnItems;
         let currentWorkspace = 'Default';
+        let workspaces = { 'Default': { layers: [] } }; // Initialize with a default workspace
+
 
         function updateWorkspaceStatus(workspaceName) {
             currentWorkspace = workspaceName;
@@ -359,23 +396,54 @@
         }
 
         function switchWorkspace(workspaceName) {
-            // Save current workspace state if needed
             saveLayersToLocalStorage();
-
-            // Update workspace name
             currentWorkspace = workspaceName;
             updateWorkspaceStatus(workspaceName);
-
-            // Clear current layers
             clearAllLayers();
-
-            // Load layers for new workspace
             loadLayersFromLocalStorage();
+        }
+
+        function createNewWorkspace() {
+            const newWorkspaceName = prompt("Enter a name for the new workspace:");
+            if (newWorkspaceName && !workspaces[newWorkspaceName]) {
+                workspaces[newWorkspaceName] = { layers: [] };
+                addDefaultLayers(newWorkspaceName);
+                switchWorkspace(newWorkspaceName);
+                updateWorkspaceSelector();
+            }
+        }
+
+        function addDefaultLayers(workspaceName) {
+            addLayer(workspaceName, 'Background (Non-QD)', { isQDAnalyzed: false });
+            addLayer(workspaceName, 'PES (QD)', { isQDAnalyzed: true });
+            addLayer(workspaceName, 'ES (QD)', { isQDAnalyzed: true });
+        }
+
+        function showWorkspaceSelector() {
+            updateWorkspaceSelector();
+            document.getElementById('workspaceSelectorModal').style.display = 'block';
+        }
+
+        function closeWorkspaceSelector() {
+            document.getElementById('workspaceSelectorModal').style.display = 'none';
+        }
+
+        function updateWorkspaceSelector() {
+            const workspaceList = document.getElementById('workspaceList');
+            workspaceList.innerHTML = '';
+
+            for (const workspaceName in workspaces) {
+                const item = document.createElement('div');
+                item.className = 'workspace-selector-item';
+                item.textContent = workspaceName;
+                item.onclick = () => switchWorkspace(workspaceName);
+                workspaceList.appendChild(item);
+            }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize map
-            const map = L.map('map', {
+            map = L.map('map', {
                 center: [40.7128, -74.0060],
                 zoom: 13,
                 zoomControl: true
@@ -415,14 +483,14 @@
 
                 if (!name) return;
 
-                addLayer(name, { isQDAnalyzed });
+                addLayer(currentWorkspace, name, { isQDAnalyzed });
                 modal.style.display = 'none';
                 document.getElementById('layerName').value = '';
                 document.getElementById('isQDAnalyzed').checked = false;
             }
 
             window.editLayer = function(name) {
-                const layer = layers[name];
+                const layer = layers[currentWorkspace][name];
                 if (!layer) return;
 
                 const newName = prompt('Enter new layer name:', name);
@@ -436,54 +504,38 @@
                 };
 
                 if (name !== newName) {
-                    layers[newName] = layer;
-                    delete layers[name];
+                    layers[currentWorkspace][newName] = layer;
+                    delete layers[currentWorkspace][name];
                 }
 
                 updateLayerControl();
                 saveToDatabase();
             }
 
-            function attachEditHandlers(layer) {
-                if (layer instanceof L.FeatureGroup) {
-                    layer.eachLayer(l => {
-                        // Ensure the layer has a feature property
-                        l.feature = l.feature || {};
-                        l.feature.properties = l.feature.properties || {};
-
-                        // Remove existing click handlers to prevent duplicates
-                        l.off('click');
-
-                        // Add new click handler
-                        l.on('click', function() {
-                            openEditPopup(l);
-                        });
-                    });
-                }
-            }
-
             async function saveToDatabase() {
                 const layerData = {
                     layers: {}
                 };
-                Object.keys(layers).forEach(layerName => {
-                    const layer = layers[layerName];
-                    attachEditHandlers(layer);
-                    layerData.layers[layerName] = {
-                        properties: layer.properties || {},
-                        features: []
-                    };
-                    layer.eachLayer(l => {
-                        if (l.toGeoJSON) {
-                            const geoJSON = l.toGeoJSON();
-                            if (l.feature && l.feature.properties) {
-                                geoJSON.properties = {...l.feature.properties};
+                for(const workspace in workspaces){
+                    layerData.layers[workspace] = {};
+                    for(const layerName in layers[workspace]){
+                        const layer = layers[workspace][layerName];
+                        attachEditHandlers(layer);
+                        layerData.layers[workspace][layerName] = {
+                            properties: layer.properties || {},
+                            features: []
+                        };
+                        layer.eachLayer(l => {
+                            if (l.toGeoJSON) {
+                                const geoJSON = l.toGeoJSON();
+                                if (l.feature && l.feature.properties) {
+                                    geoJSON.properties = {...l.feature.properties};
+                                }
+                                layerData.layers[workspace][layerName].features.push(geoJSON);
                             }
-                            layerData.layers[layerName].features.push(geoJSON);
-                        }
-                    });
-                });
-
+                        });
+                    }
+                }
                 console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
 
                 try {
@@ -509,41 +561,46 @@
 
                     // Clear existing layers
                     Object.values(layers).forEach(layer => map.removeLayer(layer));
-                    window.layers = {}; // Fix: Use window.layers instead of layers
+                    layers = {}; // Fix: Use window.layers instead of layers
 
-                    Object.keys(layerData).forEach(layerName => {
-                        const layerGroup = new L.FeatureGroup();
-                        layerGroup.properties = layerData[layerName].properties;
-                        layers[layerName] = layerGroup;
-                        map.addLayer(layerGroup);
+                    for(const workspace in layerData){
+                        layers[workspace] = {};
+                        for(const layerName in layerData[workspace]){
+                            const layerGroup = new L.FeatureGroup();
+                            layerGroup.properties = layerData[workspace][layerName].properties;
+                            layers[workspace][layerName] = layerGroup;
+                            map.addLayer(layerGroup);
 
-                        if (layerData[layerName].features) {
-                            layerData[layerName].features.forEach(feature => {
-                            L.geoJSON(feature, {
-                                onEachFeature: function(feature, layer) {
-                                    if (feature.properties && feature.properties.typeCode) {
-                                        layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
+                            if (layerData[workspace][layerName].features) {
+                                layerData[workspace][layerName].features.forEach(feature => {
+                                L.geoJSON(feature, {
+                                    onEachFeature: function(feature, layer) {
+                                        if (feature.properties && feature.properties.typeCode) {
+                                            layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
+                                        }
                                     }
-                                }
-                            }).eachLayer(l => {
-                                // Transfer properties to the layer
-                                l.feature = feature;
-                                l.bindTooltip(`Type: ${feature.properties.typeCode || 'Unspecified'}`);
-                                layerGroup.addLayer(l);
+                                }).eachLayer(l => {
+                                    // Transfer properties to the layer
+                                    l.feature = feature;
+                                    l.bindTooltip(`Type: ${feature.properties.typeCode || 'Unspecified'}`);
+                                    layerGroup.addLayer(l);
+                                });
                             });
+                        }
+                        }
+                    }
+                    // Attach edit handlers to all loaded layers
+                    for(const workspace in layers){
+                        Object.values(layers[workspace]).forEach(layer => {
+                            attachEditHandlers(layer);
                         });
                     }
-                });
-                // Attach edit handlers to all loaded layers
-                Object.values(layers).forEach(layer => {
-                    attachEditHandlers(layer);
-                });
 
-                updateLayerControl();
-                updateDrawToLayerSelect();
-                } catch (error) {
-                    console.error('Error loading layers:', error);
-                }
+                    updateLayerControl();
+                    updateDrawToLayerSelect();
+                    } catch (error) {
+                        console.error('Error loading layers:', error);
+                    }
             }
 
             function openEditPopup(layer) {
@@ -593,7 +650,10 @@
                 }, 100);
             }
 
-            function addLayer(name, properties = {}) {
+            function addLayer(workspaceName, name, properties = {}) {
+                if(!layers[workspaceName]){
+                    layers[workspaceName] = {};
+                }
                 const layerGroup = new L.FeatureGroup();
                 layerGroup.properties = properties;
                 layerGroup.on('click', function(e) {
@@ -601,7 +661,7 @@
                         openEditPopup(e.layer);
                     }
                 });
-                layers[name] = layerGroup;
+                layers[workspaceName][name] = layerGroup;
                 map.addLayer(layerGroup);
                 updateLayerControl();
                 updateDrawToLayerSelect();
@@ -611,7 +671,7 @@
             function updateDrawToLayerSelect() {
                 const select = document.getElementById('drawToLayer');
                 select.innerHTML = '';
-                Object.keys(layers).forEach(name => {
+                Object.keys(layers[currentWorkspace]).forEach(name => {
                     const option = document.createElement('option');
                     option.value = name;
                     option.textContent = name;
@@ -619,21 +679,19 @@
                 });
 
                 if (select.options.length > 0) {
-                    activeLayer = layers[select.options[0].value]; //Select the first option as default active layer
+                    activeLayer = layers[currentWorkspace][select.options[0].value]; //Select the first option as default active layer
                 }
             }
 
             // Initialize default layers and load saved data
-            addLayer('Drawn Items', { isQDAnalyzed: false });
-            addLayer('Facilities', { isQDAnalyzed: true });
-            addLayer('Analysis', { isQDAnalyzed: true });
+            addDefaultLayers(currentWorkspace);
             loadFromDatabase();
 
 
             // Drawing tools setup
             const drawToLayerSelect = document.getElementById('drawToLayer');
             drawToLayerSelect.addEventListener('change', function() {
-                activeLayer = layers[this.value];
+                activeLayer = layers[currentWorkspace][this.value];
             });
 
             const drawingTools = {
@@ -790,7 +848,7 @@
                 const layerControl = document.getElementById('layerControl');
                 layerControl.innerHTML = '';
 
-                Object.entries(layers).forEach(([name, layer]) => {
+                Object.entries(layers[currentWorkspace]).forEach(([name, layer]) => {
                     const item = document.createElement('div');
                     item.className = 'layer-control-item';
                     item.innerHTML = `
@@ -825,15 +883,17 @@
         function saveLayersToLocalStorage() {
           //Implementation to save layers to local storage
           console.log("Saving layers to local storage for workspace: " + currentWorkspace);
-        }
-
-        function loadLayersFromLocalStorage() {
+        }        function loadLayersFromLocalStorage() {
           //Implementation to load layers from local storage
           console.log("Loading layers from local storage for workspace: " + currentWorkspace);
         }
 
         function clearAllLayers(){
-          //Implementation to clear all layers on the map
+          map.eachLayer(layer => {
+            if(layer !== map && layer !== drawnItems){
+              map.removeLayer(layer);
+            }
+          });
           console.log("Clearing all layers from the map");
         }
     </script>
