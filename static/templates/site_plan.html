@@ -322,7 +322,22 @@
     <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
     <div id="map"></div>
 
+    <!-- Type Code Modal -->
+    <div id="typeCodeModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Enter Shape Type Code</h2>
+            <div class="form-group">
+                <label for="typeCode">Type Code:</label>
+                <input type="text" id="typeCode" required>
+            </div>
+            <button onclick="saveTypeCode()">Save</button>
+        </div>
+    </div>
+
     <script>
+        let currentDrawnLayer = null;
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize map
             const map = L.map('map', {
@@ -433,7 +448,15 @@
                         layers[layerName] = layerGroup;
 
                         data[layerName].features.forEach(feature => {
-                            L.geoJSON(feature).eachLayer(l => {
+                            L.geoJSON(feature, {
+                                onEachFeature: function(feature, layer) {
+                                    if (feature.properties && feature.properties.typeCode) {
+                                        layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
+                                    }
+                                }
+                            }).eachLayer(l => {
+                                // Transfer properties to the layer
+                                l.feature = feature;
                                 layerGroup.addLayer(l);
                             });
                         });
@@ -518,10 +541,38 @@
             // Handle drawing events
             map.on('draw:created', function(e) {
                 if (activeLayer) {
-                    activeLayer.addLayer(e.layer);
-                    saveToDatabase();
+                    currentDrawnLayer = e.layer;
+                    const typeCodeModal = document.getElementById('typeCodeModal');
+                    typeCodeModal.style.display = 'block';
                 }
             });
+
+            window.saveTypeCode = function() {
+                const typeCode = document.getElementById('typeCode').value;
+                if (currentDrawnLayer && typeCode) {
+                    // Save type code as a property of the layer
+                    currentDrawnLayer.feature = currentDrawnLayer.feature || {};
+                    currentDrawnLayer.feature.properties = currentDrawnLayer.feature.properties || {};
+                    currentDrawnLayer.feature.properties.typeCode = typeCode;
+                    
+                    // Add the layer to active layer and save
+                    activeLayer.addLayer(currentDrawnLayer);
+                    saveToDatabase();
+                    
+                    // Reset and close modal
+                    document.getElementById('typeCode').value = '';
+                    document.getElementById('typeCodeModal').style.display = 'none';
+                    currentDrawnLayer = null;
+                }
+            };
+
+            // Close type code modal when clicking close button
+            document.querySelector('#typeCodeModal .modal-close').onclick = function() {
+                document.getElementById('typeCodeModal').style.display = 'none';
+                if (currentDrawnLayer) {
+                    currentDrawnLayer = null;
+                }
+            };
 
             map.on('draw:edited', saveToDatabase);
             map.on('draw:deleted', saveToDatabase);
