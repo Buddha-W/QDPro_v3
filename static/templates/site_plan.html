@@ -34,6 +34,7 @@
             width: calc(100% - 250px);
             margin-left: 250px;
             margin-top: 80px;
+            transition: all 0.1s ease;
         }
         .toolbar {
             position: fixed;
@@ -115,16 +116,15 @@
             background: #4a4e69;
         }
         .left-panel {
-            position: fixed;
-            left: 0;
-            top: 80px;
+            min-width: 200px;
+            max-width: 500px;
             width: 250px;
-            height: calc(100vh - 30px);
-            background: #f8f9fa;
-            border-right: 1px solid #dee2e6;
-            z-index: 1000;
-            overflow-y: auto;
-            resize: horizontal;
+            position: fixed;
+            overflow: auto;
+            display: none;
+        }
+        .left-panel.visible {
+            display: block;
         }
         .resize-handle {
             position: absolute;
@@ -229,30 +229,6 @@
         </div>
     </div>
     <div id="map"></div>
-    <style>
-        .left-panel {
-            min-width: 200px;
-            max-width: 500px;
-            width: 250px;
-            position: fixed;
-            overflow: auto;
-        }
-        .resize-handle {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 4px;
-            height: 100%;
-            background: #dee2e6;
-            cursor: ew-resize;
-        }
-        .resize-handle:hover {
-            background: #999;
-        }
-        #map {
-            transition: all 0.1s ease;
-        }
-    </style>
     <script>
         // Initialize map with OpenStreetMap as default
         const map = L.map('map', {
@@ -422,24 +398,17 @@
         const panel = document.getElementById('leftPanel');
         const mapElement = document.getElementById('map');
 
-        panel.style.display = 'block';
+        panel.classList.add('visible');
         toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
         toggleLayersBtn.title = "Close Layers Panel";
 
         toggleLayersBtn.addEventListener('click', function() {
-            if (panel.style.display === 'block') {
-                panel.style.display = 'none';
-                mapElement.style.marginLeft = '0';
-                mapElement.style.width = '100%';
-                toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                toggleLayersBtn.title = "Show Layers Panel";
-            } else {
-                panel.style.display = 'block';
-                mapElement.style.marginLeft = '250px';
-                mapElement.style.width = 'calc(100% - 250px)';
-                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
-                toggleLayersBtn.title = "Close Layers Panel";
-            }
+            const isVisible = panel.classList.contains('visible');
+            panel.classList.toggle('visible');
+            mapElement.style.marginLeft = isVisible ? '0' : '250px';
+            mapElement.style.width = isVisible ? '100%' : 'calc(100% - 250px)';
+            toggleLayersBtn.innerHTML = isVisible ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-times"></i>';
+            toggleLayersBtn.title = isVisible ? "Show Layers Panel" : "Close Layers Panel";
             map.invalidateSize();
         });
 
