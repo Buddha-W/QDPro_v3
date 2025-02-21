@@ -36,6 +36,34 @@ async def return_facilities_report():
     ]
     return JSONResponse(content=facilities)
 
+@app.post("/api/save-layers")
+async def save_layers(request: Request):
+    """Save layer data to database."""
+    data = await request.json()
+    try:
+        # Here you would typically save to your database
+        # For now, we'll use a file-based storage
+        with open("layer_data.json", "w") as f:
+            json.dump(data, f)
+        return JSONResponse(content={"status": "success"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/load-layers")
+async def load_layers():
+    """Load layer data from database."""
+    try:
+        # Here you would typically load from your database
+        # For now, we'll use a file-based storage
+        try:
+            with open("layer_data.json", "r") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {}
+        return JSONResponse(content=data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

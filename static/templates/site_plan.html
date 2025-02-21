@@ -47,6 +47,30 @@
             background: #2b2d42;
             min-width: 150px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1010;
+        }
+        .layer-properties-form {
+            padding: 15px;
+        }
+        .layer-properties-form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .layer-properties-form input,
+        .layer-properties-form select {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .edit-layer-button {
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 2px 5px;
+        }
+        .edit-layer-button:hover {
+            color: #333;
         }
         .menu-item:hover .menu-dropdown {
             display: block;
@@ -268,14 +292,100 @@
             // Set default base layer
             baseLayers['OpenStreetMap'].addTo(map);
 
-            // Initialize feature groups
-            const drawnItems = new L.FeatureGroup();
-            const facilityLayer = new L.FeatureGroup();
-            const analysisLayer = new L.FeatureGroup();
+            // Layer management
+            const layers = {};
+            
+            async function saveToDatabase() {
+                const layerData = {};
+                Object.keys(layers).forEach(layerName => {
+                    const layer = layers[layerName];
+                    layerData[layerName] = {
+                        properties: layer.properties || {},
+                        features: []
+                    };
+                    layer.eachLayer(l => {
+                        layerData[layerName].features.push(l.toGeoJSON());
+                    });
+                });
+                
+                try {
+                    const response = await fetch('/api/save-layers', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(layerData)
+                    });
+                    if (!response.ok) throw new Error('Failed to save layers');
+                } catch (error) {
+                    console.error('Error saving layers:', error);
+                }
+            }
 
-            map.addLayer(drawnItems);
-            map.addLayer(facilityLayer);
-            map.addLayer(analysisLayer);
+            async function loadFromDatabase() {
+                try {
+                    const response = await fetch('/api/load-layers');
+                    if (!response.ok) throw new Error('Failed to load layers');
+                    const data = await response.json();
+                    
+                    Object.keys(data).forEach(layerName => {
+                        const layerGroup = new L.FeatureGroup();
+                        layerGroup.properties = data[layerName].properties;
+                        layers[layerName] = layerGroup;
+                        
+                        data[layerName].features.forEach(feature => {
+                            L.geoJSON(feature).eachLayer(l => {
+                                layerGroup.addLayer(l);
+                            });
+                        });
+                        
+                        map.addLayer(layerGroup);
+                        updateLayerControl();
+                    });
+                } catch (error) {
+                    console.error('Error loading layers:', error);
+                }
+            }
+
+            function addLayer(name, properties = {}) {
+                const layerGroup = new L.FeatureGroup();
+                layerGroup.properties = properties;
+                layers[name] = layerGroup;
+                map.addLayer(layerGroup);
+                updateLayerControl();
+                saveToDatabase();
+            }
+
+            function editLayer(name) {
+                const layer = layers[name];
+                if (!layer) return;
+                
+                const newName = prompt('Enter new layer name:', name);
+                if (!newName) return;
+                
+                const isQDAnalyzed = confirm('Is this layer QD analyzed?');
+                layer.properties = {
+                    ...layer.properties,
+                    isQDAnalyzed,
+                    name: newName
+                };
+                
+                if (name !== newName) {
+                    layers[newName] = layer;
+                    delete layers[name];
+                }
+                
+                updateLayerControl();
+                saveToDatabase();
+            }
+
+            // Initialize default layers
+            addLayer('Drawn Items', { isQDAnalyzed: false });
+            addLayer('Facilities', { isQDAnalyzed: true });
+            addLayer('Analysis', { isQDAnalyzed: true });
+            
+            // Load saved data
+            loadFromDatabase();
 
             const layers = {
                 drawnItems: drawnItems,
@@ -413,19 +523,21 @@
                 const layerControl = document.getElementById('layerControl');
                 layerControl.innerHTML = '';
 
-                const layerNames = {
-                    'Drawn Items': drawnItems,
-                    'Facilities': facilityLayer,
-                    'Analysis': analysisLayer
-                };
-
-                Object.entries(layerNames).forEach(([name, layer]) => {
+                Object.entries(layers).forEach(([name, layer]) => {
                     const item = document.createElement('div');
                     item.className = 'layer-control-item';
                     item.innerHTML = `
                         <input type="checkbox" id="layer-${name}" 
                                ${map.hasLayer(layer) ? 'checked' : ''}>
-                        <label for="layer-${name}">${name}</label>
+                        <label for="layer-${name}">
+                            ${name}
+                            <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
+                                (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
+                            </span>
+                        </label>
+                        <button class="edit-layer-button" onclick="editLayer('${name}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
                     `;
                     item.querySelector('input').onchange = (e) => {
                         if (e.target.checked) {
