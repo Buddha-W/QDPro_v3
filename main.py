@@ -46,6 +46,12 @@ async def save_layers(request: Request):
         import os
         file_path = "layer_data.json"
         
+        # Ensure data is in correct format
+        if not isinstance(data, dict):
+            data = {"layers": data}
+        elif "layers" not in data:
+            data = {"layers": data}
+        
         # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else '.', exist_ok=True)
         

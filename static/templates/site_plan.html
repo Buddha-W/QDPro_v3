@@ -447,10 +447,10 @@
                     
                     Object.keys(layerData).forEach(layerName => {
                         const layerGroup = new L.FeatureGroup();
-                        layerGroup.properties = data[layerName].properties;
+                        layerGroup.properties = layerData[layerName].properties;
                         layers[layerName] = layerGroup;
 
-                        data[layerName].features.forEach(feature => {
+                        layerData[layerName].features.forEach(feature => {
                             L.geoJSON(feature, {
                                 onEachFeature: function(feature, layer) {
                                     if (feature.properties && feature.properties.typeCode) {
