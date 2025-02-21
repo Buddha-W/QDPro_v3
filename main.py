@@ -1,10 +1,15 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 import json
+import os
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 
 from auth import get_current_user
+
+# Ensure data directory exists
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+os.makedirs(DATA_DIR, exist_ok=True)
 
 app = FastAPI()
 
@@ -41,7 +46,7 @@ async def return_facilities_report():
 async def save_layers(request: Request):
     data = await request.json()
     try:
-        file_path = os.path.abspath("layer_data.json")
+        file_path = os.path.join(DATA_DIR, "layer_data.json")
         print(f"Saving to: {file_path}")  # Debug log
         print(f"Data to save: {json.dumps(data, indent=2)}")  # Debug log
 
@@ -69,7 +74,7 @@ async def save_layers(request: Request):
 @app.get("/api/load-layers")
 async def load_layers():
     try:
-        file_path = os.path.abspath("layer_data.json")
+        file_path = os.path.join(DATA_DIR, "layer_data.json")
         print(f"Loading from: {file_path}")  # Debug log
 
         if not os.path.exists(file_path):
