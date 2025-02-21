@@ -421,25 +421,25 @@
         const toggleLayersBtn = document.getElementById('toggleLayersPanel');
         const panel = document.getElementById('leftPanel');
         const mapElement = document.getElementById('map');
-        let isPanelVisible = true;
+
+        panel.style.display = 'block';
+        toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
+        toggleLayersBtn.title = "Close Layers Panel";
 
         toggleLayersBtn.addEventListener('click', function() {
-            isPanelVisible = !isPanelVisible;
-            
-            if (isPanelVisible) {
-                panel.style.display = 'block';
-                mapElement.style.marginLeft = '250px';
-                mapElement.style.width = 'calc(100% - 250px)';
-                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
-                toggleLayersBtn.title = "Close Layers Panel";
-            } else {
+            if (panel.style.display === 'block') {
                 panel.style.display = 'none';
                 mapElement.style.marginLeft = '0';
                 mapElement.style.width = '100%';
                 toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
                 toggleLayersBtn.title = "Show Layers Panel";
+            } else {
+                panel.style.display = 'block';
+                mapElement.style.marginLeft = '250px';
+                mapElement.style.width = 'calc(100% - 250px)';
+                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
+                toggleLayersBtn.title = "Close Layers Panel";
             }
-            
             map.invalidateSize();
         });
 
