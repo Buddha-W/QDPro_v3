@@ -182,23 +182,34 @@
         }
     </style>
     <script>
-        // Make sure panel is resizable
+        // Initialize map first
+        const map = L.map('map', {
+            center: [40.7128, -74.0060],
+            zoom: 13
+        });
+
+        // Add the default tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Make panel resizable
         const leftPanel = document.getElementById('leftPanel');
         const resizeHandle = document.getElementById('resizeHandle');
         let isResizing = false;
 
         resizeHandle.addEventListener('mousedown', function(e) {
             isResizing = true;
-            document.addEventListener('mousemove', resize);
+            e.preventDefault();
+            document.addEventListener('mousemove', handleResize);
             document.addEventListener('mouseup', stopResize);
         });
 
-        function resize(e) {
+        function handleResize(e) {
             if (!isResizing) return;
-            let newWidth = e.clientX;
-            if (newWidth < 200) newWidth = 200;
-            if (newWidth > 500) newWidth = 500;
             
+            const newWidth = Math.min(Math.max(e.clientX, 200), 500);
             leftPanel.style.width = newWidth + 'px';
             document.getElementById('map').style.marginLeft = newWidth + 'px';
             document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
@@ -207,7 +218,7 @@
 
         function stopResize() {
             isResizing = false;
-            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mousemove', handleResize);
             document.removeEventListener('mouseup', stopResize);
         }
 
