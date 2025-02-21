@@ -4,6 +4,28 @@
 <head>
     <title>QDPro Site Plan</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+    <style>
+        .tool-button {
+            padding: 5px 10px;
+            margin: 0 2px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .tool-button:hover {
+            background: #e9ecef;
+        }
+        .scale-label, .editor-label {
+            margin: 0 5px;
+        }
+        #scaleSelect {
+            padding: 3px;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+        }
+    </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -162,41 +184,45 @@
 </head>
 <body>
     <div class="menu-bar">
-        <div class="menu-item">File
-            <div class="dropdown">
-                <div class="dropdown-item">New Analysis</div>
-                <div class="dropdown-item">Open Project</div>
-                <div class="dropdown-item">Save Project</div>
-                <div class="dropdown-item">Export Data</div>
-            </div>
-        </div>
-        <div class="menu-item">Tools
-            <div class="dropdown">
-                <div class="dropdown-item" id="measureDistance">Distance Measurement</div>
-                <div class="dropdown-item" id="drawArc">Draw Arc</div>
-                <div class="dropdown-item" id="analyzeQD">QD Analysis</div>
-                <div class="dropdown-item">Area Calculator</div>
-            </div>
-        </div>
-        <div class="menu-item">Analysis
-            <div class="dropdown">
-                <div class="dropdown-item">Spatial Analysis</div>
-                <div class="dropdown-item">QD Analysis</div>
-                <div class="dropdown-item">Risk Assessment</div>
-                <div class="dropdown-item">Arc Analysis</div>
-            </div>
-        </div>
+        <div class="menu-item">File</div>
+        <div class="menu-item">Database Builder</div>
+        <div class="menu-item">Edit</div>
+        <div class="menu-item">Properties</div>
+        <div class="menu-item">Reports</div>
+        <div class="menu-item">Analysis</div>
+        <div class="menu-item">View</div>
+        <div class="menu-item">Admin Record</div>
+        <div class="menu-item">Tools</div>
+        <div class="menu-item">Help</div>
     </div>
     <div class="toolbar">
         <div class="tool-group">
-            <button id="selectTool">Select</button>
-            <button id="measureTool">Measure</button>
-            <button id="drawTool">Draw</button>
+            <button id="panTool" class="tool-button" title="Pan"><i class="fas fa-hand-paper"></i></button>
+            <button id="zoomInTool" class="tool-button" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+            <button id="zoomOutTool" class="tool-button" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+            <button id="selectTool" class="tool-button" title="Select"><i class="fas fa-mouse-pointer"></i></button>
+            <button id="measureTool" class="tool-button" title="Measure"><i class="fas fa-ruler"></i></button>
         </div>
         <div class="tool-divider"></div>
         <div class="tool-group">
-            <button id="analysisTool">Analysis</button>
-            <button id="reportTool">Reports</button>
+            <button id="addLayerTool" class="tool-button" title="Add Layer"><i class="fas fa-layer-group"></i></button>
+            <button id="printTool" class="tool-button" title="Print"><i class="fas fa-print"></i></button>
+        </div>
+        <div class="tool-group">
+            <span class="scale-label">Scale:</span>
+            <select id="scaleSelect">
+                <option value="1000">1:1000</option>
+                <option value="5000">1:5000</option>
+                <option value="10000">1:10000</option>
+            </select>
+        </div>
+        <div class="tool-group">
+            <span class="editor-label">Editor:</span>
+            <button id="editorTool" class="tool-button"><i class="fas fa-edit"></i></button>
+        </div>
+        <div class="tool-group">
+            <button id="markupTool" class="tool-button" title="Markup"><i class="fas fa-pen"></i></button>
+            <button id="wizardsTool" class="tool-button" title="Wizards"><i class="fas fa-magic"></i></button>
         </div>
     </div>
     <div class="left-panel" id="leftPanel">
