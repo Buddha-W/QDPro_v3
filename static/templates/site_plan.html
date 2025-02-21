@@ -164,6 +164,7 @@
         </div>
     </div>
     <div class="left-panel" id="leftPanel">
+        <div class="resize-handle" id="resizeHandle"></div>
         <div class="panel-section">
             <div class="panel-title">Layers</div>
             <div id="layerControl"></div>
@@ -177,11 +178,18 @@
             width: 250px;
             position: fixed;
             overflow: auto;
-            border-right: 4px solid #dee2e6;
+        }
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 4px;
+            height: 100%;
+            background: #dee2e6;
             cursor: ew-resize;
         }
-        .left-panel:hover {
-            border-right-color: #999;
+        .resize-handle:hover {
+            background: #999;
         }
         #map {
             transition: all 0.1s ease;
@@ -324,18 +332,13 @@
         let startX;
         let startWidth;
 
-        leftPanel.addEventListener('mousedown', function(e) {
-            const rightEdge = leftPanel.getBoundingClientRect().right;
-            const mouseX = e.clientX;
-            
-            if (Math.abs(mouseX - rightEdge) <= 8) {
-                isResizing = true;
-                startX = e.pageX;
-                startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
-                document.addEventListener('mousemove', handleResize);
-                document.addEventListener('mouseup', stopResize);
-                e.preventDefault();
-            }
+        document.getElementById('resizeHandle').addEventListener('mousedown', function(e) {
+            isResizing = true;
+            startX = e.pageX;
+            startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
+            document.addEventListener('mousemove', handleResize);
+            document.addEventListener('mouseup', stopResize);
+            e.preventDefault();
         });
 
         function handleResize(e) {
