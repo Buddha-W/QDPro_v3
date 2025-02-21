@@ -424,9 +424,9 @@
         toggleLayersBtn.addEventListener('click', function() {
             const panel = document.getElementById('leftPanel');
             const map = document.getElementById('map');
-            const currentPanelWidth = panel.style.width || '250px';
+            const currentPanelWidth = '250px';
             
-            if (!panel.style.display || panel.style.display === 'block') {
+            if (panel.style.display === 'none') {
                 panel.style.display = 'block';
                 map.style.marginLeft = currentPanelWidth;
                 map.style.width = `calc(100% - ${currentPanelWidth})`;
