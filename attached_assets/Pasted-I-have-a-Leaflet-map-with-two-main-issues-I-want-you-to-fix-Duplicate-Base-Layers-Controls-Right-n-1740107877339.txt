@@ -1,0 +1,23 @@
+I have a Leaflet map with two main issues I want you to fix:
+
+Duplicate Base Layers Controls
+Right now, I see two controls for my base layers (OpenStreetMap, Google Satellite, etc.). I only want one Leaflet control on the top-right that shows only the base layers. The second control (which is near the left panel) should be removed or hidden, but without deleting or breaking any of my existing layers.
+Overlay Layers in Left Panel
+I want all my overlays (e.g., Drawn Items, Facilities, Analysis, plus any new layers I add) to appear only in the left panel (#layerControl) with checkboxes that toggle each overlay on/off. I do not want them to appear in the default Leaflet control on the map.
+Additionally, I need to be able to draw shapes on the map (using Leaflet Draw) and save those shapes to a user-chosen layer. For example:
+
+If I choose “Facilities” in some dropdown or setting, newly drawn shapes should go into the Facilities layer.
+If I choose “Analysis,” newly drawn shapes should go into the Analysis layer.
+Please do the following:
+
+Base Layers Only in Default Control
+Call L.control.layers(baseLayers, {}, { position: 'topright', collapsed: false }) (or similar) so that only base layers appear in the default Leaflet control.
+Remove any code that adds overlayMaps to that same control, so the overlays don’t appear in the Leaflet control.
+Custom Overlays Panel
+Create or update a function (e.g., createOverlayControls()) that lists all overlay layers in the left panel (#layerControl) as checkboxes. When a user checks or unchecks one, it should add or remove the corresponding layer on the map.
+Make sure any new layers I create (e.g., from my “Add Layer” modal) also show up in this left panel.
+Remove or hide the extra Leaflet control that appears near the left panel, so we don’t have duplicate checkboxes for base layers or overlays.
+Drawing to a Specific Layer
+Add logic so that when a user draws a shape with Leaflet Draw, it’s added to whichever layer the user has selected (e.g., “Facilities” or “Analysis”). You can store the currently selected layer in a variable and then, in the draw:created event, add the shape to that layer’s FeatureGroup.
+No Deletion of Existing Layers
+I still need “Drawn Items,” “Facilities,” “Analysis,” etc. to work. Just ensure they no longer show up in the Leaflet base-layer control on the map, and instead appear in the left panel.
