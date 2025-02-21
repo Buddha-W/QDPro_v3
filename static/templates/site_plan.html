@@ -5,10 +5,43 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <style>
         body { margin: 0; padding: 0; }
+        #map { 
+            height: calc(100vh - 80px);
+            margin-top: 80px;
+            width: 100%;
+            z-index: 1;
+        }
+        #leftPanel {
+            position: fixed;
+            left: -300px;
+            top: 80px;
+            width: 300px;
+            height: calc(100vh - 80px);
+            background: white;
+            transition: left 0.3s;
+            z-index: 2;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto; /* Added for scrollbar */
+        }
+        #leftPanel.visible {
+            left: 0;
+        }
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: white;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
         .modal {
             display: none;
             position: fixed;
@@ -53,38 +86,7 @@
             border-radius: 4px;
         }
         .menu-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 30px;
-            background: #2b2d42;
-            color: white;
-            display: flex;
-            align-items: center;
-            z-index: 1500;
-            padding: 0 10px;
-        }
-        .menu-item {
-            padding: 0 15px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            position: relative;
-        }
-        .menu-item:hover {
-            background: #3c3f58;
-        }
-        .menu-dropdown {
-            display: none;
-            position: absolute;
-            top: 30px;
-            left: 0;
-            background: #2b2d42;
-            min-width: 150px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1600; /* Increased z-index to show above toolbar and menu bar */
+            /* ...rest of the original CSS remains...*/
         }
         .layer-properties-form {
             padding: 15px;
@@ -119,22 +121,7 @@
         .menu-dropdown-item:hover {
             background: #3c3f58;
         }
-        .toolbar {
-            position: fixed;
-            top: 30px;
-            left: 0;
-            right: 0;
-            height: 50px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            display: flex;
-            align-items: center;
-            padding: 0 15px;
-            z-index: 1001;
-        }
-        .tool-group {
-            display: flex;
-            align-items: center;
+        .tool-group{
             margin-right: 20px;
         }
         .tool-button {
@@ -149,46 +136,11 @@
         .tool-button:hover {
             background: #e9ecef;
         }
-        .left-panel {
-            position: fixed;
-            top: 80px;
-            left: 0;
-            width: 300px;
-            height: calc(100vh - 80px);
-            background: white;
-            border-right: 1px solid #dee2e6;
-            transform: translateX(-300px);
-            transition: transform 0.3s ease;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-        }
-        .left-panel.visible {
-            transform: translateX(0);
-        }
-        .panel-header {
-            padding: 15px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: bold;
-        }
-        .panel-content {
-            padding: 15px;
-            flex-grow: 1;
-            overflow-y: auto;
-        }
         .layer-select-container {
             margin-bottom: 20px;
             padding: 10px;
             background: #f8f9fa;
             border-radius: 4px;
-        }
-        #map {
-            position: fixed;
-            height: calc(100vh - 80px);
-            width: 100%;
-            margin-top: 80px;
-            transition: margin-left 0.3s ease;
         }
         .base-layer-dropdown {
             position: absolute;
@@ -220,49 +172,6 @@
     </style>
 </head>
 <body>
-    <div class="menu-bar">
-        <div class="menu-item">
-            File
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item">New</div>
-                <div class="menu-dropdown-item">Open...</div>
-                <div class="menu-dropdown-item">Save</div>
-                <div class="menu-dropdown-item">Export...</div>
-            </div>
-        </div>
-        <div class="menu-item">
-            Edit
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item">Undo</div>
-                <div class="menu-dropdown-item">Redo</div>
-                <div class="menu-dropdown-item">Delete Selected</div>
-            </div>
-        </div>
-        <div class="menu-item">
-            View
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item">Zoom In</div>
-                <div class="menu-dropdown-item">Zoom Out</div>
-                <div class="menu-dropdown-item">Fit to Window</div>
-            </div>
-        </div>
-        <div class="menu-item">
-            Tools
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item">Measure</div>
-                <div class="menu-dropdown-item">Calculate Area</div>
-                <div class="menu-dropdown-item">Settings</div>
-            </div>
-        </div>
-        <div class="menu-item">
-            Help
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item">Documentation</div>
-                <div class="menu-dropdown-item">About</div>
-            </div>
-        </div>
-    </div>
-
     <div class="toolbar">
         <div class="tool-group">
             <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
@@ -289,7 +198,26 @@
                 <i class="fas fa-map-marker-alt"></i>
             </button>
         </div>
+        <div class="tool-group">
+            <button onclick="showAddLayerModal()" class="tool-button" >Add Layer</button>
+            <select id="drawToLayer"></select>
+        </div>
     </div>
+
+    <div id="leftPanel">
+        <div class="panel-header">Layers Panel</div>
+        <div class="panel-content">
+            <div class="layer-select-container">
+                <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
+                <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
+                <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
+            </div>
+            <div id="layerControl"></div>
+        </div>
+    </div>
+
+    <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
+    <div id="map"></div>
 
     <!-- Add Layer Modal -->
     <div id="addLayerModal" class="modal">
@@ -310,21 +238,6 @@
         </div>
     </div>
 
-    <div id="leftPanel" class="left-panel">
-        <div class="panel-header">Layers Panel</div>
-        <div class="panel-content">
-            <div class="layer-select-container">
-                <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
-                <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
-                <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
-            </div>
-            <div id="layerControl"></div>
-        </div>
-    </div>
-
-    <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
-    <div id="map"></div>
-
     <!-- Type Code Modal -->
     <div id="typeCodeModal" class="modal">
         <div class="modal-content">
@@ -338,6 +251,25 @@
         </div>
     </div>
 
+    <!-- Facility Details Modal -->
+    <div id="facilityModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="document.getElementById('facilityModal').style.display='none'">&times;</span>
+            <h2>Facility Details</h2>
+            <div class="form-group">
+                <label for="facilityTypeCode">Type Code:</label>
+                <input type="text" id="facilityTypeCode">
+            </div>
+            <div class="form-group">
+                <label for="facilityDescription">Description:</label>
+                <textarea id="facilityDescription" rows="3"></textarea>
+            </div>
+            <button onclick="saveFacilityDetails()">Save Changes</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script>
         let currentDrawnLayer = null;
 
@@ -458,7 +390,7 @@
 
                     // Clear existing layers
                     Object.values(layers).forEach(layer => map.removeLayer(layer));
-                    window.layers = {}; // Fix: Use window.layers instead of layers
+                    window.layers = {}; 
 
                     Object.keys(layerData).forEach(layerName => {
                         const layerGroup = new L.FeatureGroup();
@@ -468,23 +400,22 @@
 
                         if (layerData[layerName].features) {
                             layerData[layerName].features.forEach(feature => {
-                            L.geoJSON(feature, {
-                                onEachFeature: function(feature, layer) {
-                                    if (feature.properties && feature.properties.typeCode) {
-                                        layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
+                                L.geoJSON(feature, {
+                                    onEachFeature: function(feature, layer) {
+                                        if (feature.properties && feature.properties.typeCode) {
+                                            layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
+                                        }
                                     }
-                                }
-                            }).eachLayer(l => {
-                                // Transfer properties to the layer
-                                l.feature = feature;
-                                l.bindTooltip(`Type: ${feature.properties.typeCode || 'Unspecified'}`);
-                                layerGroup.addLayer(l);
+                                }).eachLayer(l => {
+                                    l.feature = feature;
+                                    l.bindTooltip(`Type: ${feature.properties.typeCode || 'Unspecified'}`);
+                                    layerGroup.addLayer(l);
+                                });
                             });
-                        });
-                    }
-                });
-                updateLayerControl();
-                updateDrawToLayerSelect();
+                        }
+                    });
+                    updateLayerControl();
+                    updateDrawToLayerSelect();
                 } catch (error) {
                     console.error('Error loading layers:', error);
                 }
@@ -535,40 +466,8 @@
                         });
                     }
                 }, 100);
-                    <div style="min-width: 200px;">
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label>Type Code:</label>
-                            <input id="editTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" />
-                        </div>
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label>Description:</label>
-                            <textarea id="editDescription" style="width: 100%; height: 60px;">${layer.feature.properties.description || ''}</textarea>
-                        </div>
-                        <button id="saveEdit" style="width: 100%; padding: 5px;">Save</button>
-                    </div>
-                `;
-
-                layer.bindPopup(formHtml).openPopup();
-
-                setTimeout(() => {
-                    const saveButton = document.getElementById('saveEdit');
-                    if (saveButton) {
-                        saveButton.addEventListener('click', () => {
-                            const typeCode = document.getElementById('editTypeCode').value;
-                            const description = document.getElementById('editDescription').value;
-
-                            layer.feature.properties = {
-                                ...layer.feature.properties,
-                                typeCode,
-                                description
-                            };
-
-                            saveToDatabase();
-                            layer.closePopup();
-                        });
-                    }
-                }, 100);
             }
+
 
             function addLayer(name, properties = {}) {
                 const layerGroup = new L.FeatureGroup();
@@ -596,7 +495,7 @@
                 });
 
                 if (select.options.length > 0) {
-                    activeLayer = layers[select.options[0].value]; //Select the first option as default active layer
+                    activeLayer = layers[select.options[0].value]; 
                 }
             }
 
@@ -655,43 +554,16 @@
             window.saveTypeCode = function() {
                 const typeCode = document.getElementById('typeCode').value;
                 if (currentDrawnLayer && typeCode) {
-                    // Save type code as a property of the layer
                     currentDrawnLayer.feature = currentDrawnLayer.feature || {};
                     currentDrawnLayer.feature.properties = currentDrawnLayer.feature.properties || {};
                     currentDrawnLayer.feature.properties.typeCode = typeCode;
 
-                    // Add the layer to active layer and save
                     activeLayer.addLayer(currentDrawnLayer);
                     saveToDatabase();
 
-                    // Reset and close modal
                     document.getElementById('typeCode').value = '';
                     document.getElementById('typeCodeModal').style.display = 'none';
                     currentDrawnLayer = null;
-                }
-            };
-
-            function showFacilityDetails(layer) {
-                const props = layer.feature.properties || {};
-                document.getElementById('facilityTypeCode').value = props.typeCode || '';
-                document.getElementById('facilityDescription').value = props.description || '';
-                document.getElementById('facilityModal').style.display = 'block';
-                window.currentEditLayer = layer;
-            }
-
-            window.saveFacilityDetails = function() {
-                if (window.currentEditLayer) {
-                    const typeCode = document.getElementById('facilityTypeCode').value;
-                    const description = document.getElementById('facilityDescription').value;
-
-                    window.currentEditLayer.feature = window.currentEditLayer.feature || {};
-                    window.currentEditLayer.feature.properties = window.currentEditLayer.feature.properties || {};
-                    window.currentEditLayer.feature.properties.typeCode = typeCode;
-                    window.currentEditLayer.feature.properties.description = description;
-
-                    saveToDatabase();
-                    document.getElementById('facilityModal').style.display = 'none';
-                    window.currentEditLayer = null;
                 }
             };
 
@@ -745,11 +617,11 @@
             });
 
             // Left panel toggle
-            const toggleLayersPanel = document.getElementById('toggleLayersPanel');
+            const toggleLayersPanelButton = document.getElementById('toggleLayersPanel');
             const leftPanel = document.getElementById('leftPanel');
             const mapElement = document.getElementById('map');
 
-            toggleLayersPanel.addEventListener('click', () => {
+            toggleLayersPanelButton.addEventListener('click', () => {
                 leftPanel.classList.toggle('visible');
                 mapElement.style.marginLeft = leftPanel.classList.contains('visible') ? '300px' : '0';
                 map.invalidateSize();
@@ -790,22 +662,24 @@
             updateLayerControl();
             updateDrawToLayerSelect();
         });
+
+        window.saveFacilityDetails = function() {
+            if (window.currentEditLayer) {
+                const typeCode = document.getElementById('facilityTypeCode').value;
+                const description = document.getElementById('facilityDescription').value;
+
+                window.currentEditLayer.feature = window.currentEditLayer.feature || {};
+                window.currentEditLayer.feature.properties = window.currentEditLayer.feature.properties || {};
+                window.currentEditLayer.feature.properties.typeCode = typeCode;
+                window.currentEditLayer.feature.properties.description = description;
+
+                saveToDatabase();
+                document.getElementById('facilityModal').style.display = 'none';
+                window.currentEditLayer = null;
+            }
+        };
+
+
     </script>
 </body>
 </html>
-    <!-- Facility Details Modal -->
-    <div id="facilityModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="document.getElementById('facilityModal').style.display='none'">&times;</span>
-            <h2>Facility Details</h2>
-            <div class="form-group">
-                <label for="facilityTypeCode">Type Code:</label>
-                <input type="text" id="facilityTypeCode">
-            </div>
-            <div class="form-group">
-                <label for="facilityDescription">Description:</label>
-                <textarea id="facilityDescription" rows="3"></textarea>
-            </div>
-            <button onclick="saveFacilityDetails()">Save Changes</button>
-        </div>
-    </div>
