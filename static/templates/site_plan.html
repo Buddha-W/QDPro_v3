@@ -120,17 +120,16 @@
             width: 250px;
             position: fixed;
             top: 80px;
-            left: 0;
+            left: -250px;
             height: calc(100vh - 80px);
             background: white;
             overflow: auto;
             border-right: 1px solid #dee2e6;
             z-index: 1000;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
+            transition: left 0.3s ease;
         }
         .left-panel.visible {
-            transform: translateX(0);
+            left: 0;
         }
         .resize-handle {
             position: absolute;
@@ -411,22 +410,14 @@
         toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
         toggleLayersBtn.title = "Close Layers Panel";
 
-        toggleLayersBtn.addEventListener('click', () => {
+        toggleLayersBtn.addEventListener('click', function() {
+            panel.classList.toggle('visible');
             const isVisible = panel.classList.contains('visible');
-            if (isVisible) {
-                panel.classList.remove('visible');
-                mapElement.style.marginLeft = '0';
-                mapElement.style.width = '100%';
-                toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                toggleLayersBtn.title = "Show Layers Panel";
-            } else {
-                panel.classList.add('visible');
-                mapElement.style.marginLeft = '250px';
-                mapElement.style.width = 'calc(100% - 250px)';
-                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
-                toggleLayersBtn.title = "Close Layers Panel";
-            }
-            setTimeout(() => map.invalidateSize(), 300);
+            mapElement.style.marginLeft = isVisible ? '250px' : '0';
+            mapElement.style.width = isVisible ? 'calc(100% - 250px)' : '100%';
+            toggleLayersBtn.innerHTML = isVisible ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+            toggleLayersBtn.title = isVisible ? "Close Layers Panel" : "Show Layers Panel";
+            map.invalidateSize();
         });
 
         // Load facilities
