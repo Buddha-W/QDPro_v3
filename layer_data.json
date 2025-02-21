@@ -1,5 +1,11 @@
 {
   "layers": {
+    "Drawn Items": {
+      "properties": {
+        "isQDAnalyzed": false
+      },
+      "features": []
+    },
     "Facilities": {
       "properties": {
         "isQDAnalyzed": true
@@ -9,13 +15,6 @@
     "Analysis": {
       "properties": {
         "isQDAnalyzed": true
-      },
-      "features": []
-    },
-    "Background": {
-      "properties": {
-        "isQDAnalyzed": true,
-        "name": "Background"
       },
       "features": []
     }
