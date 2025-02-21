@@ -62,7 +62,7 @@ async def save_layers(request: Request):
             cur.execute("""
                 INSERT INTO map_layers (name, layer_config, is_active)
                 VALUES (%s, %s, %s)
-                ON CONFLICT (name) DO UPDATE 
+                ON CONFLICT ON CONSTRAINT map_layers_name_key DO UPDATE 
                 SET layer_config = EXCLUDED.layer_config
             """, (layer_name, json.dumps(layer_data['properties']), True))
 
