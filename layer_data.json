@@ -1,1 +1,63 @@
-{"Drawn Items": {"properties": {"isQDAnalyzed": false}, "features": []}, "Facilities": {"properties": {"isQDAnalyzed": true}, "features": []}, "Analysis": {"properties": {"isQDAnalyzed": true}, "features": []}}
+{
+  "Drawn Items": {
+    "properties": {
+      "isQDAnalyzed": false
+    },
+    "features": []
+  },
+  "Facilities": {
+    "properties": {
+      "isQDAnalyzed": true
+    },
+    "features": []
+  },
+  "Analysis": {
+    "properties": {
+      "isQDAnalyzed": true
+    },
+    "features": []
+  },
+  "detail": {
+    "properties": {},
+    "features": []
+  },
+  "PES": {
+    "properties": {
+      "isQDAnalyzed": true
+    },
+    "features": [
+      {
+        "properties": {
+          "typeCode": "ECM"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -74.062099,
+                40.731389
+              ],
+              [
+                -74.060726,
+                40.706018
+              ],
+              [
+                -74.03429,
+                40.712134
+              ],
+              [
+                -74.043388,
+                40.73282
+              ],
+              [
+                -74.062099,
+                40.731389
+              ]
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}
