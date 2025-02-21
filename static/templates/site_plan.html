@@ -9,10 +9,34 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <style>
         #map {
-            height: calc(100vh - 30px);
+            height: calc(100vh - 80px);
             width: calc(100% - 250px);
             margin-left: 250px;
-            margin-top: 30px;
+            margin-top: 80px;
+        }
+        .toolbar {
+            position: fixed;
+            top: 30px;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 1000;
+        }
+        .tool-group button {
+            padding: 6px 12px;
+            margin: 0 4px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+        }
+        .tool-group button:hover {
+            background: #e9ecef;
         }
         body {
             margin: 0;
@@ -71,7 +95,7 @@
         .left-panel {
             position: fixed;
             left: 0;
-            top: 30px;
+            top: 80px;
             width: 250px;
             height: calc(100vh - 30px);
             background: #f8f9fa;
@@ -161,6 +185,18 @@
                 <div class="dropdown-item">Risk Assessment</div>
                 <div class="dropdown-item">Arc Analysis</div>
             </div>
+        </div>
+    </div>
+    <div class="toolbar">
+        <div class="tool-group">
+            <button id="selectTool">Select</button>
+            <button id="measureTool">Measure</button>
+            <button id="drawTool">Draw</button>
+        </div>
+        <div class="tool-divider"></div>
+        <div class="tool-group">
+            <button id="analysisTool">Analysis</button>
+            <button id="reportTool">Reports</button>
         </div>
     </div>
     <div class="left-panel" id="leftPanel">
