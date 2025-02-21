@@ -12,6 +12,25 @@
             border: 1px solid #dee2e6;
             border-radius: 3px;
             cursor: pointer;
+
+<style>
+.layer-control-item {
+    padding: 5px 0;
+    margin: 2px 0;
+}
+
+.layer-control-item label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.layer-control-item input[type="checkbox"] {
+    margin: 0;
+}
+</style>
+
         }
         .tool-button:hover {
             background: #e9ecef;
@@ -333,11 +352,41 @@
         map.addLayer(analysisLayer);
 
         // Add to layer control
+        // Create overlay management object
         const overlayMaps = {
             "Drawn Items": drawnItems,
             "Facilities": facilityLayer,
             "Analysis": analysisLayer
         };
+
+        // Function to update left panel overlay controls
+        function updateOverlayControls() {
+            const layerControl = document.getElementById('layerControl');
+            layerControl.innerHTML = '';
+            
+            Object.entries(overlayMaps).forEach(([name, layer]) => {
+                const div = document.createElement('div');
+                div.className = 'layer-control-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = map.hasLayer(layer);
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        map.addLayer(layer);
+                    } else {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                const label = document.createElement('label');
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(` ${name}`));
+                
+                div.appendChild(label);
+                layerControl.appendChild(div);
+            });
+        }
 
         const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -370,11 +419,14 @@
         };
 
 
-        // Add layer control to map
-        L.control.layers(baseLayers, overlayMaps, {
+        // Add only base layers to the map control
+        L.control.layers(baseLayers, null, {
             position: 'topleft',
             collapsed: false
         }).addTo(map);
+
+        // Initialize overlay controls in left panel
+        updateOverlayControls();
 
         // Initialize drawing controls
         const drawControl = new L.Control.Draw({
@@ -575,10 +627,9 @@
             // Add the new layer to the map
             newLayer.addTo(map);
             
-            // Update overlayMaps and layer control
+            // Update overlayMaps and refresh overlay controls
             overlayMaps[layerName] = newLayer;
-            layerControl.remove();
-            layerControl = L.control.layers(baseLayers, overlayMaps).addTo(map);
+            updateOverlayControls();
 
             // Hide modal and start drawing
             addLayerModal.style.display = "none";
