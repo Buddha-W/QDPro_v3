@@ -410,16 +410,23 @@
             }
 
             async function saveToDatabase() {
-                const layerData = {};
+                const layerData = {
+                    layers: {}
+                };
                 Object.keys(layers).forEach(layerName => {
                     const layer = layers[layerName];
-                    layerData[layerName] = {
+                    layerData.layers[layerName] = {
                         properties: layer.properties || {},
                         features: []
                     };
                     layer.eachLayer(l => {
                         if (l.toGeoJSON) {
-                            layerData[layerName].features.push(l.toGeoJSON());
+                            const geoJSON = l.toGeoJSON();
+                            // Ensure type code is preserved
+                            if (l.feature && l.feature.properties) {
+                                geoJSON.properties = {...l.feature.properties};
+                            }
+                            layerData.layers[layerName].features.push(geoJSON);
                         }
                     });
                 });
@@ -442,15 +449,20 @@
                     const response = await fetch('/api/load-layers');
                     const data = await response.json();
                     
-                    // Use the layers object or empty object if not present
                     const layerData = data.layers || {};
+                    
+                    // Clear existing layers
+                    Object.values(layers).forEach(layer => map.removeLayer(layer));
+                    layers = {};
                     
                     Object.keys(layerData).forEach(layerName => {
                         const layerGroup = new L.FeatureGroup();
                         layerGroup.properties = layerData[layerName].properties;
                         layers[layerName] = layerGroup;
+                        map.addLayer(layerGroup);
 
-                        layerData[layerName].features.forEach(feature => {
+                        if (layerData[layerName].features) {
+                            layerData[layerName].features.forEach(feature => {
                             L.geoJSON(feature, {
                                 onEachFeature: function(feature, layer) {
                                     if (feature.properties && feature.properties.typeCode) {
@@ -460,14 +472,14 @@
                             }).eachLayer(l => {
                                 // Transfer properties to the layer
                                 l.feature = feature;
+                                l.bindTooltip(`Type: ${feature.properties.typeCode || 'Unspecified'}`);
                                 layerGroup.addLayer(l);
                             });
                         });
-
-                        map.addLayer(layerGroup);
-                    });
-                    updateLayerControl();
-                    updateDrawToLayerSelect();
+                    }
+                });
+                updateLayerControl();
+                updateDrawToLayerSelect();
                 } catch (error) {
                     console.error('Error loading layers:', error);
                 }

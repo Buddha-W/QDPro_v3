@@ -74,12 +74,10 @@ async def load_layers():
     try:
         file_path = "layer_data.json"
         if not os.path.exists(file_path):
-            # Return empty layer data structure
             return JSONResponse(content={"layers": {}})
             
         with open(file_path, "r", encoding='utf-8') as f:
             data = json.load(f)
-            # Ensure we always return an object with a layers property
             if not isinstance(data, dict):
                 data = {"layers": {}}
             elif "layers" not in data:
@@ -87,11 +85,8 @@ async def load_layers():
             return JSONResponse(content=data)
     except Exception as e:
         import traceback
-        error_details = traceback.format_exc()
-        return JSONResponse(
-            content={"layers": {}},
-            status_code=200  # Return empty data instead of error
-        )
+        print(f"Error loading layers: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse(content={"layers": {}})
 
 if __name__ == "__main__":
     import uvicorn
