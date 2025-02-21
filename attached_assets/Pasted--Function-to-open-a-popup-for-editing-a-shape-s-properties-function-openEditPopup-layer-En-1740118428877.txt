@@ -1,0 +1,79 @@
+// Function to open a popup for editing a shape's properties
+function openEditPopup(layer) {
+  // Ensure the layer has a properties object
+  layer.properties = layer.properties || {};
+
+  // Create a simple form in HTML as a string
+  const formHtml = `
+    <div>
+      <label>Name:</label>
+      <input id="editName" type="text" value="${layer.properties.name ? layer.properties.name : ''}" />
+    </div>
+    <div>
+      <label>QD Analyzed:</label>
+      <select id="editQD">
+        <option value="true" ${layer.properties.isQDAnalyzed ? 'selected' : ''}>QD</option>
+        <option value="false" ${!layer.properties.isQDAnalyzed ? 'selected' : ''}>Non-QD</option>
+      </select>
+    </div>
+    <button id="saveEdit">Save</button>
+  `;
+
+  // Bind a popup with the form to the layer and open it
+  layer.bindPopup(formHtml).openPopup();
+
+  // Use a short delay to ensure the popup DOM is ready
+  setTimeout(() => {
+    const saveButton = document.getElementById('saveEdit');
+    if (saveButton) {
+      saveButton.addEventListener('click', () => {
+        // Retrieve new values from the form
+        const newName = document.getElementById('editName').value;
+        const newQD = document.getElementById('editQD').value === 'true';
+        
+        // Update the layer's properties
+        layer.properties = {
+          ...layer.properties,
+          name: newName,
+          isQDAnalyzed: newQD
+        };
+
+        // Optionally, update any UI (e.g., refresh the left panel) here
+
+        // Send updated data to the backend for persistence
+        fetch('/api/save-layers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // You may need to integrate this update into your overall layers object
+          body: JSON.stringify({ updatedLayer: layer.toGeoJSON(), properties: layer.properties })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Layer updated", data);
+        })
+        .catch(err => console.error("Error updating layer:", err));
+
+        // Close the popup
+        layer.closePopup();
+      });
+    }
+  }, 100);
+}
+
+// In your draw:created event, attach a click event to the new shape:
+map.on('draw:created', function(e) {
+  const layer = e.layer;
+  // Optionally set default properties
+  layer.properties = layer.properties || { name: '', isQDAnalyzed: false };
+  
+  // Attach a click handler to open the edit popup when the shape is clicked
+  layer.on('click', function(ev) {
+    openEditPopup(layer);
+  });
+  
+  // Add the new shape to the currently active drawing layer
+  activeDrawingLayer.addLayer(layer);
+  
+  // Call your function to save shapes (and update backend)
+  saveShapes(); // or your equivalent persistence function
+});
