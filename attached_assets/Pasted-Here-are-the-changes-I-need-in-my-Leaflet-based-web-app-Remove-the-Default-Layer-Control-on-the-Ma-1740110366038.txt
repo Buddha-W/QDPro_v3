@@ -1,0 +1,37 @@
+Here are the changes I need in my Leaflet-based web app:
+
+Remove the Default Layer Control on the Map
+Currently, I see a “stack button” (the default Leaflet control) on the right side of the map with checkboxes for base layers (OpenStreetMap, Google Satellite, etc.).
+I want this completely gone to maximize map viewing space—no default Leaflet layers control visible in the map area.
+Custom “Base Layers” Button in the Top Toolbar
+In the top toolbar (where my other tools live), I want a button labeled “Base Layers.”
+Clicking this button should open a small dropdown or popover containing radio buttons for each base layer (OpenStreetMap, Google Satellite, Google Streets, Google Hybrid, etc.).
+Only one base layer can be active at a time, so radio buttons are ideal.
+When the user selects a radio button, switch the map to that base layer.
+This means I do not call L.control.layers(baseLayers, ...) on the map. Instead, I manually switch layers when a user picks one from the radio list.
+Move Leaflet Draw Tools to the Top Toolbar
+Right now, Leaflet Draw typically puts its own toolbar on the left side of the map. I want to remove that and have the drawing tools integrated into my top toolbar instead.
+For example, I might have buttons for “Draw Polygon,” “Draw Polyline,” “Draw Rectangle,” “Draw Circle,” etc. in the toolbar.
+When the user clicks one of these buttons, the corresponding draw mode should activate (e.g., new L.Draw.Polygon(map).enable()), allowing them to draw that shape on the map.
+Add Shapes to a Specific Layer
+I have multiple overlay layers (e.g., “Drawn Items,” “Facilities,” “Analysis,” etc.). I want the user to choose which layer they’re drawing to (maybe via a dropdown or radio buttons in the toolbar).
+When they finish drawing, the shape should be added to that chosen layer’s FeatureGroup.
+The “draw:created” event listener should check which layer the user selected, then add the newly created shape to that layer.
+Example logic:
+map.on('draw:created', function(e) {
+  const layer = e.layer;
+  const chosenLayer = /* whichever layer the user selected */;
+  chosenLayer.addLayer(layer);
+});
+No Changes to My Left Panel Overlays
+I already have a custom left panel listing my overlays (Drawn Items, Facilities, Analysis, etc.). That’s good. I just need to ensure newly drawn shapes go to whichever layer is selected in the top toolbar.
+The left panel’s checkboxes should still toggle overlay visibility.
+I do not want these overlays or their checkboxes in the on-map control (which is being removed).
+Summary of Requirements:
+
+Remove the default Leaflet control entirely (so the stack button on the right disappears).
+Add a “Base Layers” button in the top toolbar that opens a dropdown/popover with radio buttons for each base layer.
+Move all drawing tools to the top toolbar (no Leaflet Draw toolbar on the left).
+Allow the user to select which overlay layer (Drawn Items, Facilities, etc.) the newly drawn shapes should be added to.
+Keep my left panel overlays as is for toggling visibility.
+Could you please update my code to achieve this?
