@@ -9,10 +9,25 @@ class DatabaseMaintenance:
         self.engine = create_engine(db_url)
         self.logger = logging.getLogger(__name__)
 
+    def verify_integrity(self) -> bool:
+        try:
+            with self.engine.connect() as conn:
+                # Check if tables exist
+                tables = ['facilities', 'explosive_sites', 'safety_arcs', 'projects', 
+                         'licenses', 'audit_logs', 'usage_metrics', 'sync_status']
+                for table in tables:
+                    result = conn.execute(text(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '{table}')"))
+                    if not result.scalar():
+                        self.logger.error(f"Table {table} does not exist")
+                        return False
+                return True
+        except Exception as e:
+            self.logger.error(f"Database integrity check failed: {str(e)}")
+            return False
+
     async def schedule_maintenance(self):
         while True:
             try:
-                # Run maintenance during low-traffic hours (e.g., 2 AM)
                 now = datetime.now()
                 if now.hour == 2:
                     self.logger.info("Starting scheduled database maintenance")
@@ -21,8 +36,13 @@ class DatabaseMaintenance:
                         conn.commit()
                     self.logger.info("Database maintenance completed")
                 
-                # Wait for next check (every hour)
+                # Verify integrity after maintenance
+                if self.verify_integrity():
+                    self.logger.info("Database integrity verified")
+                else:
+                    self.logger.error("Database integrity check failed")
+                
                 await asyncio.sleep(3600)
             except Exception as e:
                 self.logger.error(f"Maintenance error: {str(e)}")
-                await asyncio.sleep(300)  # Retry in 5 minutes if error occurs
+                await asyncio.sleep(300)

@@ -21,11 +21,29 @@ class DeploymentChecker:
     
     def _check_database(self) -> bool:
         try:
-            # Verify database connections and migrations
             from database_maintenance import DatabaseMaintenance
             db = DatabaseMaintenance(os.getenv("DATABASE_URL"))
-            return db.verify_integrity()
-        except:
+            
+            # Check basic connectivity
+            if not db.verify_integrity():
+                return False
+                
+            # Verify indexes
+            with db.engine.connect() as conn:
+                indexes = [
+                    'idx_facilities_location',
+                    'idx_safety_arcs_geometry',
+                    'idx_sync_status_device',
+                    'idx_analysis_results_project'
+                ]
+                for idx in indexes:
+                    result = conn.execute(text(f"SELECT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = '{idx}')"))
+                    if not result.scalar():
+                        return False
+                        
+            return True
+        except Exception as e:
+            logging.error(f"Database check failed: {str(e)}")
             return False
             
     def _check_security(self) -> bool:
