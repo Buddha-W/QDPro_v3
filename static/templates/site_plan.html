@@ -422,7 +422,6 @@
                     layer.eachLayer(l => {
                         if (l.toGeoJSON) {
                             const geoJSON = l.toGeoJSON();
-                            // Ensure type code is preserved
                             if (l.feature && l.feature.properties) {
                                 geoJSON.properties = {...l.feature.properties};
                             }
@@ -430,6 +429,8 @@
                         }
                     });
                 });
+
+                console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
 
                 try {
                     await fetch('/api/save-layers', {
@@ -448,12 +449,13 @@
                 try {
                     const response = await fetch('/api/load-layers');
                     const data = await response.json();
+                    console.log('Loaded layer data:', JSON.stringify(data, null, 2)); // Debug log
                     
                     const layerData = data.layers || {};
                     
                     // Clear existing layers
                     Object.values(layers).forEach(layer => map.removeLayer(layer));
-                    layers = {};
+                    window.layers = {}; // Fix: Use window.layers instead of layers
                     
                     Object.keys(layerData).forEach(layerName => {
                         const layerGroup = new L.FeatureGroup();

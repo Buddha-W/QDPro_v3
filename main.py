@@ -82,6 +82,7 @@ async def load_layers():
             
         with open(file_path, "r", encoding='utf-8') as f:
             data = json.load(f)
+            print(f"Loaded layer data: {json.dumps(data, indent=2)}")  # Debug log
             if not isinstance(data, dict):
                 data = {"layers": {}}
             elif "layers" not in data:
