@@ -197,10 +197,6 @@
     </div>
     <div class="toolbar">
         <div class="tool-group">
-            <button id="panTool" class="tool-button" title="Pan"><i class="fas fa-hand-paper"></i></button>
-            <button id="zoomInTool" class="tool-button" title="Zoom In"><i class="fas fa-search-plus"></i></button>
-            <button id="zoomOutTool" class="tool-button" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-            <button id="selectTool" class="tool-button" title="Select"><i class="fas fa-mouse-pointer"></i></button>
             <button id="measureTool" class="tool-button" title="Measure"><i class="fas fa-ruler"></i></button>
         </div>
         <div class="tool-divider"></div>
@@ -430,7 +426,7 @@
             const map = document.getElementById('map');
             const currentPanelWidth = panel.style.width || '250px';
             
-            if (panel.style.display === 'none') {
+            if (!panel.style.display || panel.style.display === 'block') {
                 panel.style.display = 'block';
                 map.style.marginLeft = currentPanelWidth;
                 map.style.width = `calc(100% - ${currentPanelWidth})`;
