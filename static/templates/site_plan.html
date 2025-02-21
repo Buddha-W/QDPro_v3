@@ -351,7 +351,6 @@
         map.addLayer(facilityLayer);
         map.addLayer(analysisLayer);
 
-        // Add to layer control
         // Create overlay management object
         const overlayMaps = {
             "Drawn Items": drawnItems,
@@ -359,10 +358,35 @@
             "Analysis": analysisLayer
         };
 
+        // Track active layer for drawing
+        let activeDrawingLayer = drawnItems;
+
         // Function to update left panel overlay controls
         function updateOverlayControls() {
             const layerControl = document.getElementById('layerControl');
             layerControl.innerHTML = '';
+            
+            // Add layer selector dropdown
+            const selectDiv = document.createElement('div');
+            selectDiv.className = 'layer-control-item';
+            const layerSelect = document.createElement('select');
+            layerSelect.id = 'activeLayerSelect';
+            layerSelect.style.width = '100%';
+            layerSelect.style.marginBottom = '10px';
+            
+            Object.keys(overlayMaps).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = `Draw to: ${name}`;
+                layerSelect.appendChild(option);
+            });
+            
+            layerSelect.addEventListener('change', (e) => {
+                activeDrawingLayer = overlayMaps[e.target.value];
+            });
+            
+            selectDiv.appendChild(layerSelect);
+            layerControl.appendChild(selectDiv);
             
             Object.entries(overlayMaps).forEach(([name, layer]) => {
                 const div = document.createElement('div');
@@ -421,7 +445,7 @@
 
         // Add only base layers to the map control
         L.control.layers(baseLayers, null, {
-            position: 'topleft',
+            position: 'topright',
             collapsed: false
         }).addTo(map);
 
@@ -448,7 +472,7 @@
         // Handle drawn items
         map.on('draw:created', function(e) {
             const layer = e.layer;
-            drawnItems.addLayer(layer);
+            activeDrawingLayer.addLayer(layer);
         });
 
 
@@ -630,6 +654,13 @@
             // Update overlayMaps and refresh overlay controls
             overlayMaps[layerName] = newLayer;
             updateOverlayControls();
+            
+            // Update layer selector with new layer
+            const layerSelect = document.getElementById('activeLayerSelect');
+            const option = document.createElement('option');
+            option.value = layerName;
+            option.textContent = `Draw to: ${layerName}`;
+            layerSelect.appendChild(option);
 
             // Hide modal and start drawing
             addLayerModal.style.display = "none";
