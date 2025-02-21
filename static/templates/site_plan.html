@@ -527,22 +527,9 @@
 
             // Set default base layer
             baseLayers['OpenStreetMap'].addTo(map);
-            
-            // Initialize default workspace
-            function addDefaultLayers(workspace) {
-                const defaultLayers = ['Drawn Items', 'Facilities', 'Analysis'];
-                defaultLayers.forEach(name => {
-                    addLayer(workspace, name, { isQDAnalyzed: false });
-                });
-            }
-            
-            // Add initial layers
-            addDefaultLayers('Default');
 
             // Layer management
-            window.layers = {};
-            window.workspaces = {'Default': { layers: [] }};
-            let currentWorkspace = 'Default';
+            const layers = {};
             let activeLayer = null;
 
             // Add Layer Modal functionality
