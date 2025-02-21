@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -260,7 +259,7 @@
             center: [40.7128, -74.0060],
             zoom: 13
         });
-        
+
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
@@ -276,7 +275,7 @@
         const drawnItems = new L.FeatureGroup();
         const facilityLayer = new L.FeatureGroup();
         const analysisLayer = new L.FeatureGroup();
-        
+
         map.addLayer(drawnItems);
         map.addLayer(facilityLayer);
         map.addLayer(analysisLayer);
@@ -288,35 +287,6 @@
             "Analysis": analysisLayer
         };
 
-        // Add layer control to map
-        L.control.layers(baseLayers, overlayMaps, {
-            position: 'topleft',
-            collapsed: false
-        }).addTo(map);
-
-        // Initialize drawing controls
-        const drawControl = new L.Control.Draw({
-            draw: {
-                polygon: true,
-                polyline: true,
-                rectangle: true,
-                circle: true,
-                marker: true,
-                circlemarker: false
-            },
-            edit: {
-                featureGroup: drawnItems,
-                remove: true
-            }
-        });
-        map.addControl(drawControl);
-
-        // Handle drawn items
-        map.on('draw:created', function(e) {
-            const layer = e.layer;
-            drawnItems.addLayer(layer);
-        });
-        
         const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
@@ -347,8 +317,38 @@
             "Google Hybrid": googleHybrid
         };
 
+
+        // Add layer control to map
+        L.control.layers(baseLayers, overlayMaps, {
+            position: 'topleft',
+            collapsed: false
+        }).addTo(map);
+
+        // Initialize drawing controls
+        const drawControl = new L.Control.Draw({
+            draw: {
+                polygon: true,
+                polyline: true,
+                rectangle: true,
+                circle: true,
+                marker: true,
+                circlemarker: false
+            },
+            edit: {
+                featureGroup: drawnItems,
+                remove: true
+            }
+        });
+        map.addControl(drawControl);
+
+        // Handle drawn items
+        map.on('draw:created', function(e) {
+            const layer = e.layer;
+            drawnItems.addLayer(layer);
+        });
+
+
         osm.addTo(map);
-        L.control.layers(baseLayers).addTo(map);
 
         // Fetch and display facilities
         // Initialize tools
@@ -404,7 +404,7 @@
             if (!isResizing) return;
             const difference = e.pageX - startX;
             const newWidth = Math.min(Math.max(startWidth + difference, 200), 500);
-            
+
             leftPanel.style.width = newWidth + 'px';
             document.getElementById('map').style.marginLeft = newWidth + 'px';
             document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
