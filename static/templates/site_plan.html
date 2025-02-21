@@ -497,6 +497,46 @@
                 const formHtml = `
                     <div style="min-width: 200px;">
                         <div class="form-group" style="margin-bottom: 10px;">
+                            <label for="facilityName">Facility Name:</label>
+                            <input id="facilityName" type="text" value="${layer.feature.properties.name || ''}" style="width: 100%;" />
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label for="facilityTypeCode">Type Code:</label>
+                            <input id="facilityTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" />
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label for="facilityDescription">Description:</label>
+                            <textarea id="facilityDescription" style="width: 100%; height: 60px;">${layer.feature.properties.description || ''}</textarea>
+                        </div>
+                        <button id="facilitySaveButton" style="width: 100%; padding: 5px;">Save</button>
+                    </div>
+                `;
+
+                layer.bindPopup(formHtml).openPopup();
+
+                setTimeout(() => {
+                    const saveBtn = document.getElementById('facilitySaveButton');
+                    if (saveBtn) {
+                        saveBtn.addEventListener('click', () => {
+                            const newName = document.getElementById('facilityName').value;
+                            const newTypeCode = document.getElementById('facilityTypeCode').value;
+                            const newDescription = document.getElementById('facilityDescription').value;
+
+                            layer.feature.properties = {
+                                ...layer.feature.properties,
+                                name: newName,
+                                typeCode: newTypeCode,
+                                description: newDescription
+                            };
+
+                            layer.bindTooltip(`${newName}<br>${newTypeCode}`, { permanent: false });
+                            saveToDatabase();
+                            layer.closePopup();
+                        });
+                    }
+                }, 100);
+                    <div style="min-width: 200px;">
+                        <div class="form-group" style="margin-bottom: 10px;">
                             <label>Type Code:</label>
                             <input id="editTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" />
                         </div>
