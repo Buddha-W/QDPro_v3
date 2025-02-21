@@ -100,7 +100,7 @@ async def load_layers():
         cur.execute("SELECT name, layer_config FROM map_layers WHERE is_active = true")
         for name, config in cur.fetchall():
             layers[name] = {
-                "properties": json.loads(config),
+                "properties": config if isinstance(config, dict) else json.loads(config),
                 "features": []
             }
 
