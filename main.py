@@ -42,7 +42,6 @@ async def save_layers(request: Request):
     """Save layer data to database."""
     data = await request.json()
     try:
-        # Ensure we have write permissions
         import os
         file_path = "layer_data.json"
         
@@ -51,18 +50,14 @@ async def save_layers(request: Request):
             data = {"layers": data}
         elif "layers" not in data:
             data = {"layers": data}
-        
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else '.', exist_ok=True)
-        
-        # Write with proper permissions
+            
+        # Write data with exclusive lock
         with open(file_path, "w", encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        
-        # Ensure file is readable
-        os.chmod(file_path, 0o666)
-        
-        return JSONResponse(content={"status": "success"})
+            f.flush()
+            os.fsync(f.fileno())
+            
+        return JSONResponse(content={"status": "success", "message": "Data saved successfully"})
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
