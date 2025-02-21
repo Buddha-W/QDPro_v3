@@ -176,16 +176,20 @@
             max-width: 500px;
             width: 250px;
             position: fixed;
-            overflow: hidden;
-        }
-        .left-panel {
-            resize: horizontal;
             overflow: auto;
-            cursor: ew-resize;
-            border-right: 8px solid #dee2e6;
         }
-        .left-panel:hover {
-            border-right-color: #999;
+        .left-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 4px;
+            height: 100%;
+            background: #dee2e6;
+            cursor: ew-resize;
+        }
+        .left-panel::after:hover {
+            background: #999;
         }
         #map {
             transition: margin-left 0.1s ease;
@@ -320,12 +324,16 @@
 
         // Add resize functionality
         const leftPanel = document.getElementById('leftPanel');
-        const resizeHandle = document.getElementById('resizeHandle');
         let isResizing = false;
         let startX;
         let startWidth;
 
-        resizeHandle.addEventListener('mousedown', function(e) {
+        leftPanel.addEventListener('mousedown', function(e) {
+            const rightEdge = leftPanel.offsetLeft + leftPanel.offsetWidth;
+            const mouseX = e.clientX;
+            
+            // Only start resize if click is within 10px of right edge
+            if (Math.abs(mouseX - rightEdge) <= 10) {
             isResizing = true;
             startX = e.pageX;
             startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
