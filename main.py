@@ -36,7 +36,23 @@ async def render_web_page(request: Request):
     except HTTPException as http_exc:
         current_user = None
         if http_exc.status_code != status.HTTP_401_UNAUTHORIZED:
-            raise
+            print(f"Auth error: {http_exc}")
+
+    try:
+        return templates.TemplateResponse(
+            "site_plan.html",
+            {
+                "request": request,
+                "authenticated": current_user is not None,
+                "username": current_user if current_user else None
+            }
+        )
+    except Exception as e:
+        print(f"Template error: {e}")
+        return JSONResponse(
+            content={"error": "Failed to load template"},
+            status_code=500
+        )
 
     return templates.TemplateResponse("site_plan.html", {
         "request": request,
