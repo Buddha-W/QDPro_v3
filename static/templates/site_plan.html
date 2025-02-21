@@ -422,18 +422,26 @@
         }
 
         // Add panel toggle functionality
-        document.getElementById('toggleLayersPanel').addEventListener('click', function() {
+        const toggleLayersBtn = document.getElementById('toggleLayersPanel');
+        toggleLayersBtn.title = "Toggle Layers Panel";
+        
+        toggleLayersBtn.addEventListener('click', function() {
             const panel = document.getElementById('leftPanel');
             const map = document.getElementById('map');
+            const currentPanelWidth = panel.style.width || '250px';
             
             if (panel.style.display === 'none') {
                 panel.style.display = 'block';
-                map.style.marginLeft = panel.style.width || '250px';
-                map.style.width = `calc(100% - ${panel.style.width || '250px'})`;
+                map.style.marginLeft = currentPanelWidth;
+                map.style.width = `calc(100% - ${currentPanelWidth})`;
+                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
+                toggleLayersBtn.title = "Close Layers Panel";
             } else {
                 panel.style.display = 'none';
                 map.style.marginLeft = '0';
                 map.style.width = '100%';
+                toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                toggleLayersBtn.title = "Show Layers Panel";
             }
             window.dispatchEvent(new Event('resize'));
             map.invalidateSize();
