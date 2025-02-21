@@ -122,12 +122,19 @@ async def load_layers():
                     "properties": properties if isinstance(properties, dict) else json.loads(properties)
                 })
 
-        return JSONResponse(content={"layers": layers})
+        return JSONResponse(
+            content={"layers": layers},
+            headers={"Content-Type": "application/json"}
+        )
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
         print(f"Error loading layers: {error_details}")  # Debug log
-        return JSONResponse(content={"layers": {}})
+        return JSONResponse(
+            content={"layers": {}, "error": str(e)},
+            headers={"Content-Type": "application/json"},
+            status_code=500
+        )
 
 if __name__ == "__main__":
     import uvicorn
