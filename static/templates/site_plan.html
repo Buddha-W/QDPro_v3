@@ -421,13 +421,15 @@
         const toggleLayersBtn = document.getElementById('toggleLayersPanel');
         const panel = document.getElementById('leftPanel');
         const mapElement = document.getElementById('map');
-        const currentPanelWidth = '250px';
+        let isPanelVisible = true;
 
-        function updatePanelState(show) {
-            if (show) {
+        toggleLayersBtn.addEventListener('click', function() {
+            isPanelVisible = !isPanelVisible;
+            
+            if (isPanelVisible) {
                 panel.style.display = 'block';
-                mapElement.style.marginLeft = currentPanelWidth;
-                mapElement.style.width = `calc(100% - ${currentPanelWidth})`;
+                mapElement.style.marginLeft = '250px';
+                mapElement.style.width = 'calc(100% - 250px)';
                 toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
                 toggleLayersBtn.title = "Close Layers Panel";
             } else {
@@ -437,14 +439,8 @@
                 toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
                 toggleLayersBtn.title = "Show Layers Panel";
             }
+            
             map.invalidateSize();
-        }
-
-        // Set initial state
-        updatePanelState(true);
-        
-        toggleLayersBtn.addEventListener('click', function() {
-            updatePanelState(panel.style.display === 'none');
         });
 
         // Load facilities
