@@ -217,7 +217,7 @@
             align-items: center;
             gap: 8px;
         }
-        #workspaceStatus {
+        #dbStatus {
             margin-left: auto; /* Pushes to the right */
             padding: 0 10px;
             font-size: 14px;
@@ -296,8 +296,8 @@
                 <i class="fas fa-map-marker-alt"></i>
             </button>
         </div>
-        <div id="workspaceStatus" style="margin-left: auto; padding: 0 10px; font-size: 14px; color: #333;">
-            Workspace: <span id="currentWorkspace">Default</span>
+        <div id="dbStatus" style="margin-left: auto; padding: 0 10px; font-size: 14px; color: #333;">
+            Database: <span id="currentDatabase">PostgreSQL</span>
         </div>
     </div>
 
@@ -349,29 +349,7 @@
     </div>
 
     <script>
-        let map;
-        let drawnItems;
-        let currentWorkspace = 'Default';
-
-        function updateWorkspaceStatus(workspaceName) {
-            currentWorkspace = workspaceName;
-            document.getElementById('currentWorkspace').textContent = workspaceName;
-        }
-
-        function switchWorkspace(workspaceName) {
-            // Save current workspace state if needed
-            saveLayersToLocalStorage();
-
-            // Update workspace name
-            currentWorkspace = workspaceName;
-            updateWorkspaceStatus(workspaceName);
-
-            // Clear current layers
-            clearAllLayers();
-
-            // Load layers for new workspace
-            loadLayersFromLocalStorage();
-        }
+        let currentDrawnLayer = null;
 
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize map
@@ -820,23 +798,9 @@
             updateLayerControl();
             updateDrawToLayerSelect();
         });
-
-
-        function saveLayersToLocalStorage() {
-          //Implementation to save layers to local storage
-          console.log("Saving layers to local storage for workspace: " + currentWorkspace);
-        }
-
-        function loadLayersFromLocalStorage() {
-          //Implementation to load layers from local storage
-          console.log("Loading layers from local storage for workspace: " + currentWorkspace);
-        }
-
-        function clearAllLayers(){
-          //Implementation to clear all layers on the map
-          console.log("Clearing all layers from the map");
-        }
     </script>
+</body>
+</html>
     <!-- Facility Details Modal -->
     <div id="facilityModal" class="modal">
         <div class="modal-content">
@@ -853,5 +817,3 @@
             <button onclick="saveFacilityDetails()">Save Changes</button>
         </div>
     </div>
-</body>
-</html>
