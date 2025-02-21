@@ -545,12 +545,14 @@
             }
         });
 
+        // Initialize layer control once
+        let layerControl = L.control.layers(baseLayers, overlayMaps).addTo(map);
+
         addLayerForm.addEventListener('submit', (event) => {
             event.preventDefault();
             const layerName = document.getElementById('layerName').value;
             const layerDescription = document.getElementById('layerDescription').value;
             const layerType = document.getElementById('layerType').value;
-            const layerUrl = document.getElementById('layerUrl').value;
 
             // Create a new feature group for the layer
             let newLayer = new L.FeatureGroup();
@@ -570,10 +572,13 @@
                 return;
             }
 
-            // Add the new layer to the map and layer control
+            // Add the new layer to the map
             newLayer.addTo(map);
+            
+            // Update overlayMaps and layer control
             overlayMaps[layerName] = newLayer;
-            L.control.layers(baseLayers, overlayMaps).addTo(map);
+            layerControl.remove();
+            layerControl = L.control.layers(baseLayers, overlayMaps).addTo(map);
 
             // Hide modal and start drawing
             addLayerModal.style.display = "none";
@@ -584,14 +589,6 @@
                 const layer = e.layer;
                 newLayer.addLayer(layer);
             });
-            
-            if (newLayer) {
-              newLayer.addTo(map);
-              // Add to layer control (replace with actual layer name)
-              overlayMaps[layerName] = newLayer;
-              L.control.layers(baseLayers, overlayMaps).addTo(map);
-              addLayerModal.style.display = "none";
-            }
         });
     </script>
 </body>
