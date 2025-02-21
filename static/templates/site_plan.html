@@ -43,14 +43,23 @@
         .dropdown {
             display: none;
             position: absolute;
-            top: 30px;
+            top: 100%;
             left: 0;
             background: #2b2d42;
             min-width: 200px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 1002;
         }
         .menu-item:hover .dropdown {
             display: block;
+        }
+        .dropdown-item {
+            padding: 8px 15px;
+            color: white;
+            cursor: pointer;
+        }
+        .dropdown-item:hover {
+            background: #4a4e69;
         }
         .dropdown-item {
             padding: 8px 15px;
@@ -173,6 +182,35 @@
         }
     </style>
     <script>
+        // Make sure panel is resizable
+        const leftPanel = document.getElementById('leftPanel');
+        const resizeHandle = document.getElementById('resizeHandle');
+        let isResizing = false;
+
+        resizeHandle.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('mouseup', stopResize);
+        });
+
+        function resize(e) {
+            if (!isResizing) return;
+            let newWidth = e.clientX;
+            if (newWidth < 200) newWidth = 200;
+            if (newWidth > 500) newWidth = 500;
+            
+            leftPanel.style.width = newWidth + 'px';
+            document.getElementById('map').style.marginLeft = newWidth + 'px';
+            document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
+            map.invalidateSize();
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
         // Initialize map with OpenStreetMap as default
         const map = L.map('map', {
             center: [40.7128, -74.0060],
