@@ -50,13 +50,13 @@ async def save_layers(request: Request):
         import psycopg2
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
-        
+
         # Ensure data is in correct format
         if not isinstance(data, dict):
             data = {"layers": data}
         elif "layers" not in data:
             data = {"layers": data}
-            
+
         for layer_name, layer_data in data['layers'].items():
             # Save layer properties
             cur.execute("""
@@ -65,7 +65,7 @@ async def save_layers(request: Request):
                 ON CONFLICT (name) DO UPDATE 
                 SET layer_config = EXCLUDED.layer_config
             """, (layer_name, json.dumps(layer_data['properties']), True))
-            
+
             # Save features as analysis results
             if layer_data.get('features'):
                 for feature in layer_data['features']:
@@ -75,7 +75,7 @@ async def save_layers(request: Request):
                         VALUES (%s, ST_GeomFromGeoJSON(%s), %s)
                     """, (layer_name, json.dumps(feature['geometry']), 
                          json.dumps(feature.get('properties', {}))))
-        
+
         conn.commit()
         return JSONResponse(content={"status": "success", "message": "Data saved to database"})
     except Exception as e:
@@ -86,11 +86,6 @@ async def save_layers(request: Request):
     finally:
         if 'cur' in locals(): cur.close()
         if 'conn' in locals(): conn.close()
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"Error saving layers: {error_details}")  # Debug log
-        raise HTTPException(status_code=500, detail=f"Failed to save: {str(e)}\n{error_details}")
 
 @app.get("/api/load-layers")
 async def load_layers():
@@ -98,9 +93,9 @@ async def load_layers():
         import psycopg2
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
-        
+
         layers = {}
-        
+
         # Load layer configurations
         cur.execute("SELECT name, layer_config FROM map_layers WHERE is_active = true")
         for name, config in cur.fetchall():
@@ -108,7 +103,7 @@ async def load_layers():
                 "properties": json.loads(config),
                 "features": []
             }
-            
+
         # Load features for each layer
         for layer_name in layers:
             cur.execute("""
@@ -116,14 +111,14 @@ async def load_layers():
                 FROM analysis_results 
                 WHERE analysis_type = %s
             """, (layer_name,))
-            
+
             for geom, properties in cur.fetchall():
                 layers[layer_name]["features"].append({
                     "type": "Feature",
                     "geometry": json.loads(geom),
                     "properties": json.loads(properties)
                 })
-        
+
         return JSONResponse(content={"layers": layers})
     except Exception as e:
         import traceback
