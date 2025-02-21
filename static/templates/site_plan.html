@@ -441,8 +441,11 @@
                 try {
                     const response = await fetch('/api/load-layers');
                     const data = await response.json();
-
-                    Object.keys(data).forEach(layerName => {
+                    
+                    // Use the layers object or empty object if not present
+                    const layerData = data.layers || {};
+                    
+                    Object.keys(layerData).forEach(layerName => {
                         const layerGroup = new L.FeatureGroup();
                         layerGroup.properties = data[layerName].properties;
                         layers[layerName] = layerGroup;
