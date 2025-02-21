@@ -9,9 +9,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <style>
         #map {
-            height: 100vh;
+            height: calc(100vh - 30px);
             width: calc(100% - 250px);
             margin-left: 250px;
+            margin-top: 30px;
         }
         body {
             margin: 0;
@@ -162,7 +163,6 @@
         </div>
     </div>
     <div id="map"></div>
-    <script>
     <script>
         // Initialize map with OpenStreetMap as default
         const map = L.map('map', {
