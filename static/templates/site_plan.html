@@ -412,12 +412,25 @@
                 saveToDatabase();
             }
 
+            function attachEditHandlers(layer) {
+                if (layer instanceof L.FeatureGroup) {
+                    layer.eachLayer(l => {
+                        if (l.feature) {
+                            l.on('click', function() {
+                                openEditPopup(l);
+                            });
+                        }
+                    });
+                }
+            }
+
             async function saveToDatabase() {
                 const layerData = {
                     layers: {}
                 };
                 Object.keys(layers).forEach(layerName => {
                     const layer = layers[layerName];
+                    attachEditHandlers(layer);
                     layerData.layers[layerName] = {
                         properties: layer.properties || {},
                         features: []
