@@ -393,7 +393,7 @@
         function updateOverlayControls() {
             const layerControl = document.getElementById('layerControl');
             layerControl.innerHTML = '';
-            
+
             // Add layer selector dropdown
             const selectDiv = document.createElement('div');
             selectDiv.className = 'layer-control-item';
@@ -401,25 +401,25 @@
             layerSelect.id = 'activeLayerSelect';
             layerSelect.style.width = '100%';
             layerSelect.style.marginBottom = '10px';
-            
+
             Object.keys(overlayMaps).forEach(name => {
                 const option = document.createElement('option');
                 option.value = name;
                 option.textContent = `Draw to: ${name}`;
                 layerSelect.appendChild(option);
             });
-            
+
             layerSelect.addEventListener('change', (e) => {
                 activeDrawingLayer = overlayMaps[e.target.value];
             });
-            
+
             selectDiv.appendChild(layerSelect);
             layerControl.appendChild(selectDiv);
-            
+
             Object.entries(overlayMaps).forEach(([name, layer]) => {
                 const div = document.createElement('div');
                 div.className = 'layer-control-item';
-                
+
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = map.hasLayer(layer);
@@ -430,11 +430,11 @@
                         map.removeLayer(layer);
                     }
                 });
-                
+
                 const label = document.createElement('label');
                 label.appendChild(checkbox);
                 label.appendChild(document.createTextNode(` ${name}`));
-                
+
                 div.appendChild(label);
                 layerControl.appendChild(div);
             });
@@ -712,7 +712,7 @@
 
             // Create a new feature group for the layer
             let newLayer = new L.FeatureGroup();
-            
+
             // Enable drawing mode based on selected type
             let drawHandler;
             if (layerType === 'polygon') {
@@ -730,18 +730,18 @@
 
             // Add the new layer to the map
             newLayer.addTo(map);
-            
+
             // Save layer to storage
             storageUtils.saveLayer({
                 name: layerName,
                 type: layerType,
                 description: layerDescription
             });
-            
+
             // Update overlayMaps and refresh overlay controls
             overlayMaps[layerName] = newLayer;
             updateOverlayControls();
-            
+
             // Update layer selector with new layer
             const layerSelect = document.getElementById('activeLayerSelect');
             const option = document.createElement('option');
@@ -759,6 +759,68 @@
                 newLayer.addLayer(layer);
             });
         });
+
+        // Set initial base layer
+        baseLayers['OpenStreetMap'].addTo(map);
+
+        // Initialize drawing controls
+        const drawingTools = {
+            polygon: new L.Draw.Polygon(map),
+            polyline: new L.Draw.Polyline(map),
+            rectangle: new L.Draw.Rectangle(map),
+            circle: new L.Draw.Circle(map),
+            marker: new L.Draw.Marker(map)
+        };
+
+        // Drawing tool event handlers
+        document.getElementById('drawPolygon').onclick = () => drawingTools.polygon.enable();
+        document.getElementById('drawPolyline').onclick = () => drawingTools.polyline.enable();
+        document.getElementById('drawRectangle').onclick = () => drawingTools.rectangle.enable();
+        document.getElementById('drawCircle').onclick = () => drawingTools.circle.enable();
+        document.getElementById('drawMarker').onclick = () => drawingTools.marker.enable();
+
+        // Handle draw:created events
+        map.on('draw:created', function(e) {
+            const layer = e.layer;
+            const selectedLayer = document.getElementById('drawingLayer').value;
+            const targetLayer = {
+                'drawnItems': drawnItems,
+                'facilityLayer': facilityLayer,
+                'analysisLayer': analysisLayer
+            }[selectedLayer];
+
+            if (targetLayer) {
+                targetLayer.addLayer(layer);
+            }
+        });
+
+        // Base layer selector event handler
+        document.getElementById('baseLayerTool').addEventListener('click', function(e) {
+            const menu = document.getElementById('baseLayerDropdown');
+            menu.innerHTML = '';
+            Object.entries(baseLayers).forEach(([name, layer]) => {
+                const label = document.createElement('label');
+                label.style.display = 'block';
+                label.style.padding = '5px';
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'baseLayer';
+                radio.value = name;
+                radio.checked = map.hasLayer(layer);
+                radio.onchange = () => {
+                    Object.values(baseLayers).forEach(l => map.removeLayer(l));
+                    map.addLayer(layer);
+                    menu.style.display = 'none';
+                };
+                label.appendChild(radio);
+                label.appendChild(document.createTextNode(' ' + name));
+                menu.appendChild(label);
+            });
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Initialize overlay controls in left panel
+        updateOverlayControls();
     </script>
 </body>
 </html>
