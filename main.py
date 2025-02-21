@@ -116,7 +116,7 @@ async def load_layers():
                 layers[layer_name]["features"].append({
                     "type": "Feature",
                     "geometry": json.loads(geom),
-                    "properties": json.loads(properties)
+                    "properties": properties if isinstance(properties, dict) else json.loads(properties)
                 })
 
         return JSONResponse(content={"layers": layers})
