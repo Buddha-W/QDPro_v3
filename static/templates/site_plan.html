@@ -8,6 +8,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
     <style>
+        .base-layer-option {
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .base-layer-option input[type="radio"] {
+            margin: 0;
+        }
+        .base-layer-option label {
+            cursor: pointer;
+        }
         .tool-button {
             padding: 5px 10px;
             margin: 0 2px;
@@ -93,19 +105,96 @@ document.addEventListener('DOMContentLoaded', function() {
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
 
-const drawOptions = {
-    position: 'topright',
-    draw: {
-        polygon: true,
-        polyline: true,
-        rectangle: true,
-        circle: true,
-        marker: true
-    },
+// Remove default draw control
+const drawControl = new L.Control.Draw({
+    draw: false,
     edit: {
         featureGroup: drawnItems
     }
+});
+
+// Custom drawing tools in toolbar
+const drawingTools = {
+    polygon: new L.Draw.Polygon(map),
+    polyline: new L.Draw.Polyline(map),
+    rectangle: new L.Draw.Rectangle(map),
+    circle: new L.Draw.Circle(map),
+    marker: new L.Draw.Marker(map)
 };
+
+// Setup drawing tool buttons
+Object.entries(drawingTools).forEach(([type, tool]) => {
+    const button = document.getElementById(`draw${type.charAt(0).toUpperCase() + type.slice(1)}`);
+    if (button) {
+        button.addEventListener('click', () => {
+            // Disable any active drawing
+            Object.values(drawingTools).forEach(t => t.disable());
+            tool.enable();
+        });
+    }
+});
+
+// Handle panel toggle
+const toggleLayersPanel = document.getElementById('toggleLayersPanel');
+const leftPanel = document.getElementById('leftPanel');
+const mapElement = document.getElementById('map');
+
+if (toggleLayersPanel && leftPanel && mapElement) {
+    toggleLayersPanel.addEventListener('click', () => {
+        const isPanelVisible = leftPanel.style.marginLeft !== '-300px';
+        leftPanel.style.marginLeft = isPanelVisible ? '-300px' : '0';
+        mapElement.style.marginLeft = isPanelVisible ? '0' : '300px';
+        map.invalidateSize();
+    });
+}
+
+// Base layers control
+const baseLayerTool = document.getElementById('baseLayerTool');
+const baseLayerDropdown = document.getElementById('baseLayerDropdown');
+
+if (baseLayerTool && baseLayerDropdown) {
+    // Clear existing content
+    baseLayerDropdown.innerHTML = '';
+    
+    // Create radio buttons for each base layer
+    Object.entries(baseLayers).forEach(([name, layer]) => {
+        const container = document.createElement('div');
+        container.className = 'base-layer-option';
+        
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'baseLayer';
+        radio.id = `base-${name}`;
+        radio.checked = map.hasLayer(layer);
+        
+        const label = document.createElement('label');
+        label.htmlFor = `base-${name}`;
+        label.textContent = name;
+        
+        container.appendChild(radio);
+        container.appendChild(label);
+        
+        radio.addEventListener('change', () => {
+            Object.values(baseLayers).forEach(l => map.removeLayer(l));
+            map.addLayer(layer);
+            baseLayerDropdown.style.display = 'none';
+        });
+        
+        baseLayerDropdown.appendChild(container);
+    });
+    
+    baseLayerTool.addEventListener('click', () => {
+        baseLayerDropdown.style.display = 
+            baseLayerDropdown.style.display === 'none' ? 'block' : 'none';
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!baseLayerTool.contains(e.target) && !baseLayerDropdown.contains(e.target)) {
+            baseLayerDropdown.style.display = 'none';
+        }
+    });
+}
 
 // Load saved layers and shapes from localStorage
 function loadSavedItems() {
