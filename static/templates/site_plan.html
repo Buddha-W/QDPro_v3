@@ -20,6 +20,42 @@
         .base-layer-option label {
             cursor: pointer;
         }
+        .panel-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .panel-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .panel-content {
+            padding: 15px;
+        }
+        .layer-select-container {
+            margin-bottom: 15px;
+        }
+        .layer-select-container select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .layer-control-container {
+            border-top: 1px solid #dee2e6;
+            padding-top: 15px;
+        }
+        #baseLayerDropdown {
+            position: absolute;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 10px;
+            min-width: 200px;
+            z-index: 1000;
+        }
         .tool-button {
             padding: 5px 10px;
             margin: 0 2px;
@@ -27,271 +63,6 @@
             border: 1px solid #dee2e6;
             border-radius: 3px;
             cursor: pointer;
-
-<style>
-.layer-control-item {
-    padding: 5px 0;
-    margin: 2px 0;
-}
-
-.layer-control-item label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    cursor: pointer;
-}
-
-.layer-control-item input[type="checkbox"] {
-    margin: 0;
-}
-
-.toolbar {
-    position: absolute;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    background: white;
-    padding: 5px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    display: flex;
-    gap: 5px;
-}
-
-.base-layers-dropdown {
-    position: absolute;
-    background: white;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    padding: 8px;
-    display: none;
-}
-
-.base-layers-dropdown.show {
-    display: block;
-}
-
-.base-layers-dropdown label {
-    display: block;
-    margin: 5px 0;
-    cursor: pointer;
-}
-</style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize map without default controls
-    const map = L.map('map', {
-        center: [40.7128, -74.0060],
-        zoom: 13,
-        zoomControl: true,
-        attributionControl: true,
-        drawControl: false
-    });
-
-    // Base layers
-    const baseLayers = {
-        'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
-        'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
-        'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
-        'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
-    };
-
-    // Set default base layer
-    baseLayers['OpenStreetMap'].addTo(map);
-
-    // Initialize draw items and options
-    const drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-
-// Remove default draw control
-const drawControl = new L.Control.Draw({
-    draw: false,
-    edit: {
-        featureGroup: drawnItems
-    }
-});
-
-// Custom drawing tools in toolbar
-const drawingTools = {
-    polygon: new L.Draw.Polygon(map),
-    polyline: new L.Draw.Polyline(map),
-    rectangle: new L.Draw.Rectangle(map),
-    circle: new L.Draw.Circle(map),
-    marker: new L.Draw.Marker(map)
-};
-
-// Setup drawing tool buttons
-Object.entries(drawingTools).forEach(([type, tool]) => {
-    const button = document.getElementById(`draw${type.charAt(0).toUpperCase() + type.slice(1)}`);
-    if (button) {
-        button.addEventListener('click', () => {
-            // Disable any active drawing
-            Object.values(drawingTools).forEach(t => t.disable());
-            tool.enable();
-        });
-    }
-});
-
-// Handle panel toggle
-const toggleLayersPanel = document.getElementById('toggleLayersPanel');
-const leftPanel = document.getElementById('leftPanel');
-const mapElement = document.getElementById('map');
-
-if (toggleLayersPanel && leftPanel && mapElement) {
-    toggleLayersPanel.addEventListener('click', () => {
-        const isPanelVisible = leftPanel.style.marginLeft !== '-300px';
-        leftPanel.style.marginLeft = isPanelVisible ? '-300px' : '0';
-        mapElement.style.marginLeft = isPanelVisible ? '0' : '300px';
-        map.invalidateSize();
-    });
-}
-
-// Base layers control
-const baseLayerTool = document.getElementById('baseLayerTool');
-const baseLayerDropdown = document.getElementById('baseLayerDropdown');
-
-if (baseLayerTool && baseLayerDropdown) {
-    // Clear existing content
-    baseLayerDropdown.innerHTML = '';
-    
-    // Create radio buttons for each base layer
-    Object.entries(baseLayers).forEach(([name, layer]) => {
-        const container = document.createElement('div');
-        container.className = 'base-layer-option';
-        
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'baseLayer';
-        radio.id = `base-${name}`;
-        radio.checked = map.hasLayer(layer);
-        
-        const label = document.createElement('label');
-        label.htmlFor = `base-${name}`;
-        label.textContent = name;
-        
-        container.appendChild(radio);
-        container.appendChild(label);
-        
-        radio.addEventListener('change', () => {
-            Object.values(baseLayers).forEach(l => map.removeLayer(l));
-            map.addLayer(layer);
-            baseLayerDropdown.style.display = 'none';
-        });
-        
-        baseLayerDropdown.appendChild(container);
-    });
-    
-    baseLayerTool.addEventListener('click', () => {
-        baseLayerDropdown.style.display = 
-            baseLayerDropdown.style.display === 'none' ? 'block' : 'none';
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!baseLayerTool.contains(e.target) && !baseLayerDropdown.contains(e.target)) {
-            baseLayerDropdown.style.display = 'none';
-        }
-    });
-}
-
-// Load saved layers and shapes from localStorage
-function loadSavedItems() {
-    const savedItems = localStorage.getItem('mapItems');
-    if (savedItems) {
-        const items = JSON.parse(savedItems);
-        items.forEach(item => {
-            const layer = L.geoJSON(item.geometry).addTo(drawnItems);
-            if (item.properties) {
-                layer.properties = item.properties;
-            }
-        });
-    }
-}
-
-// Save drawn items to localStorage
-function saveItems() {
-    const items = [];
-    drawnItems.eachLayer(layer => {
-        items.push({
-            geometry: layer.toGeoJSON(),
-            properties: layer.properties || {}
-        });
-    });
-    localStorage.setItem('mapItems', JSON.stringify(items));
-}
-
-// Handle draw events
-map.on('draw:created', function(e) {
-    const layer = e.layer;
-    drawnItems.addLayer(layer);
-    saveItems();
-});
-
-map.on('draw:edited', saveItems);
-map.on('draw:deleted', saveItems);
-
-// Initialize toolbar
-document.addEventListener('DOMContentLoaded', function() {
-    const toolbar = document.createElement('div');
-    toolbar.className = 'toolbar';
-    
-    // Base layers button
-    const baseLayersBtn = document.createElement('button');
-    baseLayersBtn.className = 'tool-button';
-    baseLayersBtn.innerHTML = 'Base Layers';
-    
-    const baseLayersDropdown = document.createElement('div');
-    baseLayersDropdown.className = 'base-layers-dropdown';
-    
-    Object.keys(baseLayers).forEach(name => {
-        const label = document.createElement('label');
-        const radio = document.createElement('input');
-        radio.type = 'radio';
-        radio.name = 'baseLayer';
-        radio.value = name;
-        radio.checked = name === 'OpenStreetMap';
-        radio.onchange = () => {
-            Object.values(baseLayers).forEach(layer => map.removeLayer(layer));
-            baseLayers[name].addTo(map);
-        };
-        label.appendChild(radio);
-        label.appendChild(document.createTextNode(name));
-        baseLayersDropdown.appendChild(label);
-    });
-    
-    baseLayersBtn.onclick = () => {
-        baseLayersDropdown.classList.toggle('show');
-    };
-    
-    // Draw tools buttons
-    const drawTools = [
-        { name: 'Polygon', handler: () => new L.Draw.Polygon(map).enable() },
-        { name: 'Polyline', handler: () => new L.Draw.Polyline(map).enable() },
-        { name: 'Rectangle', handler: () => new L.Draw.Rectangle(map).enable() },
-        { name: 'Circle', handler: () => new L.Draw.Circle(map).enable() },
-        { name: 'Marker', handler: () => new L.Draw.Marker(map).enable() }
-    ];
-    
-    drawTools.forEach(tool => {
-        const button = document.createElement('button');
-        button.className = 'tool-button';
-        button.innerHTML = `Draw ${tool.name}`;
-        button.onclick = tool.handler;
-        toolbar.appendChild(button);
-    });
-    
-    toolbar.appendChild(baseLayersBtn);
-    toolbar.appendChild(baseLayersDropdown);
-    document.getElementById('map').appendChild(toolbar);
-    
-    // Load saved items on page load
-    loadSavedItems();
-});
-});
-</script>
-
         }
         .tool-button:hover {
             background: #e9ecef;
@@ -304,11 +75,22 @@ document.addEventListener('DOMContentLoaded', function() {
             border: 1px solid #dee2e6;
             border-radius: 3px;
         }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <style>
+        .layer-control-item {
+            padding: 5px 0;
+            margin: 2px 0;
+        }
+
+        .layer-control-item label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .layer-control-item input[type="checkbox"] {
+            margin: 0;
+        }
+
         #map {
             position: fixed;
             height: calc(100vh - 80px);
@@ -515,6 +297,10 @@ document.addEventListener('DOMContentLoaded', function() {
             cursor: pointer;
         }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    
 </head>
 <body>
     <div class="menu-bar">
@@ -649,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Add layer selector dropdown
             const selectDiv = document.createElement('div');
-            selectDiv.className = 'layer-control-item';
+            selectDiv.className = 'layer-select-container';
             const layerSelect = document.createElement('select');
             layerSelect.id = 'activeLayerSelect';
             layerSelect.style.width = '100%';
@@ -669,6 +455,9 @@ document.addEventListener('DOMContentLoaded', function() {
             selectDiv.appendChild(layerSelect);
             layerControl.appendChild(selectDiv);
 
+
+            const layerControlContainer = document.createElement('div');
+            layerControlContainer.className = 'layer-control-container';
             Object.entries(overlayMaps).forEach(([name, layer]) => {
                 const div = document.createElement('div');
                 div.className = 'layer-control-item';
@@ -689,8 +478,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 label.appendChild(document.createTextNode(` ${name}`));
 
                 div.appendChild(label);
-                layerControl.appendChild(div);
+                layerControlContainer.appendChild(div);
             });
+            layerControl.appendChild(layerControlContainer);
         }
 
         const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
