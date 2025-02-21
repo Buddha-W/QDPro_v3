@@ -124,39 +124,38 @@
         }
         .toolbar {
             position: fixed;
-            top: 0;
+            top: 30px;
             left: 0;
             right: 0;
-            height: 60px;
-            background: #2b2d42;
-            color: white;
+            height: 50px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
             display: flex;
             align-items: center;
-            padding: 0 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            z-index: 1000;
+            padding: 0 15px;
+            z-index: 1001;
         }
         .tool-group {
             display: flex;
             align-items: center;
             margin-right: 20px;
         }
-        .tool-group select, .tool-group button {
-            margin: 0 5px;
+        .tool-group button {
             padding: 8px 12px;
-            border: none;
+            margin: 0 5px;
+            border: 1px solid #dee2e6;
             border-radius: 4px;
-            background: #4a4e69;
-            color: white;
+            background: white;
+            color: #333;
             cursor: pointer;
         }
-        .tool-group select:hover, .tool-group button:hover {
-            background: #6b7299;
+        .tool-group button:hover {
+            background: #e9ecef;
         }
         .tool-divider {
             width: 1px;
             height: 30px;
-            background: #4a4e69;
+            background: #dee2e6;
             margin: 0 15px;
         }
     </style>
