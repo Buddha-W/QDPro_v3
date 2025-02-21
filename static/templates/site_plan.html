@@ -428,13 +428,13 @@
             if (!layers[workspace]) {
                 layers[workspace] = {};
             }
-            
+
             const newLayer = L.featureGroup().addTo(map);
             newLayer.properties = {
                 name: name,
                 ...properties
             };
-            
+
             layers[workspace][name] = newLayer;
             updateLayerControl();
             updateDrawToLayerSelect();
@@ -569,44 +569,59 @@
             window.editLayer = function(name) {
                 const layer = layers[currentWorkspace][name];
                 if (!layer) return;
-                
+
                 // Show edit modal instead of prompt
                 const editModal = document.getElementById('editLayerModal');
                 const editNameInput = document.getElementById('editLayerName');
                 const editQDCheckbox = document.getElementById('editIsQDAnalyzed');
-                
+
                 editNameInput.value = name;
                 editQDCheckbox.checked = layer.properties?.isQDAnalyzed || false;
                 editModal.style.display = 'block';
-                
+
                 // Save changes when confirmed
                 document.getElementById('saveLayerEdit').onclick = function() {
                     const newName = editNameInput.value.trim();
                     if (!newName) return;
-                    
+
                     layer.properties = {
                         ...layer.properties,
                         name: newName,
                         isQDAnalyzed: editQDCheckbox.checked
                     };
-                    
+
                     editModal.style.display = 'none';
                     updateLayerControl();
                 };
-            }s = {
-                    ...layer.properties,
-                    isQDAnalyzed,
-                    name: newName
-                };
+            }
 
-                if (name !== newName) {
-                    layers[currentWorkspace][newName] = layer;
-                    delete layers[currentWorkspace][name];
+            function showWorkspaceSelector() {
+                const modal = document.getElementById('workspaceSelectorModal');
+                modal.style.display = 'block';
+                updateWorkspaceList();
+            }
+
+            function createNewWorkspace() {
+                const modal = document.getElementById('newWorkspaceModal');
+                modal.style.display = 'block';
+            }
+
+            function createNewWorkspaceFromModal() {
+                const nameInput = document.getElementById('newWorkspaceName');
+                const name = nameInput.value.trim();
+                if (!name) return;
+
+                if (!workspaces[name]) {
+                    workspaces[name] = { layers: [] };
+                    switchWorkspace(name);
+                    addDefaultLayers(name);
                 }
 
-                updateLayerControl();
-                saveToDatabase();
+                document.getElementById('newWorkspaceModal').style.display = 'none';
+                nameInput.value = '';
             }
+
+            const properties = {
 
             async function saveToDatabase() {
                 const layerData = {
@@ -991,6 +1006,21 @@
             }
           });
           console.log("Clearing all layers from the map");
+        }
+        function updateWorkspaceList() {
+            const workspaceList = document.getElementById('workspaceList');
+            workspaceList.innerHTML = '';
+
+            for (const workspaceName in workspaces) {
+                const item = document.createElement('div');
+                item.className = 'workspace-selector-item';
+                item.textContent = workspaceName;
+                item.addEventListener('click', () => {
+                    switchWorkspace(workspaceName);
+                    document.getElementById('workspaceSelectorModal').style.display = 'none';
+                });
+                workspaceList.appendChild(item);
+            }
         }
     </script>
     <!-- Facility Details Modal -->
