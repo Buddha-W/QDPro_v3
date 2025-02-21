@@ -12,7 +12,6 @@
             height: 100vh;
             width: calc(100% - 250px);
             margin-left: 250px;
-            margin-top: 30px;
         }
         body {
             margin: 0;
@@ -62,13 +61,24 @@
         .left-panel {
             position: fixed;
             left: 0;
-            top: 30px;
+            top: 0;
             width: 250px;
-            height: calc(100vh - 30px);
+            height: 100vh;
             background: #f8f9fa;
             border-right: 1px solid #dee2e6;
             z-index: 1000;
             overflow-y: auto;
+            resize: horizontal;
+            overflow-x: hidden;
+        }
+        .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            cursor: ew-resize;
+            background: #dee2e6;
         }
         .panel-section {
             padding: 10px;
@@ -118,75 +128,11 @@
     </style>
 </head>
 <body>
-    <div class="menu-bar">
-        <div class="menu-item">File
-            <div class="dropdown">
-                <div class="dropdown-item">New Analysis</div>
-                <div class="dropdown-item">Open Project</div>
-                <div class="dropdown-item">Save Project</div>
-                <div class="dropdown-item">Export Data</div>
-            </div>
-        </div>
-        <div class="menu-item">Edit
-            <div class="dropdown">
-                <div class="dropdown-item">Facility Properties</div>
-                <div class="dropdown-item">Storage Scenarios</div>
-                <div class="dropdown-item">Edit Template</div>
-            </div>
-        </div>
-        <div class="menu-item">Analysis
-            <div class="dropdown">
-                <div class="dropdown-item">Spatial Analysis</div>
-                <div class="dropdown-item">QD Analysis</div>
-                <div class="dropdown-item">Risk Assessment</div>
-                <div class="dropdown-item">Arc Analysis</div>
-            </div>
-        </div>
-        <div class="menu-item">View
-            <div class="dropdown">
-                <div class="dropdown-item">Display Arcs</div>
-                <div class="dropdown-item">Show IBD Zones</div>
-                <div class="dropdown-item">Buffer Features</div>
-                <div class="dropdown-item">Show Legend</div>
-            </div>
-        </div>
-        <div class="menu-item">Tools
-            <div class="dropdown">
-                <div class="dropdown-item">QD Calculator</div>
-                <div class="dropdown-item">Distance Measurement</div>
-                <div class="dropdown-item">Area Calculator</div>
-            </div>
-        </div>
-        <div class="menu-item">Reports
-            <div class="dropdown">
-                <div class="dropdown-item">Safety Analysis</div>
-                <div class="dropdown-item">Facility Report</div>
-                <div class="dropdown-item">Arc Analysis Report</div>
-            </div>
-        </div>
-    </div>
     <div class="left-panel">
+        <div class="resize-handle"></div>
         <div class="panel-section">
             <div class="panel-title">Layer Control</div>
             <div id="layerControl"></div>
-        </div>
-        <div class="panel-section">
-            <div class="panel-title">Facility Types</div>
-            <select id="facilityType" style="width: 100%">
-                <option value="default">Standard QD</option>
-                <option value="public_traffic_route">Public Traffic Route</option>
-                <option value="inhabited_building">Inhabited Building</option>
-                <option value="military_boundary">Military Boundary</option>
-                <option value="process_building">Process Building</option>
-            </select>
-        </div>
-        <div class="panel-section">
-            <div class="panel-title">Organization</div>
-            <select id="orgSelect" style="width: 100%">
-                <option value="DOD">DoD</option>
-                <option value="DOE">DoE</option>
-                <option value="NATO">NATO</option>
-            </select>
         </div>
     </div>
     <div id="map"></div>
