@@ -40,9 +40,9 @@ async def return_facilities_report():
 @app.post("/api/save-layers")
 async def save_layers(request: Request):
     """Save layer data to database."""
+    import os
     data = await request.json()
     try:
-        import os
         file_path = "layer_data.json"
         
         # Ensure data is in correct format
@@ -50,6 +50,11 @@ async def save_layers(request: Request):
             data = {"layers": data}
         elif "layers" not in data:
             data = {"layers": data}
+            
+        # Create backup of existing file
+        if os.path.exists(file_path):
+            import shutil
+            shutil.copy2(file_path, f"{file_path}.bak")
             
         # Write data with exclusive lock
         with open(file_path, "w", encoding='utf-8') as f:
@@ -59,6 +64,9 @@ async def save_layers(request: Request):
             
         return JSONResponse(content={"status": "success", "message": "Data saved successfully"})
     except Exception as e:
+        # Restore from backup if save failed
+        if os.path.exists(f"{file_path}.bak"):
+            shutil.copy2(f"{file_path}.bak", file_path)
         import traceback
         error_details = traceback.format_exc()
         raise HTTPException(status_code=500, detail=f"Failed to save: {str(e)}\n{error_details}")
@@ -66,6 +74,7 @@ async def save_layers(request: Request):
 @app.get("/api/load-layers")
 async def load_layers():
     """Load layer data from database."""
+    import os
     try:
         file_path = "layer_data.json"
         if not os.path.exists(file_path):
