@@ -1,20 +1,22 @@
 {
-  "Drawn Items": {
-    "properties": {
-      "isQDAnalyzed": false
+  "layers": {
+    "Drawn Items": {
+      "properties": {
+        "isQDAnalyzed": false
+      },
+      "features": []
     },
-    "features": []
-  },
-  "Facilities": {
-    "properties": {
-      "isQDAnalyzed": true
+    "Facilities": {
+      "properties": {
+        "isQDAnalyzed": true
+      },
+      "features": []
     },
-    "features": []
-  },
-  "Analysis": {
-    "properties": {
-      "isQDAnalyzed": true
-    },
-    "features": []
+    "Analysis": {
+      "properties": {
+        "isQDAnalyzed": true
+      },
+      "features": []
+    }
   }
 }
