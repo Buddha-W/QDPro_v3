@@ -490,11 +490,53 @@
                 }
             }
 
+            function openEditPopup(layer) {
+                layer.feature = layer.feature || {};
+                layer.feature.properties = layer.feature.properties || {};
+
+                const formHtml = `
+                    <div style="min-width: 200px;">
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label>Type Code:</label>
+                            <input id="editTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" />
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label>Description:</label>
+                            <textarea id="editDescription" style="width: 100%; height: 60px;">${layer.feature.properties.description || ''}</textarea>
+                        </div>
+                        <button id="saveEdit" style="width: 100%; padding: 5px;">Save</button>
+                    </div>
+                `;
+
+                layer.bindPopup(formHtml).openPopup();
+
+                setTimeout(() => {
+                    const saveButton = document.getElementById('saveEdit');
+                    if (saveButton) {
+                        saveButton.addEventListener('click', () => {
+                            const typeCode = document.getElementById('editTypeCode').value;
+                            const description = document.getElementById('editDescription').value;
+
+                            layer.feature.properties = {
+                                ...layer.feature.properties,
+                                typeCode,
+                                description
+                            };
+
+                            saveToDatabase();
+                            layer.closePopup();
+                        });
+                    }
+                }, 100);
+            }
+
             function addLayer(name, properties = {}) {
                 const layerGroup = new L.FeatureGroup();
                 layerGroup.properties = properties;
                 layerGroup.on('click', function(e) {
-                    showFacilityDetails(e.layer);
+                    if (e.layer) {
+                        openEditPopup(e.layer);
+                    }
                 });
                 layers[name] = layerGroup;
                 map.addLayer(layerGroup);
