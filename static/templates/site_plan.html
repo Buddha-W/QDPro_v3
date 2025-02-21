@@ -185,6 +185,55 @@
             background: #dee2e6;
             margin: 0 15px;
         }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-form input[type="text"],
+        .modal-form input[type="url"],
+        .modal-form select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .modal-form button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -234,7 +283,28 @@
             <div id="layerControl" style="padding: 10px;"></div>
         </div>
     </div>
-    <div id="map"></div>
+    <div id="map" style="height: calc(100vh - 80px); margin-top: 80px;"></div>
+
+    <!-- Add Layer Modal -->
+    <div id="addLayerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Layer</h2>
+            <form id="addLayerForm" class="modal-form">
+                <input type="text" id="layerName" placeholder="Layer Name" required>
+                <input type="text" id="layerDescription" placeholder="Layer Description">
+                <select id="layerType" required>
+                    <option value="">Select Layer Type</option>
+                    <option value="tile">Tile Layer</option>
+                    <option value="wms">WMS Layer</option>
+                    <option value="geojson">GeoJSON Layer</option>
+                </select>
+                <input type="url" id="layerUrl" placeholder="Layer URL" required>
+                <button type="submit">Add Layer</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         // Initialize map with OpenStreetMap as default
         const map = L.map('map', {
@@ -453,6 +523,70 @@
                 });
             })
             .catch(error => console.error('Error loading facilities:', error));
+
+
+        // Add Layer Modal Functionality
+        const addLayerModal = document.getElementById('addLayerModal');
+        const addLayerBtn = document.getElementById('addLayerTool');
+        const closeModal = document.querySelector('.close');
+        const addLayerForm = document.getElementById('addLayerForm');
+
+        addLayerBtn.addEventListener('click', () => {
+            addLayerModal.style.display = "block";
+        });
+
+        closeModal.addEventListener('click', () => {
+            addLayerModal.style.display = "none";
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === addLayerModal) {
+                addLayerModal.style.display = "none";
+            }
+        });
+
+        addLayerForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const layerName = document.getElementById('layerName').value;
+            const layerDescription = document.getElementById('layerDescription').value;
+            const layerType = document.getElementById('layerType').value;
+            const layerUrl = document.getElementById('layerUrl').value;
+
+            // Add layer based on type (placeholder - replace with actual layer creation)
+            let newLayer;
+            if (layerType === 'tile') {
+                newLayer = L.tileLayer(layerUrl);
+            } else if (layerType === 'wms') {
+                //Handle WMS layer addition
+                newLayer = L.tileLayer.wms(layerUrl);
+            } else if (layerType === 'geojson') {
+                // Handle GeoJSON layer addition.  Requires fetching and parsing GeoJSON data.
+                fetch(layerUrl)
+                  .then(response => response.json())
+                  .then(geojsonData => {
+                    newLayer = L.geoJSON(geojsonData);
+                    newLayer.addTo(map);
+                    // Add to layer control (replace with actual layer name)
+                    overlayMaps[layerName] = newLayer;
+                    L.control.layers(baseLayers, overlayMaps).addTo(map);
+                    addLayerModal.style.display = "none";
+                  })
+                  .catch(error => console.error("Error loading GeoJSON", error));
+
+                return; // prevent default submit action for GeoJSON as it's asynchronous
+            } else {
+                alert("Invalid layer type");
+                return;
+            }
+            
+            if (newLayer) {
+              newLayer.addTo(map);
+              // Add to layer control (replace with actual layer name)
+              overlayMaps[layerName] = newLayer;
+              L.control.layers(baseLayers, overlayMaps).addTo(map);
+              addLayerModal.style.display = "none";
+            }
+        });
     </script>
 </body>
 </html>
