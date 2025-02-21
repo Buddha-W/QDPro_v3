@@ -131,6 +131,7 @@
             align-items: center;
             padding: 0 15px;
             z-index: 1001;
+            justify-content: space-between; /* Added to align items */
         }
         .tool-group {
             display: flex;
@@ -216,6 +217,12 @@
             align-items: center;
             gap: 8px;
         }
+        #dbStatus {
+            margin-left: auto; /* Pushes to the right */
+            padding: 0 10px;
+            font-size: 14px;
+            color: #333;
+        }
 
     </style>
 </head>
@@ -288,6 +295,9 @@
             <button id="drawMarker" class="tool-button" title="Add Marker">
                 <i class="fas fa-map-marker-alt"></i>
             </button>
+        </div>
+        <div id="dbStatus" style="margin-left: auto; padding: 0 10px; font-size: 14px; color: #333;">
+            Database: <span id="currentDatabase">PostgreSQL</span>
         </div>
     </div>
 
@@ -418,10 +428,10 @@
                         // Ensure the layer has a feature property
                         l.feature = l.feature || {};
                         l.feature.properties = l.feature.properties || {};
-                        
+
                         // Remove existing click handlers to prevent duplicates
                         l.off('click');
-                        
+
                         // Add new click handler
                         l.on('click', function() {
                             openEditPopup(l);
@@ -506,7 +516,7 @@
                 Object.values(layers).forEach(layer => {
                     attachEditHandlers(layer);
                 });
-                
+
                 updateLayerControl();
                 updateDrawToLayerSelect();
                 } catch (error) {
