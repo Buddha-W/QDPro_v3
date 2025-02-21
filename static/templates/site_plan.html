@@ -403,22 +403,33 @@
         const panel = document.getElementById('leftPanel');
         const mapElement = document.getElementById('map');
 
-        // Set initial state
+        // Initialize panel state
+        panel.style.left = '0';
         mapElement.style.marginLeft = '250px';
         mapElement.style.width = 'calc(100% - 250px)';
         panel.classList.add('visible');
         toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
         toggleLayersBtn.title = "Close Layers Panel";
 
-        toggleLayersBtn.addEventListener('click', function() {
-            panel.classList.toggle('visible');
-            const isVisible = panel.classList.contains('visible');
-            mapElement.style.marginLeft = isVisible ? '250px' : '0';
-            mapElement.style.width = isVisible ? 'calc(100% - 250px)' : '100%';
-            toggleLayersBtn.innerHTML = isVisible ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
-            toggleLayersBtn.title = isVisible ? "Close Layers Panel" : "Show Layers Panel";
+        // Panel toggle handler
+        toggleLayersBtn.onclick = function() {
+            if (panel.classList.contains('visible')) {
+                panel.style.left = '-250px';
+                panel.classList.remove('visible');
+                mapElement.style.marginLeft = '0';
+                mapElement.style.width = '100%';
+                toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                toggleLayersBtn.title = "Show Layers Panel";
+            } else {
+                panel.style.left = '0';
+                panel.classList.add('visible');
+                mapElement.style.marginLeft = '250px';
+                mapElement.style.width = 'calc(100% - 250px)';
+                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
+                toggleLayersBtn.title = "Close Layers Panel";
+            }
             map.invalidateSize();
-        });
+        };
 
         // Load facilities
         fetch('/reports/facilities')
