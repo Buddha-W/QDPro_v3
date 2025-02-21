@@ -1,0 +1,23 @@
+I have a Leaflet web application integrated with a FastAPI backend that saves and loads layer data. The application lets users add new layers with properties (for example, marking a layer as "QD analyzed" or "non QD analyzed"), edit layers, and draw shapes onto selected layers. All changes are meant to be saved to the database so they persist across refreshes.
+
+However, I'm running into a few issues that I need fixed:
+
+Layer Addition with Properties & Editing
+When adding a new layer via the "Add Layer" modal, I want to be able to designate properties (like whether it's "QD analyzed" or "non QD analyzed").
+I also need the ability to later edit these properties (for example, change the layer name or QD status).
+The code references an editLayer function (called via an inline onclick in the left panel), but it isn’t properly defined in the global scope or working as expected. Please fix this so that layer properties can be edited and saved.
+Saving All Changes to the Database
+Currently, layers and drawn shapes are saved to localStorage and also sent to a FastAPI endpoint (/api/save-layers). I need to ensure that any changes (new layers, drawn shapes, updated properties) are correctly saved to the database so that when the page refreshes, the layers, their properties, and all shapes are reloaded from the database (via /api/load-layers).
+File Toolbar Dropdown Issue
+The File toolbar dropdown (under "File") appears behind the tool toolbar. I need it to display on top so all menu items are visible and clickable. Please adjust the CSS/z-index or positioning so that the dropdown shows above the tool toolbar.
+Layer Selection for Drawing & Saving Shapes
+I need a control (for example, a dropdown in the left panel) that lets the user choose which layer they’re drawing on before they start drawing. When drawing shapes (polygon, polyline, etc.), the shape should be added to the selected layer, and those shapes must be saved so they persist on refresh.
+General Integration and Variable Conflicts
+The current code defines some objects (like layers and overlayMaps) in multiple places. Please consolidate these definitions so that the correct overlay layers are used for drawing, editing, and saving.
+Ensure all DOM elements (buttons, dropdowns, panels) are present and referenced correctly in the code.
+Here is the current code (both the front-end HTML/JavaScript and the FastAPI backend snippet) for reference. Could you revise the code to fix these issues so that:
+
+New layers can be added with properties and later edited.
+All changes (layers, shapes, properties) are saved to the database.
+The File toolbar dropdown displays correctly above the tool toolbar.
+The user can select a target layer for drawing shapes before starting to draw.
