@@ -490,6 +490,9 @@
             function addLayer(name, properties = {}) {
                 const layerGroup = new L.FeatureGroup();
                 layerGroup.properties = properties;
+                layerGroup.on('click', function(e) {
+                    showFacilityDetails(e.layer);
+                });
                 layers[name] = layerGroup;
                 map.addLayer(layerGroup);
                 updateLayerControl();
@@ -580,6 +583,30 @@
                     document.getElementById('typeCode').value = '';
                     document.getElementById('typeCodeModal').style.display = 'none';
                     currentDrawnLayer = null;
+                }
+            };
+
+            function showFacilityDetails(layer) {
+                const props = layer.feature.properties || {};
+                document.getElementById('facilityTypeCode').value = props.typeCode || '';
+                document.getElementById('facilityDescription').value = props.description || '';
+                document.getElementById('facilityModal').style.display = 'block';
+                window.currentEditLayer = layer;
+            }
+
+            window.saveFacilityDetails = function() {
+                if (window.currentEditLayer) {
+                    const typeCode = document.getElementById('facilityTypeCode').value;
+                    const description = document.getElementById('facilityDescription').value;
+                    
+                    window.currentEditLayer.feature = window.currentEditLayer.feature || {};
+                    window.currentEditLayer.feature.properties = window.currentEditLayer.feature.properties || {};
+                    window.currentEditLayer.feature.properties.typeCode = typeCode;
+                    window.currentEditLayer.feature.properties.description = description;
+                    
+                    saveToDatabase();
+                    document.getElementById('facilityModal').style.display = 'none';
+                    window.currentEditLayer = null;
                 }
             };
 
@@ -681,3 +708,19 @@
     </script>
 </body>
 </html>
+    <!-- Facility Details Modal -->
+    <div id="facilityModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="document.getElementById('facilityModal').style.display='none'">&times;</span>
+            <h2>Facility Details</h2>
+            <div class="form-group">
+                <label for="facilityTypeCode">Type Code:</label>
+                <input type="text" id="facilityTypeCode">
+            </div>
+            <div class="form-group">
+                <label for="facilityDescription">Description:</label>
+                <textarea id="facilityDescription" rows="3"></textarea>
+            </div>
+            <button onclick="saveFacilityDetails()">Save Changes</button>
+        </div>
+    </div>
