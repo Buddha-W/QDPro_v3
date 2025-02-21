@@ -1,0 +1,17 @@
+I’m having several problems with my Leaflet-based web application. Here are the key issues:
+
+Toggle Layers Panel Not Working
+The “Toggle Layers Panel” button (with id toggleLayersPanel) is supposed to show/hide the left panel (#leftPanel), but it doesn’t actually toggle correctly. I need it to reliably open and close that panel.
+Shape Drawing Tools Not in the Top Toolbar
+I want my Polygon, Polyline, Rectangle, Circle, and Marker drawing tools in the top toolbar, so when the user clicks a button, it activates the corresponding draw mode (e.g., new L.Draw.Polygon(map).enable()), rather than relying on the default Leaflet Draw toolbar on the map.
+Base Layers Button Not Working with Radio Buttons
+I have a “Base Layers” button (#baseLayerTool) in the top toolbar, but it doesn’t correctly show radio buttons for each base layer. Also, selecting a radio button should switch the map to that base layer and close the dropdown.
+I also want to remove the default Leaflet layers control entirely, so the only way to switch base layers is through my custom “Base Layers” button in the toolbar.
+Remove Default Leaflet Draw Control
+The default Leaflet Draw control still appears on the map (or is partially active). I want it removed so the map is uncluttered, relying only on my custom toolbar for drawing.
+Please fix these issues in my code so that:
+
+Toggle Layers Panel: The button with id="toggleLayersPanel" opens and closes the left panel reliably, resizing the map accordingly.
+Top Toolbar Drawing Tools: The top toolbar has working buttons for Polygon, Polyline, Rectangle, Circle, and Marker, each enabling the correct draw mode when clicked.
+Base Layers Button: The “Base Layers” button in the toolbar shows radio buttons for OpenStreetMap, Google Satellite, Google Streets, and Google Hybrid. Selecting one switches the map’s base layer and closes the dropdown.
+No Default Controls: Remove/hide the default Leaflet layers control and the default Leaflet Draw toolbar from the map area so they don’t clutter the interface.
