@@ -415,11 +415,17 @@
             function attachEditHandlers(layer) {
                 if (layer instanceof L.FeatureGroup) {
                     layer.eachLayer(l => {
-                        if (l.feature) {
-                            l.on('click', function() {
-                                openEditPopup(l);
-                            });
-                        }
+                        // Ensure the layer has a feature property
+                        l.feature = l.feature || {};
+                        l.feature.properties = l.feature.properties || {};
+                        
+                        // Remove existing click handlers to prevent duplicates
+                        l.off('click');
+                        
+                        // Add new click handler
+                        l.on('click', function() {
+                            openEditPopup(l);
+                        });
                     });
                 }
             }
@@ -496,6 +502,11 @@
                         });
                     }
                 });
+                // Attach edit handlers to all loaded layers
+                Object.values(layers).forEach(layer => {
+                    attachEditHandlers(layer);
+                });
+                
                 updateLayerControl();
                 updateDrawToLayerSelect();
                 } catch (error) {
