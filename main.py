@@ -41,7 +41,10 @@ async def return_facilities_report():
         {"id": 1, "name": "Facility A", "lat": 40.7128, "lng": -74.0060},
         {"id": 2, "name": "Facility B", "lat": 34.0522, "lng": -118.2437}
     ]
-    return JSONResponse(content=facilities)
+    return JSONResponse(
+        content=facilities,
+        headers={"Content-Type": "application/json"}
+    )
 
 @app.post("/api/save-layers")
 async def save_layers(request: Request):
