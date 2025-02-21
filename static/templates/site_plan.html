@@ -29,7 +29,174 @@
 .layer-control-item input[type="checkbox"] {
     margin: 0;
 }
+
+.toolbar {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: white;
+    padding: 5px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    gap: 5px;
+}
+
+.base-layers-dropdown {
+    position: absolute;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    padding: 8px;
+    display: none;
+}
+
+.base-layers-dropdown.show {
+    display: block;
+}
+
+.base-layers-dropdown label {
+    display: block;
+    margin: 5px 0;
+    cursor: pointer;
+}
 </style>
+
+<script>
+// Initialize map without default controls
+const map = L.map('map', {
+    center: [40.7128, -74.0060],
+    zoom: 13,
+    zoomControl: true,
+    attributionControl: true,
+    drawControl: false
+});
+
+// Base layers
+const baseLayers = {
+    'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+    'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
+    'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
+    'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
+};
+
+// Set default base layer
+baseLayers['OpenStreetMap'].addTo(map);
+
+// Initialize draw items and options
+const drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+const drawOptions = {
+    position: 'topright',
+    draw: {
+        polygon: true,
+        polyline: true,
+        rectangle: true,
+        circle: true,
+        marker: true
+    },
+    edit: {
+        featureGroup: drawnItems
+    }
+};
+
+// Load saved layers and shapes from localStorage
+function loadSavedItems() {
+    const savedItems = localStorage.getItem('mapItems');
+    if (savedItems) {
+        const items = JSON.parse(savedItems);
+        items.forEach(item => {
+            const layer = L.geoJSON(item.geometry).addTo(drawnItems);
+            if (item.properties) {
+                layer.properties = item.properties;
+            }
+        });
+    }
+}
+
+// Save drawn items to localStorage
+function saveItems() {
+    const items = [];
+    drawnItems.eachLayer(layer => {
+        items.push({
+            geometry: layer.toGeoJSON(),
+            properties: layer.properties || {}
+        });
+    });
+    localStorage.setItem('mapItems', JSON.stringify(items));
+}
+
+// Handle draw events
+map.on('draw:created', function(e) {
+    const layer = e.layer;
+    drawnItems.addLayer(layer);
+    saveItems();
+});
+
+map.on('draw:edited', saveItems);
+map.on('draw:deleted', saveItems);
+
+// Initialize toolbar
+document.addEventListener('DOMContentLoaded', function() {
+    const toolbar = document.createElement('div');
+    toolbar.className = 'toolbar';
+    
+    // Base layers button
+    const baseLayersBtn = document.createElement('button');
+    baseLayersBtn.className = 'tool-button';
+    baseLayersBtn.innerHTML = 'Base Layers';
+    
+    const baseLayersDropdown = document.createElement('div');
+    baseLayersDropdown.className = 'base-layers-dropdown';
+    
+    Object.keys(baseLayers).forEach(name => {
+        const label = document.createElement('label');
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'baseLayer';
+        radio.value = name;
+        radio.checked = name === 'OpenStreetMap';
+        radio.onchange = () => {
+            Object.values(baseLayers).forEach(layer => map.removeLayer(layer));
+            baseLayers[name].addTo(map);
+        };
+        label.appendChild(radio);
+        label.appendChild(document.createTextNode(name));
+        baseLayersDropdown.appendChild(label);
+    });
+    
+    baseLayersBtn.onclick = () => {
+        baseLayersDropdown.classList.toggle('show');
+    };
+    
+    // Draw tools buttons
+    const drawTools = [
+        { name: 'Polygon', handler: () => new L.Draw.Polygon(map).enable() },
+        { name: 'Polyline', handler: () => new L.Draw.Polyline(map).enable() },
+        { name: 'Rectangle', handler: () => new L.Draw.Rectangle(map).enable() },
+        { name: 'Circle', handler: () => new L.Draw.Circle(map).enable() },
+        { name: 'Marker', handler: () => new L.Draw.Marker(map).enable() }
+    ];
+    
+    drawTools.forEach(tool => {
+        const button = document.createElement('button');
+        button.className = 'tool-button';
+        button.innerHTML = `Draw ${tool.name}`;
+        button.onclick = tool.handler;
+        toolbar.appendChild(button);
+    });
+    
+    toolbar.appendChild(baseLayersBtn);
+    toolbar.appendChild(baseLayersDropdown);
+    document.getElementById('map').appendChild(toolbar);
+    
+    // Load saved items on page load
+    loadSavedItems();
+});
+</script>
 
         }
         .tool-button:hover {
