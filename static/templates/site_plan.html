@@ -120,17 +120,17 @@
             width: 250px;
             position: fixed;
             top: 80px;
-            left: -250px;
+            left: 0;
             height: calc(100vh - 80px);
             background: white;
             overflow: auto;
             border-right: 1px solid #dee2e6;
             z-index: 1000;
             transition: transform 0.3s ease;
-            transform: translateX(0);
+            transform: translateX(-100%);
         }
         .left-panel.visible {
-            transform: translateX(250px);
+            transform: translateX(0);
         }
         .resize-handle {
             position: absolute;
@@ -415,14 +415,20 @@
         toggleLayersBtn.onclick = function() {
             panel.classList.toggle('visible');
             const isVisible = panel.classList.contains('visible');
-            
+
+            // Use transition for smooth map resizing
+            mapElement.style.transition = 'margin-left 0.3s ease, width 0.3s ease';
             mapElement.style.marginLeft = isVisible ? '250px' : '0';
             mapElement.style.width = isVisible ? 'calc(100% - 250px)' : '100%';
+
             toggleLayersBtn.innerHTML = isVisible ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
             toggleLayersBtn.title = isVisible ? "Close Layers Panel" : "Show Layers Panel";
-            
-            // Force map to recalculate its container size
-            setTimeout(() => map.invalidateSize(), 300);
+
+            // Force map recalculation after transition
+            setTimeout(() => {
+                map.invalidateSize();
+                mapElement.style.transition = '';  // Remove transition after completion
+            }, 300);
         };
 
         // Load facilities
