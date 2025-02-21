@@ -157,11 +157,21 @@
     <div class="left-panel" id="leftPanel">
         <div class="resize-handle" id="resizeHandle"></div>
         <div class="panel-section">
-            <div class="panel-title">Layer Control</div>
+            <div class="panel-title">Layers</div>
             <div id="layerControl"></div>
         </div>
     </div>
     <div id="map"></div>
+    <style>
+        .left-panel {
+            min-width: 200px;
+            max-width: 500px;
+            width: 250px;
+        }
+        .resize-handle:hover {
+            background: #999;
+        }
+    </style>
     <script>
         // Initialize map with OpenStreetMap as default
         const map = L.map('map', {
@@ -306,10 +316,11 @@
             const delta = e.clientX - lastX;
             const newWidth = parseInt(getComputedStyle(leftPanel).width) + delta;
             
-            if (newWidth > 100 && newWidth < window.innerWidth / 2) {
+            if (newWidth >= 200 && newWidth <= 500) {
                 leftPanel.style.width = `${newWidth}px`;
                 document.getElementById('map').style.marginLeft = `${newWidth}px`;
                 document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
+                map.invalidateSize();
             }
             
             lastX = e.clientX;
