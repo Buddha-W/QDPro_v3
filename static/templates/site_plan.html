@@ -164,7 +164,6 @@
         </div>
     </div>
     <div class="left-panel" id="leftPanel">
-        <div class="resize-handle" id="resizeHandle"></div>
         <div class="panel-section">
             <div class="panel-title">Layers</div>
             <div id="layerControl"></div>
@@ -179,18 +178,14 @@
             position: fixed;
             overflow: hidden;
         }
-        .resize-handle {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            width: 8px;
-            background: #dee2e6;
-            cursor: col-resize;
-            z-index: 1001;
+        .left-panel {
+            resize: horizontal;
+            overflow: auto;
+            cursor: ew-resize;
+            border-right: 8px solid #dee2e6;
         }
-        .resize-handle:hover {
-            background: #999;
+        .left-panel:hover {
+            border-right-color: #999;
         }
         #map {
             transition: margin-left 0.1s ease;
