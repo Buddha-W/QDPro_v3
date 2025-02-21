@@ -17,26 +17,6 @@
             top: 0;
             width: 100%;
             height: 100%;
-
-    <!-- Edit Layer Modal -->
-    <div id="editLayerModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <h2>Edit Layer</h2>
-            <div class="form-group">
-                <label for="editLayerName">Layer Name:</label>
-                <input type="text" id="editLayerName" required>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="editIsQDAnalyzed">
-                    QD Analyzed
-                </label>
-            </div>
-            <button id="saveLayerEdit">Save Changes</button>
-        </div>
-    </div>
-
             background-color: rgba(0,0,0,0.5);
         }
         .modal-content {
@@ -394,19 +374,6 @@
         </div>
     </div>
 
-    <!-- New Workspace Modal -->
-    <div id="newWorkspaceModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <h2>Create New Workspace</h2>
-            <div class="form-group">
-                <label for="newWorkspaceName">Workspace Name:</label>
-                <input type="text" id="newWorkspaceName" required>
-            </div>
-            <button onclick="createNewWorkspaceFromModal()">Create Workspace</button>
-        </div>
-    </div>
-
     <!-- Workspace Selector Modal -->
     <div id="workspaceSelectorModal" class="workspace-selector-modal">
         <div class="workspace-selector-content">
@@ -421,41 +388,7 @@
         let drawnItems;
         let currentWorkspace = 'Default';
         let workspaces = { 'Default': { layers: [] } }; // Initialize with a default workspace
-        let layers = {}; // Global layers object
 
-
-        function addLayer(workspace, name, properties = {}) {
-            if (!layers[workspace]) {
-                layers[workspace] = {};
-            }
-
-            const newLayer = L.featureGroup().addTo(map);
-            newLayer.properties = {
-                name: name,
-                ...properties
-            };
-
-            layers[workspace][name] = newLayer;
-            updateLayerControl();
-            updateDrawToLayerSelect();
-            return newLayer;
-        }
-
-        function showNewWorkspaceModal() {
-            document.getElementById('newWorkspaceModal').style.display = 'block';
-        }
-
-        function createNewWorkspaceFromModal() {
-            const newWorkspaceName = document.getElementById('newWorkspaceName').value.trim();
-            if (newWorkspaceName && !workspaces[newWorkspaceName]) {
-                workspaces[newWorkspaceName] = { layers: [] };
-                addDefaultLayers(newWorkspaceName);
-                switchWorkspace(newWorkspaceName);
-                updateWorkspaceSelector();
-                document.getElementById('newWorkspaceModal').style.display = 'none';
-                document.getElementById('newWorkspaceName').value = '';
-            }
-        }
 
         function updateWorkspaceStatus(workspaceName) {
             currentWorkspace = workspaceName;
@@ -540,18 +473,8 @@
                 modal.style.display = 'block';
             }
 
-            // Close button handlers for all modals
-            document.querySelectorAll('.modal-close').forEach(btn => {
-                btn.onclick = function() {
-                    this.closest('.modal').style.display = 'none';
-                }
-            });
-
-            // Close modals when clicking outside
-            window.onclick = function(event) {
-                if (event.target.classList.contains('modal')) {
-                    event.target.style.display = 'none';
-                }
+            closeBtn.onclick = function() {
+                modal.style.display = 'none';
             }
 
             window.addNewLayer = function() {
@@ -570,58 +493,24 @@
                 const layer = layers[currentWorkspace][name];
                 if (!layer) return;
 
-                // Show edit modal instead of prompt
-                const editModal = document.getElementById('editLayerModal');
-                const editNameInput = document.getElementById('editLayerName');
-                const editQDCheckbox = document.getElementById('editIsQDAnalyzed');
+                const newName = prompt('Enter new layer name:', name);
+                if (!newName) return;
 
-                editNameInput.value = name;
-                editQDCheckbox.checked = layer.properties?.isQDAnalyzed || false;
-                editModal.style.display = 'block';
-
-                // Save changes when confirmed
-                document.getElementById('saveLayerEdit').onclick = function() {
-                    const newName = editNameInput.value.trim();
-                    if (!newName) return;
-
-                    layer.properties = {
-                        ...layer.properties,
-                        name: newName,
-                        isQDAnalyzed: editQDCheckbox.checked
-                    };
-
-                    editModal.style.display = 'none';
-                    updateLayerControl();
+                const isQDAnalyzed = confirm('Is this layer QD analyzed?');
+                layer.properties = {
+                    ...layer.properties,
+                    isQDAnalyzed,
+                    name: newName
                 };
-            }
 
-            function showWorkspaceSelector() {
-                const modal = document.getElementById('workspaceSelectorModal');
-                modal.style.display = 'block';
-                updateWorkspaceList();
-            }
-
-            function createNewWorkspace() {
-                const modal = document.getElementById('newWorkspaceModal');
-                modal.style.display = 'block';
-            }
-
-            function createNewWorkspaceFromModal() {
-                const nameInput = document.getElementById('newWorkspaceName');
-                const name = nameInput.value.trim();
-                if (!name) return;
-
-                if (!workspaces[name]) {
-                    workspaces[name] = { layers: [] };
-                    switchWorkspace(name);
-                    addDefaultLayers(name);
+                if (name !== newName) {
+                    layers[currentWorkspace][newName] = layer;
+                    delete layers[currentWorkspace][name];
                 }
 
-                document.getElementById('newWorkspaceModal').style.display = 'none';
-                nameInput.value = '';
+                updateLayerControl();
+                saveToDatabase();
             }
-
-            const properties = {
 
             async function saveToDatabase() {
                 const layerData = {
@@ -1006,21 +895,6 @@
             }
           });
           console.log("Clearing all layers from the map");
-        }
-        function updateWorkspaceList() {
-            const workspaceList = document.getElementById('workspaceList');
-            workspaceList.innerHTML = '';
-
-            for (const workspaceName in workspaces) {
-                const item = document.createElement('div');
-                item.className = 'workspace-selector-item';
-                item.textContent = workspaceName;
-                item.addEventListener('click', () => {
-                    switchWorkspace(workspaceName);
-                    document.getElementById('workspaceSelectorModal').style.display = 'none';
-                });
-                workspaceList.appendChild(item);
-            }
         }
     </script>
     <!-- Facility Details Modal -->
