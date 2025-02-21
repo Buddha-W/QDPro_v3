@@ -202,10 +202,15 @@
             zoom: 13
         });
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
+
+        // Force a map refresh
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
 
         // Initialize drawing layer
         // Initialize feature groups for different layer types
@@ -333,12 +338,13 @@
             
             // Only start resize if click is within 10px of right edge
             if (Math.abs(mouseX - rightEdge) <= 10) {
-            isResizing = true;
-            startX = e.pageX;
-            startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
-            document.addEventListener('mousemove', handleResize);
-            document.addEventListener('mouseup', stopResize);
-            e.preventDefault();
+                isResizing = true;
+                startX = e.pageX;
+                startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
+                document.addEventListener('mousemove', handleResize);
+                document.addEventListener('mouseup', stopResize);
+                e.preventDefault();
+            }
         });
 
         function handleResize(e) {
