@@ -126,10 +126,11 @@
             overflow: auto;
             border-right: 1px solid #dee2e6;
             z-index: 1000;
-            transition: left 0.3s ease;
+            transition: transform 0.3s ease;
+            transform: translateX(0);
         }
         .left-panel.visible {
-            left: 0;
+            transform: translateX(250px);
         }
         .resize-handle {
             position: absolute;
@@ -404,10 +405,9 @@
         const mapElement = document.getElementById('map');
 
         // Initialize panel state
-        panel.style.left = '0';
+        panel.classList.add('visible');
         mapElement.style.marginLeft = '250px';
         mapElement.style.width = 'calc(100% - 250px)';
-        panel.classList.add('visible');
         toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
         toggleLayersBtn.title = "Close Layers Panel";
 
