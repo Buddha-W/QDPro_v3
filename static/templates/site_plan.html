@@ -325,15 +325,17 @@
         let startWidth;
 
         leftPanel.addEventListener('mousedown', function(e) {
-            const rightEdge = leftPanel.offsetLeft + leftPanel.offsetWidth;
+            const rightEdge = leftPanel.getBoundingClientRect().right;
             const mouseX = e.clientX;
             
-            isResizing = true;
-            startX = e.pageX;
-            startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
-            document.addEventListener('mousemove', handleResize);
-            document.addEventListener('mouseup', stopResize);
-            e.preventDefault();
+            if (Math.abs(mouseX - rightEdge) <= 8) {
+                isResizing = true;
+                startX = e.pageX;
+                startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
+                document.addEventListener('mousemove', handleResize);
+                document.addEventListener('mouseup', stopResize);
+                e.preventDefault();
+            }
         });
 
         function handleResize(e) {
