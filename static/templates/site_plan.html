@@ -419,28 +419,36 @@
 
         // Add panel toggle functionality
         const toggleLayersBtn = document.getElementById('toggleLayersPanel');
-        toggleLayersBtn.title = "Toggle Layers Panel";
+        const panel = document.getElementById('leftPanel');
+        const mapElement = document.getElementById('map');
+        
+        // Set initial state
+        panel.style.display = 'block';
+        toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
+        toggleLayersBtn.title = "Close Layers Panel";
         
         toggleLayersBtn.addEventListener('click', function() {
-            const panel = document.getElementById('leftPanel');
-            const map = document.getElementById('map');
+            const isVisible = panel.style.display !== 'none';
             const currentPanelWidth = '250px';
             
-            if (panel.style.display === 'none') {
-                panel.style.display = 'block';
-                map.style.marginLeft = currentPanelWidth;
-                map.style.width = `calc(100% - ${currentPanelWidth})`;
-                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
-                toggleLayersBtn.title = "Close Layers Panel";
-            } else {
+            if (isVisible) {
                 panel.style.display = 'none';
-                map.style.marginLeft = '0';
-                map.style.width = '100%';
+                mapElement.style.marginLeft = '0';
+                mapElement.style.width = '100%';
                 toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
                 toggleLayersBtn.title = "Show Layers Panel";
+            } else {
+                panel.style.display = 'block';
+                mapElement.style.marginLeft = currentPanelWidth;
+                mapElement.style.width = `calc(100% - ${currentPanelWidth})`;
+                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
+                toggleLayersBtn.title = "Close Layers Panel";
             }
-            window.dispatchEvent(new Event('resize'));
-            map.invalidateSize();
+            
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+                map.invalidateSize();
+            }, 100);
         });
 
         // Load facilities
