@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from auth import get_current_user
 
 # Ensure data directory exists
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+DATA_DIR = os.path.join(os.path.expanduser('~'), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 app = FastAPI()
