@@ -8,11 +8,49 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
+        body { margin: 0; padding: 0; }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+        }
+        .modal-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-close:hover {
+            color: black;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         .menu-bar {
             position: fixed;
@@ -178,41 +216,6 @@
             align-items: center;
             gap: 8px;
         }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 2000;
-        }
-        .modal-content {
-            position: relative;
-            background: white;
-            width: 400px;
-            margin: 100px auto;
-            padding: 20px;
-            border-radius: 5px;
-        }
-        .modal-close {
-            position: absolute;
-            right: 10px;
-            top: 10px;
-            cursor: pointer;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 5px;
-        }
 
     </style>
 </head>
@@ -337,7 +340,7 @@
 
     <script>
         let currentDrawnLayer = null;
-        
+
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize map
             const map = L.map('map', {
@@ -450,13 +453,13 @@
                     const response = await fetch('/api/load-layers');
                     const data = await response.json();
                     console.log('Loaded layer data:', JSON.stringify(data, null, 2)); // Debug log
-                    
+
                     const layerData = data.layers || {};
-                    
+
                     // Clear existing layers
                     Object.values(layers).forEach(layer => map.removeLayer(layer));
                     window.layers = {}; // Fix: Use window.layers instead of layers
-                    
+
                     Object.keys(layerData).forEach(layerName => {
                         const layerGroup = new L.FeatureGroup();
                         layerGroup.properties = layerData[layerName].properties;
@@ -574,11 +577,11 @@
                     currentDrawnLayer.feature = currentDrawnLayer.feature || {};
                     currentDrawnLayer.feature.properties = currentDrawnLayer.feature.properties || {};
                     currentDrawnLayer.feature.properties.typeCode = typeCode;
-                    
+
                     // Add the layer to active layer and save
                     activeLayer.addLayer(currentDrawnLayer);
                     saveToDatabase();
-                    
+
                     // Reset and close modal
                     document.getElementById('typeCode').value = '';
                     document.getElementById('typeCodeModal').style.display = 'none';
@@ -598,12 +601,12 @@
                 if (window.currentEditLayer) {
                     const typeCode = document.getElementById('facilityTypeCode').value;
                     const description = document.getElementById('facilityDescription').value;
-                    
+
                     window.currentEditLayer.feature = window.currentEditLayer.feature || {};
                     window.currentEditLayer.feature.properties = window.currentEditLayer.feature.properties || {};
                     window.currentEditLayer.feature.properties.typeCode = typeCode;
                     window.currentEditLayer.feature.properties.description = description;
-                    
+
                     saveToDatabase();
                     document.getElementById('facilityModal').style.display = 'none';
                     window.currentEditLayer = null;
