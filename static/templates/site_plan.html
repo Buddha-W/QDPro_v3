@@ -9,14 +9,74 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <style>
         #map {
-            height: calc(100vh - 60px);
-            width: 100%;
-            margin-top: 60px;
+            height: 100vh;
+            width: calc(100% - 250px);
+            margin-left: 250px;
+            margin-top: 30px;
         }
         body {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        .menu-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: #2b2d42;
+            color: white;
+            display: flex;
+            z-index: 1001;
+        }
+        .menu-item {
+            padding: 0 15px;
+            line-height: 30px;
+            cursor: pointer;
+            position: relative;
+        }
+        .menu-item:hover {
+            background: #4a4e69;
+        }
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 30px;
+            left: 0;
+            background: #2b2d42;
+            min-width: 200px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .menu-item:hover .dropdown {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 8px 15px;
+            white-space: nowrap;
+        }
+        .dropdown-item:hover {
+            background: #4a4e69;
+        }
+        .left-panel {
+            position: fixed;
+            left: 0;
+            top: 30px;
+            width: 250px;
+            height: calc(100vh - 30px);
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .panel-section {
+            padding: 10px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .panel-title {
+            font-weight: bold;
+            margin-bottom: 10px;
         }
         .toolbar {
             position: fixed;
@@ -58,14 +118,61 @@
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <div class="tool-group">
-            <select id="orgSelect">
-                <option value="DOD">DoD</option>
-                <option value="DOE">DoE</option>
-                <option value="NATO">NATO</option>
-            </select>
-            <select id="facilityType">
+    <div class="menu-bar">
+        <div class="menu-item">File
+            <div class="dropdown">
+                <div class="dropdown-item">New Analysis</div>
+                <div class="dropdown-item">Open Project</div>
+                <div class="dropdown-item">Save Project</div>
+                <div class="dropdown-item">Export Data</div>
+            </div>
+        </div>
+        <div class="menu-item">Edit
+            <div class="dropdown">
+                <div class="dropdown-item">Facility Properties</div>
+                <div class="dropdown-item">Storage Scenarios</div>
+                <div class="dropdown-item">Edit Template</div>
+            </div>
+        </div>
+        <div class="menu-item">Analysis
+            <div class="dropdown">
+                <div class="dropdown-item">Spatial Analysis</div>
+                <div class="dropdown-item">QD Analysis</div>
+                <div class="dropdown-item">Risk Assessment</div>
+                <div class="dropdown-item">Arc Analysis</div>
+            </div>
+        </div>
+        <div class="menu-item">View
+            <div class="dropdown">
+                <div class="dropdown-item">Display Arcs</div>
+                <div class="dropdown-item">Show IBD Zones</div>
+                <div class="dropdown-item">Buffer Features</div>
+                <div class="dropdown-item">Show Legend</div>
+            </div>
+        </div>
+        <div class="menu-item">Tools
+            <div class="dropdown">
+                <div class="dropdown-item">QD Calculator</div>
+                <div class="dropdown-item">Distance Measurement</div>
+                <div class="dropdown-item">Area Calculator</div>
+            </div>
+        </div>
+        <div class="menu-item">Reports
+            <div class="dropdown">
+                <div class="dropdown-item">Safety Analysis</div>
+                <div class="dropdown-item">Facility Report</div>
+                <div class="dropdown-item">Arc Analysis Report</div>
+            </div>
+        </div>
+    </div>
+    <div class="left-panel">
+        <div class="panel-section">
+            <div class="panel-title">Layer Control</div>
+            <div id="layerControl"></div>
+        </div>
+        <div class="panel-section">
+            <div class="panel-title">Facility Types</div>
+            <select id="facilityType" style="width: 100%">
                 <option value="default">Standard QD</option>
                 <option value="public_traffic_route">Public Traffic Route</option>
                 <option value="inhabited_building">Inhabited Building</option>
@@ -73,16 +180,13 @@
                 <option value="process_building">Process Building</option>
             </select>
         </div>
-        <div class="tool-divider"></div>
-        <div class="tool-group">
-            <button id="measureDistance">Measure Distance</button>
-            <button id="drawArc">Draw Safety Arc</button>
-            <button id="analyzeQD">Analyze QD</button>
-        </div>
-        <div class="tool-divider"></div>
-        <div class="tool-group">
-            <button id="generateReport">Generate Report</button>
-            <button id="exportData">Export Data</button>
+        <div class="panel-section">
+            <div class="panel-title">Organization</div>
+            <select id="orgSelect" style="width: 100%">
+                <option value="DOD">DoD</option>
+                <option value="DOE">DoE</option>
+                <option value="NATO">NATO</option>
+            </select>
         </div>
     </div>
     <div id="map"></div>
