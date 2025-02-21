@@ -128,14 +128,41 @@
     </style>
 </head>
 <body>
-    <div class="left-panel">
-        <div class="resize-handle"></div>
+    <div class="menu-bar">
+        <div class="menu-item">File
+            <div class="dropdown">
+                <div class="dropdown-item">New Analysis</div>
+                <div class="dropdown-item">Open Project</div>
+                <div class="dropdown-item">Save Project</div>
+                <div class="dropdown-item">Export Data</div>
+            </div>
+        </div>
+        <div class="menu-item">Tools
+            <div class="dropdown">
+                <div class="dropdown-item" id="measureDistance">Distance Measurement</div>
+                <div class="dropdown-item" id="drawArc">Draw Arc</div>
+                <div class="dropdown-item" id="analyzeQD">QD Analysis</div>
+                <div class="dropdown-item">Area Calculator</div>
+            </div>
+        </div>
+        <div class="menu-item">Analysis
+            <div class="dropdown">
+                <div class="dropdown-item">Spatial Analysis</div>
+                <div class="dropdown-item">QD Analysis</div>
+                <div class="dropdown-item">Risk Assessment</div>
+                <div class="dropdown-item">Arc Analysis</div>
+            </div>
+        </div>
+    </div>
+    <div class="left-panel" id="leftPanel">
+        <div class="resize-handle" id="resizeHandle"></div>
         <div class="panel-section">
             <div class="panel-title">Layer Control</div>
             <div id="layerControl"></div>
         </div>
     </div>
     <div id="map"></div>
+    <script>
     <script>
         const map = L.map('map').setView([40.7128, -74.0060], 13);
         
@@ -232,6 +259,36 @@
             const org = document.getElementById('orgSelect').value;
             const facilityType = document.getElementById('facilityType').value;
             // Implement QD analysis logic here
+        });
+
+        // Add resize functionality
+        const leftPanel = document.getElementById('leftPanel');
+        const resizeHandle = document.getElementById('resizeHandle');
+        let isResizing = false;
+        let lastX;
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            lastX = e.clientX;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const delta = e.clientX - lastX;
+            const newWidth = parseInt(getComputedStyle(leftPanel).width) + delta;
+            
+            if (newWidth > 100 && newWidth < window.innerWidth / 2) {
+                leftPanel.style.width = `${newWidth}px`;
+                document.getElementById('map').style.marginLeft = `${newWidth}px`;
+                document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
+            }
+            
+            lastX = e.clientX;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
         });
 
         // Load facilities
