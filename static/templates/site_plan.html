@@ -120,16 +120,17 @@
             width: 250px;
             position: fixed;
             top: 80px;
-            left: -250px;
+            left: 0;
             height: calc(100vh - 80px);
             background: white;
             overflow: auto;
             border-right: 1px solid #dee2e6;
             z-index: 1000;
-            transition: left 0.3s ease;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
         }
         .left-panel.visible {
-            left: 0;
+            transform: translateX(0);
         }
         .resize-handle {
             position: absolute;
@@ -413,21 +414,12 @@
 
         // Panel toggle handler
         toggleLayersBtn.onclick = function() {
-            if (panel.classList.contains('visible')) {
-                panel.style.left = '-250px';
-                panel.classList.remove('visible');
-                mapElement.style.marginLeft = '0';
-                mapElement.style.width = '100%';
-                toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                toggleLayersBtn.title = "Show Layers Panel";
-            } else {
-                panel.style.left = '0';
-                panel.classList.add('visible');
-                mapElement.style.marginLeft = '250px';
-                mapElement.style.width = 'calc(100% - 250px)';
-                toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
-                toggleLayersBtn.title = "Close Layers Panel";
-            }
+            panel.classList.toggle('visible');
+            const isVisible = panel.classList.contains('visible');
+            mapElement.style.marginLeft = isVisible ? '250px' : '0';
+            mapElement.style.width = isVisible ? 'calc(100% - 250px)' : '100%';
+            toggleLayersBtn.innerHTML = isVisible ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
+            toggleLayersBtn.title = isVisible ? "Close Layers Panel" : "Show Layers Panel";
             map.invalidateSize();
         };
 
