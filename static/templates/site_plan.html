@@ -295,11 +295,11 @@
                 <input type="text" id="layerDescription" placeholder="Layer Description">
                 <select id="layerType" required>
                     <option value="">Select Layer Type</option>
-                    <option value="tile">Tile Layer</option>
-                    <option value="wms">WMS Layer</option>
-                    <option value="geojson">GeoJSON Layer</option>
+                    <option value="polygon">Polygon</option>
+                    <option value="circle">Circle</option>
+                    <option value="rectangle">Rectangle</option>
+                    <option value="marker">Marker</option>
                 </select>
-                <input type="url" id="layerUrl" placeholder="Layer URL" required>
                 <button type="submit">Add Layer</button>
             </form>
         </div>
@@ -552,32 +552,38 @@
             const layerType = document.getElementById('layerType').value;
             const layerUrl = document.getElementById('layerUrl').value;
 
-            // Add layer based on type (placeholder - replace with actual layer creation)
-            let newLayer;
-            if (layerType === 'tile') {
-                newLayer = L.tileLayer(layerUrl);
-            } else if (layerType === 'wms') {
-                //Handle WMS layer addition
-                newLayer = L.tileLayer.wms(layerUrl);
-            } else if (layerType === 'geojson') {
-                // Handle GeoJSON layer addition.  Requires fetching and parsing GeoJSON data.
-                fetch(layerUrl)
-                  .then(response => response.json())
-                  .then(geojsonData => {
-                    newLayer = L.geoJSON(geojsonData);
-                    newLayer.addTo(map);
-                    // Add to layer control (replace with actual layer name)
-                    overlayMaps[layerName] = newLayer;
-                    L.control.layers(baseLayers, overlayMaps).addTo(map);
-                    addLayerModal.style.display = "none";
-                  })
-                  .catch(error => console.error("Error loading GeoJSON", error));
-
-                return; // prevent default submit action for GeoJSON as it's asynchronous
+            // Create a new feature group for the layer
+            let newLayer = new L.FeatureGroup();
+            
+            // Enable drawing mode based on selected type
+            let drawHandler;
+            if (layerType === 'polygon') {
+                drawHandler = new L.Draw.Polygon(map);
+            } else if (layerType === 'circle') {
+                drawHandler = new L.Draw.Circle(map);
+            } else if (layerType === 'rectangle') {
+                drawHandler = new L.Draw.Rectangle(map);
+            } else if (layerType === 'marker') {
+                drawHandler = new L.Draw.Marker(map);
             } else {
                 alert("Invalid layer type");
                 return;
             }
+
+            // Add the new layer to the map and layer control
+            newLayer.addTo(map);
+            overlayMaps[layerName] = newLayer;
+            L.control.layers(baseLayers, overlayMaps).addTo(map);
+
+            // Hide modal and start drawing
+            addLayerModal.style.display = "none";
+            drawHandler.enable();
+
+            // Handle the drawing completion
+            map.once('draw:created', function(e) {
+                const layer = e.layer;
+                newLayer.addLayer(layer);
+            });
             
             if (newLayer) {
               newLayer.addTo(map);
