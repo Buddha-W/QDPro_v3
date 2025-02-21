@@ -182,46 +182,6 @@
         }
     </style>
     <script>
-        // Initialize map first
-        const map = L.map('map', {
-            center: [40.7128, -74.0060],
-            zoom: 13
-        });
-
-        // Add the default tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        // Make panel resizable
-        const leftPanel = document.getElementById('leftPanel');
-        const resizeHandle = document.getElementById('resizeHandle');
-        let isResizing = false;
-
-        resizeHandle.addEventListener('mousedown', function(e) {
-            isResizing = true;
-            e.preventDefault();
-            document.addEventListener('mousemove', handleResize);
-            document.addEventListener('mouseup', stopResize);
-        });
-
-        function handleResize(e) {
-            if (!isResizing) return;
-            
-            const newWidth = Math.min(Math.max(e.clientX, 200), 500);
-            leftPanel.style.width = newWidth + 'px';
-            document.getElementById('map').style.marginLeft = newWidth + 'px';
-            document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
-            map.invalidateSize();
-        }
-
-        function stopResize() {
-            isResizing = false;
-            document.removeEventListener('mousemove', handleResize);
-            document.removeEventListener('mouseup', stopResize);
-        }
-
         // Initialize map with OpenStreetMap as default
         const map = L.map('map', {
             center: [40.7128, -74.0060],
@@ -352,32 +312,28 @@
         const leftPanel = document.getElementById('leftPanel');
         const resizeHandle = document.getElementById('resizeHandle');
         let isResizing = false;
-        let lastX;
 
-        resizeHandle.addEventListener('mousedown', (e) => {
+        resizeHandle.addEventListener('mousedown', function(e) {
             isResizing = true;
-            lastX = e.clientX;
+            e.preventDefault();
+            document.addEventListener('mousemove', handleResize);
+            document.addEventListener('mouseup', stopResize);
         });
 
-        document.addEventListener('mousemove', (e) => {
+        function handleResize(e) {
             if (!isResizing) return;
-            
-            const delta = e.clientX - lastX;
-            const newWidth = parseInt(getComputedStyle(leftPanel).width) + delta;
-            
-            if (newWidth >= 200 && newWidth <= 500) {
-                leftPanel.style.width = `${newWidth}px`;
-                document.getElementById('map').style.marginLeft = `${newWidth}px`;
-                document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
-                map.invalidateSize();
-            }
-            
-            lastX = e.clientX;
-        });
+            const newWidth = Math.min(Math.max(e.clientX, 200), 500);
+            leftPanel.style.width = newWidth + 'px';
+            document.getElementById('map').style.marginLeft = newWidth + 'px';
+            document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
+            map.invalidateSize();
+        }
 
-        document.addEventListener('mouseup', () => {
+        function stopResize() {
             isResizing = false;
-        });
+            document.removeEventListener('mousemove', handleResize);
+            document.removeEventListener('mouseup', stopResize);
+        }
 
         // Load facilities
         fetch('/reports/facilities')
