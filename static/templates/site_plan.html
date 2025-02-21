@@ -177,22 +177,14 @@
             width: 250px;
             position: fixed;
             overflow: auto;
-        }
-        .left-panel::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 4px;
-            height: 100%;
-            background: #dee2e6;
+            border-right: 4px solid #dee2e6;
             cursor: ew-resize;
         }
-        .left-panel::after:hover {
-            background: #999;
+        .left-panel:hover {
+            border-right-color: #999;
         }
         #map {
-            transition: margin-left 0.1s ease;
+            transition: all 0.1s ease;
         }
     </style>
     <script>
@@ -336,15 +328,12 @@
             const rightEdge = leftPanel.offsetLeft + leftPanel.offsetWidth;
             const mouseX = e.clientX;
             
-            // Only start resize if click is within 10px of right edge
-            if (Math.abs(mouseX - rightEdge) <= 10) {
-                isResizing = true;
-                startX = e.pageX;
-                startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
-                document.addEventListener('mousemove', handleResize);
-                document.addEventListener('mouseup', stopResize);
-                e.preventDefault();
-            }
+            isResizing = true;
+            startX = e.pageX;
+            startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
+            document.addEventListener('mousemove', handleResize);
+            document.addEventListener('mouseup', stopResize);
+            e.preventDefault();
         });
 
         function handleResize(e) {
