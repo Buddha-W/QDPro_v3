@@ -1,0 +1,28 @@
+I have a Leaflet-based web page with several problems:
+
+Left Panel Label & Layers Missing
+When I open the layers panel, the title "Layers Panel" is gone or hidden, and I don’t see my list of overlays or the “Draw to” dropdown. I need the left panel to clearly show the label “Layers Panel” at the top and list my overlays (e.g., “Drawn Items,” “Facilities,” “Analysis,” plus any new layers I add).
+Top Toolbar Buttons Not Working
+None of the buttons in the top toolbar (e.g., “Measure,” “Add Layer,” “Base Layers,” etc.) are functioning. When I click them, nothing happens. I need each button to do what it’s supposed to do:
+Toggle Layers Panel (toggleLayersPanel): open/close the left panel properly.
+Add Layer (addLayerTool): open the modal to add a new layer.
+Base Layers (baseLayerTool): show a dropdown or popover with radio buttons for each base layer, positioned directly below the button.
+Shape Drawing Buttons: I also need separate buttons for drawing Polygon, Polyline, Rectangle, Circle, and Marker in the top toolbar. Clicking one should enable the corresponding draw mode (e.g., new L.Draw.Polygon(map).enable()).
+Base Layer Button / Radio Buttons Partially Hidden
+The dropdown for choosing base layers is not positioned correctly or is cut off. I need it to appear right below the “Base Layers” button in the toolbar, large enough to show all the radio buttons (OpenStreetMap, Google Satellite, Google Streets, Google Hybrid).
+No Visible “Draw Polygon” etc. Buttons
+I see code referencing drawPolygon, drawPolyline, etc., but I don’t actually see any buttons in the toolbar for these shapes. I want 5 buttons in the toolbar: “Draw Polygon,” “Draw Polyline,” “Draw Rectangle,” “Draw Circle,” and “Draw Marker.” Each button should enable the correct draw tool on click.
+Consolidate or Remove Conflicting DOMContentLoaded Scripts
+It looks like there are multiple DOMContentLoaded event listeners, and some code might be overwriting other code or not running at the right time. I need a single, unified script block (or carefully organized code) so everything initializes in the correct order.
+Keep Existing Features
+The left panel overlay checkboxes should still toggle each layer on/off.
+The “Add Layer” modal should still allow me to create a new layer (and optionally draw shapes on it).
+The “toggleLayersPanel” button should still hide/show the left panel, adjusting the map size accordingly.
+If you can, please ensure shapes remain after refresh (using localStorage or the existing logic).
+Please fix these issues in my code so that:
+
+The left panel shows the label “Layers Panel” and the overlays.
+The top toolbar buttons each perform their intended function.
+The base layers dropdown appears correctly under the “Base Layers” button.
+There are visible buttons for drawing polygons, polylines, rectangles, circles, and markers in the top toolbar.
+Any conflicting scripts or duplicated DOMContentLoaded blocks are merged or removed so initialization works smoothly.
