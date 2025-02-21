@@ -414,12 +414,18 @@
 
         // Panel toggle handler
         toggleLayersBtn.onclick = function() {
+            const isCurrentlyVisible = panel.classList.contains('visible');
             panel.classList.toggle('visible');
-            const isVisible = panel.classList.contains('visible');
-            mapElement.style.marginLeft = isVisible ? '250px' : '0';
-            mapElement.style.width = isVisible ? 'calc(100% - 250px)' : '100%';
-            toggleLayersBtn.innerHTML = isVisible ? '<i class="fas fa-times"></i>' : '<i class="fas fa-bars"></i>';
-            toggleLayersBtn.title = isVisible ? "Close Layers Panel" : "Show Layers Panel";
+            
+            // Update panel visibility and map layout
+            mapElement.style.marginLeft = isCurrentlyVisible ? '0' : '250px';
+            mapElement.style.width = isCurrentlyVisible ? '100%' : 'calc(100% - 250px)';
+            
+            // Update button icon and title
+            toggleLayersBtn.innerHTML = isCurrentlyVisible ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-times"></i>';
+            toggleLayersBtn.title = isCurrentlyVisible ? "Show Layers Panel" : "Close Layers Panel";
+            
+            // Force map to recalculate its container size
             map.invalidateSize();
         };
 
