@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QDPro Site Plan</title>
+  <!-- Leaflet & Leaflet Draw CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+
+  <style>
+    /* Basic resets */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: Arial, sans-serif;
+    }
+
+    /* Top File Toolbar */
+    .menu-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 30px;
+      background: #2b2d42;
+      color: white;
+      display: flex;
+      align-items: center;
+      z-index: 1001;
+    }
+    .menu-item {
+      padding: 0 15px;
+      line-height: 30px;
+      cursor: pointer;
+    }
+    .menu-item:hover {
+      background: #4a4e69;
+    }
+
+    /* Main tool toolbar */
+    .toolbar {
+      position: fixed;
+      top: 30px; /* just below the file toolbar */
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      align-items: center;
+      padding: 0 15px;
+      z-index: 1002;
+    }
+    .tool-group {
+      display: flex;
+      align-items: center;
+      margin-right: 20px;
+    }
+    .tool-button {
+      padding: 6px 12px;
+      margin: 0 4px;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+    }
+    .tool-button:hover {
+      background: #e9ecef;
+    }
+
+    /* Left panel for layers */
+    .left-panel {
+      position: fixed;
+      top: 80px; /* below the file + tool toolbars */
+      left: 0;
+      width: 250px;
+      height: calc(100% - 80px);
+      background: #fff;
+      border-right: 1px solid #dee2e6;
+      overflow: auto;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+    .left-panel.visible {
+      transform: translateX(0);
+    }
+    .panel-header {
+      padding: 10px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      font-weight: bold;
+    }
+    .panel-content {
+      padding: 10px;
+    }
+
+    /* Map container */
+    #map {
+      position: fixed;
+      top: 80px; /* below both toolbars */
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transition: margin-left 0.3s ease, width 0.3s ease;
+    }
+
+    /* Base layer dropdown */
+    #baseLayerDropdown {
+      display: none;
+      position: absolute;
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      padding: 10px;
+      z-index: 2000;
+    }
+    #baseLayerDropdown div {
+      padding: 5px;
+      cursor: pointer;
+    }
+    #baseLayerDropdown div:hover {
+      background: #e9ecef;
+    }
+
+    /* Simple hide for modals, etc. */
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Top "File" Toolbar -->
+  <div class="menu-bar">
+    <div class="menu-item">File</div>
+    <div class="menu-item">Edit</div>
+    <div class="menu-item">View</div>
+    <div class="menu-item">Tools</div>
+    <div class="menu-item">Help</div>
+  </div>
+
+  <!-- Main tool toolbar -->
+  <div class="toolbar">
+    <div class="tool-group">
+      <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <!-- Example shape-drawing buttons -->
+      <button id="drawPolygonBtn" class="tool-button" title="Draw Polygon">
+        <i class="fas fa-draw-polygon"></i>
+      </button>
+      <button id="drawPolylineBtn" class="tool-button" title="Draw Polyline">
+        <i class="fas fa-slash"></i>
+      </button>
+      <button id="drawRectangleBtn" class="tool-button" title="Draw Rectangle">
+        <i class="far fa-square"></i>
+      </button>
+      <button id="drawCircleBtn" class="tool-button" title="Draw Circle">
+        <i class="fas fa-circle"></i>
+      </button>
+      <button id="drawMarkerBtn" class="tool-button" title="Draw Marker">
+        <i class="fas fa-map-marker-alt"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <!-- Base layers button -->
+      <button id="baseLayerTool" class="tool-button" title="Base Layers">
+        <i class="fas fa-layer-group"></i>
+      </button>
+      <!-- This dropdown is positioned absolutely -->
+      <div id="baseLayerDropdown"></div>
+    </div>
+  </div>
+
+  <!-- Left panel for layers -->
+  <div id="leftPanel" class="left-panel">
+    <div class="panel-header">Layers Panel</div>
+    <div class="panel-content" id="layerPanelContent">
+      <!-- This is where we’ll list the overlay checkboxes and the “Draw to” layer selector -->
+      <div>
+        <label for="activeLayerSelect"><strong>Draw to layer:</strong></label>
+        <select id="activeLayerSelect" style="width: 100%; margin-bottom: 10px;">
+          <!-- Options dynamically generated -->
+        </select>
+      </div>
+      <div id="overlayCheckboxes"></div>
+    </div>
+  </div>
+
+  <!-- The map -->
+  <div id="map"></div>
+
+  <!-- Leaflet & Leaflet Draw JS (loaded above in the <head>) -->
+  <script>
+  // Wait for the page to load
+  document.addEventListener('DOMContentLoaded', () => {
+    /************************************************************
+     * 1) Initialize the map (with no default Leaflet controls) *
+     ************************************************************/
+    const map = L.map('map', {
+      center: [40.7128, -74.0060],
+      zoom: 13,
+      zoomControl: true,
+      attributionControl: true,
+      drawControl: false
+    });
+
+    /********************************************
+     * 2) Create base layers, including "No Map" *
+     ********************************************/
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const googleSat = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}');
+    const googleStreets = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}');
+    const googleHybrid = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}');
+
+    // "No Basemap" is just an empty LayerGroup
+    const noBasemap = L.layerGroup();
+
+    // Put them in an object
+    const baseLayers = {
+      "OpenStreetMap": osm,
+      "Google Satellite": googleSat,
+      "Google Streets": googleStreets,
+      "Google Hybrid": googleHybrid,
+      "No Basemap": noBasemap
+    };
+
+    // Set default base layer
+    osm.addTo(map);
+
+    /*******************************************************
+     * 3) Create overlay layers & manage them in an object *
+     *******************************************************/
+    const drawnItems = new L.FeatureGroup().addTo(map);
+    const facilitiesLayer = new L.FeatureGroup().addTo(map);
+    const analysisLayer = new L.FeatureGroup().addTo(map);
+
+    // Overlays object
+    const overlayMaps = {
+      "Drawn Items": drawnItems,
+      "Facilities": facilitiesLayer,
+      "Analysis": analysisLayer
+    };
+
+    // Currently selected layer for new shapes
+    let activeDrawingLayer = drawnItems;
+
+    /********************************************************
+     * 4) Utility: Save/Load shapes from localStorage       *
+     ********************************************************/
+    function saveAllShapes() {
+      // We’ll store each layer’s shapes in an object keyed by layer name
+      const saved = {};
+
+      Object.entries(overlayMaps).forEach(([name, layerGroup]) => {
+        const shapes = [];
+        layerGroup.eachLayer((lyr) => {
+          shapes.push(lyr.toGeoJSON());
+        });
+        saved[name] = shapes;
+      });
+
+      localStorage.setItem('savedShapes', JSON.stringify(saved));
+    }
+
+    function loadAllShapes() {
+      const data = localStorage.getItem('savedShapes');
+      if (!data) return;
+
+      const parsed = JSON.parse(data);
+      Object.entries(parsed).forEach(([layerName, shapes]) => {
+        if (!overlayMaps[layerName]) return; // skip if we don’t have that layer
+        shapes.forEach((geo) => {
+          const shape = L.geoJSON(geo);
+          shape.eachLayer((lyr) => {
+            overlayMaps[layerName].addLayer(lyr);
+          });
+        });
+      });
+    }
+
+    // Load shapes on startup
+    loadAllShapes();
+
+    /****************************************************
+     * 5) Build the left panel overlay checkboxes +     *
+     *    the "Draw to" layer selector                  *
+     ****************************************************/
+    function buildLeftPanel() {
+      const overlayCheckboxesDiv = document.getElementById('overlayCheckboxes');
+      overlayCheckboxesDiv.innerHTML = '';
+
+      // Build the “Draw to” selector
+      const layerSelect = document.getElementById('activeLayerSelect');
+      layerSelect.innerHTML = ''; // clear existing
+
+      Object.entries(overlayMaps).forEach(([name, layerGroup]) => {
+        // Create an option for the “Draw to” selector
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        layerSelect.appendChild(opt);
+
+        // Build a checkbox
+        const container = document.createElement('div');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = map.hasLayer(layerGroup);
+        checkbox.id = `checkbox-${name}`;
+
+        checkbox.addEventListener('change', () => {
+          if (checkbox.checked) {
+            map.addLayer(layerGroup);
+          } else {
+            map.removeLayer(layerGroup);
+          }
+        });
+
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.textContent = ` ${name}`;
+
+        container.appendChild(checkbox);
+        container.appendChild(label);
+        overlayCheckboxesDiv.appendChild(container);
+      });
+
+      // Update activeDrawingLayer on change
+      layerSelect.addEventListener('change', (e) => {
+        const chosen = e.target.value;
+        activeDrawingLayer = overlayMaps[chosen];
+      });
+    }
+
+    buildLeftPanel();
+
+    /***************************************
+     * 6) Handle “Draw Created” event      *
+     ***************************************/
+    map.on('draw:created', (e) => {
+      const layer = e.layer;
+      // Add to whichever layer is active
+      activeDrawingLayer.addLayer(layer);
+      // Save everything
+      saveAllShapes();
+    });
+
+    // We can also handle “draw:edited” and “draw:deleted” if you like
+    map.on('draw:edited', saveAllShapes);
+    map.on('draw:deleted', saveAllShapes);
+
+    /***********************************
+     * 7) Add custom draw tool buttons *
+     ***********************************/
+    // Create the actual draw tool constructors
+    const drawTools = {
+      polygon: () => new L.Draw.Polygon(map),
+      polyline: () => new L.Draw.Polyline(map),
+      rectangle: () => new L.Draw.Rectangle(map),
+      circle: () => new L.Draw.Circle(map),
+      marker: () => new L.Draw.Marker(map)
+    };
+
+    // For each button in the toolbar, attach a click handler
+    document.getElementById('drawPolygonBtn').addEventListener('click', () => {
+      drawTools.polygon().enable();
+    });
+    document.getElementById('drawPolylineBtn').addEventListener('click', () => {
+      drawTools.polyline().enable();
+    });
+    document.getElementById('drawRectangleBtn').addEventListener('click', () => {
+      drawTools.rectangle().enable();
+    });
+    document.getElementById('drawCircleBtn').addEventListener('click', () => {
+      drawTools.circle().enable();
+    });
+    document.getElementById('drawMarkerBtn').addEventListener('click', () => {
+      drawTools.marker().enable();
+    });
+
+    /*******************************************
+     * 8) Toggle left panel (Layers Panel)     *
+     *******************************************/
+    const toggleLayersPanelBtn = document.getElementById('toggleLayersPanel');
+    const leftPanel = document.getElementById('leftPanel');
+
+    toggleLayersPanelBtn.addEventListener('click', () => {
+      leftPanel.classList.toggle('visible');
+      if (leftPanel.classList.contains('visible')) {
+        // If visible, shift map
+        document.getElementById('map').style.marginLeft = '250px';
+      } else {
+        document.getElementById('map').style.marginLeft = '0';
+      }
+      // Force map to recalc size
+      setTimeout(() => map.invalidateSize(), 300);
+    });
+
+    /***************************************
+     * 9) Base Layer dropdown (radio list) *
+     ***************************************/
+    const baseLayerBtn = document.getElementById('baseLayerTool');
+    const baseLayerDropdown = document.getElementById('baseLayerDropdown');
+
+    // Build the dropdown
+    function buildBaseLayerDropdown() {
+      baseLayerDropdown.innerHTML = '';
+      Object.entries(baseLayers).forEach(([name, layer]) => {
+        const item = document.createElement('div');
+        item.textContent = name;
+        item.addEventListener('click', () => {
+          // Remove all base layers
+          Object.values(baseLayers).forEach((l) => map.removeLayer(l));
+          // Add the chosen one
+          map.addLayer(layer);
+          // Hide the dropdown
+          baseLayerDropdown.style.display = 'none';
+        });
+        baseLayerDropdown.appendChild(item);
+      });
+    }
+    buildBaseLayerDropdown();
+
+    baseLayerBtn.addEventListener('click', (e) => {
+      // Toggle the dropdown
+      baseLayerDropdown.style.display =
+        baseLayerDropdown.style.display === 'none' ? 'block' : 'none';
+
+      // Position it near the button (simple approach)
+      baseLayerDropdown.style.top = '80px';
+      baseLayerDropdown.style.right = '20px';
+    });
+
+    // Hide dropdown if clicking outside
+    document.addEventListener('click', (e) => {
+      if (!baseLayerBtn.contains(e.target) && !baseLayerDropdown.contains(e.target)) {
+        baseLayerDropdown.style.display = 'none';
+      }
+    });
+
+    /********************************************
+     * 10) Force a map refresh after load       *
+     ********************************************/
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+  });
+  </script>
+</body>
+</html>
