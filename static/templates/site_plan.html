@@ -62,15 +62,14 @@
         .left-panel {
             position: fixed;
             left: 0;
-            top: 0;
+            top: 30px;
             width: 250px;
-            height: 100vh;
+            height: calc(100vh - 30px);
             background: #f8f9fa;
             border-right: 1px solid #dee2e6;
             z-index: 1000;
             overflow-y: auto;
             resize: horizontal;
-            overflow-x: hidden;
         }
         .resize-handle {
             position: absolute;
@@ -177,8 +176,27 @@
         });
 
         // Initialize drawing layer
+        // Initialize feature groups for different layer types
         const drawnItems = new L.FeatureGroup();
+        const facilityLayer = new L.FeatureGroup();
+        const analysisLayer = new L.FeatureGroup();
+        
         map.addLayer(drawnItems);
+        map.addLayer(facilityLayer);
+        map.addLayer(analysisLayer);
+
+        // Add to layer control
+        const overlayMaps = {
+            "Drawn Items": drawnItems,
+            "Facilities": facilityLayer,
+            "Analysis": analysisLayer
+        };
+
+        // Add layer control to map
+        L.control.layers(baseLayers, overlayMaps, {
+            position: 'topleft',
+            collapsed: false
+        }).addTo(map);
 
         // Initialize drawing controls
         const drawControl = new L.Control.Draw({
@@ -308,7 +326,7 @@
                 facilities.forEach(facility => {
                     L.marker([facility.lat, facility.lng])
                         .bindPopup(facility.name)
-                        .addTo(map);
+                        .addTo(facilityLayer);
                 });
             })
             .catch(error => console.error('Error loading facilities:', error));
