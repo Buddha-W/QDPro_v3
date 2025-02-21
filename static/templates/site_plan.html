@@ -68,29 +68,30 @@
 </style>
 
 <script>
-// Initialize map without default controls
-const map = L.map('map', {
-    center: [40.7128, -74.0060],
-    zoom: 13,
-    zoomControl: true,
-    attributionControl: true,
-    drawControl: false
-});
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map without default controls
+    const map = L.map('map', {
+        center: [40.7128, -74.0060],
+        zoom: 13,
+        zoomControl: true,
+        attributionControl: true,
+        drawControl: false
+    });
 
-// Base layers
-const baseLayers = {
-    'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
-    'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
-    'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
-    'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
-};
+    // Base layers
+    const baseLayers = {
+        'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+        'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
+        'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
+        'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
+    };
 
-// Set default base layer
-baseLayers['OpenStreetMap'].addTo(map);
+    // Set default base layer
+    baseLayers['OpenStreetMap'].addTo(map);
 
-// Initialize draw items and options
-const drawnItems = new L.FeatureGroup();
-map.addLayer(drawnItems);
+    // Initialize draw items and options
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
 
 const drawOptions = {
     position: 'topright',
@@ -198,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load saved items on page load
     loadSavedItems();
+});
 });
 </script>
 
