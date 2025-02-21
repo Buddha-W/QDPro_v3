@@ -47,25 +47,45 @@ async def return_facilities_report():
 async def save_layers(request: Request):
     data = await request.json()
     try:
-        file_path = os.path.join(DATA_DIR, "layer_data.json")
-        print(f"Saving to: {file_path}")  # Debug log
-        print(f"Data to save: {json.dumps(data, indent=2)}")  # Debug log
-
+        import psycopg2
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
         # Ensure data is in correct format
         if not isinstance(data, dict):
             data = {"layers": data}
         elif "layers" not in data:
             data = {"layers": data}
-
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else '.', exist_ok=True)
-
-        with open(file_path, "w", encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-            f.flush()
-            os.fsync(f.fileno())
-
-        return JSONResponse(content={"status": "success", "message": "Data saved successfully", "path": file_path})
+            
+        for layer_name, layer_data in data['layers'].items():
+            # Save layer properties
+            cur.execute("""
+                INSERT INTO map_layers (name, layer_config, is_active)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (name) DO UPDATE 
+                SET layer_config = EXCLUDED.layer_config
+            """, (layer_name, json.dumps(layer_data['properties']), True))
+            
+            # Save features as analysis results
+            if layer_data.get('features'):
+                for feature in layer_data['features']:
+                    cur.execute("""
+                        INSERT INTO analysis_results 
+                        (analysis_type, result_geometry, result_data)
+                        VALUES (%s, ST_GeomFromGeoJSON(%s), %s)
+                    """, (layer_name, json.dumps(feature['geometry']), 
+                         json.dumps(feature.get('properties', {}))))
+        
+        conn.commit()
+        return JSONResponse(content={"status": "success", "message": "Data saved to database"})
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"Error saving layers: {error_details}")
+        raise HTTPException(status_code=500, detail=f"Failed to save: {str(e)}\n{error_details}")
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
@@ -75,23 +95,36 @@ async def save_layers(request: Request):
 @app.get("/api/load-layers")
 async def load_layers():
     try:
-        file_path = os.path.join(DATA_DIR, "layer_data.json")
-        print(f"Loading from: {file_path}")  # Debug log
-
-        if not os.path.exists(file_path):
-            print(f"File not found: {file_path}")  # Debug log
-            return JSONResponse(content={"layers": {}})
-
-        with open(file_path, "r", encoding='utf-8') as f:
-            data = json.load(f)
-            print(f"Loaded data: {json.dumps(data, indent=2)}")  # Debug log
-
-            if not isinstance(data, dict):
-                data = {"layers": data}
-            elif "layers" not in data:
-                data = {"layers": data}
-
-            return JSONResponse(content=data)
+        import psycopg2
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        layers = {}
+        
+        # Load layer configurations
+        cur.execute("SELECT name, layer_config FROM map_layers WHERE is_active = true")
+        for name, config in cur.fetchall():
+            layers[name] = {
+                "properties": json.loads(config),
+                "features": []
+            }
+            
+        # Load features for each layer
+        for layer_name in layers:
+            cur.execute("""
+                SELECT ST_AsGeoJSON(result_geometry), result_data 
+                FROM analysis_results 
+                WHERE analysis_type = %s
+            """, (layer_name,))
+            
+            for geom, properties in cur.fetchall():
+                layers[layer_name]["features"].append({
+                    "type": "Feature",
+                    "geometry": json.loads(geom),
+                    "properties": json.loads(properties)
+                })
+        
+        return JSONResponse(content={"layers": layers})
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
