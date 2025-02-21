@@ -1,0 +1,27 @@
+Here’s what I still need in my Leaflet-based web application:
+
+Remove Default Leaflet Draw Control from the Map
+Right now, there’s a Leaflet Draw toolbar (with shape icons) still visible on the map’s left side. I want this completely gone so the map area is uncluttered.
+Integrate Draw Tools into the Top Toolbar
+I already have a top toolbar with buttons (like “Measure,” “Add Layer,” etc.). I want the drawing tools (Polygon, Polyline, Rectangle, Circle, Marker) to appear only in that toolbar.
+When the user clicks, for example, “Draw Polygon,” the corresponding draw mode should activate (e.g., new L.Draw.Polygon(map).enable()).
+Base Layer Control
+I see multiple base layer controls on the map. I only want one custom base-layer button in the top toolbar (the “Base Layers” button with radio buttons).
+Any default Leaflet layers control that appears on the map (often in the top-right corner) needs to be removed.
+The custom “Base Layers” dropdown is fine, but I want to ensure it’s the only base layer selector.
+Persist New Layers and Shapes After Page Refresh
+When I add a new layer (via the “Add Layer” modal) and/or draw shapes on the map, they disappear on page refresh.
+I need these layers and shapes to persist. For now, localStorage is fine:
+When I create a new layer or draw a shape, store its data (layer name, geometry, etc.) in localStorage.
+On page load, read from localStorage and re-create those layers/shapes so they appear on the map.
+If I create or edit shapes, that change should also be reflected in localStorage so the shapes remain after refresh.
+Overlays in Left Panel
+I already have a custom left panel that lists overlays with checkboxes. This is good.
+Please ensure newly created layers (and their shapes) also appear in that left panel. The user should be able to toggle them on/off.
+Summary of What I Need:
+Remove the default Leaflet Draw toolbar from the map.
+Remove any default Leaflet layers control from the map.
+Move draw tools to the top toolbar.
+Persist newly created layers and shapes in localStorage, and re-load them on page refresh.
+Only the custom “Base Layers” button (with radio buttons) in the toolbar should handle base layers.
+The left panel continues to manage overlays with checkboxes.
