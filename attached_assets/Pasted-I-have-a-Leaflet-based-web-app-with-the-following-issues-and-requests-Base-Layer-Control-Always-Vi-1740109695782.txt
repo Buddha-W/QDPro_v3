@@ -1,0 +1,25 @@
+I have a Leaflet-based web app with the following issues and requests:
+
+Base Layer Control Always Visible in the Map
+Right now, there’s a Leaflet layers control (with OpenStreetMap, Google Satellite, etc.) showing in the map area at all times.
+I do NOT want this control to appear on the map. Instead, I’d like either:
+No visible base-layer control at all, or
+A custom button in the top toolbar that toggles a dropdown with the base layers.
+The default control is redundant because I already have a stack for base layers. So please remove/hide the on-map control and manage base layers in the toolbar.
+Newly Added Layers Don’t Persist on Page Refresh
+When I use my “Add Layer” modal to create a new layer, it appears while the page is open but disappears after a refresh.
+I need the new layer to be persisted (e.g., saved to a database or local storage) and then reloaded when the page is refreshed.
+Please update the code so that:
+When a user adds a new layer, it is sent to an endpoint (or stored in local storage, if that’s easier for a demo) to save the layer’s name, type, and any geometry or drawn shapes.
+On page load, the app fetches any previously saved layers and re-adds them to the map and the overlay list in the left panel.
+Add a “Bookmarks” Button to the Toolbar
+I’d like a new button (e.g., “Bookmarks”) in the tool toolbar.
+When clicked, it should let me save the current map view (center and zoom level) as a named bookmark.
+Bookmarks also need to persist on refresh, so please store them similarly to the layers (local storage or an API endpoint).
+I’d like to see a simple list of saved bookmarks somewhere (a dropdown or a small panel), so I can click one and the map instantly pans/zooms to that saved view.
+Please update my code to accomplish these changes. To summarize:
+
+Remove or hide the on-map base-layer control so it’s not visible.
+If needed, create a custom dropdown button in the toolbar for choosing base layers.
+Persist newly added layers and geometry across refreshes.
+Add a “Bookmarks” button in the toolbar that can save and load map views.
