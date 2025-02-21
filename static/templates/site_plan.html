@@ -293,7 +293,15 @@
         <div class="tool-group">
             <button id="markupTool" class="tool-button" title="Markup"><i class="fas fa-pen"></i></button>
             <button id="wizardsTool" class="tool-button" title="Wizards"><i class="fas fa-magic"></i></button>
+            <button id="baseLayerTool" class="tool-button" title="Base Layers"><i class="fas fa-layer-group"></i></button>
+            <button id="bookmarkTool" class="tool-button" title="Bookmarks"><i class="fas fa-bookmark"></i></button>
         </div>
+    </div>
+    <div id="baseLayerDropdown" class="dropdown-menu" style="display: none; position: absolute; z-index: 1000; background: white; padding: 10px; border: 1px solid #ccc;"></div>
+    <div id="bookmarkDropdown" class="dropdown-menu" style="display: none; position: absolute; z-index: 1000; background: white; padding: 10px; border: 1px solid #ccc;">
+        <div id="bookmarkList"></div>
+        <hr>
+        <button id="addBookmark" class="btn btn-sm btn-primary">Add Current View</button>
     </div>
     <div class="left-panel" id="leftPanel">
         <div class="resize-handle" id="resizeHandle"></div>
@@ -350,6 +358,26 @@
         map.addLayer(drawnItems);
         map.addLayer(facilityLayer);
         map.addLayer(analysisLayer);
+
+        // Storage utilities
+        const storageUtils = {
+            saveLayer: (layer) => {
+                const layers = JSON.parse(localStorage.getItem('mapLayers') || '[]');
+                layers.push(layer);
+                localStorage.setItem('mapLayers', JSON.stringify(layers));
+            },
+            loadLayers: () => {
+                return JSON.parse(localStorage.getItem('mapLayers') || '[]');
+            },
+            saveBookmark: (bookmark) => {
+                const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '[]');
+                bookmarks.push(bookmark);
+                localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
+            },
+            loadBookmarks: () => {
+                return JSON.parse(localStorage.getItem('mapBookmarks') || '[]');
+            }
+        };
 
         // Create overlay management object
         const overlayMaps = {
@@ -443,11 +471,63 @@
         };
 
 
-        // Add only base layers to the map control
-        L.control.layers(baseLayers, null, {
-            position: 'topright',
-            collapsed: false
-        }).addTo(map);
+        // Create base layer dropdown content
+        const baseLayerDropdown = document.getElementById('baseLayerDropdown');
+        Object.entries(baseLayers).forEach(([name, layer]) => {
+            const item = document.createElement('div');
+            item.style.padding = '5px';
+            item.style.cursor = 'pointer';
+            item.innerText = name;
+            item.addEventListener('click', () => {
+                Object.values(baseLayers).forEach(l => map.removeLayer(l));
+                map.addLayer(layer);
+                baseLayerDropdown.style.display = 'none';
+            });
+            baseLayerDropdown.appendChild(item);
+        });
+
+        // Setup base layer toggle
+        document.getElementById('baseLayerTool').addEventListener('click', (e) => {
+            baseLayerDropdown.style.display = baseLayerDropdown.style.display === 'none' ? 'block' : 'none';
+            baseLayerDropdown.style.top = '90px';
+            baseLayerDropdown.style.right = '10px';
+        });
+
+        // Setup bookmarks
+        document.getElementById('bookmarkTool').addEventListener('click', (e) => {
+            const dropdown = document.getElementById('bookmarkDropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            dropdown.style.top = '90px';
+            dropdown.style.right = '10px';
+        });
+
+        document.getElementById('addBookmark').addEventListener('click', () => {
+            const name = prompt('Enter bookmark name:');
+            if (name) {
+                const bookmark = {
+                    name,
+                    center: map.getCenter(),
+                    zoom: map.getZoom()
+                };
+                storageUtils.saveBookmark(bookmark);
+                updateBookmarkList();
+            }
+        });
+
+        function updateBookmarkList() {
+            const list = document.getElementById('bookmarkList');
+            list.innerHTML = '';
+            storageUtils.loadBookmarks().forEach(bookmark => {
+                const item = document.createElement('div');
+                item.style.padding = '5px';
+                item.style.cursor = 'pointer';
+                item.innerText = bookmark.name;
+                item.addEventListener('click', () => {
+                    map.setView([bookmark.center.lat, bookmark.center.lng], bookmark.zoom);
+                });
+                list.appendChild(item);
+            });
+        }
 
         // Initialize overlay controls in left panel
         updateOverlayControls();
@@ -650,6 +730,13 @@
 
             // Add the new layer to the map
             newLayer.addTo(map);
+            
+            // Save layer to storage
+            storageUtils.saveLayer({
+                name: layerName,
+                type: layerType,
+                description: layerDescription
+            });
             
             // Update overlayMaps and refresh overlay controls
             overlayMaps[layerName] = newLayer;
