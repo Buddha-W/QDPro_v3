@@ -39,58 +39,57 @@ async def return_facilities_report():
 
 @app.post("/api/save-layers")
 async def save_layers(request: Request):
-    """Save layer data to database."""
-    import os
     data = await request.json()
     try:
-        file_path = "layer_data.json"
-        
+        file_path = os.path.abspath("layer_data.json")
+        print(f"Saving to: {file_path}")  # Debug log
+        print(f"Data to save: {json.dumps(data, indent=2)}")  # Debug log
+
         # Ensure data is in correct format
         if not isinstance(data, dict):
             data = {"layers": data}
         elif "layers" not in data:
             data = {"layers": data}
-            
-        # Create backup of existing file
-        if os.path.exists(file_path):
-            import shutil
-            shutil.copy2(file_path, f"{file_path}.bak")
-            
-        # Write data with exclusive lock
+
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(file_path) if os.path.dirname(file_path) else '.', exist_ok=True)
+
         with open(file_path, "w", encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.flush()
             os.fsync(f.fileno())
-            
-        return JSONResponse(content={"status": "success", "message": "Data saved successfully"})
+
+        return JSONResponse(content={"status": "success", "message": "Data saved successfully", "path": file_path})
     except Exception as e:
-        # Restore from backup if save failed
-        if os.path.exists(f"{file_path}.bak"):
-            shutil.copy2(f"{file_path}.bak", file_path)
         import traceback
         error_details = traceback.format_exc()
+        print(f"Error saving layers: {error_details}")  # Debug log
         raise HTTPException(status_code=500, detail=f"Failed to save: {str(e)}\n{error_details}")
 
 @app.get("/api/load-layers")
 async def load_layers():
-    """Load layer data from database."""
-    import os
     try:
-        file_path = "layer_data.json"
+        file_path = os.path.abspath("layer_data.json")
+        print(f"Loading from: {file_path}")  # Debug log
+
         if not os.path.exists(file_path):
+            print(f"File not found: {file_path}")  # Debug log
             return JSONResponse(content={"layers": {}})
-            
+
         with open(file_path, "r", encoding='utf-8') as f:
             data = json.load(f)
-            print(f"Loaded layer data: {json.dumps(data, indent=2)}")  # Debug log
+            print(f"Loaded data: {json.dumps(data, indent=2)}")  # Debug log
+
             if not isinstance(data, dict):
-                data = {"layers": {}}
+                data = {"layers": data}
             elif "layers" not in data:
                 data = {"layers": data}
+
             return JSONResponse(content=data)
     except Exception as e:
         import traceback
-        print(f"Error loading layers: {str(e)}\n{traceback.format_exc()}")
+        error_details = traceback.format_exc()
+        print(f"Error loading layers: {error_details}")  # Debug log
         return JSONResponse(content={"layers": {}})
 
 if __name__ == "__main__":
