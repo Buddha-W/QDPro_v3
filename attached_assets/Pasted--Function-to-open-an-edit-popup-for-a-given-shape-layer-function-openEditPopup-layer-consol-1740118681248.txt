@@ -1,0 +1,65 @@
+// Function to open an edit popup for a given shape (layer)
+function openEditPopup(layer) {
+  console.log("openEditPopup called for layer:", layer);
+  // Build the form HTML; use unique IDs to avoid conflicts
+  const formHtml = `
+    <div>
+      <label for="popup-editName">Name:</label>
+      <input id="popup-editName" type="text" value="${layer.properties.name || ''}" />
+    </div>
+    <div>
+      <label for="popup-editQD">QD Analyzed:</label>
+      <select id="popup-editQD">
+        <option value="true" ${layer.properties.isQDAnalyzed ? 'selected' : ''}>QD</option>
+        <option value="false" ${!layer.properties.isQDAnalyzed ? 'selected' : ''}>Non-QD</option>
+      </select>
+    </div>
+    <button id="popup-saveEdit">Save</button>
+  `;
+
+  // Bind and open the popup on the layer
+  layer.bindPopup(formHtml).openPopup();
+
+  // When the popup opens, attach the click event handler to the Save button
+  layer.once('popupopen', function() {
+    console.log("Popup opened for layer");
+    const saveButton = document.getElementById('popup-saveEdit');
+    if (saveButton) {
+      saveButton.addEventListener('click', () => {
+        // Retrieve new values
+        const newName = document.getElementById('popup-editName').value;
+        const newQD = document.getElementById('popup-editQD').value === 'true';
+
+        // Update the layer's properties
+        layer.properties.name = newName;
+        layer.properties.isQDAnalyzed = newQD;
+
+        console.log("Updated layer properties:", layer.properties);
+
+        // Optionally, send the updated data to your backend here
+        // e.g., using fetch('/api/save-layers', { method: 'POST', ... })
+
+        // Close the popup
+        layer.closePopup();
+      });
+    }
+  });
+}
+
+// In your draw:created event, attach a click event to each drawn shape
+map.on('draw:created', function(e) {
+  const layer = e.layer;
+  // Set default properties if none exist
+  layer.properties = layer.properties || { name: "", isQDAnalyzed: false };
+
+  // Attach a click handler that opens the edit popup
+  layer.on('click', function() {
+    openEditPopup(layer);
+  });
+
+  // Add the new shape to the active drawing layer (e.g., drawnItems)
+  activeDrawingLayer.addLayer(layer);
+  
+  // Save shapes to persistence (localStorage/database)
+  saveShapes();
+});
