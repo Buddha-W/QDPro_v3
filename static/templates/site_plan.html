@@ -421,34 +421,30 @@
         const toggleLayersBtn = document.getElementById('toggleLayersPanel');
         const panel = document.getElementById('leftPanel');
         const mapElement = document.getElementById('map');
-        
-        // Set initial state
-        panel.style.display = 'block';
-        toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
-        toggleLayersBtn.title = "Close Layers Panel";
-        
-        toggleLayersBtn.addEventListener('click', function() {
-            const isVisible = panel.style.display !== 'none';
-            const currentPanelWidth = '250px';
-            
-            if (isVisible) {
-                panel.style.display = 'none';
-                mapElement.style.marginLeft = '0';
-                mapElement.style.width = '100%';
-                toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                toggleLayersBtn.title = "Show Layers Panel";
-            } else {
+        const currentPanelWidth = '250px';
+
+        function updatePanelState(show) {
+            if (show) {
                 panel.style.display = 'block';
                 mapElement.style.marginLeft = currentPanelWidth;
                 mapElement.style.width = `calc(100% - ${currentPanelWidth})`;
                 toggleLayersBtn.innerHTML = '<i class="fas fa-times"></i>';
                 toggleLayersBtn.title = "Close Layers Panel";
+            } else {
+                panel.style.display = 'none';
+                mapElement.style.marginLeft = '0';
+                mapElement.style.width = '100%';
+                toggleLayersBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                toggleLayersBtn.title = "Show Layers Panel";
             }
-            
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-                map.invalidateSize();
-            }, 100);
+            map.invalidateSize();
+        }
+
+        // Set initial state
+        updatePanelState(true);
+        
+        toggleLayersBtn.addEventListener('click', function() {
+            updatePanelState(panel.style.display === 'none');
         });
 
         // Load facilities
