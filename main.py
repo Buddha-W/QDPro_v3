@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, status
-from fastapi.model import HttpExceptionHandler
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
