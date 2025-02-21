@@ -17,6 +17,26 @@
             top: 0;
             width: 100%;
             height: 100%;
+
+    <!-- Edit Layer Modal -->
+    <div id="editLayerModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Edit Layer</h2>
+            <div class="form-group">
+                <label for="editLayerName">Layer Name:</label>
+                <input type="text" id="editLayerName" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="editIsQDAnalyzed">
+                    QD Analyzed
+                </label>
+            </div>
+            <button id="saveLayerEdit">Save Changes</button>
+        </div>
+    </div>
+
             background-color: rgba(0,0,0,0.5);
         }
         .modal-content {
@@ -401,6 +421,7 @@
         let drawnItems;
         let currentWorkspace = 'Default';
         let workspaces = { 'Default': { layers: [] } }; // Initialize with a default workspace
+        let layers = {}; // Global layers object
 
 
         function addLayer(workspace, name, properties = {}) {
@@ -548,12 +569,31 @@
             window.editLayer = function(name) {
                 const layer = layers[currentWorkspace][name];
                 if (!layer) return;
-
-                const newName = prompt('Enter new layer name:', name);
-                if (!newName) return;
-
-                const isQDAnalyzed = confirm('Is this layer QD analyzed?');
-                layer.properties = {
+                
+                // Show edit modal instead of prompt
+                const editModal = document.getElementById('editLayerModal');
+                const editNameInput = document.getElementById('editLayerName');
+                const editQDCheckbox = document.getElementById('editIsQDAnalyzed');
+                
+                editNameInput.value = name;
+                editQDCheckbox.checked = layer.properties?.isQDAnalyzed || false;
+                editModal.style.display = 'block';
+                
+                // Save changes when confirmed
+                document.getElementById('saveLayerEdit').onclick = function() {
+                    const newName = editNameInput.value.trim();
+                    if (!newName) return;
+                    
+                    layer.properties = {
+                        ...layer.properties,
+                        name: newName,
+                        isQDAnalyzed: editQDCheckbox.checked
+                    };
+                    
+                    editModal.style.display = 'none';
+                    updateLayerControl();
+                };
+            }s = {
                     ...layer.properties,
                     isQDAnalyzed,
                     name: newName
