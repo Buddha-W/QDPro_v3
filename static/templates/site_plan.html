@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -23,7 +24,39 @@
             background: #2b2d42;
             color: white;
             display: flex;
+            align-items: center;
             z-index: 1001;
+            padding: 0 10px;
+        }
+        .menu-item {
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .menu-item:hover {
+            background: #3c3f58;
+        }
+        .menu-dropdown {
+            display: none;
+            position: absolute;
+            top: 30px;
+            left: 0;
+            background: #2b2d42;
+            min-width: 150px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .menu-item:hover .menu-dropdown {
+            display: block;
+        }
+        .menu-dropdown-item {
+            padding: 8px 15px;
+            color: white;
+        }
+        .menu-dropdown-item:hover {
+            background: #3c3f58;
         }
         .toolbar {
             position: fixed;
@@ -66,6 +99,8 @@
             transform: translateX(-300px);
             transition: transform 0.3s ease;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
         }
         .left-panel.visible {
             transform: translateX(0);
@@ -78,6 +113,14 @@
         }
         .panel-content {
             padding: 15px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .layer-select-container {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
         }
         #map {
             position: fixed;
@@ -116,11 +159,46 @@
 </head>
 <body>
     <div class="menu-bar">
-        <div class="menu-item">File</div>
-        <div class="menu-item">Edit</div>
-        <div class="menu-item">View</div>
-        <div class="menu-item">Tools</div>
-        <div class="menu-item">Help</div>
+        <div class="menu-item">
+            File
+            <div class="menu-dropdown">
+                <div class="menu-dropdown-item">New</div>
+                <div class="menu-dropdown-item">Open...</div>
+                <div class="menu-dropdown-item">Save</div>
+                <div class="menu-dropdown-item">Export...</div>
+            </div>
+        </div>
+        <div class="menu-item">
+            Edit
+            <div class="menu-dropdown">
+                <div class="menu-dropdown-item">Undo</div>
+                <div class="menu-dropdown-item">Redo</div>
+                <div class="menu-dropdown-item">Delete Selected</div>
+            </div>
+        </div>
+        <div class="menu-item">
+            View
+            <div class="menu-dropdown">
+                <div class="menu-dropdown-item">Zoom In</div>
+                <div class="menu-dropdown-item">Zoom Out</div>
+                <div class="menu-dropdown-item">Fit to Window</div>
+            </div>
+        </div>
+        <div class="menu-item">
+            Tools
+            <div class="menu-dropdown">
+                <div class="menu-dropdown-item">Measure</div>
+                <div class="menu-dropdown-item">Calculate Area</div>
+                <div class="menu-dropdown-item">Settings</div>
+            </div>
+        </div>
+        <div class="menu-item">
+            Help
+            <div class="menu-dropdown">
+                <div class="menu-dropdown-item">Documentation</div>
+                <div class="menu-dropdown-item">About</div>
+            </div>
+        </div>
     </div>
 
     <div class="toolbar">
@@ -153,7 +231,17 @@
 
     <div id="leftPanel" class="left-panel">
         <div class="panel-header">Layers Panel</div>
-        <div class="panel-content" id="layerControl"></div>
+        <div class="panel-content">
+            <div class="layer-select-container">
+                <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
+                <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;">
+                    <option value="drawnItems">Drawn Items</option>
+                    <option value="facilities">Facilities</option>
+                    <option value="analysis">Analysis</option>
+                </select>
+            </div>
+            <div id="layerControl"></div>
+        </div>
     </div>
 
     <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
@@ -168,8 +256,9 @@
                 zoomControl: true
             });
 
-            // Base layers
+            // Base layers including "None"
             const baseLayers = {
+                'None': L.tileLayer(''),
                 'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
                 'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
                 'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
@@ -188,7 +277,49 @@
             map.addLayer(facilityLayer);
             map.addLayer(analysisLayer);
 
+            const layers = {
+                drawnItems: drawnItems,
+                facilities: facilityLayer,
+                analysis: analysisLayer
+            };
+
+            // Load saved shapes from localStorage
+            function loadSavedShapes() {
+                const savedShapes = localStorage.getItem('mapShapes');
+                if (savedShapes) {
+                    const shapes = JSON.parse(savedShapes);
+                    Object.keys(shapes).forEach(layerName => {
+                        shapes[layerName].forEach(shape => {
+                            const layer = L.geoJSON(shape);
+                            layers[layerName].addLayer(layer);
+                        });
+                    });
+                }
+            }
+
+            // Save shapes to localStorage
+            function saveShapes() {
+                const shapes = {};
+                Object.keys(layers).forEach(layerName => {
+                    shapes[layerName] = [];
+                    layers[layerName].eachLayer(layer => {
+                        shapes[layerName].push(layer.toGeoJSON());
+                    });
+                });
+                localStorage.setItem('mapShapes', JSON.stringify(shapes));
+            }
+
+            // Load saved shapes on startup
+            loadSavedShapes();
+
             // Drawing tools setup
+            let activeLayer = drawnItems;
+            const drawToLayer = document.getElementById('drawToLayer');
+            
+            drawToLayer.addEventListener('change', function() {
+                activeLayer = layers[this.value];
+            });
+
             const drawingTools = {
                 polygon: new L.Draw.Polygon(map),
                 polyline: new L.Draw.Polyline(map),
@@ -221,8 +352,12 @@
 
             // Handle drawing events
             map.on('draw:created', function(e) {
-                drawnItems.addLayer(e.layer);
+                activeLayer.addLayer(e.layer);
+                saveShapes();
             });
+
+            map.on('draw:edited', saveShapes);
+            map.on('draw:deleted', saveShapes);
 
             // Base layer dropdown
             const baseLayerTool = document.getElementById('baseLayerTool');
@@ -246,7 +381,9 @@
                 `;
                 option.onclick = () => {
                     Object.values(baseLayers).forEach(l => map.removeLayer(l));
-                    map.addLayer(layer);
+                    if (name !== 'None') {
+                        map.addLayer(layer);
+                    }
                     baseLayerDropdown.style.display = 'none';
                 };
                 baseLayerDropdown.appendChild(option);
@@ -276,13 +413,13 @@
                 const layerControl = document.getElementById('layerControl');
                 layerControl.innerHTML = '';
 
-                const layers = {
+                const layerNames = {
                     'Drawn Items': drawnItems,
                     'Facilities': facilityLayer,
                     'Analysis': analysisLayer
                 };
 
-                Object.entries(layers).forEach(([name, layer]) => {
+                Object.entries(layerNames).forEach(([name, layer]) => {
                     const item = document.createElement('div');
                     item.className = 'layer-control-item';
                     item.innerHTML = `
@@ -302,77 +439,6 @@
             }
 
             updateLayerControl();
-
-
-            // Storage utilities (from original)
-            const storageUtils = {
-                saveLayer: (layer) => {
-                    const layers = JSON.parse(localStorage.getItem('mapLayers') || '[]');
-                    layers.push(layer);
-                    localStorage.setItem('mapLayers', JSON.stringify(layers));
-                },
-                loadLayers: () => {
-                    return JSON.parse(localStorage.getItem('mapLayers') || '[]');
-                },
-                saveBookmark: (bookmark) => {
-                    const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '[]');
-                    bookmarks.push(bookmark);
-                    localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
-                },
-                loadBookmarks: () => {
-                    return JSON.parse(localStorage.getItem('mapBookmarks') || '[]');
-                }
-            };
-
-            //Bookmarking functionality (from original)
-            document.getElementById('bookmarkTool').addEventListener('click', (e) => {
-                const dropdown = document.getElementById('bookmarkDropdown'); //this id is missing in edited code, but needed from original
-                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-                dropdown.style.top = '90px';
-                dropdown.style.right = '10px';
-            });
-
-            document.getElementById('addBookmark').addEventListener('click', () => {
-                const name = prompt('Enter bookmark name:');
-                if (name) {
-                    const bookmark = {
-                        name,
-                        center: map.getCenter(),
-                        zoom: map.getZoom()
-                    };
-                    storageUtils.saveBookmark(bookmark);
-                    updateBookmarkList();
-                }
-            });
-
-            function updateBookmarkList() {
-                const list = document.getElementById('bookmarkList');
-                list.innerHTML = '';
-                storageUtils.loadBookmarks().forEach(bookmark => {
-                    const item = document.createElement('div');
-                    item.style.padding = '5px';
-                    item.style.cursor = 'pointer';
-                    item.innerText = bookmark.name;
-                    item.addEventListener('click', () => {
-                        map.setView([bookmark.center.lat, bookmark.center.lng], bookmark.zoom);
-                    });
-                    list.appendChild(item);
-                });
-            }
-
-             // Fetch and display facilities (from original)
-            fetch('/reports/facilities')
-                .then(response => response.json())
-                .then(facilities => {
-                    facilities.forEach(facility => {
-                        L.marker([facility.lat, facility.lng])
-                            .bindPopup(facility.name)
-                            .addTo(facilityLayer);
-                    });
-                })
-                .catch(error => console.error('Error loading facilities:', error));
-
-
         });
     </script>
 </body>
