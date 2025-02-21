@@ -120,8 +120,14 @@
             max-width: 500px;
             width: 250px;
             position: fixed;
+            top: 80px;
+            left: 0;
+            height: calc(100vh - 80px);
+            background: white;
             overflow: auto;
             display: none;
+            border-right: 1px solid #dee2e6;
+            z-index: 1000;
         }
         .left-panel.visible {
             display: block;
@@ -224,8 +230,8 @@
     <div class="left-panel" id="leftPanel">
         <div class="resize-handle" id="resizeHandle"></div>
         <div class="panel-section">
-            <div class="panel-title">Layers</div>
-            <div id="layerControl"></div>
+            <div class="panel-title" style="padding: 10px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;">Layers Panel</div>
+            <div id="layerControl" style="padding: 10px;"></div>
         </div>
     </div>
     <div id="map"></div>
