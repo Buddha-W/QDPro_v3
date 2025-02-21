@@ -144,10 +144,6 @@
                 <div class="dropdown-item">Open Project</div>
                 <div class="dropdown-item">Save Project</div>
                 <div class="dropdown-item">Export Data</div>
-            </div>
-        </div>
-        <div class="menu-item">Tools
-            <div class="dropdown">
                 <div class="dropdown-item" id="measureDistance">Distance Measurement</div>
                 <div class="dropdown-item" id="drawArc">Draw Arc</div>
                 <div class="dropdown-item" id="analyzeQD">QD Analysis</div>
@@ -312,17 +308,23 @@
         const leftPanel = document.getElementById('leftPanel');
         const resizeHandle = document.getElementById('resizeHandle');
         let isResizing = false;
+        let startX;
+        let startWidth;
 
         resizeHandle.addEventListener('mousedown', function(e) {
             isResizing = true;
-            e.preventDefault();
+            startX = e.pageX;
+            startWidth = parseInt(getComputedStyle(leftPanel).width, 10);
             document.addEventListener('mousemove', handleResize);
             document.addEventListener('mouseup', stopResize);
+            e.preventDefault();
         });
 
         function handleResize(e) {
             if (!isResizing) return;
-            const newWidth = Math.min(Math.max(e.clientX, 200), 500);
+            const difference = e.pageX - startX;
+            const newWidth = Math.min(Math.max(startWidth + difference, 200), 500);
+            
             leftPanel.style.width = newWidth + 'px';
             document.getElementById('map').style.marginLeft = newWidth + 'px';
             document.getElementById('map').style.width = `calc(100% - ${newWidth}px)`;
