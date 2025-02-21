@@ -24,8 +24,6 @@ from auth import get_current_user
 DATA_DIR = os.path.join(os.path.expanduser('~'), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-app = FastAPI()
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 templates = Jinja2Templates(directory="static/templates")
@@ -150,4 +148,4 @@ async def load_layers():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=3000)
