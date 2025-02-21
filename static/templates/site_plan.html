@@ -30,11 +30,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <style>
         #map {
+            position: fixed;
             height: calc(100vh - 80px);
-            width: calc(100% - 250px);
-            margin-left: 250px;
+            width: 100%;
             margin-top: 80px;
-            transition: all 0.1s ease;
+            transition: all 0.3s ease;
         }
         .toolbar {
             position: fixed;
@@ -116,21 +116,20 @@
             background: #4a4e69;
         }
         .left-panel {
-            min-width: 200px;
-            max-width: 500px;
+            min-width: 250px;
             width: 250px;
             position: fixed;
             top: 80px;
-            left: 0;
+            left: -250px;
             height: calc(100vh - 80px);
             background: white;
             overflow: auto;
-            display: none;
             border-right: 1px solid #dee2e6;
             z-index: 1000;
+            transition: all 0.3s ease;
         }
         .left-panel.visible {
-            display: block;
+            left: 0;
         }
         .resize-handle {
             position: absolute;
@@ -412,10 +411,9 @@
             const isVisible = panel.classList.contains('visible');
             panel.classList.toggle('visible');
             mapElement.style.marginLeft = isVisible ? '0' : '250px';
-            mapElement.style.width = isVisible ? '100%' : 'calc(100% - 250px)';
             toggleLayersBtn.innerHTML = isVisible ? '<i class="fas fa-bars"></i>' : '<i class="fas fa-times"></i>';
             toggleLayersBtn.title = isVisible ? "Show Layers Panel" : "Close Layers Panel";
-            map.invalidateSize();
+            setTimeout(() => map.invalidateSize(), 300);
         });
 
         // Load facilities
