@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html>
 <head>
     <title>QDPro Site Plan</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -47,7 +46,7 @@
             background: #2b2d42;
             min-width: 150px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1010;
+            z-index: 1050; /* Increased z-index to show above toolbar */
         }
         .layer-properties-form {
             padding: 15px;
@@ -179,6 +178,42 @@
             align-items: center;
             gap: 8px;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+        }
+        .modal-content {
+            position: relative;
+            background: white;
+            width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .modal-close {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            cursor: pointer;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 5px;
+        }
+
     </style>
 </head>
 <body>
@@ -253,16 +288,32 @@
         </div>
     </div>
 
+    <!-- Add Layer Modal -->
+    <div id="addLayerModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Add New Layer</h2>
+            <div class="form-group">
+                <label for="layerName">Layer Name:</label>
+                <input type="text" id="layerName" required>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="isQDAnalyzed">
+                    QD Analyzed
+                </label>
+            </div>
+            <button onclick="addNewLayer()">Add Layer</button>
+        </div>
+    </div>
+
     <div id="leftPanel" class="left-panel">
         <div class="panel-header">Layers Panel</div>
         <div class="panel-content">
             <div class="layer-select-container">
                 <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
-                <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;">
-                    <option value="drawnItems">Drawn Items</option>
-                    <option value="facilities">Facilities</option>
-                    <option value="analysis">Analysis</option>
-                </select>
+                <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
+                <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
             </div>
             <div id="layerControl"></div>
         </div>
@@ -294,7 +345,55 @@
 
             // Layer management
             const layers = {};
-            
+            let activeLayer = null;
+
+            // Add Layer Modal functionality
+            const modal = document.getElementById('addLayerModal');
+            const closeBtn = document.querySelector('.modal-close');
+
+            window.showAddLayerModal = function() {
+                modal.style.display = 'block';
+            }
+
+            closeBtn.onclick = function() {
+                modal.style.display = 'none';
+            }
+
+            window.addNewLayer = function() {
+                const name = document.getElementById('layerName').value;
+                const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
+
+                if (!name) return;
+
+                addLayer(name, { isQDAnalyzed });
+                modal.style.display = 'none';
+                document.getElementById('layerName').value = '';
+                document.getElementById('isQDAnalyzed').checked = false;
+            }
+
+            window.editLayer = function(name) {
+                const layer = layers[name];
+                if (!layer) return;
+
+                const newName = prompt('Enter new layer name:', name);
+                if (!newName) return;
+
+                const isQDAnalyzed = confirm('Is this layer QD analyzed?');
+                layer.properties = {
+                    ...layer.properties,
+                    isQDAnalyzed,
+                    name: newName
+                };
+
+                if (name !== newName) {
+                    layers[newName] = layer;
+                    delete layers[name];
+                }
+
+                updateLayerControl();
+                saveToDatabase();
+            }
+
             async function saveToDatabase() {
                 const layerData = {};
                 Object.keys(layers).forEach(layerName => {
@@ -304,19 +403,20 @@
                         features: []
                     };
                     layer.eachLayer(l => {
-                        layerData[layerName].features.push(l.toGeoJSON());
+                        if (l.toGeoJSON) {
+                            layerData[layerName].features.push(l.toGeoJSON());
+                        }
                     });
                 });
-                
+
                 try {
-                    const response = await fetch('/api/save-layers', {
+                    await fetch('/api/save-layers', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(layerData)
                     });
-                    if (!response.ok) throw new Error('Failed to save layers');
                 } catch (error) {
                     console.error('Error saving layers:', error);
                 }
@@ -325,23 +425,23 @@
             async function loadFromDatabase() {
                 try {
                     const response = await fetch('/api/load-layers');
-                    if (!response.ok) throw new Error('Failed to load layers');
                     const data = await response.json();
-                    
+
                     Object.keys(data).forEach(layerName => {
                         const layerGroup = new L.FeatureGroup();
                         layerGroup.properties = data[layerName].properties;
                         layers[layerName] = layerGroup;
-                        
+
                         data[layerName].features.forEach(feature => {
                             L.geoJSON(feature).eachLayer(l => {
                                 layerGroup.addLayer(l);
                             });
                         });
-                        
+
                         map.addLayer(layerGroup);
-                        updateLayerControl();
                     });
+                    updateLayerControl();
+                    updateDrawToLayerSelect();
                 } catch (error) {
                     console.error('Error loading layers:', error);
                 }
@@ -353,80 +453,35 @@
                 layers[name] = layerGroup;
                 map.addLayer(layerGroup);
                 updateLayerControl();
+                updateDrawToLayerSelect();
                 saveToDatabase();
             }
 
-            function editLayer(name) {
-                const layer = layers[name];
-                if (!layer) return;
-                
-                const newName = prompt('Enter new layer name:', name);
-                if (!newName) return;
-                
-                const isQDAnalyzed = confirm('Is this layer QD analyzed?');
-                layer.properties = {
-                    ...layer.properties,
-                    isQDAnalyzed,
-                    name: newName
-                };
-                
-                if (name !== newName) {
-                    layers[newName] = layer;
-                    delete layers[name];
+            function updateDrawToLayerSelect() {
+                const select = document.getElementById('drawToLayer');
+                select.innerHTML = '';
+                Object.keys(layers).forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+
+                if (select.options.length > 0) {
+                    activeLayer = layers[select.options[0].value]; //Select the first option as default active layer
                 }
-                
-                updateLayerControl();
-                saveToDatabase();
             }
 
-            // Initialize default layers
+            // Initialize default layers and load saved data
             addLayer('Drawn Items', { isQDAnalyzed: false });
             addLayer('Facilities', { isQDAnalyzed: true });
             addLayer('Analysis', { isQDAnalyzed: true });
-            
-            // Load saved data
             loadFromDatabase();
 
-            const layers = {
-                drawnItems: drawnItems,
-                facilities: facilityLayer,
-                analysis: analysisLayer
-            };
-
-            // Load saved shapes from localStorage
-            function loadSavedShapes() {
-                const savedShapes = localStorage.getItem('mapShapes');
-                if (savedShapes) {
-                    const shapes = JSON.parse(savedShapes);
-                    Object.keys(shapes).forEach(layerName => {
-                        shapes[layerName].forEach(shape => {
-                            const layer = L.geoJSON(shape);
-                            layers[layerName].addLayer(layer);
-                        });
-                    });
-                }
-            }
-
-            // Save shapes to localStorage
-            function saveShapes() {
-                const shapes = {};
-                Object.keys(layers).forEach(layerName => {
-                    shapes[layerName] = [];
-                    layers[layerName].eachLayer(layer => {
-                        shapes[layerName].push(layer.toGeoJSON());
-                    });
-                });
-                localStorage.setItem('mapShapes', JSON.stringify(shapes));
-            }
-
-            // Load saved shapes on startup
-            loadSavedShapes();
 
             // Drawing tools setup
-            let activeLayer = drawnItems;
-            const drawToLayer = document.getElementById('drawToLayer');
-            
-            drawToLayer.addEventListener('change', function() {
+            const drawToLayerSelect = document.getElementById('drawToLayer');
+            drawToLayerSelect.addEventListener('change', function() {
                 activeLayer = layers[this.value];
             });
 
@@ -462,12 +517,14 @@
 
             // Handle drawing events
             map.on('draw:created', function(e) {
-                activeLayer.addLayer(e.layer);
-                saveShapes();
+                if (activeLayer) {
+                    activeLayer.addLayer(e.layer);
+                    saveToDatabase();
+                }
             });
 
-            map.on('draw:edited', saveShapes);
-            map.on('draw:deleted', saveShapes);
+            map.on('draw:edited', saveToDatabase);
+            map.on('draw:deleted', saveToDatabase);
 
             // Base layer dropdown
             const baseLayerTool = document.getElementById('baseLayerTool');
@@ -551,6 +608,7 @@
             }
 
             updateLayerControl();
+            updateDrawToLayerSelect();
         });
     </script>
 </body>
