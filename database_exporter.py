@@ -98,23 +98,9 @@ class DatabaseExporter:
         }
 
     def _export_facilities(self):
-        try:
-            query = "SELECT * FROM facilities"
-            df = pd.read_sql(query, self.engine)
-            if df.empty:
-                self._update_progress("No facilities found", 0)
-                return []
-            self._validate_facility_data(df)
-            return df.to_dict(orient='records')
-        except Exception as e:
-            self._update_progress(f"Facility export failed: {str(e)}", -1)
-            raise
-
-    def _validate_facility_data(self, df):
-        required_columns = ['facility_number', 'description', 'category_code', 'location']
-        missing_columns = [col for col in required_columns if col not in df.columns]
-        if missing_columns:
-            raise ValueError(f"Missing required columns: {missing_columns}")
+        query = "SELECT * FROM facilities"
+        df = pd.read_sql(query, self.engine)
+        return df.to_dict(orient='records')
 
     def _export_explosive_sites(self):
         query = "SELECT * FROM explosive_sites"
