@@ -1,0 +1,43 @@
+I have a FastAPI project for explosive safety siting that includes a front-end (site_plan.html) with Leaflet and Leaflet.draw drawing tools and a QD engine module for computing safe separation distances (ESQD and K factor rings). I want to build the world's best QD engine and also fix my drawing tools, which currently don't work properly. The final solution must integrate the following improvements:
+
+1. **World-Class QD Engine:**
+   - Create a separate module (qd_engine.py) that implements two QD engines: one for DoD sites (e.g., DoDQDEngine) and one for DoE sites (e.g., DoEQDEngine).
+   - Each engine must:
+     - Accept input parameters (explosive quantity, material properties, environmental factors, etc.).
+     - Compute safe distances using advanced scaling laws (for the prototype, you can use a placeholder formula like safe_distance = k * quantity^(1/3), with different k values for DoD and DoE).
+     - Generate GeoJSON polygons (e.g., circles) representing K factor rings.
+     - Include placeholders and inline comments for:
+         - Calibration with empirical data,
+         - Uncertainty quantification using Monte Carlo simulation,
+         - Caching of results,
+         - Asynchronous processing (using FastAPI background tasks),
+         - Future integration with machine learning to further refine predictions.
+   - The module should be well-documented and modular so that it can be easily extended.
+
+2. **Improved Drawing Tools:**
+   - In site_plan.html, fix the drawing tools so that:
+     - The toolbar buttons for drawing polygons, polylines, rectangles, circles, and markers (IDs: "drawPolygon", "drawPolyline", "drawRectangle", "drawCircle", "drawMarker") properly enable their respective Leaflet.draw modes.
+     - Only one drawing tool is active at a time, and clicking elsewhere or re-clicking deactivates the current tool.
+     - When drawing a polygon, it finalizes correctly (either by double-clicking or clicking the first vertex to close the shape) and does not leave behind any editing handles (only the final drawn line is visible).
+   - Ensure that the active drawing layer is defined globally (e.g., window.activeLayer) so that any new drawn feature is added to it.
+   - Update any erroneous references (for instance, replacing any mistaken usage of activeMenu with activeLayer).
+   - Provide proper event handling so that drawn features can be saved (e.g., to the database via your analysis flow) and later cleared when switching locations.
+
+3. **Integration and Analysis Flow:**
+   - In your main FastAPI app (main.py), create an endpoint (or an example analysis routine) that:
+     - Accepts analysis parameters (including a site type: "DoD" or "DoE"),
+     - Calls the appropriate QD engine from qd_engine.py to compute the safe distance and K factor rings,
+     - Returns the results (including GeoJSON for safe rings) to be overlaid on the Leaflet map.
+   - Ensure that when an analysis is run, any currently drawn features on the map are cleared (blank slate) and replaced with the new computed safe zones.
+   - Provide error handling and logging.
+
+4. **Code Quality and Documentation:**
+   - The code must be modular, well-documented, and include inline comments that describe the purpose of each major function.
+   - Provide instructions on how to run the FastAPI app (using uvicorn) and how to test the drawing tools and QD engine integration.
+
+Please generate full, complete, and working prototype code for:
+   - The qd_engine.py module (with both DoD and DoE engines and placeholder advanced features).
+   - An updated main.py that integrates the QD engine into the analysis flow.
+   - An updated site_plan.html (with CSS and JavaScript) that fixes the drawing tools and properly overlays the QD engine results on the map.
+
+Return the full updated code for all files, ready to run in my project.
