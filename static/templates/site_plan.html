@@ -992,6 +992,40 @@
             updateLayerControl();
             updateDrawToLayerSelect();
         });
+
+        function getStyleForFeatureType(type) {
+            const defaultStyle = {
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.3,
+                color: '#3388ff',
+                fillColor: '#3388ff'
+            };
+
+            if (!type) return defaultStyle;
+
+            const upperType = type.toUpperCase();
+
+            if (upperType.includes('PES')) {
+                return {
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.3,
+                    color: '#ff0000',
+                    fillColor: '#ff0000'
+                };
+            } else if (upperType.includes('ES')) {
+                return {
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.3,
+                    color: '#006400',
+                    fillColor: '#006400'
+                };
+            }
+
+            return defaultStyle;
+        }
     </script>
     <!-- Facility Details Modal -->
     <div id="facilityModal" class="modal">
