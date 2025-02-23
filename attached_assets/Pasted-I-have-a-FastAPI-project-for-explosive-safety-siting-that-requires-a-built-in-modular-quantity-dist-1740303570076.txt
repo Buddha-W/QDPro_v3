@@ -1,0 +1,43 @@
+I have a FastAPI project for explosive safety siting that requires a built‐in, modular quantity–distance (QD) engine. I want to develop two separate QD engines: one tailored for Department of Defense (DoD) sites and one for Department of Energy (DoE) sites. This engine must integrate into our analysis flow to calculate ESQD values and generate K factor rings (safe distance buffer zones) that are then visualized on an interactive map.
+
+The QD engine must be built as a separate module (e.g., qd_engine.py) and include the following features:
+
+1. **Modular Design and Dual Engines:**
+   - Create two classes or functions: one for DoD sites (e.g., `DoDQDEngine`) and one for DoE sites (e.g., `DoEQDEngine`).
+   - Each engine should accept parameters such as explosive quantity, material properties (detonation velocity, sensitivity, etc.), and environmental factors (e.g., atmospheric conditions, confinement).
+   - For the prototype, use a placeholder formula such as:
+     ```
+     safe_distance = k * (quantity)^(1/3)
+     ```
+     where the constant k is different for DoD and DoE sites (document the assumed values and note that these must be calibrated with empirical data).
+   - Generate GeoJSON polygons representing K factor rings (i.e., circles centered on a site with radius equal to the safe distance). Include comments on how to extend this for more complex geometries.
+  
+2. **Advanced Calculation Features and Improvements:**
+   - Include comments and placeholder code for:
+     - Model calibration using historical/empirical data.
+     - Sensitivity analysis and uncertainty quantification (e.g., via Monte Carlo simulation).
+     - Caching of computation results to improve performance.
+   - Optionally, integrate asynchronous processing for long computations using FastAPI’s background tasks (with a note on how to extend).
+
+3. **Integration with Analysis Flow:**
+   - In your main FastAPI app (e.g., main.py), create an endpoint (or a sample function) that:
+     - Accepts analysis input parameters (in JSON) including a parameter for site type (e.g., "DoD" or "DoE").
+     - Based on the site type, calls the corresponding QD engine to compute the safe distance and K factor rings.
+     - Returns the computed safe distance and GeoJSON data for visualization.
+   - Include error handling and logging for debugging.
+
+4. **Interactive Visualization and Reporting:**
+   - Include comments on how the generated GeoJSON can be overlaid on a Leaflet map for interactive visualization.
+   - Outline ideas for generating detailed reports (PDF, CSV, etc.) from the computed results.
+
+5. **Code Quality and Documentation:**
+   - Ensure the code is well-documented with inline comments.
+   - Provide clear instructions on how to test and integrate the module.
+   - Write the code so it is extensible for future improvements (e.g., advanced algorithms, interactive UI adjustments).
+
+Please generate complete, working prototype code for:
+   - A module named `qd_engine.py` with the dual-engine design (DoD and DoE QD engines).
+   - An example FastAPI integration in main.py that calls these engines and returns the results.
+   - Inline comments and documentation throughout the code.
+
+Return the full code for both files (or modules) so that I have a complete, integrated prototype of the QD engine that is better than existing solutions like ESS and Siter.
