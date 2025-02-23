@@ -625,7 +625,6 @@
                 openEditPopup(layer);
 
                 if (activeLayer) {
-                    layer.setStyle(getStyleForFeatureType(layer.feature.properties.typeCode));
                     activeLayer.addLayer(layer);
                     saveToDatabase();
                 }
