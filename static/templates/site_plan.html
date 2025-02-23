@@ -411,6 +411,38 @@
         window.layers = {};  // Make layers globally accessible
         let map; // Declare map globally
 
+        // Update layer control
+        function updateLayerControl() {
+            const layerControl = document.getElementById('layerControl');
+            layerControl.innerHTML = '';
+
+            Object.entries(layers).forEach(([name, layer]) => {
+                const item = document.createElement('div');
+                item.className = 'layer-control-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="layer-${name}" 
+                           ${map.hasLayer(layer) ? 'checked' : ''}>
+                    <label for="layer-${name}">
+                        ${name}
+                        <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
+                            (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
+                        </span>
+                    </label>
+                    <button class="edit-layer-button" onclick="editLayer('${name}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                `;
+                item.querySelector('input').onchange = (e) => {
+                    if (e.target.checked) {
+                        map.addLayer(layer);
+                    } else {
+                        map.removeLayer(layer);
+                    }
+                };
+                layerControl.appendChild(item);
+            });
+        }
+
         function attachEditHandlers(layer) {
             if (layer instanceof L.FeatureGroup) {
                 layer.eachLayer(l => {
@@ -941,38 +973,6 @@
                 mapElement.style.marginLeft = leftPanel.classList.contains('visible') ? '300px' : '0';
                 map.invalidateSize();
             });
-
-            // Update layer control
-            function updateLayerControl() {
-                const layerControl = document.getElementById('layerControl');
-                layerControl.innerHTML = '';
-
-                Object.entries(layers).forEach(([name, layer]) => {
-                    const item = document.createElement('div');
-                    item.className = 'layer-control-item';
-                    item.innerHTML = `
-                        <input type="checkbox" id="layer-${name}" 
-                               ${map.hasLayer(layer) ? 'checked' : ''}>
-                        <label for="layer-${name}">
-                            ${name}
-                            <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
-                                (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
-                            </span>
-                        </label>
-                        <button class="edit-layer-button" onclick="editLayer('${name}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    `;
-                    item.querySelector('input').onchange = (e) => {
-                        if (e.target.checked) {
-                            map.addLayer(layer);
-                        } else {
-                            map.removeLayer(layer);
-                        }
-                    };
-                    layerControl.appendChild(item);
-                });
-            }
 
             updateLayerControl();
             updateDrawToLayerSelect();
