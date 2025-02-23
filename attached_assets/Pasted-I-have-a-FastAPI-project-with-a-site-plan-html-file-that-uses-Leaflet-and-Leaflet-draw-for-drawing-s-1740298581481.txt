@@ -1,0 +1,23 @@
+I have a FastAPI project with a site_plan.html file that uses Leaflet and Leaflet.draw for drawing shapes, along with modals and a File menu for creating and switching locations. I need to make the following final updates:
+
+1. **Blank Slate for New/Switching Locations:**  
+   When a new location is created or when the user switches to another location, all currently drawn features (polygons, shapes, etc.) must be completely cleared from the drawing layer so that the new location starts with a blank slate. Previously drawn shapes should not persist when switching locations.
+
+2. **Remove Polygon Editing Boxes/Handles:**  
+   When drawing a polygon, the small squares/handles that appear at each click (the editing markers) must be removed so that only the drawn line is visible. The user should be able to finish the polygon without any distracting boxes around each vertex.
+
+3. **Shape Styling Based on Type Code Designator:**  
+   Ensure that new shapes are styled based on the type code designator as follows:
+   - If the designator contains "PES" (case insensitive), the shape is styled with a red fill and red outline.
+   - If the designator contains "ES" (but not PES), style it with a dark green fill and outline (using, for example, hex color #006400).
+
+4. **Restore "File > Switch Locations":**  
+   Reinstate the "File > Switch Locations" menu item in the File menu. When clicked, this should open a modal pop-up listing all previously created locations. The user can then select one to switch to, and when switching the map's drawing layer is cleared (a blank slate) and only the shapes associated with the selected location are loaded.
+
+5. **Overall Integration:**  
+   - Update the JavaScript (and any necessary CSS/HTML in site_plan.html) so that the drawing layer is cleared on creation/switching of locations.
+   - Remove the editing handles from the drawn polygon (so that only the final line is visible).
+   - Ensure that the "File > Switch Locations" option is visible and functional.
+   - Ensure that any AJAX calls or page refreshes update the current location display (for example, in the element with id "dbStatus") correctly.
+
+Please update my site_plan.html (including all the relevant HTML, CSS, and JavaScript) to implement these changes. Return the full updated code that meets all the above requirements.
