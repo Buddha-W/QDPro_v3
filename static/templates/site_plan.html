@@ -91,6 +91,7 @@
             border: 1px solid #dee2e6;
             border-radius: 4px;
             padding: 4px 0;
+            animation: fadeIn 0.15s ease-in;
         }
         .menu-dropdown-item {
             padding: 8px 20px;
@@ -236,7 +237,24 @@
             font-size: 14px;
             color: #333;
         }
+        .menu-item {
+            position: relative;
+        }
 
+        .menu-item:hover .menu-dropdown {
+            display: block;
+            animation: fadeIn 0.15s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .location-item {
+          padding: 10px;
+          cursor: pointer;
+          border-bottom: 1px solid #ddd;
+        }
     </style>
 </head>
 <body>
@@ -857,8 +875,7 @@
     </div>
 
     <script>
-        function showNewLocationModal() {
-            document.getElementById('newLocationModal').style.display = 'block';
+        function showNewLocationModal() {            document.getElementById('newLocationModal').style.display = 'block';
         }
 
         function showSwitchLocationModal() {
