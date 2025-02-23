@@ -416,6 +416,11 @@
 
         // Initialize map immediately when DOM loads
         document.addEventListener('DOMContentLoaded', function() {
+            // Check if map container is already initialized
+            if (L.DomUtil.get('map') !== null && L.DomUtil.get('map')._leaflet_id) {
+                L.DomUtil.get('map')._leaflet_id = null;
+            }
+            
             // Create map with explicit size
             const mapContainer = document.getElementById('map');
             if (mapContainer) {
@@ -424,23 +429,25 @@
             }
 
             // Initialize map with secure tile source
-            window.map = L.map('map', {
-                center: [40.7128, -74.0060],
-                zoom: 13,
-                zoomControl: true
-            });
+            if (!window.map) {
+                window.map = L.map('map', {
+                    center: [40.7128, -74.0060],
+                    zoom: 13,
+                    zoomControl: true
+                });
 
-            // Add tile layer with crossOrigin support
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors',
-                crossOrigin: true
-            }).addTo(window.map);
+                // Add tile layer with crossOrigin support
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors',
+                    crossOrigin: true
+                }).addTo(window.map);
 
-            // Force a size update
-            setTimeout(() => {
-                window.map.invalidateSize();
-            }, 100);
+                // Force a size update
+                setTimeout(() => {
+                    window.map.invalidateSize();
+                }, 100);
+            }
 
         function updateDrawToLayerSelect() {
             const select = document.getElementById('drawToLayer');
