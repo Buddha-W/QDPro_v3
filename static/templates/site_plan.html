@@ -408,6 +408,7 @@
 
     <script>
         let currentDrawnLayer = null;
+        window.layers = {};  // Make layers globally accessible
 
         // Global function for loading from database
         async function loadFromDatabase() {
@@ -501,7 +502,6 @@
             baseLayers['OpenStreetMap'].addTo(map);
 
             // Layer management
-            const layers = {};
             let activeLayer = null;
 
             // Add Layer Modal functionality
