@@ -1,0 +1,26 @@
+I have a FastAPI project with a site_plan.html that currently uses a simple dropdown File menu. I want to update the File menu to resemble a modern Microsoft or ArcGIS style, with a more refined look and feel. Specifically, I need the File menu to include a "Switch Location" item that opens a modal pop-up. The modal should display a list of current locations (pulled from the database via an AJAX call or JSON endpoint) and let the user select one. When a location is selected, the current location (displayed in the top-right, e.g., in the element with id "dbStatus") should update, and the modal should close.
+
+Please update my project as follows:
+
+1. **File Menu Styling**:
+   - Restyle the File menu to have a modern, clean look similar to Microsoft products or ArcGIS.
+   - The File menu should include items like "New" and "Switch Location". The "Switch Location" item should trigger a modal.
+
+2. **Switch Location Modal**:
+   - Create a modal pop-up that appears when the user clicks "File > Switch Location".
+   - The modal should list the current locations (by name) and allow the user to select one.
+   - When a location is selected, use AJAX (or similar) to update the current location display (for example, update the element with id "dbStatus").
+   - The modal should have a close button so the user can exit without making a change.
+
+3. **Integration**:
+   - Ensure that the new modal and menu styles blend well with the existing theme in site_plan.html.
+   - Update any necessary JavaScript and CSS to achieve this modern look.
+   - Provide complete, integrated code snippets for the modified site_plan.html and any supporting JavaScript.
+
+Here is my current site_plan.html code (only the relevant parts of the menu and modal sections):
+
+----------------------------------------------------
+[Include current site_plan.html code with menu bar, toolbar, etc.]
+----------------------------------------------------
+
+Please return the full modified code that styles the File menu to be similar to Microsoft/ArcGIS, includes a "Switch Location" option, and ties that into a modal that lists the current locations and updates the current location display when one is selected.
