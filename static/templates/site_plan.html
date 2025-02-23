@@ -411,6 +411,24 @@
         window.layers = {};  // Make layers globally accessible
         let map; // Declare map globally
 
+        function attachEditHandlers(layer) {
+            if (layer instanceof L.FeatureGroup) {
+                layer.eachLayer(l => {
+                    // Ensure the layer has a feature property
+                    l.feature = l.feature || {};
+                    l.feature.properties = l.feature.properties || {};
+
+                    // Remove existing click handlers to prevent duplicates
+                    l.off('click');
+
+                    // Add new click handler
+                    l.on('click', function() {
+                        openEditPopup(l);
+                    });
+                });
+            }
+        }
+
         // Global function for loading from database
         async function loadFromDatabase() {
             try {
