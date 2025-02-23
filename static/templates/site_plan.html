@@ -6,9 +6,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ==" crossorigin="anonymous"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Cesium.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     <style>
         body { margin: 0; padding: 0; }
         .modal {
@@ -279,15 +277,6 @@
           cursor: pointer;
           border-bottom: 1px solid #ddd;
         }
-        #cesiumContainer {
-            position: absolute;
-            top: 90px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: calc(100vh - 90px);
-            z-index: 2; /* Ensure it's above the Leaflet map */
-        }
     </style>
 </head>
 <body>
@@ -436,8 +425,6 @@
 
     <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
     <div id="map"></div>
-    <!-- Commented out Cesium container for now -->
-    <!-- <div id="cesiumContainer"></div> -->
 
 
     <!-- Type Code Modal -->
@@ -560,13 +547,18 @@
             // Initialize map with secure tile source
             if (!window.map) {
                 window.map = L.map('map', {
-                    center: [40.7128, -74.0060],
-                    zoom: 13,
-                    zoomControl: true
+                    center: [39.8283, -98.5795],
+                    zoom: 4,
+                    zoomControl: true,
+                    maxBounds: [
+                        [15, -180], // Southwest coordinates
+                        [70, -50]  // Northeast coordinates
+                    ]
                 });
 
                 // Add tile layer with crossOrigin support
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    minZoom: 3,
                     maxZoom: 19,
                     attribution: '© OpenStreetMap contributors',
                     crossOrigin: true
@@ -722,15 +714,21 @@
 
             // Initialize the map
             window.map = L.map('map', {
-                center: [40.7128, -74.0060],
-                zoom: 13,
-                zoomControl: true
+                center: [39.8283, -98.5795],
+                zoom: 4,
+                zoomControl: true,
+                maxBounds: [
+                    [15, -180], // Southwest coordinates
+                    [70, -50]  // Northeast coordinates
+                ]
             });
 
             // Add base tile layer
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                minZoom: 3,
                 maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
+                attribution: '© OpenStreetMap contributors',
+                crossOrigin: true
             }).addTo(window.map);
 
             // Create default layers
@@ -744,22 +742,78 @@
             window.activeLayer = window.layers['Drawn Items'];
 
             // Initialize drawing tools with edit feature group
-            const drawControl = new L.Control.Draw({
-                edit: {
-                    featureGroup: window.activeLayer
-                },
-                draw: {
-                    circle: true,
-                    rectangle: true,
-                    polygon: true,
-                    polyline: true,
-                    marker: true
+            let drawingTools = {
+                polygon: new L.Draw.Polygon(map, {
+                    showLength: true,
+                    showArea: true,
+                    allowIntersection: false,
+                    drawError: {
+                        color: '#e1e100',
+                        timeout: 1000
+                    },
+                    shapeOptions: {
+                        color: '#3388ff'
+                    },
+                    metric: false
+                }),
+                polyline: new L.Draw.Polyline(map, {
+                    shapeOptions: {
+                        color: '#3388ff',
+                        weight: 2
+                    },
+                    metric: false
+                }),
+                rectangle: new L.Draw.Rectangle(map, {
+                    shapeOptions: {
+                        color: '#3388ff'
+                    },
+                    metric: false
+                }),
+                circle: new L.Draw.Circle(map, {
+                    shapeOptions: {
+                        color: '#3388ff'
+                    },
+                    metric: false
+                }),
+                marker: new L.Draw.Marker(map)
+            };
+
+            // Function to deactivate all drawing tools
+            function deactivateAllDrawingTools() {
+                Object.values(drawingTools).forEach(tool => {
+                    if (tool && typeof tool.disable === 'function') {
+                        tool.disable();
+                    }
+                });
+                document.querySelectorAll('.tool-button').forEach(button => {
+                    button.classList.remove('active');
+                });
+            }
+
+            // Set up drawing tool buttons
+            Object.entries(drawingTools).forEach(([type, tool]) => {
+                const buttonId = `draw${type.charAt(0).toUpperCase() + type.slice(1)}`;
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (button.classList.contains('active')) {
+                            deactivateAllDrawingTools();
+                        } else {
+                            deactivateAllDrawingTools();
+                            tool.enable();
+                            button.classList.add('active');
+                        }
+                    });
                 }
             });
-            window.map.addControl(drawControl);
 
-            // Event handler for drawing
-            window.map.on('draw:created', function(e) {
+            // Handle map click to deactivate drawing
+            map.on('click', deactivateAllDrawingTools);
+
+
+            // Handle drawing complete
+            map.on('draw:created', function(e) {
                 const layer = e.layer;
                 layer.feature = layer.feature || {};
                 layer.feature.properties = layer.feature.properties || {};
@@ -769,6 +823,7 @@
                     openEditPopup(layer);
                     saveToDatabase();
                 }
+                deactivateAllDrawingTools();
             });
 
             // Force a map resize after initialization
@@ -873,41 +928,19 @@
                 window.activeLayer = layers[this.value];
             });
 
-            const drawingTools = {
+            let drawingTools = {
                 polygon: new L.Draw.Polygon(map, {
-                    showLength: false,
-                    showArea: false,
-                    allowIntersection: true,
+                    showLength: true,
+                    showArea: true,
+                    allowIntersection: false,
                     drawError: {
                         color: '#e1e100',
-                        message: '<strong>Error:</strong> shape edges cannot cross!'
+                        timeout: 1000
                     },
                     shapeOptions: {
-                        stroke: true,
-                        color: '#3388ff',
-                        weight: 2,
-                        opacity: 0.5,
-                        fill: true,
-                        fillColor: null,
-                        fillOpacity: 0.2,
-                        clickable: true
+                        color: '#3388ff'
                     },
-                    vertices: {
-                        first: {
-                            icon: new L.DivIcon({
-                                iconSize: new L.Point(0, 0),
-                                className: 'leaflet-div-icon leaflet-hidden'
-                            })
-                        }
-                    },
-                    icon: new L.DivIcon({
-                        iconSize: new L.Point(0, 0),
-                        className: 'leaflet-div-icon leaflet-hidden'
-                    }),
-                    guidelineDistance: 20,
-                    maxPoints: 0,
-                    showGuides: true,
-                    finishOn: 'dblclick'
+                    metric: false
                 }),
                 vertices: {
                     first: {
@@ -918,38 +951,23 @@
                     }
                 },
                 polyline: new L.Draw.Polyline(map, {
-                    showLength: false,
                     shapeOptions: {
                         color: '#3388ff',
-                        weight: 2,
-                        opacity: 0.5
-                    }
+                        weight: 2
+                    },
+                    metric: false
                 }),
                 rectangle: new L.Draw.Rectangle(map, {
-                    showArea: false,
                     shapeOptions: {
-                        stroke: true,
-                        color: '#3388ff',
-                        weight: 2,
-                        opacity: 0.5,
-                        fill: true,
-                        fillColor: null,
-                        fillOpacity: 0.2,
-                        clickable: true
-                    }
+                        color: '#3388ff'
+                    },
+                    metric: false
                 }),
                 circle: new L.Draw.Circle(map, {
-                    showRadius: false,
                     shapeOptions: {
-                        stroke: true,
-                        color: '#3388ff',
-                        weight: 2,
-                        opacity: 0.5,
-                        fill: true,
-                        fillColor: null,
-                        fillOpacity: 0.2,
-                        clickable: true
-                    }
+                        color: '#3388ff'
+                    },
+                    metric: false
                 }),
                 marker: new L.Draw.Marker(map)
             };
@@ -1027,8 +1045,8 @@
 
             // Update polygon drawing options to hide vertex markers
             drawingTools.polygon.setOptions({
-                showLength: false,
-                showArea: false,
+                showLength: true,
+                showArea: true,
                 vertices: {
                     first: {
                         icon: new L.DivIcon({
@@ -1707,7 +1725,7 @@
                 'Facilities': new L.FeatureGroup().addTo(window.map),
                 'Analysis': new L.FeatureGroup().addTo(window.map)
             };
-            
+
             /* Commented out Cesium initialization
             Cesium.Ion.defaultAccessToken = 'your_access_token_here';
             cesiumViewer = new Cesium.Viewer('cesiumContainer', {
