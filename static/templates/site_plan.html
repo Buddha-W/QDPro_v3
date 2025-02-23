@@ -241,7 +241,7 @@
             position: relative;
         }
 
-        .menu-item:hover .menu-dropdown {
+        .menu-item.active .menu-dropdown {
             display: block;
             animation: fadeIn 0.15s ease-in;
         }
@@ -863,6 +863,20 @@
         </div>
     </div>
 
+    <!-- New Location Confirmation Modal -->
+    <div id="newLocationConfirmModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('newLocationConfirmModal')">&times;</span>
+            <h2>Location Created</h2>
+            <p>Location "<span id="newLocationName_confirm"></span>" has been created.</p>
+            <p>Would you like to switch to the new location?</p>
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="handleLocationSwitch(false)" class="tool-button">Stay in Current Location</button>
+                <button onclick="handleLocationSwitch(true)" class="tool-button">Switch to New Location</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Switch Location Modal -->
     <div id="switchLocationModal" class="modal">
         <div class="modal-content">
@@ -875,7 +889,43 @@
     </div>
 
     <script>
-        function showNewLocationModal() {            document.getElementById('newLocationModal').style.display = 'block';
+        // Menu click handling
+        let activeMenu = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuItems = document.querySelectorAll('.menu-item');
+            
+            menuItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (activeMenu === this) {
+                        // If clicking the active menu, close it
+                        this.classList.remove('active');
+                        activeMenu = null;
+                    } else {
+                        // Close any open menu and open this one
+                        if (activeMenu) {
+                            activeMenu.classList.remove('active');
+                        }
+                        this.classList.add('active');
+                        activeMenu = this;
+                    }
+                });
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function() {
+                if (activeMenu) {
+                    activeMenu.classList.remove('active');
+                    activeMenu = null;
+                }
+            });
+        });
+
+        let newLocationData = null;
+
+        function showNewLocationModal() {
+            document.getElementById('newLocationModal').style.display = 'block';
         }
 
         function showSwitchLocationModal() {
@@ -904,9 +954,11 @@
 
                 const data = await response.json();
                 if (response.ok) {
-                    updateCurrentLocation(data.name);
+                    newLocationData = data;
+                    document.getElementById('newLocationName_confirm').textContent = locationName;
                     closeModal('newLocationModal');
                     document.getElementById('newLocationName').value = '';
+                    document.getElementById('newLocationConfirmModal').style.display = 'block';
                 } else {
                     alert('Failed to create location: ' + data.detail);
                 }
@@ -914,6 +966,15 @@
                 console.error('Error creating location:', error);
                 alert('Failed to create location');
             }
+        }
+
+        function handleLocationSwitch(shouldSwitch) {
+            if (shouldSwitch && newLocationData) {
+                updateCurrentLocation(newLocationData.name);
+                // Here you could add additional logic to clear the map or reset other UI elements
+            }
+            closeModal('newLocationConfirmModal');
+            newLocationData = null;
         }
 
         async function fetchLocations() {
