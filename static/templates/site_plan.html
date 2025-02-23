@@ -1130,6 +1130,7 @@
     <script>
         // Menu click handling
         let activeMenu = null;
+        window.layers = {};  // Initialize layers globally
 
         document.addEventListener('DOMContentLoaded', function() {
             const menuItems = document.querySelectorAll('.menu-item');
@@ -1308,11 +1309,13 @@
         }
 
         function clearAllFeatures() {
-            Object.values(layers).forEach(layer => {
-                if (layer instanceof L.FeatureGroup) {
-                    layer.clearLayers();
-                }
-            });
+            if (window.layers) {
+                Object.values(window.layers).forEach(layer => {
+                    if (layer instanceof L.FeatureGroup) {
+                        layer.clearLayers();
+                    }
+                });
+            }
         }
 
         function switchLocation(locationName) {
