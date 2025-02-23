@@ -297,7 +297,7 @@
             </button>
         </div>
         <div id="dbStatus" style="margin-left: auto; padding: 0 10px; font-size: 14px; color: #333;">
-            Database: <span id="currentDatabase">PostgreSQL</span>
+            {% if current_location %}Location: {{ current_location }}{% else %}No location selected{% endif %}
         </div>
     </div>
 

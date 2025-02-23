@@ -48,3 +48,26 @@
     </div>
 </body>
 </html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ location_name }}</title>
+</head>
+<body>
+    <h1>Location: {{ location_name }}</h1>
+    <p>Created at: {{ location_created_at }}</p>
+    <h2>Records</h2>
+    <ul>
+      {% for record in records %}
+        <li>{{ record.info }} ({{ record.created_at }})</li>
+      {% endfor %}
+    </ul>
+    <h3>Add New Record</h3>
+    <form action="/ui/open_location/{{ location_id }}/add_record" method="post">
+        <label for="info">Info:</label>
+        <input type="text" id="info" name="info" required>
+        <button type="submit">Add Record</button>
+    </form>
+    <p><a href="/ui/locations">Back to Locations</a></p>
+</body>
+</html>
