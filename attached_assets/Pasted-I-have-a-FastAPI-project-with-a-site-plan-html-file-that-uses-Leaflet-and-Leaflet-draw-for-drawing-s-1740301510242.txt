@@ -1,0 +1,28 @@
+I have a FastAPI project with a site_plan.html file that uses Leaflet and Leaflet.draw for drawing shapes on a map. I have modals for creating and switching locations and a File menu with options such as "New", "Switch Location...", and "Open". I need to make the following final updates to the front-end code (HTML, CSS, and JavaScript):
+
+1. **New Location – Blank Slate:**  
+   When a new location is created (via the "New" option) or when switching to a different location (via "Switch Location..."), any drawn features should be completely cleared from the map’s drawing layer so that the new location starts with a blank slate. (Only the layer definitions should remain; any previously drawn shapes must be removed.)
+
+2. **Remove Polygon Editing Markers:**  
+   When drawing a polygon, the vertex markers (small boxes at each click) should not appear at all—only the drawn line should be visible. Also, the polygon should be allowed to close properly when the first point is clicked again (or via double-click, as appropriate).
+
+3. **Shape Styling Based on Type Code Designator:**  
+   When a new shape is drawn, its style should be determined by the type code designator (entered via an input in the editing popup):
+      - If the designator contains "PES" (case-insensitive), style the shape with a red fill and red outline.
+      - If the designator contains "ES" (and not PES), style the shape with a dark green fill and outline (using hex #006400).
+   (Assume that the type code is stored in the shape’s properties.)
+
+4. **Restore "File > Switch Location":**  
+   The "File > Switch Location" menu item should be visible in the File dropdown. When clicked, it should open a modal pop-up listing all saved locations (fetched via an AJAX call) and allow the user to select one. When a location is selected, the current location display (e.g. the element with id "dbStatus") updates and the map’s drawing layer is cleared and then populated with only that location’s features.
+
+5. **Additional Fixes:**  
+   - The "New Location" create button/modal must successfully save a new location.  
+   - The polygon drawing tool must allow the drawn polygon to finish properly (closing when the user clicks the first point or double-clicks to finish).  
+   - The drawn features must clear on new location creation/switch so that features from previous locations are not visible.
+   - Ensure that the "File > Open" option remains available for future use (e.g. opening a backup file).
+
+Please update my site_plan.html (including all relevant HTML, CSS, and JavaScript) accordingly. Below is my current code (see below). Please return the full, updated code that implements these fixes.
+
+----------------------------------------------------
+[Insert current site_plan.html code here]
+----------------------------------------------------
