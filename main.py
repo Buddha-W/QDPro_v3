@@ -22,7 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from qd_engine import QDEngine, MaterialProperties, EnvironmentalConditions
+from qd_engine import create_qd_engine, MaterialProperties, EnvironmentalConditions
 
 class QDCalculationRequest(BaseModel):
     quantity: float
@@ -38,8 +38,7 @@ class QDCalculationRequest(BaseModel):
     humidity: float = 50
     confinement_factor: float = 0.0
 
-# Initialize QD engine
-qd_engine = QDEngine()
+# QD engine will be created per request based on site type
 
 class QDCalculationRequest(BaseModel):
     quantity: float
