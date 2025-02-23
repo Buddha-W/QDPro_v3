@@ -1,0 +1,23 @@
+I have an existing program (built with FastAPI and a Leaflet-based front end) that performs analyses for explosive safety siting. I need to integrate a powerful quantity–distance (QD) engine into the code so that when an analysis is run, it automatically evaluates the QD parameters to determine ESQD (explosive safety quantity-distance) and computes K factor rings (i.e., buffer zones) around the site.
+
+Requirements:
+1. Build the QD engine as an internal module (e.g., qd_engine.py) that can be imported and called from the main analysis routine.
+2. The QD engine must accept key input parameters such as:
+   - Explosive quantity (mass or energy)
+   - Material properties (e.g., sensitivity, detonation velocity)
+   - Environmental parameters (e.g., atmospheric conditions, confinement)
+   - Other risk factors as needed
+3. The engine should calculate:
+   - ESQD values based on an advanced scaling law (using established scientific models like Hopkinson–Cranz scaling or improved algorithms)
+   - K factor rings (i.e., concentric rings representing safe distances or zones) that can be rendered on a map (e.g., as GeoJSON polygons)
+4. The engine must be designed to be modular, testable, and extensible. Include clear inline documentation and comments describing the formulas and algorithms used.
+5. The engine should be integrated into the main analysis flow so that when an analysis is run, the QD engine automatically computes and returns the ESQD and K factor rings. The results should then be displayed on the UI (for instance, overlaying the computed rings on the map).
+6. The goal is to create an engine that is significantly more advanced than ESS and Siter in terms of accuracy, flexibility, and user feedback.
+
+Please generate a complete prototype code for this QD engine integration:
+- Create a new module (qd_engine.py) with functions to compute ESQD and K factor rings.
+- Update the main analysis endpoint (or provide an example function) in main.py that calls the QD engine module, passes sample parameters, and returns the results (including safe ring GeoJSON data).
+- Include sample formulas (you can use placeholder formulas like safe_distance = k * (quantity)^(1/3), and define K factor rings as circles with that safe distance, but add comments on how to extend these formulas for improved accuracy).
+- Provide inline comments and instructions on how to test and integrate this module with the UI.
+
+Return the full code for the qd_engine module and an example integration in the main analysis flow.
