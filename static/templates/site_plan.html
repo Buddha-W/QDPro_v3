@@ -554,14 +554,22 @@
             // Initialize map
             window.map = L.map('map', {
                 center: [40.7128, -74.0060],
-                zoom: 13
+                zoom: 13,
+                zoomControl: true
             });
 
-            // Add default OSM layer
+            // Add default OSM layer with HTTPS
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
+                attribution: '© OpenStreetMap contributors',
+                crossOrigin: true
             }).addTo(window.map);
+
+            // Force map to update its size and view
+            setTimeout(() => {
+                window.map.invalidateSize();
+                window.map.setView([40.7128, -74.0060], 13);
+            }, 100);
 
             // Ensure the map container is properly sized
             const mapContainer = document.getElementById('map');
