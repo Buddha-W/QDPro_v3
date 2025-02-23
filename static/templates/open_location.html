@@ -2,18 +2,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ location_name }} - Location Details</title>
+    <title>Location Details</title>
     <style>
         .container { max-width: 800px; margin: 0 auto; padding: 20px; }
-        .records { margin-top: 20px; }
-        .add-record-form { margin-bottom: 20px; }
+        .location-info { margin-bottom: 20px; }
+        .records-list { margin-top: 20px; }
+        .add-record-form { margin: 20px 0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>{{ location_name }}</h1>
-        <p>Created: {{ location_created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-        <a href="/ui/locations">← Back to Locations</a>
+        <div class="location-info">
+            <h1>{{ location_name }}</h1>
+            <p>Created: {{ location_created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        </div>
 
         <div class="add-record-form">
             <h2>Add New Record</h2>
@@ -23,7 +25,7 @@
             </form>
         </div>
 
-        <div class="records">
+        <div class="records-list">
             <h2>Records</h2>
             {% if records %}
                 <ul>
@@ -36,8 +38,12 @@
                 {% endfor %}
                 </ul>
             {% else %}
-                <p>No records found for this location.</p>
+                <p>No records found.</p>
             {% endif %}
+        </div>
+        
+        <div>
+            <a href="/ui/locations">Back to Locations</a>
         </div>
     </div>
 </body>
