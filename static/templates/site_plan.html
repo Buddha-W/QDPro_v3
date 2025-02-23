@@ -415,33 +415,6 @@
         let map; // Declare map globally
 
         // Initialize map immediately when DOM loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Create map with explicit size
-            const mapContainer = document.getElementById('map');
-            if (mapContainer) {
-                mapContainer.style.height = 'calc(100vh - 90px)';
-                mapContainer.style.width = '100%';
-            }
-
-            // Initialize map with secure tile source
-            window.map = L.map('map', {
-                center: [40.7128, -74.0060],
-                zoom: 13,
-                zoomControl: true
-            });
-
-            // Add tile layer with crossOrigin support
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors',
-                crossOrigin: true
-            }).addTo(window.map);
-
-            // Force a size update
-            setTimeout(() => {
-                window.map.invalidateSize();
-            }, 100);
-
         function updateDrawToLayerSelect() {
             const select = document.getElementById('drawToLayer');
             select.innerHTML = '';
@@ -579,19 +552,33 @@
 
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map
-            window.map = L.map('map', {
-                center: [40.7128, -74.0060],
-                zoom: 13,
-                zoomControl: true
-            });
+            // Set map container size
+            const mapContainer = document.getElementById('map');
+            if (mapContainer) {
+                mapContainer.style.height = 'calc(100vh - 90px)';
+                mapContainer.style.width = '100%';
+            }
 
-            // Add default OSM layer with HTTPS
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors',
-                crossOrigin: true
-            }).addTo(window.map);
+            // Initialize map only if not already initialized
+            if (!window.map) {
+                window.map = L.map('map', {
+                    center: [40.7128, -74.0060],
+                    zoom: 13,
+                    zoomControl: true
+                });
+
+                // Add default OSM layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors',
+                    crossOrigin: true
+                }).addTo(window.map);
+
+                // Force a size update
+                setTimeout(() => {
+                    window.map.invalidateSize();
+                }, 100);
+            }
 
             // Force map to update its size and view
             setTimeout(() => {
