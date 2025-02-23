@@ -183,19 +183,38 @@ async def load_layers():
                             headers={"Content-Type": "application/json"},
                             status_code=500)
 
-@app.get("/ui/locations")
-async def list_locations(request: Request):
-    """List all locations and show create form."""
+@app.get("/api/locations")
+async def get_locations():
+    """Get list of locations as JSON."""
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     try:
         cur.execute("SELECT id, location_name, created_at FROM locations ORDER BY created_at DESC")
-        locations = [{"id": id, "name": name, "created_at": created_at} 
+        locations = [{"id": id, "name": name, "created_at": str(created_at)} 
                     for id, name, created_at in cur.fetchall()]
-        return templates.TemplateResponse(
-            "locations.html",
-            {"request": request, "locations": locations}
+        return JSONResponse(content={"locations": locations})
+    finally:
+        cur.close()
+        conn.close()
+
+@app.post("/api/create_location")
+async def create_location_api(request: Request):
+    """Create location via API."""
+    data = await request.json()
+    location_name = data.get("location_name")
+    if not location_name:
+        raise HTTPException(status_code=400, detail="Location name is required")
+        
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO locations (location_name) VALUES (%s) RETURNING id, location_name",
+            (location_name,)
         )
+        id, name = cur.fetchone()
+        conn.commit()
+        return JSONResponse(content={"id": id, "name": name})
     finally:
         cur.close()
         conn.close()

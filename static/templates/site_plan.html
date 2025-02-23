@@ -231,8 +231,8 @@
         <div class="menu-item">
             File
             <div class="menu-dropdown">
-                <a class="menu-dropdown-item" href="/ui/create_location">New</a>
-                <a class="menu-dropdown-item" href="/ui/locations">Open...</a>
+                <a class="menu-dropdown-item" href="#" onclick="showNewLocationModal()">New</a>
+                <a class="menu-dropdown-item" href="#" onclick="showSwitchLocationModal()">Open...</a>
                 <a class="menu-dropdown-item" href="#">Save</a>
                 <a class="menu-dropdown-item" href="#">Export...</a>
             </div>
@@ -799,8 +799,6 @@
             updateDrawToLayerSelect();
         });
     </script>
-</body>
-</html>
     <!-- Facility Details Modal -->
     <div id="facilityModal" class="modal">
         <div class="modal-content">
@@ -817,3 +815,112 @@
             <button onclick="saveFacilityDetails()">Save Changes</button>
         </div>
     </div>
+
+    <!-- New Location Modal -->
+    <div id="newLocationModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('newLocationModal')">&times;</span>
+            <h2>Create New Location</h2>
+            <div class="form-group">
+                <label for="newLocationName">Location Name:</label>
+                <input type="text" id="newLocationName" required>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="closeModal('newLocationModal')" class="tool-button">Cancel</button>
+                <button onclick="createLocation()" class="tool-button">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Switch Location Modal -->
+    <div id="switchLocationModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('switchLocationModal')">&times;</span>
+            <h2>Switch Location</h2>
+            <div id="locationsList" style="margin: 20px 0;">
+                Loading locations...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showNewLocationModal() {
+            document.getElementById('newLocationModal').style.display = 'block';
+        }
+
+        function showSwitchLocationModal() {
+            const modal = document.getElementById('switchLocationModal');
+            modal.style.display = 'block';
+            fetchLocations();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        async function createLocation() {
+            const locationName = document.getElementById('newLocationName').value;
+            if (!locationName) {
+                alert('Please enter a location name');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/create_location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location_name: locationName })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    updateCurrentLocation(data.name);
+                    closeModal('newLocationModal');
+                    document.getElementById('newLocationName').value = '';
+                } else {
+                    alert('Failed to create location: ' + data.detail);
+                }
+            } catch (error) {
+                console.error('Error creating location:', error);
+                alert('Failed to create location');
+            }
+        }
+
+        async function fetchLocations() {
+            try {
+                const response = await fetch('/api/locations');
+                const data = await response.json();
+
+                const locationsList = document.getElementById('locationsList');
+                locationsList.innerHTML = data.locations.map(loc => `
+                    <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
+                         onclick="switchLocation('${loc.name}')">
+                        ${loc.name}
+                        <br>
+                        <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching locations:', error);
+                document.getElementById('locationsList').innerHTML = 'Failed to load locations';
+            }
+        }
+
+        function switchLocation(locationName) {
+            updateCurrentLocation(locationName);
+            closeModal('switchLocationModal');
+        }
+
+        function updateCurrentLocation(locationName) {
+            document.getElementById('dbStatus').innerHTML = `Location: ${locationName}`;
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
