@@ -1,0 +1,54 @@
+I have an explosive safety siting software project built with FastAPI (backend) and a Leaflet-based front end. I want to build a system that not only incorporates an extremely advanced quantity–distance (QD) engine but also features a beautiful, modern UI that exceeds current commercial solutions like ESS and Siter.
+
+Please develop a full, modular prototype that includes the following components:
+
+1. **Advanced QD Engine Module (qd_engine.py):**
+   - Create two QD engine classes or functions:
+       - One for DoD sites (e.g., DoDQDEngine) and one for DoE sites (e.g., DoEQDEngine).
+   - Each engine must:
+       - Accept input parameters including explosive quantity, material properties (detonation velocity, sensitivity, etc.), environmental factors (atmospheric conditions, confinement), and additional risk factors.
+       - Compute safe distances using advanced scaling laws (for example, using a placeholder formula such as:  
+         safe_distance = k * (quantity)^(1/3)  
+         where k is different for DoD vs. DoE sites, with detailed inline comments on calibration and future improvements).
+       - Generate GeoJSON polygons representing K factor rings (safe rings). Include placeholder code for uncertainty quantification (e.g., Monte Carlo simulations) and caching.
+       - Include placeholders for asynchronous processing (e.g., FastAPI background tasks) and future integration with machine learning for predictive analytics.
+   - The code should be modular, well-documented, and easily extensible.
+
+2. **Real-Time Data & Simulation Modules:**
+   - Integrate real‑time data ingestion from simulated sensor data (e.g., temperature, humidity, gas sensors) that update the risk analysis dynamically.
+   - Develop a simulation module for advanced scenario modeling:
+       - Allow the user to vary input parameters (quantity, environmental conditions) and run simulations (including uncertainty quantification).
+       - Display time‑dependent simulations (e.g., how a hazardous event might propagate over time).
+
+3. **Enhanced UI/UX Improvements:**
+   - **Modern, Interactive Geospatial Visualization:**
+       - Develop a responsive and visually stunning UI for the map.
+       - Use Leaflet for 2D views and integrate with a 3D library (e.g., CesiumJS or Mapbox GL) for 3D visualization of safe zones and terrain.
+       - Allow customizable map overlays (e.g., wind direction, topography, infrastructure).
+   - **Refined Menus and Toolbars:**
+       - Redesign the File menu and toolbars with a modern look (think Microsoft Office or ArcGIS) that is intuitive and minimizes accidental clicks. For example, ensure menus open only on click.
+       - Include clear options such as "File > New" (to create a new location with a blank slate), "File > Switch Location" (to load a modal with available locations), and "File > Open" (for future file operations).
+       - The toolbar should have well-organized drawing tools (polygon, polyline, rectangle, circle, marker) that enable proper drawing modes, finalize shapes without leaving editing markers, and visually indicate active/inactive states.
+   - **Comprehensive Reporting & Export Options:**
+       - Build a reporting module that generates professional reports (in PDF, HTML, CSV, or GeoJSON formats) summarizing the analysis.
+       - Include interactive charts, graphs, and risk maps that update in real time.
+   - **User Access and Collaboration:**
+       - Integrate user authentication, authorization, and audit trails to support secure multi-user collaboration.
+       - Consider a feature for collaborative planning, where multiple users can view and annotate the map simultaneously.
+
+4. **Integration with Main Analysis Flow (main.py):**
+   - Create or update an endpoint that accepts analysis parameters (including a parameter for site type, “DoD” or “DoE”) and calls the corresponding QD engine.
+   - The endpoint should return computed safe distances and GeoJSON for safe zones that can be directly overlaid on the interactive map.
+   - Ensure that when an analysis is run, the map clears previous drawings (a true blank slate) and loads only the current analysis data.
+
+5. **Code Quality and Documentation:**
+   - Provide extensive inline documentation and comments throughout the code.
+   - Ensure modularity so that each component (QD engine, simulation, UI) can be independently tested and maintained.
+   - Include instructions on how to run the app (using uvicorn), how to simulate sensor data, and how to generate reports.
+
+Please generate full, complete, and working prototype code for:
+   - The QD engine module (qd_engine.py) with dual-engine support and advanced features.
+   - An updated main.py that integrates the QD engine into the analysis flow.
+   - A fully revamped site_plan.html (with CSS and JavaScript) that includes the modern UI, advanced drawing tools, 2D/3D map integration, dynamic menus, simulation controls, and reporting capabilities.
+
+Return the full code for all files, ready to run in my project, with inline comments explaining each major component and suggestions for future improvements.
