@@ -853,9 +853,10 @@
                 zoom: 13,
                 zoomControl: true
             });            // Add default OSM layer
-            L.tileLayer('https://{s}.tileopenstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
+                attribution: '© OpenStreetMap contributors',
+                crossOrigin: true
             }).addTo(window.map);
 
             // Initialize default layers and load saved data

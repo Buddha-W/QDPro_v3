@@ -62,10 +62,23 @@ from datetime import datetime
 
 @app.post("/api/sensor-data")
 async def update_sensor_data(data: Dict[str, float]):
-    """Update real-time sensor data"""
-    qd_engine = create_qd_engine("DOD")  # Or get from current context
+    """Update real-time sensor data and recalculate risk"""
+    # Create QD engine based on site type stored in session/config
+    site_type = "DOD"  # TODO: Get from user session
+    qd_engine = create_qd_engine(site_type)
+    
+    # Update sensor data
     await qd_engine.update_sensor_data(data)
-    return {"status": "updated", "timestamp": datetime.now().isoformat()}
+    
+    # Perform risk assessment
+    risk_assessment = await qd_engine._update_risk_assessment()
+    
+    return {
+        "status": "updated",
+        "timestamp": datetime.now().isoformat(),
+        "risk_level": risk_assessment["risk_level"],
+        "warnings": risk_assessment.get("warning")
+    }
 
 @app.get("/api/generate-report/{site_id}")
 async def generate_report(site_id: str, format: str = "html"):
