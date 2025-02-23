@@ -420,7 +420,7 @@
             if (L.DomUtil.get('map') !== null && L.DomUtil.get('map')._leaflet_id) {
                 L.DomUtil.get('map')._leaflet_id = null;
             }
-            
+
             // Create map with explicit size
             const mapContainer = document.getElementById('map');
             if (mapContainer) {
@@ -935,7 +935,7 @@
                 openEditPopup(layer);
 
                 if (activeLayer) {
-                    activeMenu.addLayer(layer);
+                    activeLayer.addLayer(layer);
                     saveToDatabase();
                 }
             });
@@ -947,7 +947,7 @@
                         tool.disable();
                     }
                 });
-                
+
                 // Remove active class from all drawing buttons
                 ['drawPolygon', 'drawPolyline', 'drawRectangle', 'drawCircle', 'drawMarker'].forEach(id => {
                     const button = document.getElementById(id);
@@ -961,10 +961,14 @@
                 if (!button) return;
 
                 button.addEventListener('click', () => {
-                    deactivateAllDrawingTools();
-                    if (tool && typeof tool.enable === 'function') {
-                        tool.enable();
-                        button.classList.add('active');
+                    if (button.classList.contains('active')) {
+                        deactivateAllDrawingTools();
+                    } else {
+                        deactivateAllDrawingTools();
+                        if (tool && typeof tool.enable === 'function') {
+                            tool.enable();
+                            button.classList.add('active');
+                        }
                     }
                 });
             }
@@ -984,6 +988,32 @@
             // Handle drawing complete
             map.on('draw:created', function() {
                 deactivateAllDrawingTools();
+            });
+
+            // Update polygon drawing options to hide vertex markers
+            drawingTools.polygon.setOptions({
+                showLength: false,
+                showArea: false,
+                vertices: {
+                    first: {
+                        icon: new L.DivIcon({
+                            iconSize: new L.Point(0, 0),
+                            className: 'leaflet-div-icon leaflet-hidden'
+                        })
+                    },
+                    mid: {
+                        icon: new L.DivIcon({
+                            iconSize: new L.Point(0, 0),
+                            className: 'leaflet-div-icon leaflet-hidden'
+                        })
+                    },
+                    last: {
+                        icon: new L.DivIcon({
+                            iconSize: new L.Point(0, 0),
+                            className: 'leaflet-div-icon leaflet-hidden'
+                        })
+                    }
+                }
             });
 
             // Handle drawing events
