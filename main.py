@@ -41,9 +41,27 @@ class QDCalculationRequest(BaseModel):
 # Initialize QD engine
 qd_engine = QDEngine()
 
+class QDCalculationRequest(BaseModel):
+    quantity: float
+    lat: float
+    lng: float
+    k_factor: float = 40
+    site_type: str = "DOD"  # Either "DOD" or "DOE"
+    material_type: str = "General Explosive"
+    sensitivity: float = 0.5
+    det_velocity: float = 6000
+    tnt_equiv: float = 1.0
+    temperature: float = 298
+    pressure: float = 101.325
+    humidity: float = 50
+    confinement_factor: float = 0.0
+
 @app.post("/api/calculate-qd")
 async def calculate_qd(request: QDCalculationRequest):
     try:
+        # Create QD engine based on site type
+        qd_engine = create_qd_engine(request.site_type)
+        
         # Create material properties object
         material_props = MaterialProperties(
             sensitivity=request.sensitivity,

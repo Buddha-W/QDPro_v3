@@ -1,11 +1,11 @@
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 import math
 from shapely.geometry import Point, Polygon
 from shapely.ops import transform
 import numpy as np
-from typing import Optional
+from abc import ABC, abstractmethod
 
 @dataclass
 class MaterialProperties:
@@ -22,97 +22,55 @@ class EnvironmentalConditions:
     humidity: float  # Relative humidity (%)
     confinement_factor: float  # Degree of confinement (0-1)
 
-class QDEngine:
-    """Quantity-Distance calculation engine"""
+class QDEngineBase(ABC):
+    """Base class for QD calculation engines"""
     
     def __init__(self):
-        # Standard K-factors for different protection levels
-        self.k_factors = {
-            "K6": 6,    # Public Traffic Route Distance
-            "K11": 11,  # Inhabited Building Distance
-            "K18": 18,  # Intermagazine Distance
-            "K40": 40   # Default separation distance
-        }
+        self.k_factors = self._init_k_factors()
         
-    def calculate_esqd(self, 
-                      quantity: float,
-                      material_props: MaterialProperties,
-                      env_conditions: Optional[EnvironmentalConditions] = None,
-                      k_factor: float = 40) -> float:
-        """
-        Calculate Explosive Safety Quantity-Distance (ESQD)
+    @abstractmethod
+    def _init_k_factors(self) -> Dict[str, float]:
+        """Initialize K-factors specific to engine type"""
+        pass
         
-        Args:
-            quantity: NEW (Net Explosive Weight) in pounds
-            material_props: Material properties
-            env_conditions: Environmental conditions
-            k_factor: K-factor for distance calculation
-            
-        Returns:
-            Safe distance in feet
-        """
-        # Base calculation using cube root scaling law
-        base_distance = k_factor * (quantity * material_props.tnt_equiv) ** (1/3)
+    def calculate_base_distance(self, quantity: float, k_factor: float) -> float:
+        """Basic cube root scaling law"""
+        return k_factor * (quantity) ** (1/3)
+    
+    def apply_environmental_corrections(self, 
+                                     base_distance: float,
+                                     env_conditions: EnvironmentalConditions) -> float:
+        """Apply environmental correction factors"""
+        temp_factor = (env_conditions.temperature / 298) ** 0.5
+        pressure_factor = (env_conditions.pressure / 101.325) ** 0.5
+        humidity_factor = 1 - (env_conditions.humidity / 200)
+        confinement_factor = 1 + env_conditions.confinement_factor
         
-        if env_conditions:
-            # Apply environmental corrections
-            temp_factor = (env_conditions.temperature / 298) ** 0.5
-            pressure_factor = (env_conditions.pressure / 101.325) ** 0.5
-            humidity_factor = 1 - (env_conditions.humidity / 200)  # Simplified humidity effect
-            
-            # Apply confinement factor
-            confinement_factor = 1 + env_conditions.confinement_factor
-            
-            # Combine all factors
-            correction_factor = (temp_factor * pressure_factor * 
-                               humidity_factor * confinement_factor)
-            
-            base_distance *= correction_factor
-        
-        # Apply material sensitivity factor
-        base_distance *= (1 + material_props.sensitivity)
-        
-        return base_distance
-
+        return base_distance * temp_factor * pressure_factor * humidity_factor * confinement_factor
+    
     def generate_k_factor_rings(self, 
-                              center_lat: float, 
+                              center_lat: float,
                               center_lon: float,
                               safe_distance: float,
                               num_rings: int = 4) -> List[Dict]:
-        """
-        Generate K-factor rings as GeoJSON features
-        
-        Args:
-            center_lat: Latitude of PES
-            center_lon: Longitude of PES
-            safe_distance: Maximum safe distance (feet)
-            num_rings: Number of concentric rings to generate
-            
-        Returns:
-            List of GeoJSON features representing the rings
-        """
+        """Generate concentric buffer rings"""
         rings = []
         center = Point(center_lon, center_lat)
-        
-        # Convert feet to degrees (approximate)
-        ft_to_deg = 1/364000  # Rough conversion factor
+        ft_to_deg = 1/364000
         
         for i in range(num_rings):
             ring_distance = safe_distance * (i + 1) / num_rings
             ring_radius_deg = ring_distance * ft_to_deg
             
-            # Generate circle points
             circle_points = []
-            for angle in range(0, 361, 10):  # 36 points for smooth circle
+            for angle in range(0, 361, 10):
                 rad = math.radians(angle)
                 x = center_lon + ring_radius_deg * math.cos(rad)
                 y = center_lat + ring_radius_deg * math.sin(rad)
                 circle_points.append((x, y))
             
-            # Close the ring
             circle_points.append(circle_points[0])
             
-            # Create GeoJSON feature
             ring_feature = {
                 "type": "Feature",
                 "geometry": {
@@ -121,10 +79,88 @@ class QDEngine:
                 },
                 "properties": {
                     "distance": ring_distance,
-                    "k_factor": (i + 1) * safe_distance / (num_rings * safe_distance) * 40
+                    "k_factor": self.k_factors["default"] * (i + 1) / num_rings
                 }
             }
             rings.append(ring_feature)
         
         return rings
 
+class DoDQDEngine(QDEngineBase):
+    """DoD-specific QD calculation engine"""
+    
+    def _init_k_factors(self) -> Dict[str, float]:
+        return {
+            "default": 40,  # Default K40
+            "K6": 6,       # Public Traffic Route Distance
+            "K11": 11,     # Inhabited Building Distance
+            "K18": 18,     # Intermagazine Distance
+            "K40": 40      # Default separation distance
+        }
+    
+    def calculate_esqd(self,
+                      quantity: float,
+                      material_props: MaterialProperties,
+                      env_conditions: Optional[EnvironmentalConditions] = None,
+                      k_factor: float = 40) -> float:
+        """Calculate DoD ESQD"""
+        base_distance = self.calculate_base_distance(
+            quantity * material_props.tnt_equiv, 
+            k_factor
+        )
+        
+        if env_conditions:
+            base_distance = self.apply_environmental_corrections(
+                base_distance, 
+                env_conditions
+            )
+        
+        # DoD-specific material sensitivity adjustment
+        sensitivity_factor = 1 + (material_props.sensitivity * 0.5)
+        base_distance *= sensitivity_factor
+        
+        return base_distance
+
+class DoEQDEngine(QDEngineBase):
+    """DoE-specific QD calculation engine"""
+    
+    def _init_k_factors(self) -> Dict[str, float]:
+        return {
+            "default": 50,  # Higher default K-factor for DoE
+            "K9": 9,       # Limited access area
+            "K14": 14,     # Administrative area
+            "K25": 25,     # Controlled area
+            "K50": 50      # General public area
+        }
+    
+    def calculate_esqd(self,
+                      quantity: float,
+                      material_props: MaterialProperties,
+                      env_conditions: Optional[EnvironmentalConditions] = None,
+                      k_factor: float = 50) -> float:
+        """Calculate DoE ESQD with enhanced safety margins"""
+        base_distance = self.calculate_base_distance(
+            quantity * material_props.tnt_equiv * 1.2,  # 20% safety margin
+            k_factor
+        )
+        
+        if env_conditions:
+            base_distance = self.apply_environmental_corrections(
+                base_distance,
+                env_conditions
+            )
+        
+        # DoE-specific material sensitivity adjustment
+        sensitivity_factor = 1 + (material_props.sensitivity * 0.8)  # Higher sensitivity impact
+        base_distance *= sensitivity_factor
+        
+        return base_distance
+
+def create_qd_engine(site_type: str) -> QDEngineBase:
+    """Factory function to create appropriate QD engine"""
+    if site_type.upper() == "DOD":
+        return DoDQDEngine()
+    elif site_type.upper() == "DOE":
+        return DoEQDEngine()
+    else:
+        raise ValueError(f"Unknown site type: {site_type}")
