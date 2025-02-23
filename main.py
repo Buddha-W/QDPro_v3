@@ -200,6 +200,14 @@ async def list_locations(request: Request):
         cur.close()
         conn.close()
 
+@app.get("/ui/create_location")
+async def show_create_location(request: Request):
+    """Show the create location form."""
+    return templates.TemplateResponse(
+        "create_location.html",
+        {"request": request}
+    )
+
 @app.post("/ui/create_location")
 async def create_location(location_name: str = Form(...)):
     """Create a new location."""
