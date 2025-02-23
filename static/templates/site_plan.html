@@ -556,6 +556,11 @@
                     zoomControl: true
                 });
 
+                // Add default OSM layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(window.map);
+
                 // Ensure the map container is properly sized
                 const mapContainer = document.getElementById('map');
                 if (mapContainer) {
