@@ -409,6 +409,7 @@
     <script>
         let currentDrawnLayer = null;
         window.layers = {};  // Make layers globally accessible
+        let map; // Declare map globally
 
         // Global function for loading from database
         async function loadFromDatabase() {
@@ -482,8 +483,8 @@
 
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map
-            const map = L.map('map', {
+            // Initialize map globally
+            map = L.map('map', {
                 center: [40.7128, -74.0060],
                 zoom: 13,
                 zoomControl: true
