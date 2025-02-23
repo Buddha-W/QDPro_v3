@@ -779,6 +779,14 @@
                     maxPoints: 0, // Unlimited points
                     showGuides: true
                 }),
+                vertices: {
+                    first: {
+                        icon: new L.DivIcon({
+                            iconSize: new L.Point(0, 0),
+                            className: 'leaflet-div-icon'
+                        })
+                    }
+                },
                 polyline: new L.Draw.Polyline(map, {
                     showLength: false,
                     shapeOptions: {
@@ -1112,6 +1120,11 @@
                     closeModal('newLocationModal');
                     document.getElementById('newLocationName').value = '';
                     document.getElementById('newLocationConfirmModal').style.display = 'block';
+                    // Update current location display
+                    updateCurrentLocation(locationName);
+                    // Clear existing features
+                    clearAllFeatures();
+                    await fetchLocations(); // Refresh locations list
                 } else {
                     alert('Failed to create location: ' + data.detail);
                 }
@@ -1176,11 +1189,17 @@
             });
         }
 
-        function switchLocation(locationName) {
-            updateCurrentLocation(locationName);
-            closeModal('switchLocationModal');
-            clearAllFeatures();
-            loadFromDatabase();
+        async function switchLocation(locationName) {
+            try {
+                updateCurrentLocation(locationName);
+                closeModal('switchLocationModal');
+                clearAllFeatures();
+                await loadFromDatabase();
+                console.log(`Switched to location: ${locationName}`);
+            } catch (error) {
+                console.error('Error switching location:', error);
+                alert('Failed to switch location');
+            }
         }
 
         function updateCurrentLocation(locationName) {

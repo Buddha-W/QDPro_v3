@@ -189,10 +189,26 @@ async def get_locations():
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     try:
-        cur.execute("SELECT id, location_name, created_at FROM locations ORDER BY created_at DESC")
-        locations = [{"id": id, "name": name, "created_at": str(created_at)} 
-                    for id, name, created_at in cur.fetchall()]
+        cur.execute("""
+            SELECT l.id, l.location_name, l.created_at, COUNT(r.id) as record_count 
+            FROM locations l 
+            LEFT JOIN records r ON l.id = r.location_id 
+            GROUP BY l.id, l.location_name, l.created_at 
+            ORDER BY l.created_at DESC
+        """)
+        locations = [{
+            "id": id,
+            "name": name,
+            "created_at": str(created_at),
+            "record_count": record_count
+        } for id, name, created_at, record_count in cur.fetchall()]
         return JSONResponse(content={"locations": locations})
+    except Exception as e:
+        print(f"Error fetching locations: {e}")
+        return JSONResponse(
+            content={"error": "Failed to fetch locations"},
+            status_code=500
+        )
     finally:
         cur.close()
         conn.close()
