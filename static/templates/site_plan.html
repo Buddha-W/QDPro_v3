@@ -573,6 +573,20 @@
             // Force a resize event
             window.map.invalidateSize();
 
+            // Event handlers for drawing
+            map.on('draw:created', function(e) {
+                const layer = e.layer;
+                layer.feature = layer.feature || {};
+                layer.feature.properties = layer.feature.properties || {};
+
+                openEditPopup(layer);
+
+                if (activeLayer) {
+                    activeLayer.addLayer(layer);
+                    saveToDatabase();
+                }
+            });
+
             // Base layers including "None"
             const baseLayers = {
                 'None': L.tileLayer(''),
