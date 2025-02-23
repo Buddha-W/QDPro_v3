@@ -218,12 +218,14 @@
             border-radius: 4px;
         }
         #map {
-            position: absolute;
+            position: fixed;
             top: 90px;
             bottom: 0;
             left: 0;
             right: 0;
             z-index: 1;
+            width: 100%;
+            height: calc(100vh - 90px);
         }
         .base-layer-dropdown {
             position: absolute;
@@ -549,35 +551,27 @@
 
 
         document.addEventListener('DOMContentLoaded', function() {
-            try {
-                // Initialize map
-                window.map = L.map('map', {
-                    center: [40.7128, -74.0060],
-                    zoom: 13,
-                    zoomControl: true
-                });
+            // Initialize map
+            window.map = L.map('map', {
+                center: [40.7128, -74.0060],
+                zoom: 13
+            });
 
-                // Add default OSM layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(window.map);
+            // Add default OSM layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(window.map);
 
-                // Ensure the map container is properly sized
-                const mapContainer = document.getElementById('map');
-                if (mapContainer) {
-                    mapContainer.style.height = 'calc(100vh - 90px)';
-                    mapContainer.style.width = '100%';
-                }
-
-                // Force a resize event after a short delay
-                setTimeout(() => {
-                    window.map.invalidateSize();
-                }, 100);
-
-            } catch (error) {
-                console.error('Error initializing map:', error);
+            // Ensure the map container is properly sized
+            const mapContainer = document.getElementById('map');
+            if (mapContainer) {
+                mapContainer.style.height = 'calc(100vh - 90px)';
+                mapContainer.style.width = '100%';
             }
+
+            // Force a resize event
+            window.map.invalidateSize();
 
             // Base layers including "None"
             const baseLayers = {
