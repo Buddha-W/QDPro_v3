@@ -1,0 +1,45 @@
+I want to build the world's best quantity–distance (QD) engine—a system that calculates safe separation distances for hazardous materials (or explosive quantities) and generates geospatial buffer zones (safe zones) for risk mitigation. This system should be better than existing commercial systems like ESS or Siter.
+
+Please create a prototype application with the following specifications:
+
+**Backend (using FastAPI in Python):**
+1. Create a FastAPI app with endpoints to:
+   - Accept input parameters via a JSON POST request. Required inputs should include:
+     - Quantity (e.g., explosive mass)
+     - Material properties (e.g., detonation velocity, sensitivity)
+     - Environmental factors (e.g., atmospheric conditions)
+   - Perform a basic risk calculation using a scaling law (e.g., Hopkinson–Cranz scaling). For example, compute the safe distance as:
+     ```
+     safe_distance = k * (quantity)^(1/3)
+     ```
+     where k is a constant based on material/environmental properties.
+   - Optionally, perform unit conversions and basic uncertainty analysis.
+   - Return the computed safe distance along with a GeoJSON polygon representing the safe buffer zone (i.e., a circle centered on a given coordinate with radius equal to the safe distance).
+
+2. Use scientific libraries like NumPy and SciPy to perform the calculations.
+3. Include endpoints for retrieving past calculation results (to simulate scenario modeling).
+
+**Database & Geospatial Data:**
+- For the prototype, you can either simulate the geospatial data (using GeoJSON) or integrate with PostgreSQL/PostGIS if desired. For now, returning a GeoJSON circle is acceptable.
+
+**Frontend (Simple Web Interface):**
+1. Create a basic HTML/JavaScript interface that:
+   - Provides a form for users to input:
+     - Quantity (numeric)
+     - Material properties (e.g., drop-down or numeric fields)
+     - Environmental conditions
+   - On form submission, sends the data as a JSON POST request to your FastAPI endpoint.
+   - Receives the safe distance and GeoJSON polygon from the API.
+   - Displays the safe distance and renders the GeoJSON polygon on an interactive map (using Leaflet).
+
+2. Use Leaflet for the interactive map visualization:
+   - Include Leaflet’s CSS and JS via CDN.
+   - Display the map and overlay the GeoJSON polygon representing the safe zone.
+   - Optionally, allow switching between different scenarios.
+
+**General Requirements:**
+- The code should be modular and well-documented.
+- Include instructions in comments on how to run the FastAPI app (e.g., using uvicorn).
+- Ensure the design is extendable for future improvements (e.g., advanced scenario modeling, uncertainty analysis, detailed reports).
+
+Please return the full code (backend and frontend) as a complete, working prototype for the QD engine.
