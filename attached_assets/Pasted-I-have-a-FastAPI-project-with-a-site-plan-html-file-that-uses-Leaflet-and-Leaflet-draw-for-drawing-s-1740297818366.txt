@@ -1,0 +1,22 @@
+I have a FastAPI project with a site_plan.html file that uses Leaflet and Leaflet.draw for drawing shapes on a map, along with modals for creating and switching locations. I need to make the following updates:
+
+1. **Blank Slate for New/Switching Locations:**  
+   When a new location is created or when the user switches to another location, all currently drawn shapes (features) must be cleared from the drawing layer so that the new location starts with a blank slate. Only the layers (and their definitions) should remain; any features drawn in the previous location should not appear.
+
+2. **Shape Styling Based on Type Code Designator:**  
+   The type code input box is used to determine the color of a new shape, but the designator value determines whether the shape is a PES or ES type. I need the logic to be:
+   - If the designator contains "PES" (case insensitive), the shape should be styled with a red fill and red outline.
+   - If the designator contains "ES" (but not PES), the shape should be styled with a darker green fill and outline (for example, using hex code #006400).  
+   (If you have any specific knowledge of ESS software’s type codes, please incorporate them; otherwise, assume that the designator string will include "PES" or "ES" as appropriate.)
+
+3. **Integration:**  
+   Update the drawing JavaScript so that when a new shape is added:
+   - It checks the type code designator (from an input field or the shape’s properties) and applies the correct style.
+   - When switching locations or creating a new location, the drawing layer is cleared so that the new location has no previously drawn shapes.
+
+Please update my site_plan.html (including the relevant JavaScript and CSS) so that:
+- When a new location is selected/created, the map’s drawing layer is cleared (a blank slate).
+- New shapes are styled with red if their designator contains "PES" and with dark green (#006400) if the designator contains "ES" (and not PES).
+- If there’s any known ESS type code information, please incorporate that; if not, use the above assumptions.
+
+Return the full updated code with these changes.
