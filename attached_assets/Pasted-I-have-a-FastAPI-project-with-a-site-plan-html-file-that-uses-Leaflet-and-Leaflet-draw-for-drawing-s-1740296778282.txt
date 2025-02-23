@@ -1,0 +1,25 @@
+I have a FastAPI project with a site_plan.html file that uses Leaflet and Leaflet.draw for drawing shapes, along with a custom toolbar and File menu. I’m encountering several issues that need to be fixed:
+
+1. **prompt() Error in Leaflet.draw:**  
+   When drawing shapes, I get an error in the console saying:  
+   "Uncaught Error: prompt() is and will not be supported."  
+   This error seems to come from Leaflet.draw calling prompt() to finalize the polygon (or for other purposes). I need this usage removed or replaced with an alternative method so that polygons can be finalized without calling prompt().
+
+2. **Polygon Finalization & Drawing Handles:**  
+   - The drawing function does not allow me to finalize the polygon properly (the final click isn’t registering, so the polygon isn’t completed).
+   - Additionally, there are squares (handles) that appear around the drawn polygon. I want those removed so that only the drawn line (with crosshairs) remains.
+
+3. **Toolbar Styling Adjustments:**  
+   - The current toolbar is centered; I need it to be aligned to the left.
+   - The "Location:" text (which displays the current location) is now inside the toolbar box. I want that moved outside the toolbar (as it was originally) so it displays separately (e.g., in the top-right area as before).
+
+Please update my site_plan.html (and any inline JavaScript/CSS) to implement these changes:
+- Remove or replace the usage of prompt() in Leaflet.draw so that polygons can be finalized (for example, by using a finish button or double-click to complete drawing).
+- Ensure the drawn polygon can be finalized correctly and remove the extra handles/squares that appear after drawing.
+- Adjust the toolbar so that it is aligned left and the current "Location:" display is moved outside the toolbar container.
+
+Below is my current site_plan.html code (or the relevant portions). Please return the full modified code implementing these fixes.
+
+----------------------------------------------------
+[Insert your current site_plan.html code here]
+----------------------------------------------------
