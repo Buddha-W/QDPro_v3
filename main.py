@@ -57,9 +57,25 @@ class QDCalculationRequest(BaseModel):
 
 @app.post("/api/calculate-qd")
 async def calculate_qd(request: QDCalculationRequest):
+    """Calculate QD parameters and generate buffer zones"""
     try:
-        # Create QD engine based on site type
+        # Create appropriate QD engine
         qd_engine = create_qd_engine(request.site_type)
+        
+        # Create material properties object
+        material_props = MaterialProperties(
+            sensitivity=request.sensitivity,
+            det_velocity=request.det_velocity,
+            tnt_equiv=request.tnt_equiv
+        )
+        
+        # Create environmental conditions object
+        env_conditions = EnvironmentalConditions(
+            temperature=request.temperature,
+            pressure=request.pressure,
+            humidity=request.humidity,
+            confinement_factor=request.confinement_factor
+        )
         
         # Create material properties object
         material_props = MaterialProperties(

@@ -333,6 +333,13 @@
                         <option value="Low Explosive">Low Explosive (k=30)</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label for="siteType">Site Type:</label>
+                    <select id="siteType">
+                        <option value="DOD">DOD</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
                 <p>Click on the map to select location for QD calculation.</p>
                 <button onclick="calculateQD()" class="tool-button">Calculate Safe Distance</button>
             </div>
@@ -439,7 +446,7 @@
 
         function showQDCalculator() {
             document.getElementById('qdCalculatorModal').style.display = 'block';
-            
+
             // Enable map click for location selection
             window.map.on('click', function(e) {
                 if (document.getElementById('qdCalculatorModal').style.display === 'block') {
@@ -459,14 +466,14 @@
                 return;
             }
 
+            // Clear any existing QD visualization
+            if (window.qdBufferLayer) {
+                window.map.removeLayer(window.qdBufferLayer);
+            }
+
             const quantity = document.getElementById('quantity').value;
             const materialType = document.getElementById('materialType').value;
-            let kFactor = 40;
-            
-            switch(materialType) {
-                case 'High Explosive': kFactor = 50; break;
-                case 'Low Explosive': kFactor = 30; break;
-            }
+            const siteType = document.getElementById('siteType').value || 'DOD';
 
             try {
                 const response = await fetch('/api/calculate-qd', {
@@ -476,32 +483,43 @@
                         quantity: parseFloat(quantity),
                         lat: selectedQDPoint.lat,
                         lng: selectedQDPoint.lng,
-                        k_factor: kFactor,
-                        material_type: materialType
+                        site_type: siteType,
+                        material_type: materialType,
+                        // Add default values for other parameters
+                        sensitivity: 0.5,
+                        det_velocity: 6000,
+                        tnt_equiv: 1.0,
+                        temperature: 298,
+                        pressure: 101.325,
+                        humidity: 50,
+                        confinement_factor: 0.0
                     })
                 });
 
                 const data = await response.json();
-                
-                // Remove existing buffer layer if any
-                if (qdBufferLayer) {
-                    window.map.removeLayer(qdBufferLayer);
-                }
 
-                // Add new buffer zone
-                qdBufferLayer = L.geoJSON(data.buffer_zone, {
-                    style: {
-                        color: '#ff0000',
-                        weight: 2,
-                        opacity: 0.8,
-                        fillColor: '#ff0000',
-                        fillOpacity: 0.2
+                // Create GeoJSON layer for buffer zones
+                window.qdBufferLayer = L.geoJSON(data.buffer_zones, {
+                    style: function(feature) {
+                        return {
+                            color: '#ff0000',
+                            weight: 2,
+                            opacity: 0.8,
+                            fillColor: '#ff0000',
+                            fillOpacity: 0.2 * (feature.properties.ring_number / 4)
+                        };
+                    },
+                    onEachFeature: function(feature, layer) {
+                        layer.bindTooltip(
+                            `Distance: ${feature.properties.distance.toFixed(2)} ft<br>` +
+                            `K-factor: ${feature.properties.k_factor.toFixed(1)}`
+                        );
                     }
                 }).addTo(window.map);
 
                 // Show results
                 alert(`Safe Distance: ${data.safe_distance.toFixed(2)} ${data.units}`);
-                
+
             } catch (error) {
                 console.error('QD calculation error:', error);
                 alert('Error calculating safe distance');
@@ -821,9 +839,7 @@
                 center: [40.7128, -74.0060],
                 zoom: 13,
                 zoomControl: true
-            });
-
-            // Add default OSM layer
+            });            // Add default OSM layer
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap contributors'
@@ -940,6 +956,7 @@
 
             // Function to deactivate all drawing tools and their buttons
             function deactivateAllDrawingTools() {
+                // Disable all drawing tools and remove active state from buttons
                 Object.values(drawingTools).forEach(tool => {
                     if (tool && typeof tool.disable === 'function') {
                         tool.disable();
@@ -947,10 +964,15 @@
                 });
 
                 // Remove active class from all drawing buttons
-                ['drawPolygon', 'drawPolyline', 'drawRectangle', 'drawCircle', 'drawMarker'].forEach(id => {
-                    const button = document.getElementById(id);
-                    if (button) button.classList.remove('active');
+                document.querySelectorAll('.tool-button').forEach(button => {
+                    button.classList.remove('active');
                 });
+
+                // Clear any temporary markers or guidelines
+                if (window.map) {
+                    window.map.off('mousemove');
+                    window.map.off('click');
+                }
             }
 
             // Function to set up drawing tool button
@@ -1015,22 +1037,8 @@
             });
 
             // Handle drawing events
-            map.on('draw:created', function(e) {
-                const layer = e.layer;
-                layer.feature = layer.feature || {};
-                layer.feature.properties = layer.feature.properties || {};
-
-                // Immediately open edit popup instead of using prompt
-                if (window.activeLayer) {
-                    window.activeLayer.addLayer(layer);
-                }
-
-                openEditPopup(layer);
-                layer.on('click', function() {
-                    openEditPopup(layer);
-                });
-
-                saveToDatabase();
+            map.on('draw:created', function() {
+                deactivateAllDrawingTools();
             });
 
             window.saveTypeCode = function() {

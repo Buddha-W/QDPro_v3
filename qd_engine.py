@@ -6,6 +6,7 @@ from shapely.geometry import Point, Polygon
 from shapely.ops import transform
 import numpy as np
 from abc import ABC, abstractmethod
+from functools import lru_cache
 
 @dataclass
 class MaterialProperties:
@@ -37,6 +38,7 @@ class QDEngineBase(ABC):
         """Basic cube root scaling law"""
         return k_factor * (quantity) ** (1/3)
     
+    @lru_cache(maxsize=1000)  # Cache results for performance
     def apply_environmental_corrections(self, 
                                      base_distance: float,
                                      env_conditions: EnvironmentalConditions) -> float:
@@ -56,7 +58,7 @@ class QDEngineBase(ABC):
         """Generate concentric buffer rings"""
         rings = []
         center = Point(center_lon, center_lat)
-        ft_to_deg = 1/364000
+        ft_to_deg = 1/364000  # Approximate conversion for mid-latitudes
         
         for i in range(num_rings):
             ring_distance = safe_distance * (i + 1) / num_rings
@@ -69,7 +71,7 @@ class QDEngineBase(ABC):
                 y = center_lat + ring_radius_deg * math.sin(rad)
                 circle_points.append((x, y))
             
-            circle_points.append(circle_points[0])
+            circle_points.append(circle_points[0])  # Close the polygon
             
             ring_feature = {
                 "type": "Feature",
@@ -79,12 +81,31 @@ class QDEngineBase(ABC):
                 },
                 "properties": {
                     "distance": ring_distance,
-                    "k_factor": self.k_factors["default"] * (i + 1) / num_rings
+                    "k_factor": self.k_factors["default"] * (i + 1) / num_rings,
+                    "ring_number": i + 1
                 }
             }
             rings.append(ring_feature)
         
         return rings
+
+    def monte_carlo_uncertainty(self, base_calculation, num_samples=1000):
+        """
+        TODO: Implement Monte Carlo simulation for uncertainty quantification
+        - Sample input parameters from their probability distributions
+        - Run multiple calculations with sampled parameters
+        - Return confidence intervals and uncertainty bounds
+        """
+        pass
+
+    def calibrate_model(self, historical_data):
+        """
+        TODO: Implement model calibration using historical data
+        - Compare predictions with actual measurements
+        - Adjust model parameters to minimize error
+        - Use machine learning for parameter optimization
+        """
+        pass
 
 class DoDQDEngine(QDEngineBase):
     """DoD-specific QD calculation engine"""
@@ -104,6 +125,11 @@ class DoDQDEngine(QDEngineBase):
                       env_conditions: Optional[EnvironmentalConditions] = None,
                       k_factor: float = 40) -> float:
         """Calculate DoD ESQD"""
+        # TODO: Implement more sophisticated scaling laws based on:
+        # - TNT equivalence testing data
+        # - Blast wave propagation models
+        # - Fragment throw analysis
+        
         base_distance = self.calculate_base_distance(
             quantity * material_props.tnt_equiv, 
             k_factor
@@ -139,6 +165,11 @@ class DoEQDEngine(QDEngineBase):
                       env_conditions: Optional[EnvironmentalConditions] = None,
                       k_factor: float = 50) -> float:
         """Calculate DoE ESQD with enhanced safety margins"""
+        # TODO: Implement DoE-specific enhancements:
+        # - Advanced blast effects modeling
+        # - Material-specific reaction kinetics
+        # - Structure response analysis
+        
         base_distance = self.calculate_base_distance(
             quantity * material_props.tnt_equiv * 1.2,  # 20% safety margin
             k_factor
