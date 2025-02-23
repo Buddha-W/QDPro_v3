@@ -436,7 +436,8 @@
 
     <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
     <div id="map"></div>
-    <div id="cesiumContainer"></div>
+    <!-- Commented out Cesium container for now -->
+    <!-- <div id="cesiumContainer"></div> -->
 
 
     <!-- Type Code Modal -->
@@ -1695,17 +1696,19 @@
             document.getElementById('isQDAnalyzed').checked = false;
         }
 
-        //CesiumJS integration
+        // Commented out CesiumJS integration
+        /*
         let cesiumViewer;
+        */
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map layers first
+            // Initialize map layers
             window.layers = {
                 'Drawn Items': new L.FeatureGroup().addTo(window.map),
                 'Facilities': new L.FeatureGroup().addTo(window.map),
                 'Analysis': new L.FeatureGroup().addTo(window.map)
             };
             
-            // Then initialize Cesium with access token
+            /* Commented out Cesium initialization
             Cesium.Ion.defaultAccessToken = 'your_access_token_here';
             cesiumViewer = new Cesium.Viewer('cesiumContainer', {
                 terrainProvider: Cesium.createWorldTerrain(),
@@ -1720,6 +1723,7 @@
                 }
             });
             cesiumViewer.scene.globe.enableLighting = true;
+            */
         });
 
     </script>
