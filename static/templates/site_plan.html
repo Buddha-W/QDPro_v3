@@ -597,8 +597,9 @@
                             <input id="facilityName" type="text" value="${layer.feature.properties.name || ''}" style="width: 100%;" />
                         </div>
                         <div class="form-group" style="margin-bottom: 10px;">
-                            <label for="facilityTypeCode">Type Code:</label>
-                            <input id="facilityTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" />
+                            <label for="facilityTypeCode">Type Code Designator (PES/ES):</label>
+                            <input id="facilityTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" 
+                                   placeholder="Enter PES or ES designator" />
                         </div>
                         <div class="form-group" style="margin-bottom: 10px;">
                             <label for="facilityDescription">Description:</label>
@@ -1095,17 +1096,22 @@
                 fillOpacity: 0.3
             };
 
-            if (type === 'PES') {
+            if (!type) return defaultStyle;
+
+            // Convert to uppercase for case-insensitive comparison
+            const upperType = type.toUpperCase();
+            
+            if (upperType.includes('PES')) {
                 return {
                     ...defaultStyle,
                     color: '#ff0000',
                     fillColor: '#ff0000'
                 };
-            } else if (type === 'ES') {
+            } else if (upperType.includes('ES')) {
                 return {
                     ...defaultStyle,
-                    color: '#00ff00',
-                    fillColor: '#00ff00'
+                    color: '#006400', // Dark green
+                    fillColor: '#006400'
                 };
             }
 
@@ -1132,12 +1138,30 @@
             }
         }
 
+        function clearAllFeatures() {
+            Object.values(layers).forEach(layer => {
+                if (layer instanceof L.FeatureGroup) {
+                    layer.clearLayers();
+                }
+            });
+        }
+
         function switchLocation(locationName) {
             updateCurrentLocation(locationName);
             closeModal('switchLocationModal');
-            // Clear the map on location switch
-            Object.values(layers).forEach(layer => layer.clearLayers());
-            loadFromDatabase(); //Reload data for the new location
+            // Clear all features from layers before loading new location data
+            clearAllFeatures();
+            loadFromDatabase(); // Reload data for the new location
+        }
+
+        function handleLocationSwitch(shouldSwitch) {
+            if (shouldSwitch && newLocationData) {
+                updateCurrentLocation(newLocationData.name);
+                // Clear all features when creating new location
+                clearAllFeatures();
+            }
+            closeModal('newLocationConfirmModal');
+            newLocationData = null;
         }
 
         function updateCurrentLocation(locationName) {
