@@ -409,6 +409,77 @@
     <script>
         let currentDrawnLayer = null;
 
+        // Global function for loading from database
+        async function loadFromDatabase() {
+            try {
+                const response = await fetch('/api/load-layers');
+                const data = await response.json();
+                console.log('Loaded layer data:', JSON.stringify(data, null, 2));
+
+                const layerData = data.layers || {};
+
+                // Clear existing layers
+                Object.values(layers).forEach(layer => map.removeLayer(layer));
+                window.layers = {};
+
+                Object.keys(layerData).forEach(layerName => {
+                    const layerGroup = new L.FeatureGroup();
+                    layerGroup.properties = layerData[layerName].properties;
+                    layers[layerName] = layerGroup;
+                    map.addLayer(layerGroup);
+
+                    if (layerData[layerName].features) {
+                        layerData[layerName].features.forEach(feature => {
+                            L.geoJSON(feature, {
+                                onEachFeature: function(feature, layer) {
+                                    if (feature.properties && feature.properties.typeCode) {
+                                        layer.setStyle(getStyleForFeatureType(feature.properties.typeCode));
+                                        layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
+                                    }
+                                },
+                                style: function(feature) {
+                                    return getStyleForFeatureType(feature.properties.typeCode);
+                                }
+                            }).eachLayer(l => {
+                                l.feature = feature;
+                                layerGroup.addLayer(l);
+                            });
+                        });
+                    }
+                });
+
+                Object.values(layers).forEach(layer => {
+                    attachEditHandlers(layer);
+                });
+
+                updateLayerControl();
+                updateDrawToLayerSelect();
+            } catch (error) {
+                console.error('Error loading layers:', error);
+            }
+        }
+
+        async function fetchLocations() {
+            try {
+                const response = await fetch('/api/locations');
+                const data = await response.json();
+
+                const locationsList = document.getElementById('locationsList');
+                locationsList.innerHTML = data.locations.map(loc => `
+                    <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
+                         onclick="switchLocation('${loc.name}')">
+                        ${loc.name}
+                        <br>
+                        <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching locations:', error);
+                document.getElementById('locationsList').innerHTML = 'Failed to load locations';
+            }
+        }
+
+
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize map
             const map = L.map('map', {
@@ -532,57 +603,6 @@
                     });
                 } catch (error) {
                     console.error('Error saving layers:', error);
-                }
-            }
-
-            async function loadFromDatabase() {
-                try {
-                    const response = await fetch('/api/load-layers');
-                    const data = await response.json();
-                    console.log('Loaded layer data:', JSON.stringify(data, null, 2)); // Debug log
-
-                    const layerData = data.layers || {};
-
-                    // Clear existing layers
-                    Object.values(layers).forEach(layer => map.removeLayer(layer));
-                    window.layers = {}; // Fix: Use window.layers instead of layers
-
-                    Object.keys(layerData).forEach(layerName => {
-                        const layerGroup = new L.FeatureGroup();
-                        layerGroup.properties = layerData[layerName].properties;
-                        layers[layerName] = layerGroup;
-                        map.addLayer(layerGroup);
-
-                        if (layerData[layerName].features) {
-                            layerData[layerName].features.forEach(feature => {
-                            L.geoJSON(feature, {
-                                onEachFeature: function(feature, layer) {
-                                    if (feature.properties && feature.properties.typeCode) {
-                                        layer.setStyle(getStyleForFeatureType(feature.properties.typeCode));
-                                        layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
-                                    }
-                                },
-                                style: function(feature){
-                                  return getStyleForFeatureType(feature.properties.typeCode)
-                                }
-                            }).eachLayer(l => {
-                                // Transfer properties to the layer
-                                l.feature = feature;
-                                l.bindTooltip(`Type: ${feature.properties.typeCode || 'Unspecified'}`);
-                                layerGroup.addLayer(l);
-                            });
-                        });
-                    }
-                });
-                // Attach edit handlers to all loaded layers
-                Object.values(layers).forEach(layer => {
-                    attachEditHandlers(layer);
-                });
-
-                updateLayerControl();
-                updateDrawToLayerSelect();
-                } catch (error) {
-                    console.error('Error loading layers:', error);
                 }
             }
 
@@ -1100,7 +1120,7 @@
 
             // Convert to uppercase for case-insensitive comparison
             const upperType = type.toUpperCase();
-            
+
             if (upperType.includes('PES')) {
                 return {
                     ...defaultStyle,
