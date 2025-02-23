@@ -136,8 +136,7 @@
         .toolbar {
             position: fixed;
             top: 40px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 10px;
             height: 40px;
             background: #fff;
             border: 1px solid #ccc;
@@ -355,10 +354,10 @@
                 <i class="fas fa-minus"></i>
             </button>
         </div>
-        <div id="dbStatus" style="margin-left: auto; padding: 0 10px; font-size: 14px; color: #333;">
+        </div>
+        <div id="dbStatus" style="position: fixed; top: 50px; right: 10px; padding: 5px 10px; font-size: 14px; color: #333; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             {% if current_location %}Location: {{ current_location }}{% else %}No location selected{% endif %}
         </div>
-    </div>
 
     <!-- Add Layer Modal -->
     <div id="addLayerModal" class="modal">
@@ -674,12 +673,96 @@
             });
 
             const drawingTools = {
-                polygon: new L.Draw.Polygon(map),
-                polyline: new L.Draw.Polyline(map),
-                rectangle: new L.Draw.Rectangle(map),
-                circle: new L.Draw.Circle(map),
+                polygon: new L.Draw.Polygon(map, {
+                    showLength: false,
+                    showArea: false,
+                    allowIntersection: true,
+                    drawError: {
+                        color: '#e1e100',
+                        message: '<strong>Error:</strong> shape edges cannot cross!'
+                    },
+                    shapeOptions: {
+                        stroke: true,
+                        color: '#3388ff',
+                        weight: 2,
+                        opacity: 0.5,
+                        fill: true,
+                        fillColor: null,
+                        fillOpacity: 0.2,
+                        clickable: true
+                    },
+                    vertices: {
+                        first: {
+                            icon: new L.DivIcon({
+                                iconSize: new L.Point(8, 8),
+                                className: 'leaflet-div-icon leaflet-editing-icon'
+                            })
+                        },
+                        middle: {
+                            icon: new L.DivIcon({
+                                iconSize: new L.Point(8, 8),
+                                className: 'leaflet-div-icon leaflet-editing-icon'
+                            })
+                        },
+                        last: {
+                            icon: new L.DivIcon({
+                                iconSize: new L.Point(8, 8),
+                                className: 'leaflet-div-icon leaflet-editing-icon'
+                            })
+                        }
+                    }
+                }),
+                polyline: new L.Draw.Polyline(map, {
+                    showLength: false,
+                    shapeOptions: {
+                        color: '#3388ff',
+                        weight: 2,
+                        opacity: 0.5
+                    }
+                }),
+                rectangle: new L.Draw.Rectangle(map, {
+                    showArea: false,
+                    shapeOptions: {
+                        stroke: true,
+                        color: '#3388ff',
+                        weight: 2,
+                        opacity: 0.5,
+                        fill: true,
+                        fillColor: null,
+                        fillOpacity: 0.2,
+                        clickable: true
+                    }
+                }),
+                circle: new L.Draw.Circle(map, {
+                    showRadius: false,
+                    shapeOptions: {
+                        stroke: true,
+                        color: '#3388ff',
+                        weight: 2,
+                        opacity: 0.5,
+                        fill: true,
+                        fillColor: null,
+                        fillOpacity: 0.2,
+                        clickable: true
+                    }
+                }),
                 marker: new L.Draw.Marker(map)
             };
+
+            // Enable double-click to finish polygon
+            map.doubleClickZoom.disable();
+            map.on('draw:created', function(e) {
+                const layer = e.layer;
+                layer.feature = layer.feature || {};
+                layer.feature.properties = layer.feature.properties || {};
+                
+                openEditPopup(layer);
+
+                if (activeLayer) {
+                    activeLayer.addLayer(layer);
+                    saveToDatabase();
+                }
+            });
 
             // Drawing tool button handlers
             document.getElementById('drawPolygon').onclick = () => {
