@@ -585,171 +585,73 @@
         }
 
 
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Ensure map container is properly sized before initialization
+            const mapContainer = document.getElementById('map');
+            mapContainer.style.height = 'calc(100vh - 90px)';
+            mapContainer.style.width = '100%';
+
+            // Initialize the map
             window.map = L.map('map', {
                 center: [40.7128, -74.0060],
                 zoom: 13,
                 zoomControl: true
             });
 
-            // Add default OSM layer with HTTPS
+            // Add base tile layer
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: '© OpenStreetMap contributors',
-                crossOrigin: true
+                attribution: '© OpenStreetMap contributors'
             }).addTo(window.map);
 
-            // Force map to update its size and view
-            setTimeout(() => {
-                window.map.invalidateSize();
-                window.map.setView([40.7128, -74.0060], 13);
-            }, 100);
+            // Create default layers
+            window.layers = {
+                'Drawn Items': new L.FeatureGroup().addTo(window.map),
+                'Facilities': new L.FeatureGroup().addTo(window.map),
+                'Analysis': new L.FeatureGroup().addTo(window.map)
+            };
 
-            // Ensure the map container is properly sized
-            const mapContainer = document.getElementById('map');
-            if (mapContainer) {
-                mapContainer.style.height = 'calc(100vh - 90px)';
-                mapContainer.style.width = '100%';
-            }
+            // Set initial active layer
+            activeLayer = window.layers['Drawn Items'];
 
-            // Force a resize event
-            window.map.invalidateSize();
+            // Initialize drawing tools with edit feature group
+            const drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: activeLayer
+                },
+                draw: {
+                    circle: true,
+                    rectangle: true,
+                    polygon: true,
+                    polyline: true,
+                    marker: true
+                }
+            });
+            window.map.addControl(drawControl);
 
-            // Event handlers for drawing
-            map.on('draw:created', function(e) {
+            // Event handler for drawing
+            window.map.on('draw:created', function(e) {
                 const layer = e.layer;
                 layer.feature = layer.feature || {};
                 layer.feature.properties = layer.feature.properties || {};
 
-                openEditPopup(layer);
-
                 if (activeLayer) {
                     activeLayer.addLayer(layer);
+                    openEditPopup(layer);
                     saveToDatabase();
                 }
             });
 
-            // Base layers including "None"
-            const baseLayers = {
-                'None': L.tileLayer(''),
-                'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                }),
-                'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
-                'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
-                'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
-            };
+            // Force a map resize after initialization
+            setTimeout(() => {
+                window.map.invalidateSize();
+            }, 100);
 
-            // Set default base layer
-            baseLayers['OpenStreetMap'].addTo(map);
-
-            // Layer management
-            let activeLayer = null;
-
-            // Add Layer Modal functionality
-            const modal = document.getElementById('addLayerModal');
-            const closeBtn = document.querySelector('.modal-close');
-
-            window.showAddLayerModal = function() {
-                modal.style.display = 'block';
-            }
-
-            closeBtn.onclick = function() {
-                modal.style.display = 'none';
-            }
-
-            window.addNewLayer = function() {
-                const name = document.getElementById('layerName').value;
-                const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
-
-                if (!name) return;
-
-                addLayer(name, { isQDAnalyzed });
-                modal.style.display = 'none';
-                document.getElementById('layerName').value = '';
-                document.getElementById('isQDAnalyzed').checked = false;
-            }
-
-            window.editLayer = function(name) {
-                const layer = layers[name];
-                if (!layer) return;
-
-                const newName = prompt('Enter new layer name:', name);
-                if (!newName) return;
-
-                const isQDAnalyzed = confirm('Is this layer QD analyzed?');
-                layer.properties = {
-                    ...layer.properties,
-                    isQDAnalyzed,
-                    name: newName
-                };
-
-                if (name !== newName) {
-                    layers[newName] = layer;
-                    delete layers[name];
-                }
-
-                updateLayerControl();
-                saveToDatabase();
-            }
-
-            function attachEditHandlers(layer) {
-                if (layer instanceof L.FeatureGroup) {
-                    layer.eachLayer(l => {
-                        // Ensure the layer has a feature property
-                        l.feature = l.feature || {};
-                        l.feature.properties = l.feature.properties || {};
-
-                        // Remove existing click handlers to prevent duplicates
-                        l.off('click');
-
-                        // Add new click handler
-                        l.on('click', function() {
-                            openEditPopup(l);
-                        });
-                    });
-                }
-            }
-
-            async function saveToDatabase() {
-                const layerData = {
-                    layers: {}
-                };
-                Object.keys(layers).forEach(layerName => {
-                    const layer = layers[layerName];
-                    attachEditHandlers(layer);
-                    layerData.layers[layerName] = {
-                        properties: layer.properties || {},
-                        features: []
-                    };
-                    layer.eachLayer(l => {
-                        if (l.toGeoJSON) {
-                            const geoJSON = l.toGeoJSON();
-                            if (l.feature && l.feature.properties) {
-                                geoJSON.properties = {...l.feature.properties};
-                            }
-                            layerData.layers[layerName].features.push(geoJSON);
-                        }
-                    });
-                });
-
-                console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
-
-                try {
-                    await fetch('/api/save-layers', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(layerData)
-                    });
-                } catch (error) {
-                    console.error('Error saving layers:', error);
-                }
-            }
-
-            });
+            // Load existing data
+            await loadFromDatabase();
+            updateLayerControl();
+            updateDrawToLayerSelect();
+        });
 
         function openEditPopup(layer) {
                 layer.feature = layer.feature || {};
@@ -1519,6 +1421,167 @@
                 event.target.style.display = 'none';
             }
         };
+
+        async function saveToDatabase() {
+            const layerData = {
+                layers: {}
+            };
+            Object.keys(layers).forEach(layerName => {
+                const layer = layers[layerName];
+                layerData.layers[layerName] = {
+                    properties: layer.properties || {},
+                    features: []
+                };
+                layer.eachLayer(l => {
+                    if (l.toGeoJSON) {
+                        const geoJSON = l.toGeoJSON();
+                        if (l.feature && l.feature.properties) {
+                            geoJSON.properties = {...l.feature.properties};
+                        }
+                        layerData.layers[layerName].features.push(geoJSON);
+                    }
+                });
+            });
+
+            console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
+
+            try {
+                await fetch('/api/save-layers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(layerData)
+                });
+            } catch (error) {
+                console.error('Error saving layers:', error);
+            }
+        }
+
+        function attachEditHandlers(layer) {
+            if (layer instanceof L.FeatureGroup) {
+                layer.eachLayer(l => {
+                    // Ensure the layer has a feature property
+                    l.feature = l.feature || {};
+                    l.feature.properties = l.feature.properties || {};
+
+                    // Remove existing click handlers to prevent duplicates
+                    l.off('click');
+
+                    // Add new click handler
+                    l.on('click', function() {
+                        openEditPopup(l);
+                    });
+                });
+            }
+        }
+
+        let baseLayers = {
+            'None': L.tileLayer(''),
+            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }),
+            'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
+            'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
+            'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
+        };
+
+        function updateLayerControl() {
+            const layerControl = document.getElementById('layerControl');
+            layerControl.innerHTML = '';
+
+            Object.entries(layers).forEach(([name, layer]) => {
+                const item = document.createElement('div');
+                item.className = 'layer-control-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="layer-${name}" 
+                           ${map.hasLayer(layer) ? 'checked' : ''}>
+                    <label for="layer-${name}">
+                        ${name}
+                        <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
+                            (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
+                        </span>
+                    </label>
+                    <button class="edit-layer-button" onclick="editLayer('${name}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                `;
+                item.querySelector('input').onchange = (e) => {
+                    if (e.target.checked) {
+                        map.addLayer(layer);
+                    } else {
+                        map.removeLayer(layer);
+                    }
+                };
+                layerControl.appendChild(item);
+            });
+        }
+
+        function editLayer(name) {
+            const layer = layers[name];
+            if (!layer) return;
+
+            const newName = prompt('Enter new layer name:', name);
+            if (!newName) return;
+
+            const isQDAnalyzed = confirm('Is this layer QD analyzed?');
+            layer.properties = {
+                ...layer.properties,
+                isQDAnalyzed,
+                name: newName
+            };
+
+            if (name !== newName) {
+                layers[newName] = layer;
+                delete layers[name];
+            }
+
+            updateLayerControl();
+            saveToDatabase();
+        }
+
+
+        function updateDrawToLayerSelect() {
+            const select = document.getElementById('drawToLayer');
+            select.innerHTML = '';
+            Object.keys(layers).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+
+            if (select.options.length > 0) {
+                activeLayer = layers[select.options[0].value]; //Select the first option as default active layer
+            }
+        }
+
+        let activeLayer = null;
+
+        // Add Layer Modal functionality
+        const modal = document.getElementById('addLayerModal');
+        const closeBtn = document.querySelector('.modal-close');
+
+        window.showAddLayerModal = function() {
+            modal.style.display = 'block';
+        }
+
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.addNewLayer = function() {
+            const name = document.getElementById('layerName').value;
+            const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
+
+            if (!name) return;
+
+            addLayer(name, { isQDAnalyzed });
+            modal.style.display = 'none';
+            document.getElementById('layerName').value = '';
+            document.getElementById('isQDAnalyzed').checked = false;
+        }
+
     </script>
 </body>
 </html>
