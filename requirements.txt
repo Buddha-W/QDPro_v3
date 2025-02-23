@@ -32,3 +32,6 @@ numpy
 shapely
 numpy
 shapely
+pdfkit
+plotly
+scikit-learn

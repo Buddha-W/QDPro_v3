@@ -6,7 +6,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ==" crossorigin="anonymous"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" integrity="sha512-ozq8xQKq6urvuU6jNgkfqAmT7jKN2XumbrX1JiB3TnF7tI48DPI4Gy1GXKD/V3EExgAs1V+pRO7vwtS1LHg0Gw==" crossorigin="anonymous"></script>
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Cesium.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.95/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     <style>
         body { margin: 0; padding: 0; }
         .modal {
@@ -277,6 +279,15 @@
           cursor: pointer;
           border-bottom: 1px solid #ddd;
         }
+        #cesiumContainer {
+            position: absolute;
+            top: 90px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: calc(100vh - 90px);
+            z-index: 2; /* Ensure it's above the Leaflet map */
+        }
     </style>
 </head>
 <body>
@@ -425,6 +436,8 @@
 
     <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
     <div id="map"></div>
+    <div id="cesiumContainer"></div>
+
 
     <!-- Type Code Modal -->
     <div id="typeCodeModal" class="modal">
@@ -1680,6 +1693,17 @@
             document.getElementById('layerName').value = '';
             document.getElementById('isQDAnalyzed').checked = false;
         }
+
+        //CesiumJS integration
+        let cesiumViewer;
+        document.addEventListener('DOMContentLoaded', function() {
+            cesiumViewer = new Cesium.Viewer('cesiumContainer', {
+                terrainProvider: Cesium.createWorldTerrain(),
+                infoBox: false,
+                selectionIndicator: false,
+                shadows: true
+            });
+        });
 
     </script>
 </body>

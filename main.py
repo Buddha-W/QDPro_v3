@@ -55,6 +55,44 @@ class QDCalculationRequest(BaseModel):
     humidity: float = 50
     confinement_factor: float = 0.0
 
+from fastapi.responses import HTMLResponse
+import pdfkit
+from datetime import datetime
+
+@app.post("/api/sensor-data")
+async def update_sensor_data(data: Dict[str, float]):
+    """Update real-time sensor data"""
+    qd_engine = create_qd_engine("DOD")  # Or get from current context
+    await qd_engine.update_sensor_data(data)
+    return {"status": "updated", "timestamp": datetime.now().isoformat()}
+
+@app.get("/api/generate-report/{site_id}")
+async def generate_report(site_id: str, format: str = "html"):
+    """Generate site safety report"""
+    # Sample report data
+    report_data = {
+        "site_id": site_id,
+        "timestamp": datetime.now().isoformat(),
+        "risk_assessment": "Normal",
+        "sensor_readings": {
+            "temperature": 25.0,
+            "humidity": 60.0
+        }
+    }
+    
+    html_content = f"""
+    <h1>Site Safety Report</h1>
+    <p>Site ID: {report_data['site_id']}</p>
+    <p>Generated: {report_data['timestamp']}</p>
+    <h2>Risk Assessment</h2>
+    <p>{report_data['risk_assessment']}</p>
+    """
+    
+    if format == "pdf":
+        pdf = pdfkit.from_string(html_content, False)
+        return Response(pdf, media_type="application/pdf")
+    return HTMLResponse(content=html_content)
+
 @app.post("/api/calculate-qd")
 async def calculate_qd(request: QDCalculationRequest):
     """Calculate QD parameters and generate buffer zones"""
