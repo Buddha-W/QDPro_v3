@@ -810,6 +810,19 @@
 
             // updateDrawToLayerSelect function moved to global scope
 
+            // Initialize map first
+            window.map = L.map('map', {
+                center: [40.7128, -74.0060],
+                zoom: 13,
+                zoomControl: true
+            });
+
+            // Add default OSM layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(window.map);
+
             // Initialize default layers and load saved data
             addLayer('Drawn Items', { isQDAnalyzed: false });
             addLayer('Facilities', { isQDAnalyzed: true });
