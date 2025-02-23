@@ -548,17 +548,32 @@
 
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map globally
-            map = L.map('map', {
-                center: [40.7128, -74.0060],
-                zoom: 13,
-                zoomControl: true
-            });
+            try {
+                // Initialize map globally
+                window.map = L.map('map', {
+                    center: [40.7128, -74.0060],
+                    zoom: 13,
+                    zoomControl: true
+                });
+
+                // Ensure the map container is properly sized
+                const mapContainer = document.getElementById('map');
+                if (mapContainer) {
+                    mapContainer.style.height = 'calc(100vh - 90px)';
+                    mapContainer.style.width = '100%';
+                    window.map.invalidateSize();
+                }
+
+            } catch (error) {
+                console.error('Error initializing map:', error);
+            }
 
             // Base layers including "None"
             const baseLayers = {
                 'None': L.tileLayer(''),
-                'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }),
                 'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
                 'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
                 'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
