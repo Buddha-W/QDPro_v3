@@ -22,33 +22,66 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from qd_engine import QDEngine, MaterialProperties, EnvironmentalConditions
+
 class QDCalculationRequest(BaseModel):
     quantity: float
     lat: float
     lng: float
-    k_factor: float = 40  # Default k-factor for general explosives
+    k_factor: float = 40
     material_type: str = "General Explosive"
+    sensitivity: float = 0.5
+    det_velocity: float = 6000
+    tnt_equiv: float = 1.0
+    temperature: float = 298
+    pressure: float = 101.325
+    humidity: float = 50
+    confinement_factor: float = 0.0
+
+# Initialize QD engine
+qd_engine = QDEngine()
 
 @app.post("/api/calculate-qd")
 async def calculate_qd(request: QDCalculationRequest):
     try:
-        # Calculate safe distance using cube root scaling law
-        safe_distance = request.k_factor * (request.quantity ** (1/3))
+        # Create material properties object
+        material_props = MaterialProperties(
+            sensitivity=request.sensitivity,
+            det_velocity=request.det_velocity,
+            tnt_equiv=request.tnt_equiv
+        )
         
-        # Create circular buffer zone
-        center = Point(request.lng, request.lat)
-        # Convert safe distance from feet to degrees (approximate)
-        degrees = safe_distance / 364000  # rough conversion factor
-        buffer = center.buffer(degrees)
+        # Create environmental conditions object
+        env_conditions = EnvironmentalConditions(
+            temperature=request.temperature,
+            pressure=request.pressure,
+            humidity=request.humidity,
+            confinement_factor=request.confinement_factor
+        )
         
-        # Convert to GeoJSON
-        geojson = mapping(buffer)
+        # Calculate safe distance using QD engine
+        safe_distance = qd_engine.calculate_esqd(
+            quantity=request.quantity,
+            material_props=material_props,
+            env_conditions=env_conditions,
+            k_factor=request.k_factor
+        )
+        
+        # Generate K-factor rings
+        buffer_zones = qd_engine.generate_k_factor_rings(
+            center_lat=request.lat,
+            center_lon=request.lng,
+            safe_distance=safe_distance
+        )
         
         return {
             "safe_distance": safe_distance,
             "units": "feet",
             "material_type": request.material_type,
-            "buffer_zone": geojson
+            "buffer_zones": {
+                "type": "FeatureCollection",
+                "features": buffer_zones
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
