@@ -11,6 +11,17 @@ import os
 import os.path
 import psycopg2
 
+app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class QDCalculationRequest(BaseModel):
     quantity: float
     lat: float
