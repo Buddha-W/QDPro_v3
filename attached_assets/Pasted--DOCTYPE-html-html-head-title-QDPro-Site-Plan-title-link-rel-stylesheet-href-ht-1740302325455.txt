@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QDPro Site Plan</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        ... /* Omitted styles for brevity */
+    </style>
+</head>
+<body>
+    ... /* Omitted HTML content for brevity */
+    <div id="map"></div>
+        
+    <script>
+        let currentDrawnLayer = null;
+        window.layers = {}; // More global state
+        let map; // Declare map globally
+        let activeLayer = null; // Ensure activeLayer is initialized
+
+        document.addEventListener('DOMContentLoaded', function() {
+            map = L.map('map', {
+                center: [40.7128, -74.0060],
+                zoom: 13,
+                zoomControl: true
+            });
+
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors',
+                crossOrigin: true
+            }).addTo(map);
+
+            // Initialize drawing tools
+            const drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: new L.FeatureGroup().addTo(map)
+                }
+            });
+            map.addControl(drawControl);
+
+            // Event handler for drawing
+            map.on('draw:created', function(e) {
+                const layer = e.layer;
+                layer.feature = layer.feature || {};
+                layer.feature.properties = layer.feature.properties || {};
+                
+                if (activeLayer) {
+                    activeLayer.addLayer(layer); // Ensure activeLayer is defined
+                    saveToDatabase();
+                }
+                openEditPopup(layer);
+            });
+
+            // Load layers
+            loadFromDatabase(); // This will be called properly now
+        });
+
+        async function loadFromDatabase() {
+            try {
+                const response = await fetch('/api/load-layers');
+                const data = await response.json();
+                console.log('Loaded layers:', data);
+
+                // Process loaded layers
+                for (const [name, layer] of Object.entries(data.layers)) {
+                    if (!window.layers[name]) {
+                        window.layers[name] = new L.FeatureGroup().addTo(map);
+                    }
+                    // Add features, code omitted for brevity
+                }
+            } catch (error) {
+                console.error('Error loading layers:', error);
+            }
+        }
+
+        function switchLocation(name) {
+            // Call loadFromDatabase if needed here
+            loadFromDatabase(); 
+        }
+        
+        // Other necessary functions omitted for brevity...
+    </script>
+</body>
+</html>
