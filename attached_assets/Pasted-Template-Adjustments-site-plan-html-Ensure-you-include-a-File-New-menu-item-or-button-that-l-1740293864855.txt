@@ -1,0 +1,81 @@
+Template Adjustments:
+
+site_plan.html
+– Ensure you include a “File > New” menu item or button that links to /ui/create_location. For example, add something like:
+<nav>
+  <ul>
+    <li><a href="/ui/create_location">File &gt; New</a></li>
+    <!-- other menu items -->
+  </ul>
+</nav>
+– Also update any text that currently shows “Database: PostgreSQL” so it instead shows the currently selected location if one exists. For example, you could add:
+
+<div id="current-location">
+  {% if current_location %}
+    Location: {{ current_location }}
+  {% else %}
+    No location selected.
+  {% endif %}
+</div>
+create_location.html
+– Create this new template (place it in static/templates/) to display the form for a new location. For example:
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create New Location</title>
+</head>
+<body>
+    <h1>Create New Location</h1>
+    <form action="/ui/create_location" method="post">
+        <label for="location_name">Location Name:</label>
+        <input type="text" id="location_name" name="location_name" required>
+        <button type="submit">Create</button>
+    </form>
+    <p><a href="/ui/locations">Back to Locations</a></p>
+</body>
+</html>
+locations.html
+– Modify this template (in static/templates/) to list all locations. For example:
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Locations</title>
+</head>
+<body>
+    <h1>Locations</h1>
+    <ul>
+      {% for location in locations %}
+        <li>
+          {{ location.name }} (Created: {{ location.created_at }})
+          – <a href="/ui/open_location/{{ location.id }}">Open</a>
+        </li>
+      {% endfor %}
+    </ul>
+    <p><a href="/ui/create_location">Create New Location</a></p>
+</body>
+</html>
+open_location.html
+– Modify this template (in static/templates/) to display the location name and its records. For example:
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ location_name }}</title>
+</head>
+<body>
+    <h1>Location: {{ location_name }}</h1>
+    <p>Created at: {{ location_created_at }}</p>
+    <h2>Records</h2>
+    <ul>
+      {% for record in records %}
+        <li>{{ record.info }} ({{ record.created_at }})</li>
+      {% endfor %}
+    </ul>
+    <h3>Add New Record</h3>
+    <form action="/ui/open_location/{{ location_id }}/add_record" method="post">
+        <label for="info">Info:</label>
+        <input type="text" id="info" name="info" required>
+        <button type="submit">Add Record</button>
+    </form>
+    <p><a href="/ui/locations">Back to Locations</a></p>
+</body>
+</html>
