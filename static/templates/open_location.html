@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ location_name }} - Location Details</title>
+    <style>
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .records { margin-top: 20px; }
+        .add-record-form { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ location_name }}</h1>
+        <p>Created: {{ location_created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        <a href="/ui/locations">← Back to Locations</a>
+
+        <div class="add-record-form">
+            <h2>Add New Record</h2>
+            <form action="/ui/open_location/{{ location_id }}/add_record" method="POST">
+                <textarea name="info" placeholder="Record Information" required></textarea>
+                <button type="submit">Add Record</button>
+            </form>
+        </div>
+
+        <div class="records">
+            <h2>Records</h2>
+            {% if records %}
+                <ul>
+                {% for record in records %}
+                    <li>
+                        {{ record.info }}
+                        <br>
+                        <small>Created: {{ record.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>No records found for this location.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

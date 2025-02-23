@@ -1,0 +1,43 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Locations</title>
+    <style>
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .location-list { margin-top: 20px; }
+        .create-form { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Locations</h1>
+        
+        <div class="create-form">
+            <h2>Create New Location</h2>
+            <form action="/ui/create_location" method="POST">
+                <input type="text" name="location_name" placeholder="Location Name" required>
+                <button type="submit">Create Location</button>
+            </form>
+        </div>
+
+        <div class="location-list">
+            <h2>Existing Locations</h2>
+            {% if locations %}
+                <ul>
+                {% for location in locations %}
+                    <li>
+                        <a href="/ui/open_location/{{ location.id }}">
+                            {{ location.name }}
+                        </a>
+                        (Created: {{ location.created_at.strftime('%Y-%m-%d %H:%M:%S') }})
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>No locations found.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

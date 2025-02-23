@@ -1,11 +1,12 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, status
+from fastapi import FastAPI, Request, Depends, HTTPException, status, Form
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
 import os.path
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
+import psycopg2
 
 app = FastAPI()
 
@@ -182,7 +183,124 @@ async def load_layers():
                             headers={"Content-Type": "application/json"},
                             status_code=500)
 
+@app.get("/ui/locations")
+async def list_locations(request: Request):
+    """List all locations and show create form."""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT id, location_name, created_at FROM locations ORDER BY created_at DESC")
+        locations = [{"id": id, "name": name, "created_at": created_at} 
+                    for id, name, created_at in cur.fetchall()]
+        return templates.TemplateResponse(
+            "locations.html",
+            {"request": request, "locations": locations}
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+@app.post("/ui/create_location")
+async def create_location(location_name: str = Form(...)):
+    """Create a new location."""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO locations (location_name) VALUES (%s) RETURNING id",
+            (location_name,)
+        )
+        conn.commit()
+        return RedirectResponse(url="/ui/locations", status_code=303)
+    finally:
+        cur.close()
+        conn.close()
+
+@app.get("/ui/open_location/{location_id}")
+async def open_location(request: Request, location_id: int):
+    """Show location details and its records."""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    try:
+        # Get location details
+        cur.execute(
+            "SELECT location_name, created_at FROM locations WHERE id = %s",
+            (location_id,)
+        )
+        location = cur.fetchone()
+        if not location:
+            raise HTTPException(status_code=404, detail="Location not found")
+
+        # Get location records
+        cur.execute(
+            "SELECT id, info, created_at FROM records WHERE location_id = %s ORDER BY created_at DESC",
+            (location_id,)
+        )
+        records = [{"id": id, "info": info, "created_at": created_at}
+                  for id, info, created_at in cur.fetchall()]
+
+        return templates.TemplateResponse(
+            "open_location.html",
+            {
+                "request": request,
+                "location_id": location_id,
+                "location_name": location[0],
+                "location_created_at": location[1],
+                "records": records
+            }
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+@app.post("/ui/open_location/{location_id}/add_record")
+async def add_record(location_id: int, info: str = Form(...)):
+    """Add a new record to a location."""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO records (location_id, info) VALUES (%s, %s)",
+            (location_id, info)
+        )
+        conn.commit()
+        return RedirectResponse(
+            url=f"/ui/open_location/{location_id}",
+            status_code=303
+        )
+    finally:
+        cur.close()
+        conn.close()
+
+def init_db():
+    """Initializes the database tables if they don't exist."""
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS locations (
+                id SERIAL PRIMARY KEY,
+                location_name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS records (
+                id SERIAL PRIMARY KEY,
+                location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+                info TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
 
 if __name__ == "__main__":
     import uvicorn
+    init_db()  # Initialize database tables
     uvicorn.run("main:app", host="0.0.0.0", port=3000, reload=True, access_log=True)
