@@ -1698,12 +1698,28 @@
         //CesiumJS integration
         let cesiumViewer;
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize map layers first
+            window.layers = {
+                'Drawn Items': new L.FeatureGroup().addTo(window.map),
+                'Facilities': new L.FeatureGroup().addTo(window.map),
+                'Analysis': new L.FeatureGroup().addTo(window.map)
+            };
+            
+            // Then initialize Cesium with access token
+            Cesium.Ion.defaultAccessToken = 'your_access_token_here';
             cesiumViewer = new Cesium.Viewer('cesiumContainer', {
                 terrainProvider: Cesium.createWorldTerrain(),
                 infoBox: false,
                 selectionIndicator: false,
-                shadows: true
+                shadows: true,
+                contextOptions: {
+                    webgl: {
+                        alpha: true,
+                        willReadFrequently: true
+                    }
+                }
             });
+            cesiumViewer.scene.globe.enableLighting = true;
         });
 
     </script>
