@@ -1,0 +1,24 @@
+I have a FastAPI project with a site_plan.html file that uses Leaflet and Leaflet.draw for drawing shapes on a map, along with a File menu and a toolbar for drawing tools. Currently, I’m facing several issues that need to be fixed in one final update:
+
+1. **Toolbar Drawing Tools Not Working:**  
+   The buttons for drawing polygons, polylines, rectangles, circles, and markers (with IDs "drawPolygon", "drawPolyline", "drawRectangle", "drawCircle", "drawMarker") are not enabling the corresponding drawing modes when clicked. Please update the JavaScript so that:
+   - Each button properly disables any active drawing tool and then enables its corresponding tool.
+   - The buttons visually reflect their active state (e.g., by adding an "active" CSS class).
+   - Clicking anywhere on the map or re-clicking a tool deactivates the tool.
+
+2. **New Location – Save and Blank Slate:**  
+   When creating a new location (via the "New" menu item), the new location must save correctly (via the /api/create_location endpoint) and then clear all drawn features from the map so that the new location starts with a blank slate (i.e., no drawn polygons remain).
+
+3. **Switch Location Modal Not Loading:**  
+   The "File > Switch Location..." menu option should open a modal that fetches and lists all saved locations (via /api/locations). Currently, it is not loading anything. Please fix this functionality so that the modal correctly displays all locations and allows the user to select one. When a location is selected, the current location display (e.g., in an element with id "dbStatus") should update, and the map’s drawing layer should clear and load only that location’s features.
+
+4. **Polygon Drawing – Finalization and Vertex Markers:**  
+   When drawing a polygon, it should allow the user to finalize the polygon (by double-clicking or clicking the first vertex to close the shape) without leaving behind the editing vertex markers (i.e., only the final line should remain visible).
+
+Please update my site_plan.html (including all HTML, CSS, and JavaScript) to implement these fixes. Here is my current code:
+
+----------------------------------------------------
+[Paste your current site_plan.html code here]
+----------------------------------------------------
+
+Return the full, updated code that resolves all of these issues.
