@@ -309,9 +309,32 @@
         <div class="menu-item">
             Tools
             <div class="menu-dropdown">
+                <div class="menu-dropdown-item" onclick="showQDCalculator()">QD Calculator</div>
                 <div class="menu-dropdown-item">Measure</div>
                 <div class="menu-dropdown-item">Calculate Area</div>
                 <div class="menu-dropdown-item">Settings</div>
+            </div>
+        </div>
+
+        <!-- QD Calculator Modal -->
+        <div id="qdCalculatorModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="document.getElementById('qdCalculatorModal').style.display='none'">&times;</span>
+                <h2>Quantity-Distance Calculator</h2>
+                <div class="form-group">
+                    <label for="quantity">Explosive Quantity (lbs):</label>
+                    <input type="number" id="quantity" required>
+                </div>
+                <div class="form-group">
+                    <label for="materialType">Material Type:</label>
+                    <select id="materialType">
+                        <option value="General Explosive">General Explosive (k=40)</option>
+                        <option value="High Explosive">High Explosive (k=50)</option>
+                        <option value="Low Explosive">Low Explosive (k=30)</option>
+                    </select>
+                </div>
+                <p>Click on the map to select location for QD calculation.</p>
+                <button onclick="calculateQD()" class="tool-button">Calculate Safe Distance</button>
             </div>
         </div>
         <div class="menu-item">
@@ -411,6 +434,79 @@
 
     <script>
         let currentDrawnLayer = null;
+        let selectedQDPoint = null;
+        let qdBufferLayer = null;
+
+        function showQDCalculator() {
+            document.getElementById('qdCalculatorModal').style.display = 'block';
+            
+            // Enable map click for location selection
+            window.map.on('click', function(e) {
+                if (document.getElementById('qdCalculatorModal').style.display === 'block') {
+                    selectedQDPoint = e.latlng;
+                    if (qdBufferLayer) {
+                        window.map.removeLayer(qdBufferLayer);
+                    }
+                    // Show marker at selected point
+                    L.marker(selectedQDPoint).addTo(window.map);
+                }
+            });
+        }
+
+        async function calculateQD() {
+            if (!selectedQDPoint) {
+                alert('Please select a location on the map');
+                return;
+            }
+
+            const quantity = document.getElementById('quantity').value;
+            const materialType = document.getElementById('materialType').value;
+            let kFactor = 40;
+            
+            switch(materialType) {
+                case 'High Explosive': kFactor = 50; break;
+                case 'Low Explosive': kFactor = 30; break;
+            }
+
+            try {
+                const response = await fetch('/api/calculate-qd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quantity: parseFloat(quantity),
+                        lat: selectedQDPoint.lat,
+                        lng: selectedQDPoint.lng,
+                        k_factor: kFactor,
+                        material_type: materialType
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Remove existing buffer layer if any
+                if (qdBufferLayer) {
+                    window.map.removeLayer(qdBufferLayer);
+                }
+
+                // Add new buffer zone
+                qdBufferLayer = L.geoJSON(data.buffer_zone, {
+                    style: {
+                        color: '#ff0000',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillColor: '#ff0000',
+                        fillOpacity: 0.2
+                    }
+                }).addTo(window.map);
+
+                // Show results
+                alert(`Safe Distance: ${data.safe_distance.toFixed(2)} ${data.units}`);
+                
+            } catch (error) {
+                console.error('QD calculation error:', error);
+                alert('Error calculating safe distance');
+            }
+        }
         window.layers = {};  // Make layers globally accessible
         let map; // Declare map globally
         window.activeLayer = null; // Define activeLayer globally

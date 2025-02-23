@@ -3,10 +3,44 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import numpy as np
+from shapely.geometry import Point, mapping
 import json
 import os
 import os.path
 import psycopg2
+
+class QDCalculationRequest(BaseModel):
+    quantity: float
+    lat: float
+    lng: float
+    k_factor: float = 40  # Default k-factor for general explosives
+    material_type: str = "General Explosive"
+
+@app.post("/api/calculate-qd")
+async def calculate_qd(request: QDCalculationRequest):
+    try:
+        # Calculate safe distance using cube root scaling law
+        safe_distance = request.k_factor * (request.quantity ** (1/3))
+        
+        # Create circular buffer zone
+        center = Point(request.lng, request.lat)
+        # Convert safe distance from feet to degrees (approximate)
+        degrees = safe_distance / 364000  # rough conversion factor
+        buffer = center.buffer(degrees)
+        
+        # Convert to GeoJSON
+        geojson = mapping(buffer)
+        
+        return {
+            "safe_distance": safe_distance,
+            "units": "feet",
+            "material_type": request.material_type,
+            "buffer_zone": geojson
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 app = FastAPI()
 
