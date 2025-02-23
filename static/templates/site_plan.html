@@ -904,7 +904,7 @@
                 }
             };
 
-            functionshowFacilityDetails(layer) {
+            function showFacilityDetails(layer) {
                 const props = layer.feature.properties || {};
                 document.getElementById('facilityTypeCode').value = props.typeCode || '';
                 document.getElementById('facilityDescription').value = props.description || '';
