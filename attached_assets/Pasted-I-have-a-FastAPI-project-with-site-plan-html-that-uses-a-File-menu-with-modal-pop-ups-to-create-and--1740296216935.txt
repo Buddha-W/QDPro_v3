@@ -1,0 +1,30 @@
+I have a FastAPI project with site_plan.html that uses a File menu with modal pop-ups to create and switch locations. I need to make further updates to my project:
+
+1. **New Location Blank Slate:**  
+   When switching to a new location using the "Switch to New Location" option after creating a new location, the current layers should remain defined but all drawn shapes (features) should be cleared. In other words, the new location should have a blank slate for drawing new shapes.
+
+2. **Shape Styling Based on Type:**  
+   When new shapes are added:
+   - If the shape is of type "PES," the shape should be styled with a red fill and a red outline.
+   - If the shape is of type "ES," the shape should be styled with a green fill and a green outline.
+   - (Assume that the type can be determined from a property in the shape’s feature, for example, feature.properties.type.)  
+   Update the drawing logic in the JavaScript code so that when shapes are added to the map, they are rendered with the appropriate styles based on their type.
+
+3. **Toolbar Improvements:**  
+   Update the tool toolbar to have a layout and style similar to ArcGIS or ESS when adding shapes. This may include:  
+   - Rearranging buttons to group drawing tools in a visually appealing way.  
+   - Adding icons or labels that match a modern, professional GIS tool look.  
+   - Ensuring that the toolbar is intuitive and does not interfere with the map view.
+
+Please update my existing project accordingly. Provide complete, updated code snippets (HTML, CSS, and JavaScript parts from site_plan.html and any related JS files) so that:
+- When switching to a new location, the layers remain defined but any drawn features are cleared (blank slate).
+- New shapes are styled with red fill/outline if they are "PES" and green fill/outline if they are "ES".
+- The toolbar layout is improved to look more like ArcGIS/ESS.
+
+Below is my current site_plan.html code (with menus, modals, toolbar, and map JavaScript). Please update and return the full modified code:
+
+----------------------------------------------------
+[Insert your current site_plan.html code here with the File menu, modals, toolbar, and drawing JavaScript]
+----------------------------------------------------
+
+Please return the full updated code that implements these new features.
