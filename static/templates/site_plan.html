@@ -1201,10 +1201,8 @@
         function handleLocationSwitch(shouldSwitch) {
             if (shouldSwitch && newLocationData) {
                 updateCurrentLocation(newLocationData.name);
-                // Clear all features but keep layer definitions
-                Object.values(layers).forEach(layer => {
-                    layer.clearLayers();
-                });
+                // Clear all features when creating new location
+                clearAllFeatures();
             }
             closeModal('newLocationConfirmModal');
             newLocationData = null;
@@ -1246,11 +1244,13 @@
         }
 
         function clearAllFeatures() {
-            Object.values(layers).forEach(layer => {
-                if (layer instanceof L.FeatureGroup) {
-                    layer.clearLayers();
-                }
-            });
+            if (window.layers) {
+                Object.values(window.layers).forEach(layer => {
+                    if (layer instanceof L.FeatureGroup) {
+                        layer.clearLayers();
+                    }
+                });
+            }
         }
 
         async function switchLocation(locationName) {
