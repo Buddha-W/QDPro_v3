@@ -625,6 +625,7 @@
                 openEditPopup(layer);
 
                 if (activeLayer) {
+                    layer.setStyle(getStyleForFeatureType(layer.feature.properties.typeCode));
                     activeLayer.addLayer(layer);
                     saveToDatabase();
                 }
@@ -862,14 +863,22 @@
                         fillOpacity: 0.2,
                         clickable: true
                     },
-                    vertices: false,
+                    vertices: {
+                        first: {
+                            icon: new L.DivIcon({
+                                iconSize: new L.Point(0, 0),
+                                className: 'leaflet-div-icon leaflet-hidden'
+                            })
+                        }
+                    },
                     icon: new L.DivIcon({
-                        iconSize: new L.Point(0, 0), // Hide vertex markers
-                        className: 'leaflet-div-icon'
+                        iconSize: new L.Point(0, 0),
+                        className: 'leaflet-div-icon leaflet-hidden'
                     }),
                     guidelineDistance: 20,
-                    maxPoints: 0, // Unlimited points
-                    showGuides: true
+                    maxPoints: 0,
+                    showGuides: true,
+                    finishOn: 'dblclick'
                 }),
                 vertices: {
                     first: {
@@ -1115,6 +1124,69 @@
             }
 
             return defaultStyle;
+        }
+
+        function clearAllFeatures() {
+            if (window.layers) {
+                Object.values(window.layers).forEach(layer => {
+                    if (layer instanceof L.FeatureGroup) {
+                        layer.clearLayers();
+                    }
+                });
+            }
+        }
+
+        async function switchLocation(locationName) {
+            try {
+                updateCurrentLocation(locationName);
+                closeModal('switchLocationModal');
+                clearAllFeatures();
+                await loadFromDatabase();
+                console.log(`Switched to location: ${locationName}`);
+            } catch (error) {
+                console.error('Error switching location:', error);
+                alert('Failed to switch location');
+            }
+        }
+
+        function updateCurrentLocation(locationName) {
+            const statusElement = document.getElementById('dbStatus');
+            if (statusElement) {
+                statusElement.innerHTML = `Location: ${locationName}`;
+            }
+        }
+
+        async function createLocation() {
+            const locationName = document.getElementById('newLocationName').value;
+            if (!locationName) {
+                alert('Please enter a location name');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/create_location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location_name: locationName })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    clearAllFeatures();
+                    newLocationData = data;
+                    document.getElementById('newLocationName_confirm').textContent = locationName;
+                    closeModal('newLocationModal');
+                    document.getElementById('newLocationName').value = '';
+                    document.getElementById('newLocationConfirmModal').style.display = 'block';
+                    updateCurrentLocation(locationName);
+                    await fetchLocations();
+                } else {
+                    alert('Failed to create location: ' + data.detail);
+                }
+            } catch (error) {
+                console.error('Error creating location:', error);
+                alert('Failed to create location');
+            }
         }
     </script>
     <!-- Facility Details Modal -->
