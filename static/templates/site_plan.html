@@ -411,6 +411,21 @@
         window.layers = {};  // Make layers globally accessible
         let map; // Declare map globally
 
+        function updateDrawToLayerSelect() {
+            const select = document.getElementById('drawToLayer');
+            select.innerHTML = '';
+            Object.keys(layers).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+
+            if (select.options.length > 0) {
+                activeLayer = layers[select.options[0].value]; //Select the first option as default active layer
+            }
+        }
+
         // Update layer control
         function updateLayerControl() {
             const layerControl = document.getElementById('layerControl');
@@ -721,20 +736,7 @@
                 saveToDatabase();
             }
 
-            function updateDrawToLayerSelect() {
-                const select = document.getElementById('drawToLayer');
-                select.innerHTML = '';
-                Object.keys(layers).forEach(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    select.appendChild(option);
-                });
-
-                if (select.options.length > 0) {
-                    activeLayer = layers[select.options[0].value]; //Select the first option as default active layer
-                }
-            }
+            // updateDrawToLayerSelect function moved to global scope
 
             // Initialize default layers and load saved data
             addLayer('Drawn Items', { isQDAnalyzed: false });
