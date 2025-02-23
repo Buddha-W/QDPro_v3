@@ -1,0 +1,28 @@
+I have an explosive safety siting software project that currently includes a basic quantity–distance (QD) engine and a Leaflet-based map UI. I need to enhance it with world-class advanced features to surpass current commercial solutions like ESS and Siter. Specifically, I would like to add:
+
+1. **Real-Time Data Integration:**  
+   - Integrate sensor data (e.g., temperature, humidity, gas sensors) and update risk assessments dynamically.
+   - Build a live dashboard that displays current conditions and triggers alerts when thresholds are exceeded.
+
+2. **Advanced Scenario Modeling & Simulation:**  
+   - Develop a module that allows users to simulate multiple scenarios by varying parameters and running Monte Carlo simulations for uncertainty quantification.
+   - Create time-dependent simulations of hazardous event propagation.
+
+3. **Machine Learning & Predictive Analytics:**  
+   - Integrate machine learning models to calibrate the QD engine using historical incident data.
+   - Implement anomaly detection in sensor data for predictive risk forecasting.
+
+4. **Enhanced Geospatial Visualization:**  
+   - Build a 3D map view (using CesiumJS or Mapbox GL) to visualize safe zones and hazardous areas.
+   - Allow customizable map overlays (e.g., wind, terrain, infrastructure) and interactive reporting.
+
+5. **Enterprise Integration & Reporting:**  
+   - Create a reporting module that generates comprehensive risk assessment reports (PDF/HTML).
+   - Integrate with enterprise systems (e.g., ERP, asset management) and implement user access control with audit trails.
+
+Please generate a full, modular prototype code (using FastAPI for the backend and a web-based front end) that integrates these advanced features. The code should be well-documented with inline comments explaining each component. Return the full code for the prototype, including:
+   - An advanced QD engine module (or modules) that supports both DoD and DoE sites.
+   - Real-time data integration examples.
+   - A simulation module for scenario modeling.
+   - A modern, interactive 3D geospatial UI.
+   - A reporting endpoint that outputs a sample PDF or HTML report.
