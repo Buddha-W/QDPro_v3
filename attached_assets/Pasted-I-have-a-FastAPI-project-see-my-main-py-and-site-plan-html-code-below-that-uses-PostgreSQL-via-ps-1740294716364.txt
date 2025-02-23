@@ -1,0 +1,34 @@
+I have a FastAPI project (see my main.py and site_plan.html code below) that uses PostgreSQL (via psycopg2), Jinja2 templates, and static files. I need to modify the UI so that instead of navigating to separate pages for creating or switching locations, these actions use modal pop-ups. 
+
+Specifically, please update my project with the following requirements:
+
+1. When I click "File > New" in the menu, a modal pop-up should appear (instead of navigating to a new page) that:
+   - Fills in the required information (at least a "Location Name").
+   - Has a "Create" button and a "Cancel/Close" button.
+   - On submission, the new location is created in the database (via the existing /ui/create_location endpoint, or by integrating the logic into the modal using an AJAX call).
+   - On success, the current location (displayed in the top-right, e.g., in the element with id "dbStatus") updates to the new location's name, and the modal closes.
+
+2. Additionally, add a "File > Switch Locations" menu item that triggers another modal pop-up which:
+   - Displays a list of previously created locations (with their names).
+   - Allows the user to select one.
+   - When a location is selected, updates the current location display and closes the modal.
+
+3. The modals should use CSS and JavaScript so they visually match the existing theme in site_plan.html. They should include exit buttons and not disrupt the map view behind.
+
+4. Provide full, modified code for:
+   - The relevant parts of main.py (if needed, for example, to support JSON endpoints for creating/switching locations).
+   - The updated site_plan.html file (or additional template files if necessary) showing the menu modifications and the modal HTML.
+   - The required JavaScript code to open/close the modals, send AJAX requests to create a new location, and update the current location display.
+
+Here is my current main.py code:
+
+----------------------------------------------------
+[Include current main.py code here]
+----------------------------------------------------
+
+And here is my site_plan.html code:
+----------------------------------------------------
+[Include current site_plan.html code (the menu bar and toolbar sections, etc.) here]
+----------------------------------------------------
+
+Please return the full modified code with the modal pop-ups for "New" and "Switch Locations" integrated and working.
