@@ -940,27 +940,51 @@
                 }
             });
 
-            // Drawing tool button handlers
-            document.getElementById('drawPolygon').onclick = () => {
-                Object.values(drawingTools).forEach(tool => tool.disable());
-                drawingTools.polygon.enable();
-            };
-            document.getElementById('drawPolyline').onclick = () => {
-                Object.values(drawingTools).forEach(tool => tool.disable());
-                drawingTools.polyline.enable();
-            };
-            document.getElementById('drawRectangle').onclick = () => {
-                Object.values(drawingTools).forEach(tool => tool.disable());
-                drawingTools.rectangle.enable();
-            };
-            document.getElementById('drawCircle').onclick = () => {
-                Object.values(drawingTools).forEach(tool => tool.disable());
-                drawingTools.circle.enable();
-            };
-            document.getElementById('drawMarker').onclick = () => {
-                Object.values(drawingTools).forEach(tool => tool.disable());
-                drawingTools.marker.enable();
-            };
+            // Function to deactivate all drawing tools and their buttons
+            function deactivateAllDrawingTools() {
+                Object.values(drawingTools).forEach(tool => {
+                    if (tool && typeof tool.disable === 'function') {
+                        tool.disable();
+                    }
+                });
+                
+                // Remove active class from all drawing buttons
+                ['drawPolygon', 'drawPolyline', 'drawRectangle', 'drawCircle', 'drawMarker'].forEach(id => {
+                    const button = document.getElementById(id);
+                    if (button) button.classList.remove('active');
+                });
+            }
+
+            // Function to set up drawing tool button
+            function setupDrawingButton(buttonId, tool) {
+                const button = document.getElementById(buttonId);
+                if (!button) return;
+
+                button.addEventListener('click', () => {
+                    deactivateAllDrawingTools();
+                    if (tool && typeof tool.enable === 'function') {
+                        tool.enable();
+                        button.classList.add('active');
+                    }
+                });
+            }
+
+            // Set up all drawing tool buttons
+            setupDrawingButton('drawPolygon', drawingTools.polygon);
+            setupDrawingButton('drawPolyline', drawingTools.polyline);
+            setupDrawingButton('drawRectangle', drawingTools.rectangle);
+            setupDrawingButton('drawCircle', drawingTools.circle);
+            setupDrawingButton('drawMarker', drawingTools.marker);
+
+            // Handle map click to deactivate drawing tools
+            map.on('click', function() {
+                deactivateAllDrawingTools();
+            });
+
+            // Handle drawing complete
+            map.on('draw:created', function() {
+                deactivateAllDrawingTools();
+            });
 
             // Handle drawing events
             map.on('draw:created', function(e) {
