@@ -791,25 +791,18 @@
                 const layer = e.layer;
                 layer.feature = layer.feature || {};
                 layer.feature.properties = layer.feature.properties || {};
-
-                // Prompt for feature type
-                const type = prompt('Enter feature type (PES or ES):');
-                if (type && (type.toUpperCase() === 'PES' || type.toUpperCase() === 'ES')) {
-                    layer.feature.properties.type = type.toUpperCase();
-                    
-                    // Apply style based on type
-                    const style = getStyleForFeatureType(type.toUpperCase());
-                    layer.setStyle(style);
+                
+                // Immediately open edit popup instead of using prompt
+                if (activeLayer) {
+                    activeLayer.addLayer(layer);
                 }
-
+                
+                openEditPopup(layer);
                 layer.on('click', function() {
                     openEditPopup(layer);
                 });
-
-                if (activeLayer) {
-                    activeLayer.addLayer(layer);
-                    saveToDatabase();
-                }
+                
+                saveToDatabase();
             });
 
             window.saveTypeCode = function() {
