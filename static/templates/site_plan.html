@@ -558,8 +558,12 @@
                             L.geoJSON(feature, {
                                 onEachFeature: function(feature, layer) {
                                     if (feature.properties && feature.properties.typeCode) {
+                                        layer.setStyle(getStyleForFeatureType(feature.properties.typeCode));
                                         layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
                                     }
+                                },
+                                style: function(feature){
+                                  return getStyleForFeatureType(feature.properties.typeCode)
                                 }
                             }).eachLayer(l => {
                                 // Transfer properties to the layer
@@ -621,6 +625,7 @@
                                 description: newDescription
                             };
 
+                            layer.setStyle(getStyleForFeatureType(newTypeCode)); // Apply styling based on type code
                             layer.bindTooltip(`${newName}<br>${newTypeCode}`, { permanent: false });
                             saveToDatabase();
                             layer.closePopup();
@@ -691,26 +696,11 @@
                         fillOpacity: 0.2,
                         clickable: true
                     },
-                    vertices: {
-                        first: {
-                            icon: new L.DivIcon({
-                                iconSize: new L.Point(8, 8),
-                                className: 'leaflet-div-icon leaflet-editing-icon'
-                            })
-                        },
-                        middle: {
-                            icon: new L.DivIcon({
-                                iconSize: new L.Point(8, 8),
-                                className: 'leaflet-div-icon leaflet-editing-icon'
-                            })
-                        },
-                        last: {
-                            icon: new L.DivIcon({
-                                iconSize: new L.Point(8, 8),
-                                className: 'leaflet-div-icon leaflet-editing-icon'
-                            })
-                        }
-                    }
+                    vertices: false,
+                    icon: new L.DivIcon({
+                        iconSize: new L.Point(8, 8),
+                        className: 'leaflet-div-icon'
+                    })
                 }),
                 polyline: new L.Draw.Polyline(map, {
                     showLength: false,
@@ -755,7 +745,7 @@
                 const layer = e.layer;
                 layer.feature = layer.feature || {};
                 layer.feature.properties = layer.feature.properties || {};
-                
+
                 openEditPopup(layer);
 
                 if (activeLayer) {
@@ -791,17 +781,17 @@
                 const layer = e.layer;
                 layer.feature = layer.feature || {};
                 layer.feature.properties = layer.feature.properties || {};
-                
+
                 // Immediately open edit popup instead of using prompt
                 if (activeLayer) {
                     activeLayer.addLayer(layer);
                 }
-                
+
                 openEditPopup(layer);
                 layer.on('click', function() {
                     openEditPopup(layer);
                 });
-                
+
                 saveToDatabase();
             });
 
@@ -812,6 +802,9 @@
                     currentDrawnLayer.feature = currentDrawnLayer.feature || {};
                     currentDrawnLayer.feature.properties = currentDrawnLayer.feature.properties || {};
                     currentDrawnLayer.feature.properties.typeCode = typeCode;
+
+                    // Apply styling based on type code
+                    currentDrawnLayer.setStyle(getStyleForFeatureType(typeCode));
 
                     // Add the layer to active layer and save
                     activeLayer.addLayer(currentDrawnLayer);
@@ -842,6 +835,7 @@
                     window.currentEditLayer.feature.properties.typeCode = typeCode;
                     window.currentEditLayer.feature.properties.description = description;
 
+                    window.currentEditLayer.setStyle(getStyleForFeatureType(typeCode)); // Apply styling
                     saveToDatabase();
                     document.getElementById('facilityModal').style.display = 'none';
                     window.currentEditLayer = null;
@@ -1005,10 +999,10 @@
     <script>
         // Menu click handling
         let activeMenu = null;
-        
+
         document.addEventListener('DOMContentLoaded', function() {
             const menuItems = document.querySelectorAll('.menu-item');
-            
+
             menuItems.forEach(item => {
                 item.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -1026,7 +1020,7 @@
                     }
                 });
             });
-            
+
             // Close menu when clicking outside
             document.addEventListener('click', function() {
                 if (activeMenu) {
@@ -1100,7 +1094,7 @@
                 opacity: 1,
                 fillOpacity: 0.3
             };
-            
+
             if (type === 'PES') {
                 return {
                     ...defaultStyle,
@@ -1114,7 +1108,7 @@
                     fillColor: '#00ff00'
                 };
             }
-            
+
             return defaultStyle;
         }
 
@@ -1141,6 +1135,9 @@
         function switchLocation(locationName) {
             updateCurrentLocation(locationName);
             closeModal('switchLocationModal');
+            // Clear the map on location switch
+            Object.values(layers).forEach(layer => layer.clearLayers());
+            loadFromDatabase(); //Reload data for the new location
         }
 
         function updateCurrentLocation(locationName) {
