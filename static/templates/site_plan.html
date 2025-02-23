@@ -57,13 +57,15 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 30px;
-            background: #2b2d42;
-            color: white;
+            height: 40px;
+            background: #f8f9fa;
+            color: #333;
             display: flex;
             align-items: center;
             z-index: 1500;
-            padding: 0 10px;
+            padding: 0;
+            border-bottom: 1px solid #dee2e6;
+            font-family: Segoe UI, Arial, sans-serif;
         }
         .menu-item {
             padding: 0 15px;
@@ -72,19 +74,40 @@
             align-items: center;
             cursor: pointer;
             position: relative;
+            font-size: 14px;
         }
         .menu-item:hover {
-            background: #3c3f58;
+            background: #e9ecef;
         }
         .menu-dropdown {
             display: none;
             position: absolute;
-            top: 30px;
+            top: 40px;
             left: 0;
-            background: #2b2d42;
-            min-width: 150px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1600; /* Increased z-index to show above toolbar and menu bar */
+            background: white;
+            min-width: 200px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1600;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 4px 0;
+        }
+        .menu-dropdown-item {
+            padding: 8px 20px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .menu-dropdown-item:hover {
+            background: #f0f0f0;
+            color: #000;
+        }
+        .menu-dropdown-item i {
+            margin-right: 8px;
+            width: 16px;
+            color: #666;
         }
         .layer-properties-form {
             padding: 15px;
@@ -109,19 +132,9 @@
         .edit-layer-button:hover {
             color: #333;
         }
-        .menu-item:hover .menu-dropdown {
-            display: block;
-        }
-        .menu-dropdown-item {
-            padding: 8px 15px;
-            color: white;
-        }
-        .menu-dropdown-item:hover {
-            background: #3c3f58;
-        }
         .toolbar {
             position: fixed;
-            top: 30px;
+            top: 40px; /* Adjusted top position */
             left: 0;
             right: 0;
             height: 50px;
@@ -131,7 +144,7 @@
             align-items: center;
             padding: 0 15px;
             z-index: 1001;
-            justify-content: space-between; /* Added to align items */
+            justify-content: space-between;
         }
         .tool-group {
             display: flex;
@@ -152,10 +165,10 @@
         }
         .left-panel {
             position: fixed;
-            top: 80px;
+            top: 90px; /* Adjusted top position */
             left: 0;
             width: 300px;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 90px); /* Adjusted height */
             background: white;
             border-right: 1px solid #dee2e6;
             transform: translateX(-300px);
@@ -186,9 +199,9 @@
         }
         #map {
             position: fixed;
-            height: calc(100vh - 80px);
+            height: calc(100vh - 90px); /* Adjusted height */
             width: 100%;
-            margin-top: 80px;
+            margin-top: 90px; /* Adjusted margin-top */
             transition: margin-left 0.3s ease;
         }
         .base-layer-dropdown {
@@ -218,7 +231,7 @@
             gap: 8px;
         }
         #dbStatus {
-            margin-left: auto; /* Pushes to the right */
+            margin-left: auto;
             padding: 0 10px;
             font-size: 14px;
             color: #333;
