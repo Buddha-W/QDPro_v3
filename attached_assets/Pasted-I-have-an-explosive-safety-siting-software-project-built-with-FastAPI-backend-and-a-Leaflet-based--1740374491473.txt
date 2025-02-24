@@ -1,0 +1,59 @@
+I have an explosive safety siting software project built with FastAPI (backend) and a Leaflet-based front end (site_plan.html). I need to build a complete, world-class system that integrates:
+
+1. An advanced Quantity–Distance (QD) engine module (in qd_engine.py) with dual engines:
+   - One tailored for DoD sites (DoDQDEngine) and one for DoE sites (DoEQDEngine),
+   - Each engine must perform PSI analysis per DoD/DoE standards and compute safe separation distances and generate K factor rings (safe buffer zones) using advanced scaling laws. For the prototype, you can use a placeholder formula such as:
+     
+         safe_distance = k * (quantity)^(1/3)
+     
+     where k is different for DoD and DoE sites.  
+   - Include placeholders and inline comments for:
+       - Model calibration using empirical data,
+       - Uncertainty quantification (e.g., Monte Carlo simulations),
+       - Sensitivity analysis,
+       - Caching and asynchronous processing (using FastAPI background tasks),
+       - Future integration with machine learning for predictive PSI analysis.
+   - The engine must output GeoJSON polygons (e.g., circles) representing the safe rings.
+
+2. Advanced Scenario Simulation & Dynamic Analysis:
+   - Develop a simulation module that allows users to model how a hazardous event (e.g., explosion) evolves over time.
+   - Provide an API endpoint that accepts parameters (quantity, environmental conditions, material properties, etc.) and returns a series of GeoJSON polygons (one for each time step) representing dynamic safe zones.
+   - Include uncertainty quantification placeholders.
+
+3. Comprehensive Reporting Module:
+   - Build a reporting component that generates professional-grade analysis reports (PDF or HTML) summarizing input parameters, computed safe distances, PSI analysis results, and visualization data.
+   - Provide an API endpoint that returns a sample report.
+
+4. Front-End and UI/UX Upgrades (in site_plan.html):
+   - The map must load in a 2D view centered on the United States (e.g., center around [39.8283, -98.5795] with a proper zoom level).
+   - The drawing tools (polygon, polyline, rectangle, circle, marker) must work correctly:
+       - Only one drawing tool active at a time,
+       - Polygon drawing finalizes properly (using double-click or by clicking the first vertex) without leaving editing vertex markers,
+       - New drawn features are added to the currently active drawing layer.
+   - The File menu must have a modern, intuitive design (similar to Microsoft/ArcGIS) with items:
+       - "New" (to create a new location, opening a modal that allows the user to enter a location name; once created, the map clears previous drawings to start with a blank slate),
+       - "Switch Location" (opens a modal listing saved locations so the user can switch; when switching, the map clears current drawings and loads only the features for that location),
+       - "Open" (for future backup file operations).
+   - Ensure that all event handlers are working correctly and that global variables (such as window.activeLayer and window.loadFromDatabase) are properly defined.
+   - The UI should also provide controls for running an analysis that calls the QD engine:
+       - When an analysis is run (via a FastAPI endpoint), it calls the appropriate QD engine (DoD or DoE based on a parameter), computes safe distances and K factor rings, and returns the results.
+       - The computed GeoJSON safe rings should be overlaid on the map.
+
+5. Integration with Main Analysis Flow (in main.py):
+   - Update the main FastAPI application to include endpoints that:
+       - Accept analysis parameters (including site type "DoD" or "DoE"),
+       - Call the QD engine module to compute ESQD, PSI, and K factor rings,
+       - Return the computed safe distance and GeoJSON for safe zones,
+       - Provide an endpoint for retrieving simulation data (dynamic scenario modeling) and an endpoint for generating reports.
+   - Ensure proper error handling and logging.
+
+6. Code Quality:
+   - The code should be modular, well-documented with inline comments, and include instructions for running the application (using uvicorn).
+   - Provide clear instructions on how to test and extend each module.
+
+Please generate full, complete, and working prototype code for:
+   - The QD engine module (qd_engine.py) with both DoD and DoE engines, including advanced PSI analysis and dynamic simulation placeholders.
+   - An updated main.py that integrates the QD engine and exposes endpoints for analysis, simulation, and reporting.
+   - An updated site_plan.html (with necessary CSS and JavaScript) that loads a 2D map centered on the U.S., has fully functional drawing tools, a modern File menu (with New, Switch Location, and Open options), and overlays the QD engine results on the map.
+
+Return the full code for all files, ready to run in my project, with inline documentation explaining each major component and suggestions for future improvements.
