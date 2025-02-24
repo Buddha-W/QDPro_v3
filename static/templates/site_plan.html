@@ -749,7 +749,15 @@
 
     // Initialize drawing tools after map is ready
     function initializeDrawingTools() {
-            drawingTools = {
+      const drawOptions = {
+        shapeOptions: {
+          color: '#3388ff',
+          fillOpacity: 0.3,
+          weight: 2
+        }
+      };
+      
+      drawingTools = {
         polygon: new L.Draw.Polygon(window.map, {
           showLength: true,
           showArea: true,
@@ -886,10 +894,11 @@
         e.preventDefault();
         e.stopPropagation();
         
-        const wasActive = button.classList.contains('active');
+        // Disable all other drawing tools first
         deactivateAllDrawingTools();
         
-        if (!wasActive) {
+        // Enable this tool and activate the button
+        if (tool && typeof tool.enable === 'function') {
           tool.enable();
           button.classList.add('active');
         }
