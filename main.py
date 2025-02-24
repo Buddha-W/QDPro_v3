@@ -17,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from qd_engine import create_qd_engine, MaterialProperties, EnvironmentalConditions
+from qd_engine import get_engine, QDParameters
 
 class QDCalculationRequest(BaseModel):
     quantity: float
