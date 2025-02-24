@@ -1,0 +1,260 @@
+?initialPath=%2F&id=%3Arkm%3A:904 Error adding layers: TypeError: Cannot read properties of undefined (reading 'hasLayer')
+    at ?initialPath=%2F&id=%3Arkm%3A:598:34
+    at Array.forEach (<anonymous>)
+    at updateLayerControl (?initialPath=%2F&id=%3Arkm%3A:593:36)
+    at addLayer (?initialPath=%2F&id=%3Arkm%3A:901:21)
+    at HTMLDocument.<anonymous> (?initialPath=%2F&id=%3Arkm%3A:923:13)
+addLayer @ ?initialPath=%2F&id=%3Arkm%3A:904
+(anonymous) @ ?initialPath=%2F&id=%3Arkm%3A:923
+?initialPath=%2F&id=%3Arkm%3A:904 Error adding layers: TypeError: Cannot read properties of undefined (reading 'hasLayer')
+    at ?initialPath=%2F&id=%3Arkm%3A:598:34
+    at Array.forEach (<anonymous>)
+    at updateLayerControl (?initialPath=%2F&id=%3Arkm%3A:593:36)
+    at addLayer (?initialPath=%2F&id=%3Arkm%3A:901:21)
+    at HTMLDocument.<anonymous> (?initialPath=%2F&id=%3Arkm%3A:924:13)
+addLayer @ ?initialPath=%2F&id=%3Arkm%3A:904
+(anonymous) @ ?initialPath=%2F&id=%3Arkm%3A:924
+?initialPath=%2F&id=%3Arkm%3A:904 Error adding layers: TypeError: Cannot read properties of undefined (reading 'hasLayer')
+    at ?initialPath=%2F&id=%3Arkm%3A:598:34
+    at Array.forEach (<anonymous>)
+    at updateLayerControl (?initialPath=%2F&id=%3Arkm%3A:593:36)
+    at addLayer (?initialPath=%2F&id=%3Arkm%3A:901:21)
+    at HTMLDocument.<anonymous> (?initialPath=%2F&id=%3Arkm%3A:925:13)
+addLayer @ ?initialPath=%2F&id=%3Arkm%3A:904
+(anonymous) @ ?initialPath=%2F&id=%3Arkm%3A:925
+?initialPath=%2F&id=%3Arkm%3A:936 Uncaught TypeError: Cannot read properties of undefined (reading 'Polygon')
+    at HTMLDocument.<anonymous> (?initialPath=%2F&id=%3Arkm%3A:936:37)
+(anonymous) @ ?initialPath=%2F&id=%3Arkm%3A:936
+?initialPath=%2F&id=%3Arkm%3A:643 Loaded layer data: {
+  "layers": {
+    "PES": {
+      "properties": {
+        "isQDAnalyzed": true
+      },
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -74.063473,
+                  40.725405
+                ],
+                [
+                  -74.057465,
+                  40.710182
+                ],
+                [
+                  -74.027939,
+                  40.715517
+                ],
+                [
+                  -74.0312,
+                  40.731649
+                ],
+                [
+                  -74.063473,
+                  40.725405
+                ]
+              ]
+            ]
+          },
+          "properties": {
+            "typeCode": "ECM"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -74.063473,
+                  40.725405
+                ],
+                [
+                  -74.057465,
+                  40.710182
+                ],
+                [
+                  -74.027939,
+                  40.715517
+                ],
+                [
+                  -74.0312,
+                  40.731649
+                ],
+                [
+                  -74.063473,
+                  40.725405
+                ]
+              ]
+            ]
+          },
+          "properties": {
+            "typeCode": "ECM"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -74.121494,
+                  40.740234
+                ],
+                [
+                  -74.113941,
+                  40.71929
+                ],
+                [
+                  -74.082699,
+                  40.726966
+                ],
+                [
+                  -74.092999,
+                  40.748297
+                ],
+                [
+                  -74.121494,
+                  40.740234
+                ]
+              ]
+            ]
+          },
+          "properties": {}
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -74.063473,
+                  40.725405
+                ],
+                [
+                  -74.057465,
+                  40.710182
+                ],
+                [
+                  -74.027939,
+                  40.715517
+                ],
+                [
+                  -74.0312,
+                  40.731649
+                ],
+                [
+                  -74.063473,
+                  40.725405
+                ]
+              ]
+            ]
+          },
+          "properties": {
+            "typeCode": "ECM"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -74.121494,
+                  40.740234
+                ],
+                [
+                  -74.113941,
+                  40.71929
+                ],
+                [
+                  -74.082699,
+                  40.726966
+                ],
+                [
+                  -74.092999,
+                  40.748297
+                ],
+                [
+                  -74.121494,
+                  40.740234
+                ]
+              ]
+            ]
+          },
+          "properties": {
+            "name": "1",
+            "typeCode": "ECM",
+            "description": ""
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -74.063473,
+                  40.725405
+                ],
+                [
+                  -74.057465,
+                  40.710182
+                ],
+                [
+                  -74.027939,
+                  40.715517
+                ],
+                [
+                  -74.0312,
+                  40.731649
+                ],
+                [
+                  -74.063473,
+                  40.725405
+                ]
+              ]
+            ]
+          },
+          "properties": {
+            "typeCode": "ECM"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [
+              [
+                [
+                  -74.063473,
+                  40.725405
+                ],
+                [
+                  -74.057465,
+                  40.710182
+                ],
+                [
+                  -74.027939,
+                  40.715517
+                ],
+                [
+                  -74.0312,
+      
+?initialPath=%2F&id=%3Arkm%3A:684 Error loading layers: TypeError: Cannot read properties of undefined (reading 'removeLayer')
+    at ?initialPath=%2F&id=%3Arkm%3A:648:60
+    at Array.forEach (<anonymous>)
+    at window.loadFromDatabase (?initialPath=%2F&id=%3Arkm%3A:648:39)
+window.loadFromDatabase @ ?initialPath=%2F&id=%3Arkm%3A:684
+await in window.loadFromDatabase (async)
+(anonymous) @ ?initialPath=%2F&id=%3Arkm%3A:926
