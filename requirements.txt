@@ -35,3 +35,7 @@ shapely
 pdfkit
 plotly
 scikit-learn
+fastapi
+jinja2
+psycopg2-binary
+uvicorn

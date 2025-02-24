@@ -486,9 +486,14 @@ async def add_record(location_id: int, info: str = Form(...)):
 
 def init_db():
     """Initializes the database tables if they don't exist."""
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor()
     try:
+        db_url = os.environ.get('DATABASE_URL')
+        if not db_url:
+            db_url = "postgresql://postgres:postgres@localhost:5432/postgres"
+            print(f"Warning: DATABASE_URL not set, using default: {db_url}")
+        print("Initializing database...")
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS locations (
                 id SERIAL PRIMARY KEY,
@@ -520,14 +525,23 @@ def init_db():
             )
         """)
         conn.commit()
-    except Exception as e:
+    except psycopg2.Error as e:
         print(f"Error initializing database: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred during database initialization: {e}")
     finally:
-        cur.close()
-        conn.close()
+        if 'cur' in locals():
+            cur.close()
+        if 'conn' in locals():
+            conn.close()
 
+
+import uvicorn
+import json
+from fastapi.responses import Response
+from fastapi.responses import RedirectResponse
+from qd_engine import create_qd_engine, MaterialProperties, EnvironmentalConditions
 
 if __name__ == "__main__":
-    import uvicorn
     init_db()  # Initialize database tables
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True, access_log=True)
