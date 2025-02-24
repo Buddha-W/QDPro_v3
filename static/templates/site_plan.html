@@ -531,7 +531,6 @@
         window.activeLayer = null; // Define activeLayer globally
 
         // Initialize map immediately when DOM loads
-        // Initialize map and layers once DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize map only if not already initialized
             if (!window.map) {
@@ -568,10 +567,6 @@
                 // Load saved data
                 window.loadFromDatabase();
             }
-            // Force a size update
-            setTimeout(() => {
-                window.map.invalidateSize();
-            }, 100);
         });
 
         function updateDrawToLayerSelect() {
@@ -866,7 +861,7 @@
 
                 layer.bindPopup(formHtml).openPopup();
 
-                setTimeout(() => {
+                setTimeout((){
                     const saveBtn = document.getElementById('facilitySaveButton');
                     if (saveBtn) {
                         saveBtn.addEventListener('click', () => {
@@ -1192,428 +1187,6 @@
             updateLayerControl();
             updateDrawToLayerSelect();
         });
-
-        function getStyleForFeatureType(type) {
-            const defaultStyle = {
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.3,
-                color: '#3388ff',
-                fillColor: '#3388ff'
-            };
-
-            if (!type) return defaultStyle;
-
-            // Convert to uppercase for case-insensitive comparison
-            const upperType = type.toUpperCase();
-
-            if (upperType.includes('PES')) {
-                return {
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.3,
-                    color: '#ff0000',
-                    fillColor: '#ff0000'
-                };
-            } else if (upperType.includes('ES')) {
-                return {
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.3,
-                    color: '#006400',
-                    fillColor: '#006400'
-                };
-            }
-
-            return defaultStyle;
-        }
-
-        function clearAllFeatures() {
-            if (window.layers) {
-                Object.values(window.layers).forEach(layer => {
-                    if (layer instanceof L.FeatureGroup) {
-                        layer.clearLayers();
-                    }
-                });
-            }
-        }
-
-        async function switchLocation(locationName) {
-            try {
-                updateCurrentLocation(locationName);
-                closeModal('switchLocationModal');
-                clearAllFeatures();
-                await window.loadFromDatabase();
-                console.log(`Switched to location: ${locationName}`);
-            } catch (error) {
-                console.error('Error switching location:', error);
-                alert('Failed to switch location');
-            }
-        }
-
-        function updateCurrentLocation(locationName) {
-            const statusElement = document.getElementById('dbStatus');
-            if (statusElement) {
-                statusElement.innerHTML = `Location: ${locationName}`;
-            }
-        }
-
-        async function fetchLocations() {
-            try {
-                const response = await fetch('/api/locations');
-                const data = await response.json();
-
-                const locationsList = document.getElementById('locationsList');
-                locationsList.innerHTML = data.locations.map(loc => `
-                    <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
-                         onclick="switchLocation('${loc.name}')">
-                        ${loc.name}
-                        <br>
-                        <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Error fetching locations:', error);
-                document.getElementById('locationsList').innerHTML = 'Failed to load locations';
-            }
-        }
-
-        function clearAllFeatures() {
-            if (window.layers) {
-                Object.values(window.layers).forEach(layer => {
-                    if (layer instanceof L.FeatureGroup) {
-                        layer.clearLayers();
-                    }
-                });
-            }
-        }
-
-        function switchLocation(locationName) {
-            updateCurrentLocation(locationName);
-            closeModal('switchLocationModal');
-            // Clear all features from layers before loading new location data
-            clearAllFeatures();
-            window.loadFromDatabase(); // Reload data for the new location
-        }
-
-        function handleLocationSwitch(shouldSwitch) {
-            if (shouldSwitch && newLocationData) {
-                updateCurrentLocation(newLocationData.name);
-                // Clear all features when creating new location
-                clearAllFeatures();
-            }
-            closeModal('newLocationConfirmModal');
-            newLocationData = null;
-        }
-
-        function updateCurrentLocation(locationName) {
-            document.getElementById('dbStatus').innerHTML = `Location: ${locationName}`;
-        }
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        };
-
-        async function saveToDatabase() {
-            const layerData = {
-                layers: {}
-            };
-            Object.keys(layers).forEach(layerName => {
-                const layer = layers[layerName];
-                layerData.layers[layerName] = {
-                    properties: layer.properties || {},
-                    features: []
-                };
-                layer.eachLayer(l => {
-                    if (l.toGeoJSON) {
-                        const geoJSON = l.toGeoJSON();
-                        if (l.feature && l.feature.properties) {
-                            geoJSON.properties = {...l.feature.properties};
-                        }
-                        layerData.layers[layerName].features.push(geoJSON);
-                    }
-                });
-            });
-
-            console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
-
-            try {
-                await fetch('/api/save-layers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(layerData)
-                });
-            } catch (error) {
-                console.error('Error saving layers:', error);
-            }
-        }
-
-        function attachEditHandlers(layer) {
-            if (layer instanceof L.FeatureGroup) {
-                layer.eachLayer(l => {
-                    // Ensure the layer has a feature property
-                    l.feature = l.feature || {};
-                    l.feature.properties = l.feature.properties || {};
-
-                    // Remove existing click handlers to prevent duplicates
-                    l.off('click');
-
-                    // Add new click handler
-                    l.on('click', function() {
-                        openEditPopup(l);
-                    });
-                });
-            }
-        }
-
-        let baseLayers = {
-            'None': L.tileLayer(''),
-            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }),
-            'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
-            'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
-            'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
-        };
-
-        function updateLayerControl() {
-            const layerControl = document.getElementById('layerControl');
-            layerControl.innerHTML = '';
-
-            Object.entries(layers).forEach(([name, layer]) => {
-                const item = document.createElement('div');
-                item.className = 'layer-control-item';
-                item.innerHTML = `
-                    <input type="checkbox" id="layer-${name}" 
-                           ${map.hasLayer(layer) ? 'checked' : ''}>
-                    <label for="layer-${name}">
-                        ${name}
-                        <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
-                            (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
-                        </span>
-                    </label>
-                    <button class="edit-layer-button" onclick="editLayer('${name}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                `;
-                item.querySelector('input').onchange = (e) => {
-                    if (e.target.checked) {
-                        map.addLayer(layer);
-                    } else {
-                        map.removeLayer(layer);
-                    }
-                };
-                layerControl.appendChild(item);
-            });
-        }
-
-        function editLayer(name) {
-            const layer = layers[name];
-            if (!layer) return;
-
-            const newName = prompt('Enter new layer name:', name);
-            if (!newName) return;
-
-            const isQDAnalyzed = confirm('Is this layer QD analyzed?');
-            layer.properties = {
-                ...layer.properties,
-                isQDAnalyzed,
-                name: newName
-            };
-
-            if (name !== newName) {
-                layers[newName] = layer;
-                delete layers[name];
-            }
-
-            updateLayerControl();
-            saveToDatabase();
-        }
-
-
-        function updateDrawToLayerSelect() {
-            const select = document.getElementById('drawToLayer');
-            select.innerHTML = '';
-            Object.keys(layers).forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                select.appendChild(option);
-            });
-
-            if (select.options.length > 0) {
-                window.activeLayer = layers[select.options[0].value]; //Select the first option as default active layer
-            }
-        }
-
-        let activeLayer = null;
-
-        // Add Layer Modal functionality
-        const modal = document.getElementById('addLayerModal');
-        const closeBtn = document.querySelector('.modal-close');
-
-        window.showAddLayerModal = function() {
-            modal.style.display = 'block';
-        }
-
-        closeBtn.onclick = function() {
-            modal.style.display = 'none';
-        }
-
-        window.addNewLayer = function() {
-            const name = document.getElementById('layerName').value;
-            const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
-
-            if (!name) return;
-
-            addLayer(name, { isQDAnalyzed });
-            modal.style.display = 'none';
-            document.getElementById('layerName').value = '';
-            document.getElementById('isQDAnalyzed').checked = false;
-        }
-
-        // Commented out CesiumJS integration
-        /*
-        let cesiumViewer;
-        */
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map first
-            if (!window.map) {
-                const mapContainer = document.getElementById('map');
-                mapContainer.style.height = 'calc(100vh - 90px)';
-                mapContainer.style.width = '100%';
-
-                window.map = L.map('map', {
-                    center: [39.8283, -98.5795],
-                    zoom: 4,
-                    zoomControl: true,
-                    maxBounds: [
-                        [15, -180],
-                        [70, -50]
-                    ]
-                });
-
-                // Add base layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(window.map);
-
-                // Initialize layer groups
-                window.layers = {
-                    'Drawn Items': L.featureGroup().addTo(window.map),
-                    'Facilities': L.featureGroup().addTo(window.map),
-                    'Analysis': L.featureGroup().addTo(window.map)
-                };
-
-                // Set initial active layer
-                window.activeLayer = window.layers['Drawn Items'];
-            }
-            // Force a size update
-            setTimeout(() => {
-                window.map.invalidateSize();
-            }, 100);
-        });
-
-        // Menu click handling
-        let activeMenu = null;
-        window.layers = {};  // Initialize layers globally
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuItems = document.querySelectorAll('.menu-item');
-
-            menuItems.forEach(item => {
-                item.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    if (activeMenu === this) {
-                        // If clicking the active menu, close it
-                        this.classList.remove('active');
-                        activeMenu = null;
-                    } else {
-                        // Close any open menu and open this one
-                        if (activeMenu) {
-                            activeMenu.classList.remove('active');
-                        }
-                        this.classList.add('active');
-                        activeMenu = this;
-                    }
-                });
-            });
-
-            // Close menu when clicking outside
-            document.addEventListener('click', function() {
-                if (activeMenu) {
-                    activeMenu.classList.remove('active');
-                    activeMenu = null;
-                }
-            });
-        });
-
-        let newLocationData = null;
-
-        function showNewLocationModal() {
-            document.getElementById('newLocationModal').style.display = 'block';
-        }
-
-        function showSwitchLocationModal() {
-            const modal = document.getElementById('switchLocationModal');
-            modal.style.display = 'block';
-            fetchLocations();
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        async function createLocation() {
-            const locationName = document.getElementById('newLocationName').value;
-            if (!locationName) {
-                alert('Please enter a location name');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/create_location', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ location_name: locationName })
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    newLocationData = data;
-                    document.getElementById('newLocationName_confirm').textContent = locationName;
-                    closeModal('newLocationModal');
-                    document.getElementById('newLocationName').value = '';
-                    document.getElementById('newLocationConfirmModal').style.display = 'block';
-                    // Update current location display
-                    updateCurrentLocation(locationName);
-                    // Clear existing features
-                    clearAllFeatures();
-                    await fetchLocations(); // Refresh locations list
-                } else {
-                    alert('Failed to create location: ' + data.detail);
-                }
-            } catch (error) {
-                console.error('Error creating location:', error);
-                alert('Failed to create location');
-            }
-        }
-
-        function handleLocationSwitch(shouldSwitch) {
-            if (shouldSwitch && newLocationData) {
-                updateCurrentLocation(newLocationData.name);
-                // Clear all features when creating new location
-                clearAllFeatures();
-            }
-            closeModal('newLocationConfirmModal');
-            newLocationData = null;
-        }
 
         function getStyleForFeatureType(type) {
             const defaultStyle = {
@@ -2280,6 +1853,488 @@
             'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }),
+            'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={zz}'),
+            'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
+            'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
+        };
+
+        function updateLayerControl() {
+            const layerControl = document.getElementById('layerControl');
+            layerControl.innerHTML = '';
+
+            Object.entries(layers).forEach(([name, layer]) => {
+                const item = document.createElement('div');
+                item.className = 'layer-control-item';
+                item.innerHTML = `
+                    <input type="checkbox" id="layer-${name}" 
+                           ${map.hasLayer(layer) ? 'checked' : ''}>
+                    <label for="layer-${name}">
+                        ${name}
+                        <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
+                            (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
+                        </span>
+                    </label>
+                    <button class="edit-layer-button" onclick="editLayer('${name}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                `;
+                item.querySelector('input').onchange = (e) => {
+                    if (e.target.checked) {
+                        map.addLayer(layer);
+                    } else {
+                        map.removeLayer(layer);
+                    }
+                };
+                layerControl.appendChild(item);
+            });
+        }
+
+        function editLayer(name) {
+            const layer = layers[name];
+            if (!layer) return;
+
+            const newName = prompt('Enter new layer name:', name);
+            if (!newName) return;
+
+            const isQDAnalyzed = confirm('Is this layer QD analyzed?');
+            layer.properties = {
+                ...layer.properties,
+                isQDAnalyzed,
+                name: newName
+            };
+
+            if (name !== newName) {
+                layers[newName] = layer;
+                delete layers[name];
+            }
+
+            updateLayerControl();
+            saveToDatabase();
+        }
+
+
+        function updateDrawToLayerSelect() {
+            const select = document.getElementById('drawToLayer');
+            select.innerHTML = '';
+            Object.keys(layers).forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                select.appendChild(option);
+            });
+
+            if (select.options.length > 0) {
+                window.activeLayer = layers[select.options[0].value]; //Select the firstoption as default active layer
+            }
+        }
+
+        let activeLayer = null;
+
+        // Add Layer Modal functionality
+        const modal = document.getElementById('addLayerModal');
+        const closeBtn = document.querySelector('.modal-close');
+
+        window.showAddLayerModal = function() {
+            modal.style.display = 'block';
+        }
+
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.addNewLayer = function() {
+            const name = document.getElementById('layerName').value;
+            const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
+
+            if (!name) return;
+
+            addLayer(name, { isQDAnalyzed });
+            modal.style.display = 'none';
+            document.getElementById('layerName').value = '';
+            document.getElementById('isQDAnalyzed').checked = false;
+        }
+
+        // Commented out CesiumJS integration
+        /*
+        let cesiumViewer;
+        */
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize map first
+            if (!window.map) {
+                const mapContainer = document.getElementById('map');
+                mapContainer.style.height = 'calc(100vh - 90px)';
+                mapContainer.style.width = '100%';
+
+                window.map = L.map('map', {
+                    center: [39.8283, -98.5795],
+                    zoom: 4,
+                    zoomControl: true,
+                    maxBounds: [
+                        [15, -180],
+                        [70, -50]
+                    ]
+                });
+
+                // Add base layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(window.map);
+
+                // Initialize layer groups
+                window.layers = {
+                    'Drawn Items': L.featureGroup().addTo(window.map),
+                    'Facilities': L.featureGroup().addTo(window.map),
+                    'Analysis': L.featureGroup().addTo(window.map)
+                };
+
+                // Set initial active layer
+                window.activeLayer = window.layers['Drawn Items'];
+            }
+            // Force a size update
+            setTimeout(() => {
+                window.map.invalidateSize();
+            }, 100);
+        });
+
+    </script>
+    <!-- Facility Details Modal -->
+    <div id="facilityModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="document.getElementById('facilityModal').style.display='none'">&times;</span>
+            <h2>Facility Details</h2>
+            <div class="form-group">
+                <label for="facilityTypeCode">Type Code:</label>
+                <input type="text" id="facilityTypeCode">
+            </div>
+            <div class="form-group">
+                <label for="facilityDescription">Description:</label>
+                <textarea id="facilityDescription" rows="3"></textarea>
+            </div>
+            <button onclick="saveFacilityDetails()">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- New Location Modal -->
+    <div id="newLocationModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('newLocationModal')">&times;</span>
+            <h2>Create New Location</h2>
+            <div class="form-group">
+                <label for="newLocationName">Location Name:</label>
+                <input type="text" id="newLocationName" required>
+            </div>
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="closeModal('newLocationModal')" class="tool-button">Cancel</button>
+                <button onclick="createLocation()" class="tool-button">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Location Confirmation Modal -->
+    <div id="newLocationConfirmModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('newLocationConfirmModal')">&times;</span>
+            <h2>Location Created</h2>
+            <p>Location "<span id="newLocationName_confirm"></span>" has been created.</p>
+            <p>Would you like to switch to the new location?</p>
+            <div style="text-align: right; margin-top: 20px;">
+                <button onclick="handleLocationSwitch(false)" class="tool-button">Stay in Current Location</button>
+                <button onclick="handleLocationSwitch(true)" class="tool-button">Switch to New Location</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Switch Location Modal -->
+    <div id="switchLocationModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal('switchLocationModal')">&times;</span>
+            <h2>Switch Location</h2>
+            <div id="locationsList" style="margin: 20px 0;">
+                Loading locations...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Menu click handling
+        let activeMenu = null;
+        window.layers = {};  // Initialize layers globally
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuItems = document.querySelectorAll('.menu-item');
+
+            menuItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    if (activeMenu === this) {
+                        // If clicking the active menu, close it
+                        this.classList.remove('active');
+                        activeMenu = null;
+                    } else {
+                        // Close any open menu and open this one
+                        if (activeMenu) {
+                            activeMenu.classList.remove('active');
+                        }
+                        this.classList.add('active');
+                        activeMenu = this;
+                    }
+                });
+            });
+
+            // Close menu when clicking outside
+            document.addEventListener('click', function() {
+                if (activeMenu) {
+                    activeMenu.classList.remove('active');
+                    activeMenu = null;
+                }
+            });
+        });
+
+        let newLocationData = null;
+
+        function showNewLocationModal() {
+            document.getElementById('newLocationModal').style.display = 'block';
+        }
+
+        function showSwitchLocationModal() {
+            const modal = document.getElementById('switchLocationModal');
+            modal.style.display = 'block';
+            fetchLocations();
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        async function createLocation() {
+            const locationName = document.getElementById('newLocationName').value;
+            if (!locationName) {
+                alert('Please enter a location name');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/create_location', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location_name: locationName })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    newLocationData = data;
+                    document.getElementById('newLocationName_confirm').textContent = locationName;
+                    closeModal('newLocationModal');
+                    document.getElementById('newLocationName').value = '';
+                    document.getElementById('newLocationConfirmModal').style.display = 'block';
+                    // Update current location display
+                    updateCurrentLocation(locationName);
+                    // Clear existing features
+                    clearAllFeatures();
+                    await fetchLocations(); // Refresh locations list
+                } else {
+                    alert('Failed to create location: ' + data.detail);
+                }
+            } catch (error) {
+                console.error('Error creating location:', error);
+                alert('Failed to create location');
+            }
+        }
+
+        function handleLocationSwitch(shouldSwitch) {
+            if (shouldSwitch && newLocationData) {
+                updateCurrentLocation(newLocationData.name);
+                // Clear all features when creating new location
+                clearAllFeatures();
+            }
+            closeModal('newLocationConfirmModal');
+            newLocationData = null;
+        }
+
+        function getStyleForFeatureType(type) {
+            const defaultStyle = {
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.3,
+                color: '#3388ff',
+                fillColor: '#3388ff'
+            };
+
+            if (!type) return defaultStyle;
+
+            // Convert to uppercase for case-insensitive comparison
+            const upperType = type.toUpperCase();
+
+            if (upperType.includes('PES')) {
+                return {
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.3,
+                    color: '#ff0000',
+                    fillColor: '#ff0000'
+                };
+            } else if (upperType.includes('ES')) {
+                return {
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.3,
+                    color: '#006400',
+                    fillColor: '#006400'
+                };
+            }
+
+            return defaultStyle;
+        }
+
+        function clearAllFeatures() {
+            if (window.layers) {
+                Object.values(window.layers).forEach(layer => {
+                    if (layer instanceof L.FeatureGroup) {
+                        layer.clearLayers();
+                    }
+                });
+            }
+        }
+
+        async function switchLocation(locationName) {
+            try {
+                updateCurrentLocation(locationName);
+                closeModal('switchLocationModal');
+                clearAllFeatures();
+                await window.loadFromDatabase();
+                console.log(`Switched to location: ${locationName}`);
+            } catch (error) {
+                console.error('Error switching location:', error);
+                alert('Failed to switch location');
+            }
+        }
+
+        function updateCurrentLocation(locationName) {
+            const statusElement = document.getElementById('dbStatus');
+            if (statusElement) {
+                statusElement.innerHTML = `Location: ${locationName}`;
+            }
+        }
+
+        async function fetchLocations() {
+            try {
+                const response = await fetch('/api/locations');
+                const data = await response.json();
+
+                const locationsList = document.getElementById('locationsList');
+                locationsList.innerHTML = data.locations.map(loc => `
+                    <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
+                         onclick="switchLocation('${loc.name}')">
+                        ${loc.name}
+                        <br>
+                        <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching locations:', error);
+                document.getElementById('locationsList').innerHTML = 'Failed to load locations';
+            }
+        }
+
+        function clearAllFeatures() {
+            if (window.layers) {
+                Object.values(window.layers).forEach(layer => {
+                    if (layer instanceof L.FeatureGroup) {
+                        layer.clearLayers();
+                    }
+                });
+            }
+        }
+
+        function switchLocation(locationName) {
+            updateCurrentLocation(locationName);
+            closeModal('switchLocationModal');
+            // Clear all features from layers before loading new location data
+            clearAllFeatures();
+            window.loadFromDatabase(); // Reload data for the new location
+        }
+
+        function handleLocationSwitch(shouldSwitch) {
+            if (shouldSwitch && newLocationData) {
+                updateCurrentLocation(newLocationData.name);
+                // Clear all features when creating new location
+                clearAllFeatures();
+            }
+            closeModal('newLocationConfirmModal');
+            newLocationData = null;
+        }
+
+        function updateCurrentLocation(locationName) {
+            document.getElementById('dbStatus').innerHTML = `Location: ${locationName}`;
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        };
+
+        async function saveToDatabase() {
+            const layerData = {
+                layers: {}
+            };
+            Object.keys(layers).forEach(layerName => {
+                const layer = layers[layerName];
+                layerData.layers[layerName] = {
+                    properties: layer.properties || {},
+                    features: []
+                };
+                layer.eachLayer(l => {
+                    if (l.toGeoJSON) {
+                        const geoJSON = l.toGeoJSON();
+                        if (l.feature && l.feature.properties) {
+                            geoJSON.properties = {...l.feature.properties};
+                        }
+                        layerData.layers[layerName].features.push(geoJSON);
+                    }
+                });
+            });
+
+            console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
+
+            try {
+                await fetch('/api/save-layers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(layerData)
+                });
+            } catch (error) {
+                console.error('Error saving layers:', error);
+            }
+        }
+
+        function attachEditHandlers(layer) {
+            if (layer instanceof L.FeatureGroup) {
+                layer.eachLayer(l => {
+                    // Ensure the layer has a feature property
+                    l.feature = l.feature || {};
+                    l.feature.properties = l.feature.properties || {};
+
+                    // Remove existing click handlers to prevent duplicates
+                    l.off('click');
+
+                    // Add new click handler
+                    l.on('click', function() {
+                        openEditPopup(l);
+                    });
+                });
+            }
+        }
+
+        let baseLayers = {
+            'None': L.tileLayer(''),
+            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }),
             'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
             'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
             'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
@@ -2351,4 +2406,77 @@
             });
 
             if (select.options.length > 0) {
-                window.activeLayer = layers[select.options[0].value]; //Select the first
+                window.activeLayer = layers[select.options[0].value]; //Select the firstoption as default active layer
+            }
+        }
+
+        let activeLayer = null;
+
+        // Add Layer Modal functionality
+        const modal = document.getElementById('addLayerModal');
+        const closeBtn = document.querySelector('.modal-close');
+
+        window.showAddLayerModal = function() {
+            modal.style.display = 'block';
+        }
+
+        closeBtn.onclick = function() {
+            modal.style.display = 'none';
+        }
+
+        window.addNewLayer = function() {
+            const name = document.getElementById('layerName').value;
+            const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
+
+            if (!name) return;
+
+            addLayer(name, { isQDAnalyzed });
+            modal.style.display = 'none';
+            document.getElementById('layerName').value = '';
+            document.getElementById('isQDAnalyzed').checked = false;
+        }
+
+        // Commented out CesiumJS integration
+        /*
+        let cesiumViewer;
+        */
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize map first
+            if (!window.map) {
+                const mapContainer = document.getElementById('map');
+                mapContainer.style.height = 'calc(100vh - 90px)';
+                mapContainer.style.width = '100%';
+
+                window.map = L.map('map', {
+                    center: [39.8283, -98.5795],
+                    zoom: 4,
+                    zoomControl: true,
+                    maxBounds: [
+                        [15, -180],
+                        [70, -50]
+                    ]
+                });
+
+                // Add base layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(window.map);
+
+                // Initialize layer groups
+                window.layers = {
+                    'Drawn Items': L.featureGroup().addTo(window.map),
+                    'Facilities': L.featureGroup().addTo(window.map),
+                    'Analysis': L.featureGroup().addTo(window.map)
+                };
+
+                // Set initial active layer
+                window.activeLayer = window.layers['Drawn Items'];
+            }
+            // Force a size update
+            setTimeout(() => {
+                window.map.invalidateSize();
+            }, 100);
+        });
+
+    </script>
