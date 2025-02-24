@@ -2,43 +2,68 @@
 <html>
 <head>
   <title>QDPro Site Plan</title>
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/>
-  <!-- Leaflet.draw CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ==" crossorigin="anonymous"/>
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous"/>
-  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-  <!-- Leaflet.draw JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" integrity="sha512-ozq8xQKq6urvuU6jNgkfqAmT7jKN2XumbrX1JiB3TnF7tI48DPI4Gy1GXKD/V3EExgAs1V+pRO7vwtS1LHg0Gw==" crossorigin="anonymous"></script>
-  <!-- Plotly for charts if needed -->
   <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
   <style>
     body { margin: 0; padding: 0; }
     .modal {
-      display: none; position: fixed; z-index: 2000; left: 0; top: 0;
-      width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
     }
     .modal-content {
-      background-color: #fefefe; margin: 15% auto; padding: 20px;
-      border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 5px;
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 5px;
     }
     .modal-close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
     .modal-close:hover { color: black; }
     .form-group { margin-bottom: 15px; }
     .form-group label { display: block; margin-bottom: 5px; }
-    .form-group input, .form-group textarea {
-      width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
     }
     .menu-bar {
-      position: fixed; top: 0; left: 0; right: 0; height: 40px;
-      background: #f8f9fa; color: #333; display: flex; align-items: center;
-      z-index: 1500; padding: 0; border-bottom: 1px solid #dee2e6;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #f8f9fa;
+      color: #333;
+      display: flex;
+      align-items: center;
+      z-index: 1500;
+      padding: 0;
+      border-bottom: 1px solid #dee2e6;
       font-family: "Segoe UI", Arial, sans-serif;
     }
-    .menu-item { padding: 0 15px; height: 100%; display: flex; align-items: center;
-      cursor: pointer; position: relative; font-size: 14px; }
+    .menu-item {
+      padding: 0 15px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+      font-size: 14px;
+    }
     .menu-item:hover { background: #e9ecef; }
     .menu-item.active .menu-dropdown { display: block; animation: fadeIn 0.15s ease-in; }
     @keyframes fadeIn {
@@ -46,71 +71,134 @@
       to { opacity: 1; transform: translateY(0); }
     }
     .menu-dropdown {
-      display: none; position: absolute; top: 40px; left: 0; background: white;
-      min-width: 200px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 1600;
-      border: 1px solid #dee2e6; border-radius: 4px; padding: 4px 0;
+      display: none;
+      position: absolute;
+      top: 40px;
+      left: 0;
+      background: white;
+      min-width: 200px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 1600;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 4px 0;
     }
     .menu-dropdown-item {
-      padding: 8px 20px; color: #333; display: flex; align-items: center;
-      text-decoration: none; font-size: 14px;
+      padding: 8px 20px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      font-size: 14px;
     }
     .menu-dropdown-item:hover { background: #f0f0f0; color: #000; }
     .menu-dropdown-item i { margin-right: 8px; width: 16px; color: #666; }
     .toolbar {
-      position: fixed; top: 40px; left: 10px; height: 40px; background: #fff;
-      border: 1px solid #ccc; border-radius: 4px; display: flex; align-items: center;
-      padding: 0 10px; z-index: 1001; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 40px;
+      left: 10px;
+      height: 40px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      z-index: 1001;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       margin-top: 10px;
     }
-    .tool-group { display: flex; align-items: center; padding: 0 10px;
-      border-right: 1px solid #eee; }
+    .tool-group { display: flex; align-items: center; padding: 0 10px; border-right: 1px solid #eee; }
     .tool-group:last-child { border-right: none; }
     .tool-button {
-      padding: 6px; margin: 0 2px; border: 1px solid transparent;
-      border-radius: 3px; background: white; color: #666;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      min-width: 32px; height: 32px;
+      padding: 6px;
+      margin: 0 2px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      background: white;
+      color: #666;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
     }
     .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
     .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
     .tool-button i { font-size: 16px; }
     .left-panel {
-      position: fixed; top: 90px; left: 0; width: 300px;
-      height: calc(100vh - 90px); background: white;
+      position: fixed;
+      top: 90px;
+      left: 0;
+      width: 300px;
+      height: calc(100vh - 90px);
+      background: white;
       border-right: 1px solid #dee2e6;
-      transform: translateX(-300px); transition: transform 0.3s ease;
-      z-index: 1000; display: flex; flex-direction: column;
+      transform: translateX(-300px);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
     }
     .left-panel.visible { transform: translateX(0); }
     .panel-header {
-      padding: 15px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
+      padding: 15px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
       font-weight: bold;
     }
     .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
     .layer-select-container {
-      margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px;
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
     }
     #map {
-      position: fixed; top: 90px; bottom: 0; left: 0; right: 0;
-      z-index: 1; width: 100%; height: calc(100vh - 90px);
+      position: fixed;
+      top: 90px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      width: 100%;
+      height: calc(100vh - 90px);
     }
     .base-layer-dropdown {
-      position: absolute; background: white; padding: 10px;
-      border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      z-index: 1002; display: none;
+      position: absolute;
+      background: white;
+      padding: 10px;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1002;
+      display: none;
     }
     .base-layer-option {
-      padding: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
     }
     .base-layer-option:hover { background: #f8f9fa; }
     .layer-control-item {
-      padding: 8px 0; display: flex; align-items: center; gap: 8px;
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     #dbStatus {
-      margin-left: auto; padding: 0 10px; font-size: 14px; color: #333;
+      margin-left: auto;
+      padding: 0 10px;
+      font-size: 14px;
+      color: #333;
     }
     .location-item {
-      padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #ddd;
     }
   </style>
 </head>
@@ -223,7 +311,6 @@
       </button>
     </div>
   </div>
-
   <div id="dbStatus" style="position: fixed; top: 50px; right: 10px; padding: 5px 10px; font-size: 14px; color: #333; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
     {% if current_location %}Location: {{ current_location }}{% else %}No location selected{% endif %}
   </div>
@@ -339,6 +426,37 @@
     let activeMenu = null;
     window.layers = {};  // Global layers object
     window.activeLayer = null; // Global active layer
+
+    // Global helper: getStyleForFeatureType must be defined before loadFromDatabase is used
+    function getStyleForFeatureType(type) {
+      const defaultStyle = {
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.3,
+        color: '#3388ff',
+        fillColor: '#3388ff'
+      };
+      if (!type) return defaultStyle;
+      const upperType = type.toUpperCase();
+      if (upperType.includes('PES')) {
+        return {
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.3,
+          color: '#ff0000',
+          fillColor: '#ff0000'
+        };
+      } else if (upperType.includes('ES')) {
+        return {
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.3,
+          color: '#006400',
+          fillColor: '#006400'
+        };
+      }
+      return defaultStyle;
+    }
 
     // Define loadFromDatabase globally
     window.loadFromDatabase = async function() {
@@ -627,87 +745,34 @@
     }
 
     // Drawing Tools Setup
-    let drawingTools = {};
-
-    // Initialize drawing tools after map is ready
-    function initializeDrawingTools() {
-      if (!window.map) {
-        console.error('Map not initialized');
-        return;
-      }
-
-      drawingTools = {
-        polygon: new L.Draw.Polygon(window.map, {
-          showLength: true,
-          showArea: true,
-          allowIntersection: false,
-          drawError: { color: '#e1e100', timeout: 1000 },
-          shapeOptions: { color: '#3388ff' },
-          metric: false,
-          vertices: {
-            first: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
-            mid: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
-            last: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) }
-          }
-        }),
-        polyline: new L.Draw.Polyline(window.map, {
-          shapeOptions: { color: '#3388ff', weight: 2 },
-          metric: false
-        }),
-        rectangle: new L.Draw.Rectangle(window.map, {
-          shapeOptions: { color: '#3388ff' },
-          metric: false
-        }),
-        circle: new L.Draw.Circle(window.map, {
-          shapeOptions: { color: '#3388ff' },
-          metric: false
-        }),
-        marker: new L.Draw.Marker(window.map)
-      };
-
-      // Re-attach event handlers after tools are initialized
-      setupDrawingButton('drawPolygon', drawingTools.polygon);
-      setupDrawingButton('drawPolyline', drawingTools.polyline);
-      setupDrawingButton('drawRectangle', drawingTools.rectangle);
-      setupDrawingButton('drawCircle', drawingTools.circle);
-      setupDrawingButton('drawMarker', drawingTools.marker);
-    }
-
-    // Call initialization after map is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-      // Initialize map first
-      window.map = L.map('map', {
-        center: [39.8283, -98.5795],
-        zoom: 4,
-        zoomControl: true,
-        maxBounds: [
-          [15, -180],
-          [70, -50]
-        ]
-      });
-
-      // Add base layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(window.map);
-
-      // Initialize layer groups
-      window.layers = {
-        'Drawn Items': L.featureGroup().addTo(window.map),
-        'Facilities': L.featureGroup().addTo(window.map),
-        'Analysis': L.featureGroup().addTo(window.map)
-      };
-
-      // Set initial active layer
-      window.activeLayer = window.layers['Drawn Items'];
-
-      // Initialize drawing tools after map is ready
-      initializeDrawingTools();
-
-      // Load data from database after everything is initialized
-      window.loadFromDatabase();
-    });
+    let drawingTools = {
+      polygon: new L.Draw.Polygon(window.map, {
+        showLength: true,
+        showArea: true,
+        allowIntersection: false,
+        drawError: { color: '#e1e100', timeout: 1000 },
+        shapeOptions: { color: '#3388ff' },
+        metric: false,
+        vertices: {
+          first: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
+          mid: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
+          last: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) }
+        }
+      }),
+      polyline: new L.Draw.Polyline(window.map, {
+        shapeOptions: { color: '#3388ff', weight: 2 },
+        metric: false
+      }),
+      rectangle: new L.Draw.Rectangle(window.map, {
+        shapeOptions: { color: '#3388ff' },
+        metric: false
+      }),
+      circle: new L.Draw.Circle(window.map, {
+        shapeOptions: { color: '#3388ff' },
+        metric: false
+      }),
+      marker: new L.Draw.Marker(window.map)
+    };
 
     function deactivateAllDrawingTools() {
       Object.values(drawingTools).forEach(tool => {
@@ -804,13 +869,13 @@
       const buttonRect = baseLayerTool.getBoundingClientRect();
       baseLayerDropdown.style.top = (buttonRect.bottom + 5) + 'px';
       baseLayerDropdown.style.left = buttonRect.left + 'px';
-      baseLayerDropdown.style.display = baseLayerDropdown.style.display === 'none' ? 'block' : 'none';
+      baseLayerDropdown.style.display = (baseLayerDropdown.style.display === 'none' || baseLayerDropdown.style.display === '') ? 'block' : 'none';
     });
     Object.entries(baseLayers).forEach(([name, layer]) => {
       const option = document.createElement('div');
       option.className = 'base-layer-option';
       option.innerHTML = `
-        <input type="radio" name="baseLayer" id="base-${name}" ${window.map.hasLayer(layer) ? 'checked' : ''}>
+        <input type="radio" name="baseLayer" id="base-${name}" ${window.map && window.map.hasLayer(layer) ? 'checked' : ''}>
         <label for="base-${name}">${name}</label>
       `;
       option.onclick = () => {
