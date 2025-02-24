@@ -1719,7 +1719,22 @@
         let cesiumViewer;
         */
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map layers
+            // Initialize map first
+            if (!window.map) {
+                window.map = L.map('map', {
+                    center: [39.8283, -98.5795],
+                    zoom: 4,
+                    zoomControl: true
+                });
+
+                // Add the base tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(window.map);
+            }
+
+            // Initialize map layers after map is created
             window.layers = {
                 'Drawn Items': new L.FeatureGroup().addTo(window.map),
                 'Facilities': new L.FeatureGroup().addTo(window.map),
