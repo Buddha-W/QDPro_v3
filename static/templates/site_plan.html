@@ -694,54 +694,45 @@
       'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
     };
 
-    function updateLayerControl() {
-      const layerControl = document.getElementById('layerControl');
-      layerControl.innerHTML = '';
-      Object.entries(window.layers).forEach(([name, layer]) => {
-        const item = document.createElement('div');
-        item.className = 'layer-control-item';
-        item.innerHTML = `
-          <input type="checkbox" id="layer-${name}" ${window.map.hasLayer(layer) ? 'checked' : ''}>
-          <label for="layer-${name}">
-            ${name}
-            <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
-              (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
-            </span>
-          </label>
-          <button class="edit-layer-button" onclick="editLayer('${name}')">
-            <i class="fas fa-edit"></i>
-          </button>
+    async function initializeBaseLayerDropdown() {
+      const baseLayerTool = document.getElementById('baseLayerTool');
+      const baseLayerDropdown = document.getElementById('baseLayerDropdown');
+
+      if (!baseLayerTool || !baseLayerDropdown) {
+        console.error('Base layer elements not found');
+        return;
+      }
+
+      baseLayerTool.addEventListener('click', (e) => {
+        const buttonRect = baseLayerTool.getBoundingClientRect();
+        baseLayerDropdown.style.top = (buttonRect.bottom + 5) + 'px';
+        baseLayerDropdown.style.left = buttonRect.left + 'px';
+        baseLayerDropdown.style.display = (baseLayerDropdown.style.display === 'none' || baseLayerDropdown.style.display === '') ? 'block' : 'none';
+      });
+
+      baseLayerDropdown.innerHTML = '';
+      Object.entries(baseLayers).forEach(([name, layer]) => {
+        const option = document.createElement('div');
+        option.className = 'base-layer-option';
+        const isActive = window.map.hasLayer(layer);
+        option.innerHTML = `
+          <input type="radio" name="baseLayer" id="base-${name}" ${isActive ? 'checked' : ''}>
+          <label for="base-${name}">${name}</label>
         `;
-        item.querySelector('input').onchange = (e) => {
-          if (e.target.checked) { window.map.addLayer(layer); }
-          else { window.map.removeLayer(layer); }
+        option.onclick = () => {
+          Object.values(baseLayers).forEach(l => window.map.removeLayer(l));
+          if (name !== 'None') { window.map.addLayer(layer); }
+          baseLayerDropdown.style.display = 'none';
         };
-        layerControl.appendChild(item);
+        baseLayerDropdown.appendChild(option);
       });
-    }
-
-    function editLayer(name) {
-      const layer = window.layers[name];
-      if (!layer) return;
-      const newName = prompt('Enter new layer name:', name);
-      if (!newName) return;
-      const isQDAnalyzed = confirm('Is this layer QD analyzed?');
-      layer.properties = { ...layer.properties, isQDAnalyzed, name: newName };
-      if (name !== newName) { window.layers[newName] = layer; delete window.layers[name]; }
-      updateLayerControl();
-      saveToDatabase();
-    }
-
-    function updateDrawToLayerSelect() {
-      const select = document.getElementById('drawToLayer');
-      select.innerHTML = '';
-      Object.keys(window.layers).forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        select.appendChild(option);
+      document.addEventListener('click', (e) => {
+        if (activeMenu && !activeMenu.contains(e.target) && !baseLayerTool.contains(e.target) && !baseLayerDropdown.contains(e.target)) {
+          activeMenu.classList.remove('active');
+          activeMenu = null;
+          baseLayerDropdown.style.display = 'none';
+        }
       });
-      if (select.options.length > 0) { window.activeLayer = window.layers[select.options[0].value]; }
     }
 
     // Drawing Tools Setup
@@ -780,7 +771,7 @@
     }
 
     // Call initialization after map is loaded
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
       // Initialize map first
       window.map = L.map('map', {
         center: [39.8283, -98.5795],
@@ -824,7 +815,9 @@
       initializeDrawingTools();
 
       // Initialize base layer dropdown after map is ready
-      initializeBaseLayerDropdown();
+      await initializeBaseLayerDropdown();
+      await loadFromDatabase(); // Load layers after map and dropdown are initialized
+
     });
 
     function deactivateAllDrawingTools() {
@@ -916,9 +909,14 @@
     }
 
     // Base Layer Dropdown
-    function initializeBaseLayerDropdown() {
+    async function initializeBaseLayerDropdown() {
       const baseLayerTool = document.getElementById('baseLayerTool');
       const baseLayerDropdown = document.getElementById('baseLayerDropdown');
+
+      if (!baseLayerTool || !baseLayerDropdown) {
+        console.error('Base layer elements not found');
+        return;
+      }
 
       baseLayerTool.addEventListener('click', (e) => {
         const buttonRect = baseLayerTool.getBoundingClientRect();
