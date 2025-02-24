@@ -1,16 +1,9 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, status, Form
-from typing import Dict
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import numpy as np
-from shapely.geometry import Point, mapping
-import json
-import os
-import os.path
-import psycopg2
+from typing import List, Dict, Optional
+from qd_engine import QDParameters, get_engine
 
 app = FastAPI()
 
@@ -24,22 +17,6 @@ app.add_middleware(
 )
 
 from qd_engine import create_qd_engine, MaterialProperties, EnvironmentalConditions
-
-class QDCalculationRequest(BaseModel):
-    quantity: float
-    lat: float
-    lng: float
-    k_factor: float = 40
-    material_type: str = "General Explosive"
-    sensitivity: float = 0.5
-    det_velocity: float = 6000
-    tnt_equiv: float = 1.0
-    temperature: float = 298
-    pressure: float = 101.325
-    humidity: float = 50
-    confinement_factor: float = 0.0
-
-# QD engine will be created per request based on site type
 
 class QDCalculationRequest(BaseModel):
     quantity: float
@@ -66,13 +43,13 @@ async def update_sensor_data(data: Dict[str, float]):
     # Create QD engine based on site type stored in session/config
     site_type = "DOD"  # TODO: Get from user session
     qd_engine = create_qd_engine(site_type)
-    
+
     # Update sensor data
     await qd_engine.update_sensor_data(data)
-    
+
     # Perform risk assessment
     risk_assessment = await qd_engine._update_risk_assessment()
-    
+
     return {
         "status": "updated",
         "timestamp": datetime.now().isoformat(),
@@ -93,7 +70,7 @@ async def generate_report(site_id: str, format: str = "html"):
             "humidity": 60.0
         }
     }
-    
+
     html_content = f"""
     <h1>Site Safety Report</h1>
     <p>Site ID: {report_data['site_id']}</p>
@@ -101,7 +78,7 @@ async def generate_report(site_id: str, format: str = "html"):
     <h2>Risk Assessment</h2>
     <p>{report_data['risk_assessment']}</p>
     """
-    
+
     if format == "pdf":
         pdf = pdfkit.from_string(html_content, False)
         return Response(pdf, media_type="application/pdf")
@@ -113,14 +90,14 @@ async def calculate_qd(request: QDCalculationRequest):
     try:
         # Create appropriate QD engine
         qd_engine = create_qd_engine(request.site_type)
-        
+
         # Create material properties object
         material_props = MaterialProperties(
             sensitivity=request.sensitivity,
             det_velocity=request.det_velocity,
             tnt_equiv=request.tnt_equiv
         )
-        
+
         # Create environmental conditions object
         env_conditions = EnvironmentalConditions(
             temperature=request.temperature,
@@ -128,14 +105,14 @@ async def calculate_qd(request: QDCalculationRequest):
             humidity=request.humidity,
             confinement_factor=request.confinement_factor
         )
-        
+
         # Create material properties object
         material_props = MaterialProperties(
             sensitivity=request.sensitivity,
             det_velocity=request.det_velocity,
             tnt_equiv=request.tnt_equiv
         )
-        
+
         # Create environmental conditions object
         env_conditions = EnvironmentalConditions(
             temperature=request.temperature,
@@ -143,7 +120,7 @@ async def calculate_qd(request: QDCalculationRequest):
             humidity=request.humidity,
             confinement_factor=request.confinement_factor
         )
-        
+
         # Calculate safe distance using QD engine
         safe_distance = qd_engine.calculate_esqd(
             quantity=request.quantity,
@@ -151,14 +128,14 @@ async def calculate_qd(request: QDCalculationRequest):
             env_conditions=env_conditions,
             k_factor=request.k_factor
         )
-        
+
         # Generate K-factor rings
         buffer_zones = qd_engine.generate_k_factor_rings(
             center_lat=request.lat,
             center_lon=request.lng,
             safe_distance=safe_distance
         )
-        
+
         return {
             "safe_distance": safe_distance,
             "units": "feet",
@@ -188,10 +165,35 @@ from auth import get_current_user
 DATA_DIR = os.path.join(os.path.expanduser('~'), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory="static", html=True), name="static")
-
+app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="static/templates")
 
+@app.post("/api/analyze_qd")
+async def analyze_qd(
+    background_tasks: BackgroundTasks,
+    params: Dict,
+):
+    try:
+        engine = get_engine(params["site_type"])
+        qd_params = QDParameters(
+            quantity=float(params["quantity"]),
+            site_type=params["site_type"],
+            material_type=params.get("material_type", "default")
+        )
+
+        result = await engine.calculate_safe_distance(
+            qd_params,
+            params["location"]
+        )
+
+        return {
+            "safe_distance": result.safe_distance,
+            "k_factor": result.k_factor,
+            "psi_analysis": result.psi_at_distance,
+            "geojson": result.geojson
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/")
 async def render_web_page(request: Request):
@@ -383,7 +385,7 @@ async def create_location_api(request: Request):
     location_name = data.get("location_name")
     if not location_name:
         raise HTTPException(status_code=400, detail="Location name is required")
-        
+
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     cur = conn.cursor()
     try:
@@ -496,6 +498,21 @@ def init_db():
                 location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
                 info TEXT,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS map_layers (
+                name VARCHAR(255) PRIMARY KEY,
+                layer_config JSONB,
+                is_active BOOLEAN DEFAULT TRUE
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS analysis_results (
+                id SERIAL PRIMARY KEY,
+                analysis_type VARCHAR(255) REFERENCES map_layers(name) ON DELETE CASCADE,
+                result_geometry GEOGRAPHY(Geometry,4326),
+                result_data JSONB
             )
         """)
         conn.commit()
