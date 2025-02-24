@@ -627,34 +627,87 @@
     }
 
     // Drawing Tools Setup
-    let drawingTools = {
-      polygon: new L.Draw.Polygon(window.map, {
-        showLength: true,
-        showArea: true,
-        allowIntersection: false,
-        drawError: { color: '#e1e100', timeout: 1000 },
-        shapeOptions: { color: '#3388ff' },
-        metric: false,
-        vertices: {
-          first: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
-          mid: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
-          last: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) }
-        }
-      }),
-      polyline: new L.Draw.Polyline(window.map, {
-        shapeOptions: { color: '#3388ff', weight: 2 },
-        metric: false
-      }),
-      rectangle: new L.Draw.Rectangle(window.map, {
-        shapeOptions: { color: '#3388ff' },
-        metric: false
-      }),
-      circle: new L.Draw.Circle(window.map, {
-        shapeOptions: { color: '#3388ff' },
-        metric: false
-      }),
-      marker: new L.Draw.Marker(window.map)
-    };
+    let drawingTools = {};
+
+    // Initialize drawing tools after map is ready
+    function initializeDrawingTools() {
+      if (!window.map) {
+        console.error('Map not initialized');
+        return;
+      }
+
+      drawingTools = {
+        polygon: new L.Draw.Polygon(window.map, {
+          showLength: true,
+          showArea: true,
+          allowIntersection: false,
+          drawError: { color: '#e1e100', timeout: 1000 },
+          shapeOptions: { color: '#3388ff' },
+          metric: false,
+          vertices: {
+            first: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
+            mid: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
+            last: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) }
+          }
+        }),
+        polyline: new L.Draw.Polyline(window.map, {
+          shapeOptions: { color: '#3388ff', weight: 2 },
+          metric: false
+        }),
+        rectangle: new L.Draw.Rectangle(window.map, {
+          shapeOptions: { color: '#3388ff' },
+          metric: false
+        }),
+        circle: new L.Draw.Circle(window.map, {
+          shapeOptions: { color: '#3388ff' },
+          metric: false
+        }),
+        marker: new L.Draw.Marker(window.map)
+      };
+
+      // Re-attach event handlers after tools are initialized
+      setupDrawingButton('drawPolygon', drawingTools.polygon);
+      setupDrawingButton('drawPolyline', drawingTools.polyline);
+      setupDrawingButton('drawRectangle', drawingTools.rectangle);
+      setupDrawingButton('drawCircle', drawingTools.circle);
+      setupDrawingButton('drawMarker', drawingTools.marker);
+    }
+
+    // Call initialization after map is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize map first
+      window.map = L.map('map', {
+        center: [39.8283, -98.5795],
+        zoom: 4,
+        zoomControl: true,
+        maxBounds: [
+          [15, -180],
+          [70, -50]
+        ]
+      });
+
+      // Add base layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(window.map);
+
+      // Initialize layer groups
+      window.layers = {
+        'Drawn Items': L.featureGroup().addTo(window.map),
+        'Facilities': L.featureGroup().addTo(window.map),
+        'Analysis': L.featureGroup().addTo(window.map)
+      };
+
+      // Set initial active layer
+      window.activeLayer = window.layers['Drawn Items'];
+
+      // Initialize drawing tools after map is ready
+      initializeDrawingTools();
+
+      // Load data from database after everything is initialized
+      window.loadFromDatabase();
+    });
 
     function deactivateAllDrawingTools() {
       Object.values(drawingTools).forEach(tool => {
