@@ -645,6 +645,15 @@
       }
     }
 
+    function showNewLocationModal() {
+      document.getElementById('newLocationModal').style.display = 'block';
+    }
+
+    function showSwitchLocationModal() {
+      document.getElementById('switchLocationModal').style.display = 'block';
+      fetchLocations();
+    }
+
     async function saveToDatabase() {
       const layerData = { layers: {} };
       Object.keys(window.layers).forEach(layerName => {
