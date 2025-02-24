@@ -531,26 +531,43 @@
         window.activeLayer = null; // Define activeLayer globally
 
         // Initialize map immediately when DOM loads
+        // Initialize map and layers once DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if map container is already initialized
-            if (L.DomUtil.get('map') !== null && L.DomUtil.get('map')._leaflet_id) {
-                L.DomUtil.get('map')._leaflet_id = null;
-            }
-
-            // Create map with explicit size
-            const mapContainer = document.getElementById('map');
-            if (mapContainer) {
+            // Initialize map only if not already initialized
+            if (!window.map) {
+                const mapContainer = document.getElementById('map');
                 mapContainer.style.height = 'calc(100vh - 90px)';
                 mapContainer.style.width = '100%';
-            }
 
-            // Initialize map with secure tile source
-            if (!window.map) {
                 window.map = L.map('map', {
                     center: [39.8283, -98.5795],
                     zoom: 4,
                     zoomControl: true,
                     maxBounds: [
+                        [15, -180],
+                        [70, -50]
+                    ]
+                });
+
+                // Add base layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    minZoom: 3,
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors',
+                    crossOrigin: true
+                }).addTo(window.map);
+
+                // Initialize layers object
+                window.layers = {};
+                
+                // Add default layers
+                addLayer('Drawn Items', { isQDAnalyzed: false });
+                addLayer('Facilities', { isQDAnalyzed: true });
+                addLayer('Analysis', { isQDAnalyzed: true });
+                
+                // Load saved data
+                window.loadFromDatabase();
+            }
                         [15, -180], // Southwest coordinates
                         [70, -50]  // Northeast coordinates
                     ]
