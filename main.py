@@ -540,7 +540,7 @@ import uvicorn
 import json
 from fastapi.responses import Response
 from fastapi.responses import RedirectResponse
-from qd_engine import create_qd_engine, MaterialProperties, EnvironmentalConditions
+from qd_engine import get_engine, MaterialProperties, EnvironmentalConditions
 
 if __name__ == "__main__":
     init_db()  # Initialize database tables
