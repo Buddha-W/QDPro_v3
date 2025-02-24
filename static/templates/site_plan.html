@@ -1,2485 +1,792 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>QDPro Site Plan</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ==" crossorigin="anonymous"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
-    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
-    <style>
-        body { margin: 0; padding: 0; }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 5px;
-        }
-        .modal-close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .modal-close:hover {
-            color: black;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .menu-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background: #f8f9fa;
-            color: #333;
-            display: flex;
-            align-items: center;
-            z-index: 1500;
-            padding: 0;
-            border-bottom: 1px solid #dee2e6;
-            font-family: Segoe UI, Arial, sans-serif;
-        }
-        .menu-item {
-            padding: 0 15px;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            position: relative;
-            font-size: 14px;
-        }
-        .menu-item:hover {
-            background: #e9ecef;
-        }
-        .menu-dropdown {
-            display: none;
-            position: absolute;
-            top: 40px;
-            left: 0;
-            background: white;
-            min-width: 200px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 1600;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 4px 0;
-            animation: fadeIn 0.15s ease-in;
-        }
-        .menu-dropdown-item {
-            padding: 8px 20px;
-            color: #333;
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .menu-dropdown-item:hover {
-            background: #f0f0f0;
-            color: #000;
-        }
-        .menu-dropdown-item i {
-            margin-right: 8px;
-            width: 16px;
-            color: #666;
-        }
-        .layer-properties-form {
-            padding: 15px;
-        }
-        .layer-properties-form label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .layer-properties-form input,
-        .layer-properties-form select {
-            width: 100%;
-            padding: 5px;
-            margin-bottom: 10px;
-        }
-        .edit-layer-button {
-            background: none;
-            border: none;
-            color: #666;
-            cursor: pointer;
-            padding: 2px 5px;
-        }
-        .edit-layer-button:hover {
-            color: #333;
-        }
-        .toolbar {
-            position: fixed;
-            top: 40px;
-            left: 10px;
-            height: 40px;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            z-index: 1001;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            margin-top: 10px;
-        }
-        .tool-group {
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            border-right: 1px solid #eee;
-        }
-        .tool-group:last-child {
-            border-right: none;
-        }
-        .tool-button {
-            padding: 6px;
-            margin: 0 2px;
-            border: 1px solid transparent;
-            border-radius: 3px;
-            background: white;
-            color: #666;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 32px;
-            height: 32px;
-        }
-        .tool-button:hover {
-            background: #f0f0f0;
-            border-color: #ccc;
-        }
-        .tool-button.active {
-            background: #e6f2ff;
-            border-color: #99ccff;
-            color: #0066cc;
-        }
-        .tool-button i {
-            font-size: 16px;
-        }
-        .left-panel {
-            position: fixed;
-            top: 90px; /* Adjusted top position */
-            left: 0;
-            width: 300px;
-            height: calc(100vh - 90px); /* Adjusted height */
-            background: white;
-            border-right: 1px solid #dee2e6;
-            transform: translateX(-300px);
-            transition: transform 0.3s ease;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-        }
-        .left-panel.visible {
-            transform: translateX(0);
-        }
-        .panel-header {
-            padding: 15px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-            font-weight: bold;
-        }
-        .panel-content {
-            padding: 15px;
-            flex-grow: 1;
-            overflow-y: auto;
-        }
-        .layer-select-container {
-            margin-bottom: 20px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 4px;
-        }
-        #map {
-            position: fixed;
-            top: 90px;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 1;
-            width: 100%;
-            height: calc(100vh - 90px);
-        }
-        .base-layer-dropdown {
-            position: absolute;
-            background: white;
-            padding: 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            z-index: 1002;
-            display: none;
-        }
-        .base-layer-option {
-            padding: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
-        .base-layer-option:hover {
-            background: #f8f9fa;
-        }
-        .layer-control-item {
-            padding: 8px 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        #dbStatus {
-            margin-left: auto;
-            padding: 0 10px;
-            font-size: 14px;
-            color: #333;
-        }
-        .menu-item {
-            position: relative;
-        }
-
-        .menu-item.active .menu-dropdown {
-            display: block;
-            animation: fadeIn 0.15s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .location-item {
-          padding: 10px;
-          cursor: pointer;
-          border-bottom: 1px solid #ddd;
-        }
-    </style>
+  <title>QDPro Site Plan</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/>
+  <!-- Leaflet.draw CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ==" crossorigin="anonymous"/>
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous"/>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+  <!-- Leaflet.draw JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" integrity="sha512-ozq8xQKq6urvuU6jNgkfqAmT7jKN2XumbrX1JiB3TnF7tI48DPI4Gy1GXKD/V3EExgAs1V+pRO7vwtS1LHg0Gw==" crossorigin="anonymous"></script>
+  <!-- Plotly for charts if needed -->
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <style>
+    body { margin: 0; padding: 0; }
+    .modal {
+      display: none; position: fixed; z-index: 2000; left: 0; top: 0;
+      width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fefefe; margin: 15% auto; padding: 20px;
+      border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 5px;
+    }
+    .modal-close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .modal-close:hover { color: black; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; }
+    .form-group input, .form-group textarea {
+      width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;
+    }
+    .menu-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 40px;
+      background: #f8f9fa; color: #333; display: flex; align-items: center;
+      z-index: 1500; padding: 0; border-bottom: 1px solid #dee2e6;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    .menu-item { padding: 0 15px; height: 100%; display: flex; align-items: center;
+      cursor: pointer; position: relative; font-size: 14px; }
+    .menu-item:hover { background: #e9ecef; }
+    .menu-item.active .menu-dropdown { display: block; animation: fadeIn 0.15s ease-in; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .menu-dropdown {
+      display: none; position: absolute; top: 40px; left: 0; background: white;
+      min-width: 200px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 1600;
+      border: 1px solid #dee2e6; border-radius: 4px; padding: 4px 0;
+    }
+    .menu-dropdown-item {
+      padding: 8px 20px; color: #333; display: flex; align-items: center;
+      text-decoration: none; font-size: 14px;
+    }
+    .menu-dropdown-item:hover { background: #f0f0f0; color: #000; }
+    .menu-dropdown-item i { margin-right: 8px; width: 16px; color: #666; }
+    .toolbar {
+      position: fixed; top: 40px; left: 10px; height: 40px; background: #fff;
+      border: 1px solid #ccc; border-radius: 4px; display: flex; align-items: center;
+      padding: 0 10px; z-index: 1001; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-top: 10px;
+    }
+    .tool-group { display: flex; align-items: center; padding: 0 10px;
+      border-right: 1px solid #eee; }
+    .tool-group:last-child { border-right: none; }
+    .tool-button {
+      padding: 6px; margin: 0 2px; border: 1px solid transparent;
+      border-radius: 3px; background: white; color: #666;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      min-width: 32px; height: 32px;
+    }
+    .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
+    .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
+    .tool-button i { font-size: 16px; }
+    .left-panel {
+      position: fixed; top: 90px; left: 0; width: 300px;
+      height: calc(100vh - 90px); background: white;
+      border-right: 1px solid #dee2e6;
+      transform: translateX(-300px); transition: transform 0.3s ease;
+      z-index: 1000; display: flex; flex-direction: column;
+    }
+    .left-panel.visible { transform: translateX(0); }
+    .panel-header {
+      padding: 15px; background: #f8f9fa; border-bottom: 1px solid #dee2e6;
+      font-weight: bold;
+    }
+    .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
+    .layer-select-container {
+      margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 4px;
+    }
+    #map {
+      position: fixed; top: 90px; bottom: 0; left: 0; right: 0;
+      z-index: 1; width: 100%; height: calc(100vh - 90px);
+    }
+    .base-layer-dropdown {
+      position: absolute; background: white; padding: 10px;
+      border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1002; display: none;
+    }
+    .base-layer-option {
+      padding: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer;
+    }
+    .base-layer-option:hover { background: #f8f9fa; }
+    .layer-control-item {
+      padding: 8px 0; display: flex; align-items: center; gap: 8px;
+    }
+    #dbStatus {
+      margin-left: auto; padding: 0 10px; font-size: 14px; color: #333;
+    }
+    .location-item {
+      padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;
+    }
+  </style>
 </head>
 <body>
-    <div class="menu-bar">
-        <div class="menu-item">
-            File
-            <div class="menu-dropdown">
-                <a class="menu-dropdown-item" href="#" onclick="showNewLocationModal()">New</a>
-                <a class="menu-dropdown-item" href="#" onclick="showSwitchLocationModal()">Switch Location...</a>
-                <a class="menu-dropdown-item" href="#">Save</a>
-                <a class="menu-dropdown-item" href="#">Export...</a>
-            </div>
-        </div>
-        <div class="menu-item">
-            Edit
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item">Undo</div>
-                <div class="menu-dropdown-item">Redo</div>
-                <div class="menu-dropdown-item">Delete Selected</div>
-            </div>
-        </div>
-        <div class="menu-item">
-            View
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item">Zoom In</div>
-                <div class="menu-dropdown-item">Zoom Out</div>
-                <div class="menu-dropdown-item">Fit to Window</div>
-            </div>
-        </div>
-        <div class="menu-item">
-            Tools
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item" onclick="showQDCalculator()">QD Calculator</div>
-                <div class="menu-dropdown-item">Measure</div>
-                <div class="menu-dropdown-item">Calculate Area</div>
-                <div class="menu-dropdown-item">Settings</div>
-            </div>
-        </div>
-
-        <!-- QD Calculator Modal -->
-        <div id="qdCalculatorModal" class="modal">
-            <div class="modal-content">
-                <span class="modal-close" onclick="document.getElementById('qdCalculatorModal').style.display='none'">&times;</span>
-                <h2>Quantity-Distance Calculator</h2>
-                <div class="form-group">
-                    <label for="quantity">Explosive Quantity (lbs):</label>
-                    <input type="number" id="quantity" required>
-                </div>
-                <div class="form-group">
-                    <label for="materialType">Material Type:</label>
-                    <select id="materialType">
-                        <option value="General Explosive">General Explosive (k=40)</option>
-                        <option value="High Explosive">High Explosive (k=50)</option>
-                        <option value="Low Explosive">Low Explosive (k=30)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="siteType">Site Type:</label>
-                    <select id="siteType">
-                        <option value="DOD">DOD</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <p>Click on the map to select location for QD calculation.</p>
-                <button onclick="calculateQD()" class="tool-button">Calculate Safe Distance</button>
-            </div>
-        </div>
-        <div class="menu-item">
-            Help
-            <div class="menu-dropdown">
-                <div class="menu-dropdown-item">Documentation</div>
-                <div class="menu-dropdown-item">About</div>
-            </div>
-        </div>
+  <div class="menu-bar">
+    <div class="menu-item">
+      File
+      <div class="menu-dropdown">
+        <a class="menu-dropdown-item" href="#" onclick="showNewLocationModal()">New</a>
+        <a class="menu-dropdown-item" href="#" onclick="showSwitchLocationModal()">Switch Location...</a>
+        <a class="menu-dropdown-item" href="#">Save</a>
+        <a class="menu-dropdown-item" href="#">Export...</a>
+      </div>
     </div>
-
-    <div class="toolbar">
-        <div class="tool-group">
-            <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
-                <i class="fas fa-bars"></i>
-            </button>
-            <button id="baseLayerTool" class="tool-button" title="Base Layers">
-                <i class="fas fa-layer-group"></i>
-            </button>
-        </div>
-        <div class="tool-group">
-            <button id="selectTool" class="tool-button" title="Select Features">
-                <i class="fas fa-mouse-pointer"></i>
-            </button>
-            <button id="panTool" class="tool-button active" title="Pan Map">
-                <i class="fas fa-hand-paper"></i>
-            </button>
-        </div>
-        <div class="tool-group">
-            <button id="drawMarker" class="tool-button" title="Add Point (PES/ES)">
-                <i class="fas fa-map-marker-alt"></i>
-            </button>
-            <button id="drawPolygon" class="tool-button" title="Draw Polygon">
-                <i class="fas fa-draw-polygon"></i>
-            </button>
-            <button id="drawRectangle" class="tool-button" title="Draw Rectangle">
-                <i class="fas fa-square"></i>
-            </button>
-            <button id="drawCircle" class="tool-button" title="Draw Circle">
-                <i class="fas fa-circle"></i>
-            </button>
-            <button id="drawPolyline" class="tool-button" title="Draw Line">
-                <i class="fas fa-minus"></i>
-            </button>
-        </div>
-        </div>
-        <div id="dbStatus" style="position: fixed; top: 50px; right: 10px; padding: 5px 10px; font-size: 14px; color: #333; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            {% if current_location %}Location: {{ current_location }}{% else %}No location selected{% endif %}
-        </div>
-
-    <!-- Add Layer Modal -->
-    <div id="addLayerModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <h2>Add New Layer</h2>
-            <div class="form-group">
-                <label for="layerName">Layer Name:</label>
-                <input type="text" id="layerName" required>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="isQDAnalyzed">
-                    QD Analyzed
-                </label>
-            </div>
-            <button onclick="addNewLayer()">Add Layer</button>
-        </div>
+    <div class="menu-item">
+      Edit
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item">Undo</div>
+        <div class="menu-dropdown-item">Redo</div>
+        <div class="menu-dropdown-item">Delete Selected</div>
+      </div>
     </div>
-
-    <div id="leftPanel" class="left-panel">
-        <div class="panel-header">Layers Panel</div>
-        <div class="panel-content">
-            <div class="layer-select-container">
-                <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
-                <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
-                <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
-            </div>
-            <div id="layerControl"></div>
-        </div>
+    <div class="menu-item">
+      View
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item">Zoom In</div>
+        <div class="menu-dropdown-item">Zoom Out</div>
+        <div class="menu-dropdown-item">Fit to Window</div>
+      </div>
     </div>
-
-    <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
-    <div id="map"></div>
-
-
-    <!-- Type Code Modal -->
-    <div id="typeCodeModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <h2>Enter Shape Type Code</h2>
-            <div class="form-group">
-                <label for="typeCode">Type Code:</label>
-                <input type="text" id="typeCode" required>
-            </div>
-            <button onclick="saveTypeCode()">Save</button>
-        </div>
+    <div class="menu-item">
+      Tools
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item" onclick="showQDCalculator()">QD Calculator</div>
+        <div class="menu-dropdown-item">Measure</div>
+        <div class="menu-dropdown-item">Calculate Area</div>
+        <div class="menu-dropdown-item">Settings</div>
+      </div>
     </div>
+    <div class="menu-item">
+      Help
+      <div class="menu-dropdown">
+        <div class="menu-dropdown-item">Documentation</div>
+        <div class="menu-dropdown-item">About</div>
+      </div>
+    </div>
+  </div>
 
-    <script>
-        let currentDrawnLayer = null;
-        let selectedQDPoint = null;
-        let qdBufferLayer = null;
+  <!-- QD Calculator Modal -->
+  <div id="qdCalculatorModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('qdCalculatorModal')">&times;</span>
+      <h2>Quantity-Distance Calculator</h2>
+      <div class="form-group">
+        <label for="quantity">Explosive Quantity (lbs):</label>
+        <input type="number" id="quantity" required>
+      </div>
+      <div class="form-group">
+        <label for="materialType">Material Type:</label>
+        <select id="materialType">
+          <option value="General Explosive">General Explosive (k=40)</option>
+          <option value="High Explosive">High Explosive (k=50)</option>
+          <option value="Low Explosive">Low Explosive (k=30)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="siteType">Site Type:</label>
+        <select id="siteType">
+          <option value="DOD">DOD</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <p>Click on the map to select a location for QD calculation.</p>
+      <button onclick="calculateQD()" class="tool-button">Calculate Safe Distance</button>
+    </div>
+  </div>
 
-        function showQDCalculator() {
-            document.getElementById('qdCalculatorModal').style.display = 'block';
+  <div class="toolbar">
+    <div class="tool-group">
+      <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
+        <i class="fas fa-bars"></i>
+      </button>
+      <button id="baseLayerTool" class="tool-button" title="Base Layers">
+        <i class="fas fa-layer-group"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button id="selectTool" class="tool-button" title="Select Features">
+        <i class="fas fa-mouse-pointer"></i>
+      </button>
+      <button id="panTool" class="tool-button active" title="Pan Map">
+        <i class="fas fa-hand-paper"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button id="drawMarker" class="tool-button" title="Add Point (PES/ES)">
+        <i class="fas fa-map-marker-alt"></i>
+      </button>
+      <button id="drawPolygon" class="tool-button" title="Draw Polygon">
+        <i class="fas fa-draw-polygon"></i>
+      </button>
+      <button id="drawRectangle" class="tool-button" title="Draw Rectangle">
+        <i class="fas fa-square"></i>
+      </button>
+      <button id="drawCircle" class="tool-button" title="Draw Circle">
+        <i class="fas fa-circle"></i>
+      </button>
+      <button id="drawPolyline" class="tool-button" title="Draw Line">
+        <i class="fas fa-minus"></i>
+      </button>
+    </div>
+  </div>
 
-            // Enable map click for location selection
-            window.map.on('click', function(e) {
-                if (document.getElementById('qdCalculatorModal').style.display === 'block') {
-                    selectedQDPoint = e.latlng;
-                    if (qdBufferLayer) {
-                        window.map.removeLayer(qdBufferLayer);
-                    }
-                    // Show marker at selected point
-                    L.marker(selectedQDPoint).addTo(window.map);
-                }
-            });
-        }
+  <div id="dbStatus" style="position: fixed; top: 50px; right: 10px; padding: 5px 10px; font-size: 14px; color: #333; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    {% if current_location %}Location: {{ current_location }}{% else %}No location selected{% endif %}
+  </div>
 
-        async function calculateQD() {
-            if (!selectedQDPoint) {
-                alert('Please select a location on the map');
-                return;
-            }
+  <!-- Add Layer Modal -->
+  <div id="addLayerModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('addLayerModal')">&times;</span>
+      <h2>Add New Layer</h2>
+      <div class="form-group">
+        <label for="layerName">Layer Name:</label>
+        <input type="text" id="layerName" required>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="isQDAnalyzed">
+          QD Analyzed
+        </label>
+      </div>
+      <button onclick="addNewLayer()">Add Layer</button>
+    </div>
+  </div>
 
-            // Clear any existing QD visualization
-            if (window.qdBufferLayer) {
-                window.map.removeLayer(window.qdBufferLayer);
-            }
+  <div id="leftPanel" class="left-panel">
+    <div class="panel-header">Layers Panel</div>
+    <div class="panel-content">
+      <div class="layer-select-container">
+        <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
+        <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
+        <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
+      </div>
+      <div id="layerControl"></div>
+    </div>
+  </div>
 
-            const quantity = document.getElementById('quantity').value;
-            const materialType = document.getElementById('materialType').value;
-            const siteType = document.getElementById('siteType').value || 'DOD';
+  <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
+  <div id="map"></div>
 
-            try {
-                const response = await fetch('/api/calculate-qd', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        quantity: parseFloat(quantity),
-                        lat: selectedQDPoint.lat,
-                        lng: selectedQDPoint.lng,
-                        site_type: siteType,
-                        material_type: materialType,
-                        // Add default values for other parameters
-                        sensitivity: 0.5,
-                        det_velocity: 6000,
-                        tnt_equiv: 1.0,
-                        temperature: 298,
-                        pressure: 101.325,
-                        humidity: 50,
-                        confinement_factor: 0.0
-                    })
-                });
+  <!-- Type Code Modal -->
+  <div id="typeCodeModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('typeCodeModal')">&times;</span>
+      <h2>Enter Shape Type Code</h2>
+      <div class="form-group">
+        <label for="typeCode">Type Code:</label>
+        <input type="text" id="typeCode" required>
+      </div>
+      <button onclick="saveTypeCode()">Save</button>
+    </div>
+  </div>
 
-                const data = await response.json();
+  <!-- Facility Details Modal -->
+  <div id="facilityModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('facilityModal')">&times;</span>
+      <h2>Facility Details</h2>
+      <div class="form-group">
+        <label for="facilityTypeCode">Type Code:</label>
+        <input type="text" id="facilityTypeCode">
+      </div>
+      <div class="form-group">
+        <label for="facilityDescription">Description:</label>
+        <textarea id="facilityDescription" rows="3"></textarea>
+      </div>
+      <button onclick="saveFacilityDetails()">Save Changes</button>
+    </div>
+  </div>
 
-                // Create GeoJSON layer for buffer zones
-                window.qdBufferLayer = L.geoJSON(data.buffer_zones, {
-                    style: function(feature) {
-                        return {
-                            color: '#ff0000',
-                            weight: 2,
-                            opacity: 0.8,
-                            fillColor: '#ff0000',
-                            fillOpacity: 0.2 * (feature.properties.ring_number / 4)
-                        };
-                    },
-                    onEachFeature: function(feature, layer) {
-                        layer.bindTooltip(
-                            `Distance: ${feature.properties.distance.toFixed(2)} ft<br>` +
-                            `K-factor: ${feature.properties.k_factor.toFixed(1)}`
-                        );
-                    }
-                }).addTo(window.map);
+  <!-- New Location Modal -->
+  <div id="newLocationModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('newLocationModal')">&times;</span>
+      <h2>Create New Location</h2>
+      <div class="form-group">
+        <label for="newLocationName">Location Name:</label>
+        <input type="text" id="newLocationName" required>
+      </div>
+      <div style="text-align: right; margin-top: 20px;">
+        <button onclick="closeModal('newLocationModal')" class="tool-button">Cancel</button>
+        <button onclick="createLocation()" class="tool-button">Create</button>
+      </div>
+    </div>
+  </div>
 
-                // Show results
-                alert(`Safe Distance: ${data.safe_distance.toFixed(2)} ${data.units}`);
+  <!-- New Location Confirmation Modal -->
+  <div id="newLocationConfirmModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('newLocationConfirmModal')">&times;</span>
+      <h2>Location Created</h2>
+      <p>Location "<span id="newLocationName_confirm"></span>" has been created.</p>
+      <p>Would you like to switch to the new location?</p>
+      <div style="text-align: right; margin-top: 20px;">
+        <button onclick="handleLocationSwitch(false)" class="tool-button">Stay in Current Location</button>
+        <button onclick="handleLocationSwitch(true)" class="tool-button">Switch to New Location</button>
+      </div>
+    </div>
+  </div>
 
-            } catch (error) {
-                console.error('QD calculation error:', error);
-                alert('Error calculating safe distance');
-            }
-        }
-        window.layers = {};  // Make layers globally accessible
-        let map; // Declare map globally
-        window.activeLayer = null; // Define activeLayer globally
+  <!-- Switch Location Modal -->
+  <div id="switchLocationModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close" onclick="closeModal('switchLocationModal')">&times;</span>
+      <h2>Switch Location</h2>
+      <div id="locationsList" style="margin: 20px 0;">Loading locations...</div>
+    </div>
+  </div>
 
-        // Initialize map immediately when DOM loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map only if not already initialized
-            if (!window.map) {
-                const mapContainer = document.getElementById('map');
-                mapContainer.style.height = 'calc(100vh - 90px)';
-                mapContainer.style.width = '100%';
+  <script>
+    // Global Variables
+    let currentDrawnLayer = null;
+    let selectedQDPoint = null;
+    let qdBufferLayer = null;
+    let activeMenu = null;
+    window.layers = {};  // Global layers object
+    window.activeLayer = null; // Global active layer
 
-                window.map = L.map('map', {
-                    center: [39.8283, -98.5795],
-                    zoom: 4,
-                    zoomControl: true,
-                    maxBounds: [
-                        [15, -180], // Southwest coordinates
-                        [70, -50]   // Northeast coordinates
-                    ]
-                });
-
-                // Add base layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    minZoom: 3,
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors',
-                    crossOrigin: true
-                }).addTo(window.map);
-
-                // Initialize layers object
-                window.layers = {};
-
-                // Add default layers
-                addLayer('Drawn Items', { isQDAnalyzed: false });
-                addLayer('Facilities', { isQDAnalyzed: true });
-                addLayer('Analysis', { isQDAnalyzed: true });
-
-                // Load saved data
-                window.loadFromDatabase();
-            }
-        });
-
-        function updateDrawToLayerSelect() {
-            const select = document.getElementById('drawToLayer');
-            select.innerHTML = '';
-            Object.keys(layers).forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                select.appendChild(option);
-            });
-
-            if (select.options.length > 0) {
-                window.activeLayer = layers[select.options[0].value]; //Select the first option as default active layer
-            }
-        }
-
-        // Update layer control
-        function updateLayerControl() {
-            const layerControl = document.getElementById('layerControl');
-            layerControl.innerHTML = '';
-
-            Object.entries(layers).forEach(([name, layer]) => {
-                const item = document.createElement('div');
-                item.className = 'layer-control-item';
-                item.innerHTML = `
-                    <input type="checkbox" id="layer-${name}" 
-                           ${map.hasLayer(layer) ? 'checked' : ''}>
-                    <label for="layer-${name}">
-                        ${name}
-                        <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
-                            (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
-                        </span>
-                    </label>
-                    <button class="edit-layer-button" onclick="editLayer('${name}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                `;
-                item.querySelector('input').onchange = (e) => {
-                    if (e.target.checked) {
-                        map.addLayer(layer);
-                    } else {
-                        map.removeLayer(layer);
-                    }
-                };
-                layerControl.appendChild(item);
-            });
-        }
-
-        function attachEditHandlers(layer) {
-            if (layer instanceof L.FeatureGroup) {
-                layer.eachLayer(l => {
-                    // Ensure the layer has a feature property
-                    l.feature = l.feature || {};
-                    l.feature.properties = l.feature.properties || {};
-
-                    // Remove existing click handlers to prevent duplicates
-                    l.off('click');
-
-                    // Add new click handler
-                    l.on('click', function() {
-                        openEditPopup(l);
-                    });
-                });
-            }
-        }
-
-        // Global function for loading from database
-        window.loadFromDatabase = async function() {
-            try {
-                const response = await fetch('/api/load-layers');
-                const data = await response.json();
-                console.log('Loaded layer data:', JSON.stringify(data, null, 2));
-
-                const layerData = data.layers || {};
-
-                // Clear existing layers
-                Object.values(layers).forEach(layer => map.removeLayer(layer));
-                window.layers = {};
-
-                Object.keys(layerData).forEach(layerName => {
-                    const layerGroup = new L.FeatureGroup();
-                    layerGroup.properties = layerData[layerName].properties;
-                    layers[layerName] = layerGroup;
-                    map.addLayer(layerGroup);
-
-                    if (layerData[layerName].features) {
-                        layerData[layerName].features.forEach(feature => {
-                            L.geoJSON(feature, {
-                                onEachFeature: function(feature, layer) {
-                                    if (feature.properties && feature.properties.typeCode) {
-                                        layer.setStyle(getStyleForFeatureType(feature.properties.typeCode));
-                                        layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
-                                    }
-                                },
-                                style: function(feature) {
-                                    return getStyleForFeatureType(feature.properties.typeCode);
-                                }
-                            }).eachLayer(l => {
-                                l.feature = feature;
-                                layerGroup.addLayer(l);
-                            });
-                        });
-                    }
-                });
-
-                Object.values(layers).forEach(layer => {
-                    attachEditHandlers(layer);
-                });
-
-                updateLayerControl();
-                updateDrawToLayerSelect();
-            } catch (error) {
-                console.error('Error loading layers:', error);
-            }
-        };
-
-        async function fetchLocations() {
-            try {
-                const response = await fetch('/api/locations');
-                const data = await response.json();
-
-                const locationsList = document.getElementById('locationsList');
-                locationsList.innerHTML = data.locations.map(loc => `
-                    <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
-                         onclick="switchLocation('${loc.name}')">
-                        ${loc.name}
-                        <br>
-                        <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Error fetching locations:', error);
-                document.getElementById('locationsList').innerHTML = 'Failed to load locations';
-            }
-        }
-
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Ensure map container is properly sized before initialization
-            const mapContainer = document.getElementById('map');
-            mapContainer.style.height = 'calc(100vh - 90px)';
-            mapContainer.style.width = '100%';
-
-            // Initialize the map
-            window.map = L.map('map', {
-                center: [39.8283, -98.5795],
-                zoom: 4,
-                zoomControl: true,
-                maxBounds: [
-                    [15, -180], // Southwest coordinates
-                    [70, -50]  // Northeast coordinates
-                ]
-            });
-
-            // Add base tile layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                minZoom: 3,
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors',
-                crossOrigin: true
-            }).addTo(window.map);
-
-            // Create default layers
-            window.layers = {
-                'Drawn Items': new L.FeatureGroup().addTo(window.map),
-                'Facilities': new L.FeatureGroup().addTo(window.map),
-                'Analysis': new L.FeatureGroup().addTo(window.map)
-            };
-
-            // Set initial active layer
-            window.activeLayer = window.layers['Drawn Items'];
-
-            // Initialize drawing tools with edit feature group
-            let drawingTools = {
-                polygon: new L.Draw.Polygon(map, {
-                    showLength: true,
-                    showArea: true,
-                    allowIntersection: false,
-                    drawError: {
-                        color: '#e1e100',
-                        timeout: 1000
-                    },
-                    shapeOptions: {
-                        color: '#3388ff'
-                    },
-                    metric: false
-                }),
-                polyline: new L.Draw.Polyline(map, {
-                    shapeOptions: {
-                        color: '#3388ff',
-                        weight: 2
-                    },
-                    metric: false
-                }),
-                rectangle: new L.Draw.Rectangle(map, {
-                    shapeOptions: {
-                        color: '#3388ff'
-                    },
-                    metric: false
-                }),
-                circle: new L.Draw.Circle(map, {
-                    shapeOptions: {
-                        color: '#3388ff'
-                    },
-                    metric: false
-                }),
-                marker: new L.Draw.Marker(map)
-            };
-
-            // Function to deactivate all drawing tools
-            function deactivateAllDrawingTools() {
-                Object.values(drawingTools).forEach(tool => {
-                    if (tool && typeof tool.disable === 'function') {
-                        tool.disable();
-                    }
-                });
-                document.querySelectorAll('.tool-button').forEach(button => {
-                    button.classList.remove('active');
-                });
-            }
-
-            // Set up drawing tool buttons
-            Object.entries(drawingTools).forEach(([type, tool]) => {
-                const buttonId = `draw${type.charAt(0).toUpperCase() + type.slice(1)}`;
-                const button = document.getElementById(buttonId);
-                if (button) {
-                    button.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (button.classList.contains('active')) {
-                            deactivateAllDrawingTools();
-                        } else {
-                            deactivateAllDrawingTools();
-                            tool.enable();
-                            button.classList.add('active');
-                        }
-                    });
-                }
-            });
-
-            // Handle map click to deactivate drawing
-            map.on('click', deactivateAllDrawingTools);
-
-
-            // Handle drawing complete
-            map.on('draw:created', function(e) {
-                const layer = e.layer;
-                layer.feature = layer.feature || {};
-                layer.feature.properties = layer.feature.properties || {};
-
-                if (window.activeLayer) {
-                    window.activeLayer.addLayer(layer);
-                    openEditPopup(layer);
-                    saveToDatabase();
-                }
-                deactivateAllDrawingTools();
-            });
-
-            // Force a map resize after initialization
-            setTimeout(() => {
-                window.map.invalidateSize();
-            }, 100);
-
-            // Load existing data
-            await window.loadFromDatabase();
-            updateLayerControl();
-            updateDrawToLayerSelect();
-        });
-
-        function openEditPopup(layer) {
-                layer.feature = layer.feature || {};
-                layer.feature.properties = layer.feature.properties || {};
-
-                const formHtml = `
-                    <div style="min-width: 200px;">
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label for="facilityName">Facility Name:</label>
-                            <input id="facilityName" type="text" value="${layer.feature.properties.name || ''}" style="width: 100%;" />
-                        </div>
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label for="facilityTypeCode">Type Code Designator (PES/ES):</label>
-                            <input id="facilityTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" 
-                                   placeholder="Enter PES or ES designator" />
-                        </div>
-                        <div class="form-group" style="margin-bottom: 10px;">
-                            <label for="facilityDescription">Description:</label>
-                            <textarea id="facilityDescription" style="width: 100%; height: 60px;">${layer.feature.properties.description || ''}</textarea>
-                        </div>
-                        <button id="facilitySaveButton" style="width: 100%; padding:5px;">Save</button>
-                    </div>
-                `;
-
-                layer.bindPopup(formHtml).openPopup();
-
-                setTimeout((){
-                                        const saveBtn = document.getElementById('facilitySaveButton');
-                    if (saveBtn) {
-                        saveBtn.addEventListener('click', () => {
-                            const newName = document.getElementById('facilityName').value;
-                            const newTypeCode = document.getElementById('facilityTypeCode').value;
-                            const newDescription = document.getElementById('facilityDescription').value;
-
-                            layer.feature.properties = {
-                                ...layer.feature.properties,
-                                name: newName,
-                                typeCode: newTypeCode,
-                                description: newDescription
-                            };
-
-                            layer.setStyle(getStyleForFeatureType(newTypeCode)); // Apply styling based on type code
-                            layer.bindTooltip(`${newName}<br>${newTypeCode}`, { permanent: false });
-                            saveToDatabase();
-                            layer.closePopup();
-                        });
-                    }
-                }, 100);
-            }
-
-            function addLayer(name, properties = {}) {
-                try {
-                    if (!window.map) {
-                        console.error('Map not initialized');
-                        return;
-                    }
-                    if (!window.layers) {
-                        window.layers = {};
-                    }
-                    window.layers[name] = new L.FeatureGroup();
-                    window.layers[name].properties = properties;
-                    window.layers[name].addTo(window.map);
-                    updateLayerControl();
-                    updateDrawToLayerSelect();
-                } catch (error) {
-                    console.error('Error adding layers:', error);
-                }
-            }
-
-            // updateDrawToLayerSelect function moved to global scope
-
-            // Initialize map first
-            window.map = L.map('map', {
-                center: [40.7128, -74.0060],
-                zoom: 13,
-                zoomControl: true
-            });            // Add default OSM layer
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors',
-                crossOrigin: true
-            }).addTo(window.map);
-
-            // Initialize default layers and load saved data
-            addLayer('Drawn Items', { isQDAnalyzed: false });
-            addLayer('Facilities', { isQDAnalyzed: true });
-            addLayer('Analysis', { isQDAnalyzed: true });
-            window.loadFromDatabase();
-
-
-            // Drawing tools setup
-            const drawToLayerSelect = document.getElementById('drawToLayer');
-            drawToLayerSelect.addEventListener('change', function() {
-                window.activeLayer = layers[this.value];
-            });
-
-            let drawingTools = {
-                polygon: new L.Draw.Polygon(map, {
-                    showLength: true,
-                    showArea: true,
-                    allowIntersection: false,
-                    drawError: {
-                        color: '#e1e100',
-                        timeout: 1000
-                    },
-                    shapeOptions: {
-                        color: '#3388ff'
-                    },
-                    metric: false
-                }),
-                vertices: {
-                    first: {
-                        icon: new L.DivIcon({
-                            iconSize: new L.Point(0, 0),
-                            className: 'leaflet-div-icon'
-                        })
-                    }
+    // Define loadFromDatabase globally
+    window.loadFromDatabase = async function() {
+      try {
+        const response = await fetch('/api/load-layers');
+        const data = await response.json();
+        console.log('Loaded layer data:', JSON.stringify(data, null, 2));
+        const layerData = data.layers || {};
+        Object.values(window.layers).forEach(layer => window.map.removeLayer(layer));
+        window.layers = {};
+        Object.keys(layerData).forEach(layerName => {
+          const layerGroup = new L.FeatureGroup();
+          layerGroup.properties = layerData[layerName].properties;
+          window.layers[layerName] = layerGroup;
+          window.map.addLayer(layerGroup);
+          if (layerData[layerName].features) {
+            layerData[layerName].features.forEach(feature => {
+              L.geoJSON(feature, {
+                onEachFeature: function(feature, layer) {
+                  if (feature.properties && feature.properties.typeCode) {
+                    layer.setStyle(getStyleForFeatureType(feature.properties.typeCode));
+                    layer.bindTooltip(`Type: ${feature.properties.typeCode}`);
+                  }
                 },
-                polyline: new L.Draw.Polyline(map, {
-                    shapeOptions: {
-                        color: '#3388ff',
-                        weight: 2
-                    },
-                    metric: false
-                }),
-                rectangle: new L.Draw.Rectangle(map, {
-                    shapeOptions: {
-                        color: '#3388ff'
-                    },
-                    metric: false
-                }),
-                circle: new L.Draw.Circle(map, {
-                    shapeOptions: {
-                        color: '#3388ff'
-                    },
-                    metric: false
-                }),
-                marker: new L.Draw.Marker(map)
-            };
-
-            // Enable double-click to finish polygon
-            map.doubleClickZoom.disable();
-            map.on('draw:created', function(e) {
-                const layer = e.layer;
-                layer.feature = layer.feature || {};
-                layer.feature.properties = layer.feature.properties || {};
-
-                openEditPopup(layer);
-
-                if (window.activeLayer) {
-                    window.activeLayer.addLayer(layer);
-                    saveToDatabase();
+                style: function(feature) {
+                  return getStyleForFeatureType(feature.properties.typeCode);
                 }
+              }).eachLayer(l => {
+                l.feature = feature;
+                layerGroup.addLayer(l);
+              });
             });
-
-            // Function to deactivate all drawing tools and their buttons
-            function deactivateAllDrawingTools() {
-                // Disable all drawing tools and remove active state from buttons
-                Object.values(drawingTools).forEach(tool => {
-                    if (tool && typeof tool.disable === 'function') {
-                        tool.disable();
-                    }
-                });
-
-                // Remove active class from all drawing buttons
-                document.querySelectorAll('.tool-button').forEach(button => {
-                    button.classList.remove('active');
-                });
-
-                // Clear any temporary markers or guidelines
-                if (window.map) {
-                    window.map.off('mousemove');
-                    window.map.off('click');
-                }
-            }
-
-            // Function to set up drawing tool button
-            function setupDrawingButton(buttonId, tool) {
-                const button = document.getElementById(buttonId);
-                if (!button) return;
-
-                button.addEventListener('click', () => {
-                    if (button.classList.contains('active')) {
-                        deactivateAllDrawingTools();
-                    } else {
-                        deactivateAllDrawingTools();
-                        if (tool && typeof tool.enable === 'function') {
-                            tool.enable();
-                            button.classList.add('active');
-                        }
-                    }
-                });
-            }
-
-            // Set up all drawing tool buttons
-            setupDrawingButton('drawPolygon', drawingTools.polygon);
-            setupDrawingButton('drawPolyline', drawingTools.polyline);
-            setupDrawingButton('drawRectangle', drawingTools.rectangle);
-            setupDrawingButton('drawCircle', drawingTools.circle);
-            setupDrawingButton('drawMarker', drawingTools.marker);
-
-            // Handle map click to deactivate drawing tools
-            map.on('click', function() {
-                deactivateAllDrawingTools();
-            });
-
-            // Handle drawing complete
-            map.on('draw:created', function() {
-                deactivateAllDrawingTools();
-            });
-
-            // Update polygon drawing options to hide vertex markers
-            drawingTools.polygon.setOptions({
-                showLength: true,
-                showArea: true,
-                vertices: {
-                    first: {
-                        icon: new L.DivIcon({
-                            iconSize: new L.Point(0, 0),
-                            className: 'leaflet-div-icon leaflet-hidden'
-                        })
-                    },
-                    mid: {
-                        icon: new L.DivIcon({
-                            iconSize: new L.Point(0, 0),
-                            className: 'leaflet-div-icon leaflet-hidden'
-                        })
-                    },
-                    last: {
-                        icon: new L.DivIcon({
-                            iconSize: new L.Point(0, 0),
-                            className: 'leaflet-div-icon leaflet-hidden'
-                        })
-                    }
-                }
-            });
-
-            // Handle drawing events
-            map.on('draw:created', function() {
-                deactivateAllDrawingTools();
-            });
-
-            window.saveTypeCode = function() {
-                const typeCode = document.getElementById('typeCode').value;
-                if (currentDrawnLayer && typeCode) {
-                    // Save type code as a property of the layer
-                    currentDrawnLayer.feature = currentDrawnLayer.feature || {};
-                    currentDrawnLayer.feature.properties = currentDrawnLayer.feature.properties || {};
-                    currentDrawnLayer.feature.properties.typeCode = typeCode;
-
-                    // Apply styling based on type code
-                    currentDrawnLayer.setStyle(getStyleForFeatureType(typeCode));
-
-                    // Add the layer to active layer and save
-                    window.activeLayer.addLayer(currentDrawnLayer);
-                    saveToDatabase();
-
-                    // Reset and close modal
-                    document.getElementById('typeCode').value = '';
-                    document.getElementById('typeCodeModal').style.display = 'none';
-                    currentDrawnLayer = null;
-                }
-            };
-
-            function showFacilityDetails(layer) {
-                const props = layer.feature.properties || {};
-                document.getElementById('facilityTypeCode').value = props.typeCode || '';
-                document.getElementById('facilityDescription').value = props.description || '';
-                document.getElementById('facilityModal').style.display = 'block';
-                window.currentEditLayer = layer;
-            }
-
-            window.saveFacilityDetails = function() {
-                if (window.currentEditLayer) {
-                    const typeCode = document.getElementById('facilityTypeCode').value;
-                    const description = document.getElementById('facilityDescription').value;
-
-                    window.currentEditLayer.feature = window.currentEditLayer.feature || {};
-                    window.currentEditLayer.feature.properties = window.currentEditLayer.feature.properties || {};
-                    window.currentEditLayer.feature.properties.typeCode = typeCode;
-                    window.currentEditLayer.feature.properties.description = description;
-
-                    window.currentEditLayer.setStyle(getStyleForFeatureType(typeCode)); // Apply styling
-                    saveToDatabase();
-                    document.getElementById('facilityModal').style.display = 'none';
-                    window.currentEditLayer = null;
-                }
-            };
-
-            // Close type code modal when clicking close button
-            document.querySelector('#typeCodeModal .modal-close').onclick = function() {
-                document.getElementById('typeCodeModal').style.display = 'none';
-                if (currentDrawnLayer) {
-                    currentDrawnLayer = null;
-                }
-            };
-
-            map.on('draw:edited', saveToDatabase);
-            map.on('draw:deleted', saveToDatabase);
-
-            // Base layer dropdown
-            const baseLayerTool = document.getElementById('baseLayerTool');
-            const baseLayerDropdown = document.getElementById('baseLayerDropdown');
-
-            baseLayerTool.addEventListener('click', (e) => {
-                const buttonRect = baseLayerTool.getBoundingClientRect();
-                baseLayerDropdown.style.top = (buttonRect.bottom + 5) + 'px';
-                baseLayerDropdown.style.left = buttonRect.left + 'px';
-                baseLayerDropdown.style.display = baseLayerDropdown.style.display === 'none' ? 'block' : 'none';
-            });
-
-            // Create base layer options
-            Object.entries(baseLayers).forEach(([name, layer]) => {
-                const option = document.createElement('div');
-                option.className = 'base-layer-option';
-                option.innerHTML = `
-                    <input type="radio" name="baseLayer" id="base-${name}" 
-                           ${map.hasLayer(layer) ? 'checked' : ''}>
-                    <label for="base-${name}">${name}</label>
-                `;
-                option.onclick = () => {
-                    Object.values(baseLayers).forEach(l => map.removeLayer(l));
-                    if (name !== 'None') {
-                        map.addLayer(layer);
-                    }
-                    baseLayerDropdown.style.display = 'none';
-                };
-                baseLayerDropdown.appendChild(option);
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!baseLayerTool.contains(e.target) && 
-                    !baseLayerDropdown.contains(e.target)) {
-                    baseLayerDropdown.style.display = 'none';
-                }
-            });
-
-            // Left panel toggle
-            const toggleLayersPanel = document.getElementById('toggleLayersPanel');
-            const leftPanel = document.getElementById('leftPanel');
-            const mapElement = document.getElementById('map');
-
-            toggleLayersPanel.addEventListener('click', () => {
-                leftPanel.classList.toggle('visible');
-                mapElement.style.marginLeft = leftPanel.classList.contains('visible') ? '300px' : '0';
-                map.invalidateSize();
-            });
-
-            updateLayerControl();
-            updateDrawToLayerSelect();
+          }
         });
+        Object.values(window.layers).forEach(layer => { attachEditHandlers(layer); });
+        updateLayerControl();
+        updateDrawToLayerSelect();
+      } catch (error) {
+        console.error('Error loading layers:', error);
+      }
+    };
 
-        function getStyleForFeatureType(type) {
-            const defaultStyle = {
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.3,
-                color: '#3388ff',
-                fillColor: '#3388ff'
+    // QD Calculator functions
+    function showQDCalculator() {
+      document.getElementById('qdCalculatorModal').style.display = 'block';
+      window.map.on('click', function(e) {
+        if (document.getElementById('qdCalculatorModal').style.display === 'block') {
+          selectedQDPoint = e.latlng;
+          if (qdBufferLayer) { window.map.removeLayer(qdBufferLayer); }
+          L.marker(selectedQDPoint).addTo(window.map);
+        }
+      });
+    }
+
+    async function calculateQD() {
+      if (!selectedQDPoint) {
+        alert('Please select a location on the map');
+        return;
+      }
+      if (window.qdBufferLayer) { window.map.removeLayer(window.qdBufferLayer); }
+      const quantity = document.getElementById('quantity').value;
+      const materialType = document.getElementById('materialType').value;
+      const siteType = document.getElementById('siteType').value || 'DOD';
+      try {
+        const response = await fetch('/api/calculate-qd', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quantity: parseFloat(quantity),
+            lat: selectedQDPoint.lat,
+            lng: selectedQDPoint.lng,
+            site_type: siteType,
+            material_type: materialType,
+            sensitivity: 0.5,
+            det_velocity: 6000,
+            tnt_equiv: 1.0,
+            temperature: 298,
+            pressure: 101.325,
+            humidity: 50,
+            confinement_factor: 0.0
+          })
+        });
+        const data = await response.json();
+        window.qdBufferLayer = L.geoJSON(data.buffer_zones, {
+          style: function(feature) {
+            return {
+              color: '#ff0000',
+              weight: 2,
+              opacity: 0.8,
+              fillColor: '#ff0000',
+              fillOpacity: 0.2 * (feature.properties.ring_number / 4)
             };
+          },
+          onEachFeature: function(feature, layer) {
+            layer.bindTooltip(
+              `Distance: ${feature.properties.distance.toFixed(2)} ft<br>` +
+              `K-factor: ${feature.properties.k_factor.toFixed(1)}`
+            );
+          }
+        }).addTo(window.map);
+        alert(`Safe Distance: ${data.safe_distance.toFixed(2)} ${data.units}`);
+      } catch (error) {
+        console.error('QD calculation error:', error);
+        alert('Error calculating safe distance');
+      }
+    }
 
-            if (!type) return defaultStyle;
+    // Modal and Location Functions
+    function closeModal(modalId) {
+      document.getElementById(modalId).style.display = 'none';
+    }
 
-            // Convert to uppercase for case-insensitive comparison
-            const upperType = type.toUpperCase();
+    let newLocationData = null;
+    async function createLocation() {
+      const locationName = document.getElementById('newLocationName').value;
+      if (!locationName) { alert('Please enter a location name'); return; }
+      try {
+        const response = await fetch('/api/create_location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location_name: locationName })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          newLocationData = data;
+          document.getElementById('newLocationName_confirm').textContent = locationName;
+          closeModal('newLocationModal');
+          document.getElementById('newLocationName').value = '';
+          document.getElementById('newLocationConfirmModal').style.display = 'block';
+          updateCurrentLocation(locationName);
+          clearAllFeatures();
+          await fetchLocations();
+        } else {
+          alert('Failed to create location: ' + data.detail);
+        }
+      } catch (error) {
+        console.error('Error creating location:', error);
+        alert('Failed to create location');
+      }
+    }
 
-            if (upperType.includes('PES')) {
-                return {
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.3,
-                    color: '#ff0000',
-                    fillColor: '#ff0000'
-                };
-            } else if (upperType.includes('ES')) {
-                return {
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.3,
-                    color: '#006400',
-                    fillColor: '#006400'
-                };
+    function handleLocationSwitch(shouldSwitch) {
+      if (shouldSwitch && newLocationData) {
+        updateCurrentLocation(newLocationData.name);
+        clearAllFeatures();
+      }
+      closeModal('newLocationConfirmModal');
+      newLocationData = null;
+    }
+
+    function updateCurrentLocation(locationName) {
+      document.getElementById('dbStatus').innerHTML = `Location: ${locationName}`;
+    }
+
+    async function fetchLocations() {
+      try {
+        const response = await fetch('/api/locations');
+        const data = await response.json();
+        const locationsList = document.getElementById('locationsList');
+        locationsList.innerHTML = data.locations.map(loc => `
+          <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
+            onclick="switchLocation('${loc.name}')">
+            ${loc.name}<br>
+            <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+        document.getElementById('locationsList').innerHTML = 'Failed to load locations';
+      }
+    }
+
+    async function switchLocation(locationName) {
+      updateCurrentLocation(locationName);
+      closeModal('switchLocationModal');
+      clearAllFeatures();
+      await window.loadFromDatabase();
+      console.log(`Switched to location: ${locationName}`);
+    }
+
+    function clearAllFeatures() {
+      if (window.layers) {
+        Object.values(window.layers).forEach(layer => {
+          if (layer instanceof L.FeatureGroup) { layer.clearLayers(); }
+        });
+      }
+    }
+
+    async function saveToDatabase() {
+      const layerData = { layers: {} };
+      Object.keys(window.layers).forEach(layerName => {
+        const layer = window.layers[layerName];
+        layerData.layers[layerName] = { properties: layer.properties || {}, features: [] };
+        layer.eachLayer(l => {
+          if (l.toGeoJSON) {
+            const geoJSON = l.toGeoJSON();
+            if (l.feature && l.feature.properties) {
+              geoJSON.properties = { ...l.feature.properties };
             }
+            layerData.layers[layerName].features.push(geoJSON);
+          }
+        });
+      });
+      console.log('Saving layer data:', JSON.stringify(layerData, null, 2));
+      try {
+        await fetch('/api/save-layers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(layerData)
+        });
+      } catch (error) {
+        console.error('Error saving layers:', error);
+      }
+    }
 
-            return defaultStyle;
-        }
+    function attachEditHandlers(layer) {
+      if (layer instanceof L.FeatureGroup) {
+        layer.eachLayer(l => {
+          l.feature = l.feature || {};
+          l.feature.properties = l.feature.properties || {};
+          l.off('click');
+          l.on('click', function() { openEditPopup(l); });
+        });
+      }
+    }
 
-        function clearAllFeatures() {
-            if (window.layers) {
-                Object.values(window.layers).forEach(layer => {
-                    if (layer instanceof L.FeatureGroup) {
-                        layer.clearLayers();
-                    }
-                });
-            }
-        }
+    // Base Layers
+    let baseLayers = {
+      'None': L.tileLayer(''),
+      'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }),
+      'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
+      'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
+      'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
+    };
 
-        async function switchLocation(locationName) {
-            try {
-                updateCurrentLocation(locationName);
-                closeModal('switchLocationModal');
-                clearAllFeatures();
-                await window.loadFromDatabase();
-                console.log(`Switched to location: ${locationName}`);
-            } catch (error) {
-                console.error('Error switching location:', error);
-                alert('Failed to switch location');
-            }
-        }
-
-        function updateCurrentLocation(locationName) {
-            const statusElement = document.getElementById('dbStatus');
-            if (statusElement) {
-                statusElement.innerHTML = `Location: ${locationName}`;
-            }
-        }
-
-        async function fetchLocations() {
-            try {
-                const response = await fetch('/api/locations');
-                const data = await response.json();
-
-                const locationsList = document.getElementById('locationsList');
-                locationsList.innerHTML = data.locations.map(loc => `
-                    <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
-                         onclick="switchLocation('${loc.name}')">
-                        ${loc.name}
-                        <br>
-                        <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Error fetching locations:', error);
-                document.getElementById('locationsList').innerHTML = 'Failed to load locations';
-            }
-        }
-
-        function clearAllFeatures() {
-            if (window.layers) {
-                Object.values(window.layers).forEach(layer => {
-                    if (layer instanceof L.FeatureGroup) {
-                        layer.clearLayers();
-                    }
-                });
-            }
-        }
-
-        function switchLocation(locationName) {
-            updateCurrentLocation(locationName);
-            closeModal('switchLocationModal');
-            // Clear all features from layers before loading new location data
-            clearAllFeatures();
-            window.loadFromDatabase(); // Reload data for the new location
-        }
-
-        function handleLocationSwitch(shouldSwitch) {
-            if (shouldSwitch && newLocationData) {
-                updateCurrentLocation(newLocationData.name);
-                // Clear all features when creating new location
-                clearAllFeatures();
-            }
-            closeModal('newLocationConfirmModal');
-            newLocationData = null;
-        }
-
-        function updateCurrentLocation(locationName) {
-            document.getElementById('dbStatus').innerHTML = `Location: ${locationName}`;
-        }
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
+    function updateLayerControl() {
+      const layerControl = document.getElementById('layerControl');
+      layerControl.innerHTML = '';
+      Object.entries(window.layers).forEach(([name, layer]) => {
+        const item = document.createElement('div');
+        item.className = 'layer-control-item';
+        item.innerHTML = `
+          <input type="checkbox" id="layer-${name}" ${window.map.hasLayer(layer) ? 'checked' : ''}>
+          <label for="layer-${name}">
+            ${name}
+            <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
+              (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
+            </span>
+          </label>
+          <button class="edit-layer-button" onclick="editLayer('${name}')">
+            <i class="fas fa-edit"></i>
+          </button>
+        `;
+        item.querySelector('input').onchange = (e) => {
+          if (e.target.checked) { window.map.addLayer(layer); }
+          else { window.map.removeLayer(layer); }
         };
+        layerControl.appendChild(item);
+      });
+    }
 
-        async function saveToDatabase() {
-            const layerData = {
-                layers: {}
+    function editLayer(name) {
+      const layer = window.layers[name];
+      if (!layer) return;
+      const newName = prompt('Enter new layer name:', name);
+      if (!newName) return;
+      const isQDAnalyzed = confirm('Is this layer QD analyzed?');
+      layer.properties = { ...layer.properties, isQDAnalyzed, name: newName };
+      if (name !== newName) { window.layers[newName] = layer; delete window.layers[name]; }
+      updateLayerControl();
+      saveToDatabase();
+    }
+
+    function updateDrawToLayerSelect() {
+      const select = document.getElementById('drawToLayer');
+      select.innerHTML = '';
+      Object.keys(window.layers).forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+      if (select.options.length > 0) { window.activeLayer = window.layers[select.options[0].value]; }
+    }
+
+    // Drawing Tools Setup
+    let drawingTools = {
+      polygon: new L.Draw.Polygon(window.map, {
+        showLength: true,
+        showArea: true,
+        allowIntersection: false,
+        drawError: { color: '#e1e100', timeout: 1000 },
+        shapeOptions: { color: '#3388ff' },
+        metric: false,
+        vertices: {
+          first: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
+          mid: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) },
+          last: { icon: new L.DivIcon({ iconSize: new L.Point(0, 0), className: 'leaflet-div-icon leaflet-hidden' }) }
+        }
+      }),
+      polyline: new L.Draw.Polyline(window.map, {
+        shapeOptions: { color: '#3388ff', weight: 2 },
+        metric: false
+      }),
+      rectangle: new L.Draw.Rectangle(window.map, {
+        shapeOptions: { color: '#3388ff' },
+        metric: false
+      }),
+      circle: new L.Draw.Circle(window.map, {
+        shapeOptions: { color: '#3388ff' },
+        metric: false
+      }),
+      marker: new L.Draw.Marker(window.map)
+    };
+
+    function deactivateAllDrawingTools() {
+      Object.values(drawingTools).forEach(tool => {
+        if (tool && typeof tool.disable === 'function') { tool.disable(); }
+      });
+      document.querySelectorAll('.tool-button').forEach(button => { button.classList.remove('active'); });
+      window.map.off('mousemove');
+      window.map.off('click');
+    }
+
+    function setupDrawingButton(buttonId, tool) {
+      const button = document.getElementById(buttonId);
+      if (!button) return;
+      button.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (button.classList.contains('active')) {
+          deactivateAllDrawingTools();
+        } else {
+          deactivateAllDrawingTools();
+          if (tool && typeof tool.enable === 'function') {
+            tool.enable();
+            button.classList.add('active');
+          }
+        }
+      });
+    }
+
+    setupDrawingButton('drawPolygon', drawingTools.polygon);
+    setupDrawingButton('drawPolyline', drawingTools.polyline);
+    setupDrawingButton('drawRectangle', drawingTools.rectangle);
+    setupDrawingButton('drawCircle', drawingTools.circle);
+    setupDrawingButton('drawMarker', drawingTools.marker);
+
+    window.map.on('click', function() { deactivateAllDrawingTools(); });
+    window.map.on('draw:created', function(e) {
+      const layer = e.layer;
+      layer.feature = layer.feature || {};
+      layer.feature.properties = layer.feature.properties || {};
+      if (window.activeLayer) {
+        window.activeLayer.addLayer(layer);
+        openEditPopup(layer);
+        saveToDatabase();
+      }
+      deactivateAllDrawingTools();
+    });
+
+    function openEditPopup(layer) {
+      layer.feature = layer.feature || {};
+      layer.feature.properties = layer.feature.properties || {};
+      const formHtml = `
+        <div style="min-width: 200px;">
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label for="facilityName">Facility Name:</label>
+            <input id="facilityName" type="text" value="${layer.feature.properties.name || ''}" style="width: 100%;" />
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label for="facilityTypeCode">Type Code Designator (PES/ES):</label>
+            <input id="facilityTypeCode" type="text" value="${layer.feature.properties.typeCode || ''}" style="width: 100%;" placeholder="Enter PES or ES designator" />
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label for="facilityDescription">Description:</label>
+            <textarea id="facilityDescription" style="width: 100%; height: 60px;">${layer.feature.properties.description || ''}</textarea>
+          </div>
+          <button id="facilitySaveButton" style="width: 100%; padding: 5px;">Save</button>
+        </div>
+      `;
+      layer.bindPopup(formHtml).openPopup();
+      setTimeout(() => {
+        const saveBtn = document.getElementById('facilitySaveButton');
+        if (saveBtn) {
+          saveBtn.addEventListener('click', () => {
+            const newName = document.getElementById('facilityName').value;
+            const newTypeCode = document.getElementById('facilityTypeCode').value;
+            const newDescription = document.getElementById('facilityDescription').value;
+            layer.feature.properties = {
+              ...layer.feature.properties,
+              name: newName,
+              typeCode: newTypeCode,
+              description: newDescription
             };
-            Object.keys(layers).forEach(layerName => {
-                const layer = layers[layerName];
-                layerData.layers[layerName] = {
-                    properties: layer.properties || {},
-                    features: []
-                };
-                layer.eachLayer(l => {
-                    if (l.toGeoJSON) {
-                        const geoJSON = l.toGeoJSON();
-                        if (l.feature && l.feature.properties) {
-                            geoJSON.properties = {...l.feature.properties};
-                        }
-                        layerData.layers[layerName].features.push(geoJSON);
-                    }
-                });
-            });
-
-            console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
-
-            try {
-                await fetch('/api/save-layers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(layerData)
-                });
-            } catch (error) {
-                console.error('Error saving layers:', error);
-            }
-        }
-
-        function attachEditHandlers(layer) {
-            if (layer instanceof L.FeatureGroup) {
-                layer.eachLayer(l => {
-                    // Ensure the layer has a feature property
-                    l.feature = l.feature || {};
-                    l.feature.properties = l.feature.properties || {};
-
-                    // Remove existing click handlers to prevent duplicates
-                    l.off('click');
-
-                    // Add new click handler
-                    l.on('click', function() {
-                        openEditPopup(l);
-                    });
-                });
-            }
-        }
-
-        let baseLayers = {
-            'None': L.tileLayer(''),
-            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }),
-            'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
-            'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
-            'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
-        };
-
-        function updateLayerControl() {
-            const layerControl = document.getElementById('layerControl');
-            layerControl.innerHTML = '';
-
-            Object.entries(layers).forEach(([name, layer]) => {
-                const item = document.createElement('div');
-                item.className = 'layer-control-item';
-                item.innerHTML = `
-                    <input type="checkbox" id="layer-${name}" 
-                           ${map.hasLayer(layer) ? 'checked' : ''}>
-                    <label for="layer-${name}">
-                        ${name}
-                        <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
-                            (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
-                        </span>
-                    </label>
-                    <button class="edit-layer-button" onclick="editLayer('${name}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                `;
-                item.querySelector('input').onchange = (e) => {
-                    if (e.target.checked) {
-                        map.addLayer(layer);
-                    } else {
-                        map.removeLayer(layer);
-                    }
-                };
-                layerControl.appendChild(item);
-            });
-        }
-
-        function editLayer(name) {
-            const layer = layers[name];
-            if (!layer) return;
-
-            const newName = prompt('Enter new layer name:', name);
-            if (!newName) return;
-
-            const isQDAnalyzed = confirm('Is this layer QD analyzed?');
-            layer.properties = {
-                ...layer.properties,
-                isQDAnalyzed,
-                name: newName
-            };
-
-            if (name !== newName) {
-                layers[newName] = layer;
-                delete layers[name];
-            }
-
-            updateLayerControl();
+            layer.setStyle(getStyleForFeatureType(newTypeCode));
+            layer.bindTooltip(`${newName}<br>${newTypeCode}`, { permanent: false });
             saveToDatabase();
+            layer.closePopup();
+          });
         }
-
-
-        function updateDrawToLayerSelect() {
-            const select = document.getElementById('drawToLayer');
-            select.innerHTML = '';
-            Object.keys(layers).forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                select.appendChild(option);
-            });
-
-            if (select.options.length > 0) {
-                window.activeLayer = layers[select.options[0].value]; //Select the firstoption as default active layer
-            }
-        }
-
-        let activeLayer = null;
-
-        // Add Layer Modal functionality
-        const modal = document.getElementById('addLayerModal');
-        const closeBtn = document.querySelector('.modal-close');
-
-        window.showAddLayerModal = function() {
-            modal.style.display = 'block';
-        }
-
-        closeBtn.onclick = function() {
-            modal.style.display = 'none';
-        }
-
-        window.addNewLayer = function() {
-            const name = document.getElementById('layerName').value;
-            const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
-
-            if (!name) return;
-
-            addLayer(name, { isQDAnalyzed });
-            modal.style.display = 'none';
-            document.getElementById('layerName').value = '';
-            document.getElementById('isQDAnalyzed').checked = false;
-        }
-
-        // Commented out CesiumJS integration
-        /*
-        let cesiumViewer;
-        */
-        // Initialize map first
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map only if not already initialized
-            if (!window.map) {
-                const mapContainer = document.getElementById('map');
-                mapContainer.style.height = 'calc(100vh - 90px)';
-                mapContainer.style.width = '100%';
-
-                window.map = L.map('map', {
-                    center: [39.8283, -98.5795],
-                    zoom: 4,
-                    zoomControl: true,
-                    maxBounds: [
-                        [15, -180],
-                        [70, -50]
-                    ]
-                });
-
-                // Add base layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(window.map);
-
-                // Initialize layer groups
-                window.layers = {
-                    'Drawn Items': L.featureGroup().addTo(window.map),
-                    'Facilities': L.featureGroup().addTo(window.map),
-                    'Analysis': L.featureGroup().addTo(window.map)
-                };
-
-                // Set initial active layer
-                window.activeLayer = window.layers['Drawn Items'];
-            }
-            // Force a size update
-            setTimeout(() => {
-                window.map.invalidateSize();
-            }, 100);
-        });
-
-    </script>
-    <!-- Facility Details Modal -->
-    <div id="facilityModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="document.getElementById('facilityModal').style.display='none'">&times;</span>
-            <h2>Facility Details</h2>
-            <div class="form-group">
-                <label for="facilityTypeCode">Type Code:</label>
-                <input type="text" id="facilityTypeCode">
-            </div>
-            <div class="form-group">
-                <label for="facilityDescription">Description:</label>
-                <textarea id="facilityDescription" rows="3"></textarea>
-            </div>
-            <button onclick="saveFacilityDetails()">Save Changes</button>
-        </div>
-    </div>
-
-    <!-- New Location Modal -->
-    <div id="newLocationModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal('newLocationModal')">&times;</span>
-            <h2>Create New Location</h2>
-            <div class="form-group">
-                <label for="newLocationName">Location Name:</label>
-                <input type="text" id="newLocationName" required>
-            </div>
-            <div style="text-align: right; margin-top: 20px;">
-                <button onclick="closeModal('newLocationModal')" class="tool-button">Cancel</button>
-                <button onclick="createLocation()" class="tool-button">Create</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- New Location Confirmation Modal -->
-    <div id="newLocationConfirmModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal('newLocationConfirmModal')">&times;</span>
-            <h2>Location Created</h2>
-            <p>Location "<span id="newLocationName_confirm"></span>" has been created.</p>
-            <p>Would you like to switch to the new location?</p>
-            <div style="text-align: right; margin-top: 20px;">
-                <button onclick="handleLocationSwitch(false)" class="tool-button">Stay in Current Location</button>
-                <button onclick="handleLocationSwitch(true)" class="tool-button">Switch to New Location</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Switch Location Modal -->
-    <div id="switchLocationModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal('switchLocationModal')">&times;</span>
-            <h2>Switch Location</h2>
-            <div id="locationsList" style="margin: 20px 0;">
-                Loading locations...
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Menu click handling
-        let activeMenu = null;
-        window.layers = {};  // Initialize layers globally
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuItems = document.querySelectorAll('.menu-item');
-
-            menuItems.forEach(item => {
-                item.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    if (activeMenu === this) {
-                        // If clicking the active menu, close it
-                        this.classList.remove('active');
-                        activeMenu = null;
-                    } else {
-                        // Close any open menu and open this one
-                        if (activeMenu) {
-                            activeMenu.classList.remove('active');
-                        }
-                        this.classList.add('active');
-                        activeMenu = this;
-                    }
-                });
-            });
-
-            // Close menu when clicking outside
-            document.addEventListener('click', function(e) {
-                if (activeMenu && !activeMenu.contains(e.target)) {
-                    activeMenu.classList.remove('active');
-                    activeMenu = null;
-                }
-            });
-        });
-
-        let newLocationData = null;
-
-        function showNewLocationModal() {
-            document.getElementById('newLocationModal').style.display = 'block';
-        }
-
-        function showSwitchLocationModal() {
-            const modal = document.getElementById('switchLocationModal');
-            modal.style.display = 'block';
-            fetchLocations();
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        async function createLocation() {
-            const locationName = document.getElementById('newLocationName').value;
-            if (!locationName) {
-                alert('Please enter a location name');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/create_location', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ location_name: locationName })
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    newLocationData = data;
-                    document.getElementById('newLocationName_confirm').textContent = locationName;
-                    closeModal('newLocationModal');
-                    document.getElementById('newLocationName').value = '';
-                    document.getElementById('newLocationConfirmModal').style.display = 'block';
-                    // Update current location display
-                    updateCurrentLocation(locationName);
-                    // Clear existing features
-                    clearAllFeatures();
-                    await fetchLocations(); // Refresh locations list
-                } else {
-                    alert('Failed to create location: ' + data.detail);
-                }
-            } catch (error) {
-                console.error('Error creating location:', error);
-                alert('Failed to create location');
-            }
-        }
-
-        function handleLocationSwitch(shouldSwitch) {
-            if (shouldSwitch && newLocationData) {
-                updateCurrentLocation(newLocationData.name);
-                // Clear all features when creating new location
-                clearAllFeatures();
-            }
-            closeModal('newLocationConfirmModal');
-            newLocationData = null;
-        }
-
-        function getStyleForFeatureType(type) {
-            const defaultStyle = {
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.3,
-                color: '#3388ff',
-                fillColor: '#3388ff'
-            };
-
-            if (!type) return defaultStyle;
-
-            // Convert to uppercase for case-insensitive comparison
-            const upperType = type.toUpperCase();
-
-            if (upperType.includes('PES')) {
-                return {
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.3,
-                    color: '#ff0000',
-                    fillColor: '#ff0000'
-                };
-            } else if (upperType.includes('ES')) {
-                return {
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.3,
-                    color: '#006400',
-                    fillColor: '#006400'
-                };
-            }
-
-            return defaultStyle;
-        }
-
-        function clearAllFeatures() {
-            if (window.layers) {
-                Object.values(window.layers).forEach(layer => {
-                    if (layer instanceof L.FeatureGroup) {
-                        layer.clearLayers();
-                    }
-                });
-            }
-        }
-
-        async function switchLocation(locationName) {
-            try {
-                updateCurrentLocation(locationName);
-                closeModal('switchLocationModal');
-                clearAllFeatures();
-                await window.loadFromDatabase();
-                console.log(`Switched to location: ${locationName}`);
-            } catch (error) {
-                console.error('Error switching location:', error);
-                alert('Failed to switch location');
-            }
-        }
-
-        function updateCurrentLocation(locationName) {
-            const statusElement = document.getElementById('dbStatus');
-            if (statusElement) {
-                statusElement.innerHTML = `Location: ${locationName}`;
-            }
-        }
-
-        async function fetchLocations() {
-            try {
-                const response = await fetch('/api/locations');
-                const data = await response.json();
-
-                const locationsList = document.getElementById('locationsList');
-                locationsList.innerHTML = data.locations.map(loc => `
-                    <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
-                         onclick="switchLocation('${loc.name}')">
-                        ${loc.name}
-                        <br>
-                        <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Error fetching locations:', error);
-                document.getElementById('locationsList').innerHTML = 'Failed to load locations';
-            }
-        }
-
-        function clearAllFeatures() {
-            if (window.layers) {
-                Object.values(window.layers).forEach(layer => {
-                    if (layer instanceof L.FeatureGroup) {
-                        layer.clearLayers();
-                    }
-                });
-            }
-        }
-
-        function switchLocation(locationName) {
-            updateCurrentLocation(locationName);
-            closeModal('switchLocationModal');
-            // Clear all features from layers before loading new location data
-            clearAllFeatures();
-            window.loadFromDatabase(); // Reload data for the new location
-        }
-
-        function handleLocationSwitch(shouldSwitch) {
-            if (shouldSwitch && newLocationData) {
-                updateCurrentLocation(newLocationData.name);
-                // Clear all features when creating new location
-                clearAllFeatures();
-            }
-            closeModal('newLocationConfirmModal');
-            newLocationData = null;
-        }
-
-        function updateCurrentLocation(locationName) {
-            document.getElementById('dbStatus').innerHTML = `Location: ${locationName}`;
-        }
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        };
-
-        async function saveToDatabase() {
-            const layerData = {
-                layers: {}
-            };
-            Object.keys(layers).forEach(layerName => {
-                const layer = layers[layerName];
-                layerData.layers[layerName] = {
-                    properties: layer.properties || {},
-                    features: []
-                };
-                layer.eachLayer(l => {
-                    if (l.toGeoJSON) {
-                        const geoJSON = l.toGeoJSON();
-                        if (l.feature && l.feature.properties) {
-                            geoJSON.properties = {...l.feature.properties};
-                        }
-                        layerData.layers[layerName].features.push(geoJSON);
-                    }
-                });
-            });
-
-            console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
-
-            try {
-                await fetch('/api/save-layers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(layerData)
-                });
-            } catch (error) {
-                console.error('Error saving layers:', error);
-            }
-        }
-
-        function attachEditHandlers(layer) {
-            if (layer instanceof L.FeatureGroup) {
-                layer.eachLayer(l => {
-                    // Ensure the layer has a feature property
-                    l.feature = l.feature || {};
-                    l.feature.properties = l.feature.properties || {};
-
-                    // Remove existing click handlers to prevent duplicates
-                    l.off('click');
-
-                    // Add new click handler
-                    l.on('click', function() {
-                        openEditPopup(l);
-                    });
-                });
-            }
-        }
-
-        let baseLayers = {
-            'None': L.tileLayer(''),
-            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }),
-            'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
-            'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
-            'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
-        };
-
-        function updateLayerControl() {
-            const layerControl = document.getElementById('layerControl');
-            layerControl.innerHTML = '';
-
-            Object.entries(layers).forEach(([name, layer]) => {
-                const item = document.createElement('div');
-                item.className = 'layer-control-item';
-                item.innerHTML = `
-                    <input type="checkbox" id="layer-${name}" 
-                           ${map.hasLayer(layer) ? 'checked' : ''}>
-                    <label for="layer-${name}">
-                        ${name}
-                        <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
-                            (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
-                        </span>
-                    </label>
-                    <button class="edit-layer-button" onclick="editLayer('${name}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                `;
-                item.querySelector('input').onchange = (e) => {
-                    if (e.target.checked) {
-                        map.addLayer(layer);
-                    } else {
-                        map.removeLayer(layer);
-                    }
-                };
-                layerControl.appendChild(item);
-            });
-        }
-
-        function editLayer(name) {
-            const layer = layers[name];
-            if (!layer) return;
-
-            const newName = prompt('Enter new layer name:', name);
-            if (!newName) return;
-
-            const isQDAnalyzed = confirm('Is this layer QD analyzed?');
-            layer.properties = {
-                ...layer.properties,
-                isQDAnalyzed,
-                name: newName
-            };
-
-            if (name !== newName) {
-                layers[newName] = layer;
-                delete layers[name];
-            }
-
-            updateLayerControl();
-            saveToDatabase();
-        }
-
-
-        function updateDrawToLayerSelect() {
-            const select = document.getElementById('drawToLayer');
-            select.innerHTML = '';
-            Object.keys(layers).forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                select.appendChild(option);
-            });
-
-            if (select.options.length > 0) {
-                window.activeLayer = layers[select.options[0].value]; //Select the firstoption as default active layer
-            }
-        }
-
-        let activeLayer = null;
-
-        // Add Layer Modal functionality
-        const modal = document.getElementById('addLayerModal');
-        const closeBtn = document.querySelector('.modal-close');
-
-        window.showAddLayerModal = function() {
-            modal.style.display = 'block';
-        }
-
-        closeBtn.onclick = function() {
-            modal.style.display = 'none';
-        }
-
-        window.addNewLayer = function() {
-            const name = document.getElementById('layerName').value;
-            const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
-
-            if (!name) return;
-
-            addLayer(name, { isQDAnalyzed });
-            modal.style.display = 'none';
-            document.getElementById('layerName').value = '';
-            document.getElementById('isQDAnalyzed').checked = false;
-        }
-
-        // Commented out CesiumJS integration
-        /*
-        let cesiumViewer;
-        */
-        // Initialize map first
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map only if not already initialized
-            if (!window.map) {
-                const mapContainer = document.getElementById('map');
-                mapContainer.style.height = 'calc(100vh - 90px)';
-                mapContainer.style.width = '100%';
-
-                window.map = L.map('map', {
-                    center: [39.8283, -98.5795],
-                    zoom: 4,
-                    zoomControl: true,
-                    maxBounds: [
-                        [15, -180],
-                        [70, -50]
-                    ]
-                });
-
-                // Add base layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(window.map);
-
-                // Initialize layer groups
-                window.layers = {
-                    'Drawn Items': L.featureGroup().addTo(window.map),
-                    'Facilities': L.featureGroup().addTo(window.map),
-                    'Analysis': L.featureGroup().addTo(window.map)
-                };
-
-                // Set initial active layer
-                window.activeLayer = window.layers['Drawn Items'];
-            }
-            // Force a size update
-            setTimeout(() => {
-                window.map.invalidateSize();
-            }, 100);
-        });
-
-    </script>
-    <!-- Facility Details Modal -->
-    <div id="facilityModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="document.getElementById('facilityModal').style.display='none'">&times;</span>
-            <h2>Facility Details</h2>
-            <div class="form-group">
-                <label for="facilityTypeCode">Type Code:</label>
-                <input type="text" id="facilityTypeCode">
-            </div>
-            <div class="form-group">
-                <label for="facilityDescription">Description:</label>
-                <textarea id="facilityDescription" rows="3"></textarea>
-            </div>
-            <button onclick="saveFacilityDetails()">Save Changes</button>
-        </div>
-    </div>
-
-    <!-- New Location Modal -->
-    <div id="newLocationModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal('newLocationModal')">&times;</span>
-            <h2>Create New Location</h2>
-            <div class="form-group">
-                <label for="newLocationName">Location Name:</label>
-                <input type="text" id="newLocationName" required>
-            </div>
-            <div style="text-align: right; margin-top: 20px;">
-                <button onclick="closeModal('newLocationModal')" class="tool-button">Cancel</button>
-                <button onclick="createLocation()" class="tool-button">Create</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- New Location Confirmation Modal -->
-    <div id="newLocationConfirmModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal('newLocationConfirmModal')">&times;</span>
-            <h2>Location Created</h2>
-            <p>Location "<span id="newLocationName_confirm"></span>" has been created.</p>
-            <p>Would you like to switch to the new location?</p>
-            <div style="text-align: right; margin-top: 20px;">
-                <button onclick="handleLocationSwitch(false)" class="tool-button">Stay in Current Location</button>
-                <button onclick="handleLocationSwitch(true)" class="tool-button">Switch to New Location</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Switch Location Modal -->
-    <div id="switchLocationModal" class="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal('switchLocationModal')">&times;</span>
-            <h2>Switch Location</h2>
-            <div id="locationsList" style="margin: 20px 0;">
-                Loading locations...
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Menu click handling
-        let activeMenu = null;
-        window.layers = {};  // Initialize layers globally
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuItems = document.querySelectorAll('.menu-item');
-
-            menuItems.forEach(item => {
-                item.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    if (activeMenu === this) {
-                        // If clicking the active menu, close it
-                        this.classList.remove('active');
-                        activeMenu = null;
-                    } else {
-                        // Close any open menu and open this one
-                        if (activeMenu) {
-                            activeMenu.classList.remove('active');
-                        }
-                        this.classList.add('active');
-                        activeMenu = this;
-                    }
-                });
-            });
-
-            // Close menu when clicking outside
-            document.addEventListener('click', function(e) {
-                if (activeMenu && !activeMenu.contains(e.target)) {
-                    activeMenu.classList.remove('active');
-                    activeMenu = null;
-                }
-            });
-        });
-
-        let newLocationData = null;
-
-        function showNewLocationModal() {
-            document.getElementById('newLocationModal').style.display = 'block';
-        }
-
-        function showSwitchLocationModal() {
-            const modal = document.getElementById('switchLocationModal');
-            modal.style.display = 'block';
-            fetchLocations();
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        async function createLocation() {
-            const locationName = document.getElementById('newLocationName').value;
-            if (!locationName) {
-                alert('Please enter a location name');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/create_location', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ location_name: locationName })
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    newLocationData = data;
-                    document.getElementById('newLocationName_confirm').textContent = locationName;
-                    closeModal('newLocationModal');
-                    document.getElementById('newLocationName').value = '';
-                    document.getElementById('newLocationConfirmModal').style.display = 'block';
-                    // Update current location display
-                    updateCurrentLocation(locationName);
-                    // Clear existing features
-                    clearAllFeatures();
-                    await fetchLocations(); // Refresh locations list
-                } else {
-                    alert('Failed to create location: ' + data.detail);
-                }
-            } catch (error) {
-                console.error('Error creating location:', error);
-                alert('Failed to create location');
-            }
-        }
-
-        function handleLocationSwitch(shouldSwitch) {
-            if (shouldSwitch && newLocationData) {
-                updateCurrentLocation(newLocationData.name);
-                // Clear all features when creating new location
-                clearAllFeatures();
-            }
-            closeModal('newLocationConfirmModal');
-            newLocationData = null;
-        }
-
-        function getStyleForFeatureType(type) {
-            const defaultStyle = {
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.3,
-                color: '#3388ff',
-                fillColor: '#3388ff'
-            };
-
-            if (!type) return defaultStyle;
-
-            // Convert to uppercase for case-insensitive comparison
-            const upperType = type.toUpperCase();
-
-            if (upperType.includes('PES')) {
-                return {
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.3,
-                    color: '#ff0000',
-                    fillColor: '#ff0000'
-                };
-            } else if (upperType.includes('ES')) {
-                return {
-                    weight: 2,
-                    opacity: 1,
-                    fillOpacity: 0.3,
-                    color: '#006400',
-                    fillColor: '#006400'
-                };
-            }
-
-            return defaultStyle;
-        }
-
-        function clearAllFeatures() {
-            if (window.layers) {
-                Object.values(window.layers).forEach(layer => {
-                    if (layer instanceof L.FeatureGroup) {
-                        layer.clearLayers();
-                    }
-                });
-            }
-        }
-
-        async function switchLocation(locationName) {
-            try {
-                updateCurrentLocation(locationName);
-                closeModal('switchLocationModal');
-                clearAllFeatures();
-                await window.loadFromDatabase();
-                console.log(`Switched to location: ${locationName}`);
-            } catch (error) {
-                console.error('Error switching location:', error);
-                alert('Failed to switch location');
-            }
-        }
-
-        function updateCurrentLocation(locationName) {
-            const statusElement = document.getElementById('dbStatus');
-            if (statusElement) {
-                statusElement.innerHTML = `Location: ${locationName}`;
-            }
-        }
-
-        async function fetchLocations() {
-            try {
-                const response = await fetch('/api/locations');
-                const data = await response.json();
-
-                const locationsList = document.getElementById('locationsList');
-                locationsList.innerHTML = data.locations.map(loc => `
-                    <div class="location-item" style="padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd;"
-                         onclick="switchLocation('${loc.name}')">
-                        ${loc.name}
-                        <br>
-                        <small style="color: #666;">Created: ${new Date(loc.created_at).toLocaleString()}</small>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Error fetching locations:', error);
-                document.getElementById('locationsList').innerHTML = 'Failed to load locations';
-            }
-        }
-
-        function clearAllFeatures() {
-            if (window.layers) {
-                Object.values(window.layers).forEach(layer => {
-                    if (layer instanceof L.FeatureGroup) {
-                        layer.clearLayers();
-                    }
-                });
-            }
-        }
-
-        function switchLocation(locationName) {
-            updateCurrentLocation(locationName);
-            closeModal('switchLocationModal');
-            // Clear all features from layers before loading new location data
-            clearAllFeatures();
-            window.loadFromDatabase(); // Reload data for the new location
-        }
-
-        function handleLocationSwitch(shouldSwitch) {
-            if (shouldSwitch && newLocationData) {
-                updateCurrentLocation(newLocationData.name);
-                // Clear all features when creating new location
-                clearAllFeatures();
-            }
-            closeModal('newLocationConfirmModal');
-            newLocationData = null;
-        }
-
-        function updateCurrentLocation(locationName) {
-            document.getElementById('dbStatus').innerHTML = `Location: ${locationName}`;
-        }
-
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        };
-
-        async function saveToDatabase() {
-            const layerData = {
-                layers: {}
-            };
-            Object.keys(layers).forEach(layerName => {
-                const layer = layers[layerName];
-                layerData.layers[layerName] = {
-                    properties: layer.properties || {},
-                    features: []
-                };
-                layer.eachLayer(l => {
-                    if (l.toGeoJSON) {
-                        const geoJSON = l.toGeoJSON();
-                        if (l.feature && l.feature.properties) {
-                            geoJSON.properties = {...l.feature.properties};
-                        }
-                        layerData.layers[layerName].features.push(geoJSON);
-                    }
-                });
-            });
-
-            console.log('Saving layer data:', JSON.stringify(layerData, null, 2)); // Debug log
-
-            try {
-                await fetch('/api/save-layers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(layerData)
-                });
-            } catch (error) {
-                console.error('Error saving layers:', error);
-            }
-        }
-
-        function attachEditHandlers(layer) {
-            if (layer instanceof L.FeatureGroup) {
-                layer.eachLayer(l => {
-                    // Ensure the layer has a feature property
-                    l.feature = l.feature || {};
-                    l.feature.properties = l.feature.properties || {};
-
-                    // Remove existing click handlers to prevent duplicates
-                    l.off('click');
-
-                    // Add new click handler
-                    l.on('click', function() {
-                        openEditPopup(l);
-                    });
-                });
-            }
-        }
-
-        let baseLayers = {
-            'None': L.tileLayer(''),
-            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }),
-            'Google Satellite': L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'),
-            'Google Streets': L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'),
-            'Google Hybrid': L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}')
-        };
-
-        function updateLayerControl() {
-            const layerControl = document.getElementById('layerControl');
-            layerControl.innerHTML = '';
-
-            Object.entries(layers).forEach(([name, layer]) => {
-                const item = document.createElement('div');
-                item.className = 'layer-control-item';
-                item.innerHTML = `
-                    <input type="checkbox" id="layer-${name}" 
-                           ${map.hasLayer(layer) ? 'checked' : ''}>
-                    <label for="layer-${name}">
-                        ${name}
-                        <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
-                            (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
-                        </span>
-                    </label>
-                    <button class="edit-layer-button" onclick="editLayer('${name}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                `;
-                item.querySelector('input').onchange = (e) => {
-                    if (e.target.checked) {
-                        map.addLayer(layer);
-                    } else {
-                        map.removeLayer(layer);
-                    }
-                };
-                layerControl.appendChild(item);
-            });
-        }
-
-        function editLayer(name) {
-            const layer = layers[name];
-            if (!layer) return;
-
-            const newName = prompt('Enter new layer name:', name);
-            if (!newName) return;
-
-            const isQDAnalyzed = confirm('Is this layer QD analyzed?');
-            layer.properties = {
-                ...layer.properties,
-                isQDAnalyzed,
-                name: newName
-            };
-
-            if (name !== newName) {
-                layers[newName] = layer;
-                delete layers[name];
-            }
-
-            updateLayerControl();
-            saveToDatabase();
-        }
-
-
-        function updateDrawToLayerSelect() {
-            const select = document.getElementById('drawToLayer');
-            select.innerHTML = '';
-            Object.keys(layers).forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                select.appendChild(option);
-            });
-
-            if (select.options.length > 0) {
-                window.activeLayer = layers[select.options[0].value]; //Select the firstoption as default active layer
-            }
-        }
-
-        let activeLayer = null;
-
-        // Add Layer Modal functionality
-        const modal = document.getElementById('addLayerModal');
-        const closeBtn = document.querySelector('.modal-close');
-
-        window.showAddLayerModal = function() {
-            modal.style.display = 'block';
-        }
-
-        closeBtn.onclick = function() {
-            modal.style.display = 'none';
-        }
-
-        window.addNewLayer = function() {
-            const name = document.getElementById('layerName').value;
-            const isQDAnalyzed = document.getElementById('isQDAnalyzed').checked;
-
-            if (!name) return;
-
-            addLayer(name, { isQDAnalyzed });
-            modal.style.display = 'none';
-            document.getElementById('layerName').value = '';
-            document.getElementById('isQDAnalyzed').checked = false;
-        }
-
-        // Commented out CesiumJS integration
-        /*
-        let cesiumViewer;
-        */
-        // Initialize map first
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map only if not already initialized
-            if (!window.map) {
-                const mapContainer = document.getElementById('map');
-                mapContainer.style.height = 'calc(100vh - 90px)';
-                mapContainer.style.width = '100%';
-
-                window.map = L.map('map', {
-                    center: [39.8283, -98.5795],
-                    zoom: 4,
-                    zoomControl: true,
-                    maxBounds: [
-                        [15, -180],
-                        [70, -50]
-                    ]
-                });
-
-                // Add base layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(window.map);
-
-                // Initialize layer groups
-                window.layers = {
-                    'Drawn Items': L.featureGroup().addTo(window.map),
-                    'Facilities': L.featureGroup().addTo(window.map),
-                    'Analysis': L.featureGroup().addTo(window.map)
-                };
-
-                // Set initial active layer
-                window.activeLayer = window.layers['Drawn Items'];
-            }
-            // Force a size update
-            setTimeout(() => {
-                window.map.invalidateSize();
-            }, 100);
-        });
-
-    </script>
+      }, 100);
+    }
+
+    // Base Layer Dropdown
+    const baseLayerTool = document.getElementById('baseLayerTool');
+    const baseLayerDropdown = document.getElementById('baseLayerDropdown');
+    baseLayerTool.addEventListener('click', (e) => {
+      const buttonRect = baseLayerTool.getBoundingClientRect();
+      baseLayerDropdown.style.top = (buttonRect.bottom + 5) + 'px';
+      baseLayerDropdown.style.left = buttonRect.left + 'px';
+      baseLayerDropdown.style.display = baseLayerDropdown.style.display === 'none' ? 'block' : 'none';
+    });
+    Object.entries(baseLayers).forEach(([name, layer]) => {
+      const option = document.createElement('div');
+      option.className = 'base-layer-option';
+      option.innerHTML = `
+        <input type="radio" name="baseLayer" id="base-${name}" ${window.map.hasLayer(layer) ? 'checked' : ''}>
+        <label for="base-${name}">${name}</label>
+      `;
+      option.onclick = () => {
+        Object.values(baseLayers).forEach(l => window.map.removeLayer(l));
+        if (name !== 'None') { window.map.addLayer(layer); }
+        baseLayerDropdown.style.display = 'none';
+      };
+      baseLayerDropdown.appendChild(option);
+    });
+    document.addEventListener('click', (e) => {
+      if (activeMenu && !activeMenu.contains(e.target) && !baseLayerTool.contains(e.target) && !baseLayerDropdown.contains(e.target)) {
+        activeMenu.classList.remove('active');
+        activeMenu = null;
+        baseLayerDropdown.style.display = 'none';
+      }
+    });
+
+    // Left Panel Toggle
+    const toggleLayersPanel = document.getElementById('toggleLayersPanel');
+    const leftPanel = document.getElementById('leftPanel');
+    const mapElement = document.getElementById('map');
+    toggleLayersPanel.addEventListener('click', () => {
+      leftPanel.classList.toggle('visible');
+      mapElement.style.marginLeft = leftPanel.classList.contains('visible') ? '300px' : '0';
+      window.map.invalidateSize();
+    });
+    updateLayerControl();
+    updateDrawToLayerSelect();
+  </script>
+
+</body>
+</html>
