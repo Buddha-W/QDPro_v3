@@ -820,6 +820,37 @@
 
     });
 
+    function updateLayerControl() {
+      const layerControl = document.getElementById('layerControl');
+      if (!layerControl) return;
+      
+      layerControl.innerHTML = '';
+      Object.entries(window.layers).forEach(([name, layer]) => {
+        const item = document.createElement('div');
+        item.className = 'layer-control-item';
+        item.innerHTML = `
+          <input type="checkbox" id="layer-${name}" ${window.map.hasLayer(layer) ? 'checked' : ''}>
+          <label for="layer-${name}">
+            ${name}
+            <span style="color: ${layer.properties?.isQDAnalyzed ? 'green' : 'red'}">
+              (${layer.properties?.isQDAnalyzed ? 'QD' : 'Non-QD'})
+            </span>
+          </label>
+          <button class="edit-layer-button" onclick="editLayer('${name}')">
+            <i class="fas fa-edit"></i>
+          </button>
+        `;
+        item.querySelector('input').onchange = (e) => {
+          if (e.target.checked) {
+            window.map.addLayer(layer);
+          } else {
+            window.map.removeLayer(layer);
+          }
+        };
+        layerControl.appendChild(item);
+      });
+    }
+
     function deactivateAllDrawingTools() {
       Object.values(drawingTools).forEach(tool => {
         if (tool && typeof tool.disable === 'function') { tool.disable(); }
