@@ -778,6 +778,9 @@
         zoom: 4
       });
 
+      // Add default base layer immediately
+      baseLayers['OpenStreetMap'].addTo(window.map);
+
       // Initialize menu functionality
       const menuItems = document.querySelectorAll('.menu-item');
       menuItems.forEach(item => {
@@ -811,12 +814,18 @@
         });
       });
 
-      // Initialize drawing tools after map is ready
+      // Initialize drawing tools and buttons
       initializeDrawingTools();
+      initializeDrawingButtons();
 
-      // Initialize base layer dropdown after map is ready
+      // Initialize base layer dropdown and load data
       await initializeBaseLayerDropdown();
-      await loadFromDatabase(); // Load layers after map and dropdown are initialized
+      await loadFromDatabase();
+
+      // Force a map resize to ensure proper rendering
+      setTimeout(() => {
+        window.map.invalidateSize();
+      }, 100);
 
     });
 
@@ -863,25 +872,29 @@
     function setupDrawingButton(buttonId, tool) {
       const button = document.getElementById(buttonId);
       if (!button) return;
-      button.addEventListener('click', (e) => {
+      
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
         e.stopPropagation();
-        if (button.classList.contains('active')) {
-          deactivateAllDrawingTools();
-        } else {
-          deactivateAllDrawingTools();
-          if (tool && typeof tool.enable === 'function') {
-            tool.enable();
-            button.classList.add('active');
-          }
+        
+        const wasActive = button.classList.contains('active');
+        deactivateAllDrawingTools();
+        
+        if (!wasActive) {
+          tool.enable();
+          button.classList.add('active');
         }
       });
     }
 
-    setupDrawingButton('drawPolygon', drawingTools.polygon);
-    setupDrawingButton('drawPolyline', drawingTools.polyline);
-    setupDrawingButton('drawRectangle', drawingTools.rectangle);
-    setupDrawingButton('drawCircle', drawingTools.circle);
-    setupDrawingButton('drawMarker', drawingTools.marker);
+    // Initialize drawing tools immediately after map creation
+    function initializeDrawingButtons() {
+      setupDrawingButton('drawPolygon', drawingTools.polygon);
+      setupDrawingButton('drawPolyline', drawingTools.polyline);
+      setupDrawingButton('drawRectangle', drawingTools.rectangle);
+      setupDrawingButton('drawCircle', drawingTools.circle);
+      setupDrawingButton('drawMarker', drawingTools.marker);
+    }
 
     window.map.on('click', function() { deactivateAllDrawingTools(); });
     window.map.on('draw:created', function(e) {
