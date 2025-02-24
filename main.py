@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
