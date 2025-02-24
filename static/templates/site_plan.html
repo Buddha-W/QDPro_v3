@@ -1742,6 +1742,36 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize map first
             if (!window.map) {
+                const mapContainer = document.getElementById('map');
+                mapContainer.style.height = 'calc(100vh - 90px)';
+                mapContainer.style.width = '100%';
+
+                window.map = L.map('map', {
+                    center: [39.8283, -98.5795],
+                    zoom: 4,
+                    zoomControl: true,
+                    maxBounds: [
+                        [15, -180],
+                        [70, -50]
+                    ]
+                });
+
+                // Add base layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(window.map);
+
+                // Initialize layer groups
+                window.layers = {
+                    'Drawn Items': L.featureGroup().addTo(window.map),
+                    'Facilities': L.featureGroup().addTo(window.map),
+                    'Analysis': L.featureGroup().addTo(window.map)
+                };
+
+                // Set initial active layer
+                window.activeLayer = window.layers['Drawn Items'];
+            }ap) {
                 window.map = L.map('map', {
                     center: [39.8283, -98.5795],
                     zoom: 4,
