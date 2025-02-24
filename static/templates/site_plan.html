@@ -981,6 +981,29 @@
       });
     }
 
+    function updateDrawToLayerSelect() {
+      const select = document.getElementById('drawToLayer');
+      if (!select) return;
+      
+      select.innerHTML = '';
+      Object.entries(window.layers).forEach(([name, layer]) => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+      
+      select.onchange = (e) => {
+        window.activeLayer = window.layers[e.target.value];
+      };
+      
+      // Set initial active layer
+      if (select.options.length > 0) {
+        select.selectedIndex = 0;
+        window.activeLayer = window.layers[select.options[0].value];
+      }
+    }
+
     // Left Panel Toggle
     const toggleLayersPanel = document.getElementById('toggleLayersPanel');
     const leftPanel = document.getElementById('leftPanel');
