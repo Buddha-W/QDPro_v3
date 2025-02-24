@@ -856,7 +856,7 @@
                             <label for="facilityDescription">Description:</label>
                             <textarea id="facilityDescription" style="width: 100%; height: 60px;">${layer.feature.properties.description || ''}</textarea>
                         </div>
-                        <button id="facilitySaveButton" style="width: 100%; padding: 5px;">Save</button>
+                        <button id="facilitySaveButton" style="width: 100%; padding:5px;">Save</button>
                     </div>
                 `;
 
@@ -887,18 +887,22 @@
             }
 
             function addLayer(name, properties = {}) {
-                const layerGroup = new L.FeatureGroup();
-                layerGroup.properties = properties;
-                layerGroup.on('click', function(e) {
-                    if (e.layer) {
-                        openEditPopup(e.layer);
+                try {
+                    if (!window.map) {
+                        console.error('Map not initialized');
+                        return;
                     }
-                });
-                layers[name] = layerGroup;
-                map.addLayer(layerGroup);
-                updateLayerControl();
-                updateDrawToLayerSelect();
-                saveToDatabase();
+                    if (!window.layers) {
+                        window.layers = {};
+                    }
+                    window.layers[name] = new L.FeatureGroup();
+                    window.layers[name].properties = properties;
+                    window.layers[name].addTo(window.map);
+                    updateLayerControl();
+                    updateDrawToLayerSelect();
+                } catch (error) {
+                    console.error('Error adding layers:', error);
+                }
             }
 
             // updateDrawToLayerSelect function moved to global scope
