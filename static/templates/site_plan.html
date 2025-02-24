@@ -749,7 +749,7 @@
 
     // Initialize drawing tools after map is ready
     function initializeDrawingTools() {
-      drawingTools = {
+            drawingTools = {
         polygon: new L.Draw.Polygon(window.map, {
           showLength: true,
           showArea: true,
@@ -786,16 +786,43 @@
         center: [39.8283, -98.5795],
         zoom: 4
       });
-      
-      // Add base layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(window.map);
+
+      // Initialize menu functionality
+      const menuItems = document.querySelectorAll('.menu-item');
+      menuItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (activeMenu) {
+            activeMenu.classList.remove('active');
+          }
+          item.classList.add('active');
+          activeMenu = item;
+        });
+      });
+
+      // Close menus when clicking outside
+      document.addEventListener('click', (e) => {
+        if (activeMenu && !activeMenu.contains(e.target)) {
+          activeMenu.classList.remove('active');
+          activeMenu = null;
+        }
+      });
+
+      // Initialize tool buttons
+      const toolButtons = document.querySelectorAll('.tool-button');
+      toolButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!button.id.startsWith('toggle')) {
+            toolButtons.forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
+          }
+        });
+      });
 
       // Initialize drawing tools after map is ready
       initializeDrawingTools();
-      
+
       // Initialize base layer dropdown after map is ready
       initializeBaseLayerDropdown();
     });
@@ -892,7 +919,7 @@
     function initializeBaseLayerDropdown() {
       const baseLayerTool = document.getElementById('baseLayerTool');
       const baseLayerDropdown = document.getElementById('baseLayerDropdown');
-      
+
       baseLayerTool.addEventListener('click', (e) => {
         const buttonRect = baseLayerTool.getBoundingClientRect();
         baseLayerDropdown.style.top = (buttonRect.bottom + 5) + 'px';
@@ -910,20 +937,20 @@
           <label for="base-${name}">${name}</label>
         `;
         option.onclick = () => {
-        Object.values(baseLayers).forEach(l => window.map.removeLayer(l));
-        if (name !== 'None') { window.map.addLayer(layer); }
-        baseLayerDropdown.style.display = 'none';
-      };
-      baseLayerDropdown.appendChild(option);
-    });
-    document.addEventListener('click', (e) => {
-      if (activeMenu && !activeMenu.contains(e.target) && !baseLayerTool.contains(e.target) && !baseLayerDropdown.contains(e.target)) {
-        activeMenu.classList.remove('active');
-        activeMenu = null;
-        baseLayerDropdown.style.display = 'none';
-      }
-    });
-  }
+          Object.values(baseLayers).forEach(l => window.map.removeLayer(l));
+          if (name !== 'None') { window.map.addLayer(layer); }
+          baseLayerDropdown.style.display = 'none';
+        };
+        baseLayerDropdown.appendChild(option);
+      });
+      document.addEventListener('click', (e) => {
+        if (activeMenu && !activeMenu.contains(e.target) && !baseLayerTool.contains(e.target) && !baseLayerDropdown.contains(e.target)) {
+          activeMenu.classList.remove('active');
+          activeMenu = null;
+          baseLayerDropdown.style.display = 'none';
+        }
+      });
+    }
 
     // Left Panel Toggle
     const toggleLayersPanel = document.getElementById('toggleLayersPanel');
