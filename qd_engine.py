@@ -6,6 +6,19 @@ import json
 import numpy as np
 
 @dataclass
+class MaterialProperties:
+    sensitivity: float
+    det_velocity: float
+    tnt_equiv: float
+
+@dataclass
+class EnvironmentalConditions:
+    temperature: float
+    pressure: float
+    humidity: float
+    confinement_factor: float
+
+@dataclass
 class QDParameters:
     quantity: float
     site_type: str  # 'DoD' or 'DoE'
