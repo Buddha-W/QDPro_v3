@@ -655,9 +655,8 @@
     }
 
     async function saveToDatabase() {
-      try {
-        const layerData = { layers: {} };
-        Object.keys(window.layers).forEach(layerName => {
+      const layerData = { layers: {} };
+      Object.keys(window.layers).forEach(layerName => {
         const layer = window.layers[layerName];
         layerData.layers[layerName] = { properties: layer.properties || {}, features: [] };
         layer.eachLayer(l => {
@@ -679,12 +678,8 @@
         });
       } catch (error) {
         console.error('Error saving layers:', error);
-        alert('Failed to save changes. Please try again.');
       }
     }
-
-    // Periodically save changes every 5 minutes
-    setInterval(saveToDatabase, 300000);
 
     function attachEditHandlers(layer) {
       if (layer instanceof L.FeatureGroup) {
@@ -930,20 +925,6 @@
         saveToDatabase();
       }
       deactivateAllDrawingTools();
-    });
-
-    // Auto-save on map changes
-    window.map.on('draw:edited', function(e) {
-      saveToDatabase();
-    });
-
-    window.map.on('draw:deleted', function(e) {
-      saveToDatabase();
-    });
-
-    // Save before page unload
-    window.addEventListener('beforeunload', function() {
-      saveToDatabase();
     });
 
     function openEditPopup(layer) {
