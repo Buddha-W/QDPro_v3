@@ -795,6 +795,9 @@
 
       // Initialize drawing tools after map is ready
       initializeDrawingTools();
+      
+      // Initialize base layer dropdown after map is ready
+      initializeBaseLayerDropdown();
     });
 
     function deactivateAllDrawingTools() {
@@ -886,22 +889,27 @@
     }
 
     // Base Layer Dropdown
-    const baseLayerTool = document.getElementById('baseLayerTool');
-    const baseLayerDropdown = document.getElementById('baseLayerDropdown');
-    baseLayerTool.addEventListener('click', (e) => {
-      const buttonRect = baseLayerTool.getBoundingClientRect();
-      baseLayerDropdown.style.top = (buttonRect.bottom + 5) + 'px';
-      baseLayerDropdown.style.left = buttonRect.left + 'px';
-      baseLayerDropdown.style.display = (baseLayerDropdown.style.display === 'none' || baseLayerDropdown.style.display === '') ? 'block' : 'none';
-    });
-    Object.entries(baseLayers).forEach(([name, layer]) => {
-      const option = document.createElement('div');
-      option.className = 'base-layer-option';
-      option.innerHTML = `
-        <input type="radio" name="baseLayer" id="base-${name}" ${window.map && window.map.hasLayer(layer) ? 'checked' : ''}>
-        <label for="base-${name}">${name}</label>
-      `;
-      option.onclick = () => {
+    function initializeBaseLayerDropdown() {
+      const baseLayerTool = document.getElementById('baseLayerTool');
+      const baseLayerDropdown = document.getElementById('baseLayerDropdown');
+      
+      baseLayerTool.addEventListener('click', (e) => {
+        const buttonRect = baseLayerTool.getBoundingClientRect();
+        baseLayerDropdown.style.top = (buttonRect.bottom + 5) + 'px';
+        baseLayerDropdown.style.left = buttonRect.left + 'px';
+        baseLayerDropdown.style.display = (baseLayerDropdown.style.display === 'none' || baseLayerDropdown.style.display === '') ? 'block' : 'none';
+      });
+
+      baseLayerDropdown.innerHTML = '';
+      Object.entries(baseLayers).forEach(([name, layer]) => {
+        const option = document.createElement('div');
+        option.className = 'base-layer-option';
+        const isActive = window.map.hasLayer(layer);
+        option.innerHTML = `
+          <input type="radio" name="baseLayer" id="base-${name}" ${isActive ? 'checked' : ''}>
+          <label for="base-${name}">${name}</label>
+        `;
+        option.onclick = () => {
         Object.values(baseLayers).forEach(l => window.map.removeLayer(l));
         if (name !== 'None') { window.map.addLayer(layer); }
         baseLayerDropdown.style.display = 'none';
