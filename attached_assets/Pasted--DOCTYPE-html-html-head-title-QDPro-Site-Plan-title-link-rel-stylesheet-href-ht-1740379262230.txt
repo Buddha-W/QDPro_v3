@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QDPro Site Plan</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ==" crossorigin="anonymous"/>
+</head>
+<body>
+    <div id="map" class="map-container"></div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize variables
+            const mapContainer = document.getElementById('map');
+            mapContainer.style.height = 'calc(100vh - 90px)';
+            mapContainer.style.width = '100%';
+
+            // Initialize map
+            window.map = L.map('map', {
+                center: [39.8283, -98.5795],
+                zoom: 4,
+                zoomControl: true,
+                maxBounds: [
+                    [15, -180],
+                    [70, -50]
+                ]
+            });
+
+            // Add base layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(window.map);
+
+            // Initialize layer groups
+            window.layers = {
+                'Drawn Items': L.featureGroup().addTo(window.map),
+                'Facilities': L.featureGroup().addTo(window.map),
+                'Analysis': L.featureGroup().addTo(window.map)
+            };
+
+            // Set initial active layer
+            window.activeLayer = window.layers['Drawn Items'];
+
+            // Fixing the "window.map.invalidateSize is not a function" error
+            setTimeout(() => {
+                if (window.map) {
+                    window.map.invalidateSize();
+                }
+            }, 100);
+
+            // Ensure 'activeMenu' is declared only once
+            let activeMenu = null;
+
+            // Additional code for features can be added here...
+
+        });
+        // Other functions and event listeners...
+    </script>
+</body>
+</html>
