@@ -270,7 +270,20 @@
 </head>
 <body>
   <nav class="main-toolbar">
-    <div class="menu-item">File</div>
+    <div class="menu-item" onclick="toggleMenu(this, 'fileMenu')">
+      File
+      <div class="menu-dropdown" id="fileMenu">
+        <div class="menu-dropdown-item" onclick="showNewLocationModal()">
+          <i class="fas fa-plus"></i>New Location
+        </div>
+        <div class="menu-dropdown-item" onclick="showSwitchLocationModal()">
+          <i class="fas fa-exchange-alt"></i>Switch Location
+        </div>
+        <div class="menu-dropdown-item" onclick="saveToDatabase()">
+          <i class="fas fa-save"></i>Save
+        </div>
+      </div>
+    </div>
     <div class="menu-item">Edit</div>
     <div class="menu-item">View</div>
     <div class="menu-item">Tools</div>
@@ -566,6 +579,38 @@
     }
 
     // Modal and Location Functions
+    function toggleMenu(menuItem, menuId) {
+      const dropdown = document.getElementById(menuId);
+      const allDropdowns = document.querySelectorAll('.menu-dropdown');
+      allDropdowns.forEach(d => {
+        if (d.id !== menuId) {
+          d.style.display = 'none';
+          d.parentElement.classList.remove('active');
+        }
+      });
+      
+      if (dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+        menuItem.classList.remove('active');
+      } else {
+        dropdown.style.display = 'block';
+        menuItem.classList.add('active');
+      }
+    }
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.menu-item')) {
+        const allDropdowns = document.querySelectorAll('.menu-dropdown');
+        allDropdowns.forEach(d => {
+          d.style.display = 'none';
+          if (d.parentElement) {
+            d.parentElement.classList.remove('active');
+          }
+        });
+      }
+    });
+
     function closeModal(modalId) {
       document.getElementById(modalId).style.display = 'none';
     }
