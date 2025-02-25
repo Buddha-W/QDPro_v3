@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QDPro Site Plan</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" integrity="sha512-gc3xjCmIy673V6MyOAZhIW93xhM9ei1I+gLbmFjUHIjocENRsLX/QUE1htk5q1XV2D/iie/VQ8DXI6Vu8bexvQ==" crossorigin="anonymous"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" integrity="sha512-ozq8xQKq6urvuU6jNgkfqAmT7jKN2XumbrX1JiB3TnF7tI48DPI4Gy1GXKD/V3EExgAs1V+pRO7vwtS1LHg0Gw==" crossorigin="anonymous"></script>
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+
+  <style>
+    /* CURRENT CSS (with conflicts) */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    nav.file-toolbar {
+      background-color: #f1f1f1;
+      border-bottom: 1px solid #ccc;
+      padding: 0.5rem 1rem;
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+    nav.tool-toolbar {
+      background-color: #fafafa;
+      border-bottom: 1px solid #ccc;
+      padding: 0.5rem 1rem;
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    #map {
+      flex-grow: 1;
+      width: 100%;
+      z-index: 1;
+    }
+
+    .leaflet-draw-toolbar {
+      margin-top: 0 !important;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 5px;
+    }
+    .modal-close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    .modal-close:hover { color: black; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .menu-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: #f8f9fa;
+      color: #333;
+      display: flex;
+      align-items: center;
+      z-index: 1500;
+      padding: 0;
+      border-bottom: 1px solid #dee2e6;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    .menu-item {
+      padding: 0 15px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+      font-size: 14px;
+    }
+    .menu-item:hover { background: #e9ecef; }
+    .menu-item.active .menu-dropdown { display: block; animation: fadeIn 0.15s ease-in; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .menu-dropdown {
+      display: none;
+      position: absolute;
+      top: 40px;
+      left: 0;
+      background: white;
+      min-width: 200px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 1600;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 4px 0;
+    }
+    .menu-dropdown-item {
+      padding: 8px 20px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .menu-dropdown-item:hover { background: #f0f0f0; color: #000; }
+    .menu-dropdown-item i { margin-right: 8px; width: 16px; color: #666; }
+    .toolbar {
+      position: fixed;
+      top: 40px;
+      left: 10px;
+      height: 40px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      z-index: 1001;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-top: 10px;
+    }
+    .tool-group { display: flex; align-items: center; padding: 0 10px; border-right: 1px solid #eee; }
+    .tool-group:last-child { border-right: none; }
+    .tool-button {
+      padding: 6px;
+      margin: 0 2px;
+      border: 1px solid transparent;
+      border-radius: 3px;
+      background: white;
+      color: #666;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+    }
+    .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
+    .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
+    .tool-button i { font-size: 16px; }
+    .left-panel {
+      position: fixed;
+      top: 90px;
+      left: 0;
+      width: 300px;
+      height: calc(100vh - 90px);
+      background: white;
+      border-right: 1px solid #dee2e6;
+      transform: translateX(-300px);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+    }
+    .left-panel.visible { transform: translateX(0); }
+    .panel-header {
+      padding: 15px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      font-weight: bold;
+    }
+    .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
+    .layer-select-container {
+      margin-bottom: 20px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+    #map {
+      position: fixed;
+      top: 90px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      width: 100%;
+      height: calc(100vh - 90px);
+    }
+    .base-layer-dropdown {
+      position: absolute;
+      background: white;
+      padding: 10px;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1002;
+      display: none;
+    }
+    .base-layer-option {
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .base-layer-option:hover { background: #f8f9fa; }
+    .layer-control-item {
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #dbStatus {
+      margin-left: auto;
+      padding: 0 10px;
+      font-size: 14px;
+      color: #333;
+    }
+    .location-item {
+      padding: 10px;
+      cursor: pointer;
+      border-bottom: 1px solid #ddd;
+    }
+    #map {
+      width: 100%;
+      height: 100vh;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+    .menu-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1500;
+        background: white;
+        border-bottom: 1px solid #ccc;
+    }
+
+    /* Conflicting attempts to place toolbars, etc. */
+    .leaflet-top {
+        z-index: 1000;
+        top: 60px !important;
+    }
+    .leaflet-control-zoom {
+        z-index: 1000 !important;
+    }
+    .toolbar {
+        z-index: 1001;
+        position: relative;
+        margin-top: 60px;
+    }
+    .leaflet-draw-toolbar {
+        z-index: 1002;
+    }
+    #map {
+        position: absolute;
+        top: 90px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <!-- File toolbar (top) -->
+  <nav class="file-toolbar">
+    <div class="menu-item">File</div>
+    <div class="menu-item">Edit</div>
+    <div class="menu-item">View</div>
+  </nav>
+
+  <!-- Tool toolbar (second row) -->
+  <nav class="tool-toolbar">
+    <div class="menu-item">Tools</div>
+    <div class="menu-item">Help</div>
+  </nav>
+
+  <!-- The pinned drawing toolbar -->
+  <div class="toolbar">
+    <div class="tool-group">
+      <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
+        <i class="fas fa-bars"></i>
+      </button>
+      <button id="baseLayerTool" class="tool-button" title="Base Layers">
+        <i class="fas fa-layer-group"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button id="selectTool" class="tool-button" title="Select Features">
+        <i class="fas fa-mouse-pointer"></i>
+      </button>
+      <button id="panTool" class="tool-button active" title="Pan Map">
+        <i class="fas fa-hand-paper"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button id="drawMarker" class="tool-button" title="Add Point (PES/ES)">
+        <i class="fas fa-map-marker-alt"></i>
+      </button>
+      <button id="drawPolygon" class="tool-button" title="Draw Polygon">
+        <i class="fas fa-draw-polygon"></i>
+      </button>
+      <button id="drawRectangle" class="tool-button" title="Draw Rectangle">
+        <i class="fas fa-square"></i>
+      </button>
+      <button id="drawCircle" class="tool-button" title="Draw Circle">
+        <i class="fas fa-circle"></i>
+      </button>
+      <button id="drawPolyline" class="tool-button" title="Draw Line">
+        <i class="fas fa-minus"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- DB status in top-right (though might conflict with layout) -->
+  <div id="dbStatus" style="position: fixed; top: 50px; right: 10px; padding: 5px 10px; font-size: 14px; color: #333; background: white; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    {% if current_location %}Location: {{ current_location }}{% else %}No location selected{% endif %}
+  </div>
+
+  <!-- Left panel -->
+  <div id="leftPanel" class="left-panel">
+    <div class="panel-header">Layers Panel</div>
+    <div class="panel-content">
+      <div class="layer-select-container">
+        <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
+        <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
+        <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
+      </div>
+      <div id="layerControl"></div>
+    </div>
+  </div>
+
+  <!-- Base layer dropdown -->
+  <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
+
+  <!-- The actual map -->
+  <div id="map"></div>
+
+  <!-- Various modals below... (omitted for brevity) -->
+  <!-- ... -->
+
+  <script>
+    // ENTIRE JS CODE (draw, load layers, etc.)
+    // ...
+  </script>
+</body>
+</html>
