@@ -871,9 +871,8 @@
       };
     }
 
-    // Call initialization after map is loaded
     // Menu toggle function
-    function toggleMenu(menuItem, menuId) {
+    window.toggleMenu = function(menuItem, menuId) {
       const dropdown = document.getElementById(menuId);
       const allDropdowns = document.querySelectorAll('.menu-dropdown');
       
@@ -891,7 +890,7 @@
         dropdown.style.display = 'block';
         menuItem.classList.add('active');
       }
-    }
+    };
 
     document.addEventListener('DOMContentLoaded', async function() {
       console.log('DOM Content Loaded');
