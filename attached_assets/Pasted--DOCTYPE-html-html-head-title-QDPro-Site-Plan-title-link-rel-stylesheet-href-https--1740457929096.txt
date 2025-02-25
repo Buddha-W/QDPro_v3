@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>QDPro Site Plan</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" crossorigin="anonymous"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    nav.main-toolbar {
+      position: fixed; top: 0; left: 0; right: 0; height: 40px;
+      background-color: #f1f1f1; border-bottom: 1px solid #ccc;
+      padding: 0 1rem; z-index: 2000; display: flex; align-items: center;
+    }
+    nav.main-toolbar .menu-item {
+      padding: 0 15px; font-size: 14px; display: flex; align-items: center;
+      cursor: pointer; position: relative;
+    }
+    nav.main-toolbar .menu-item:hover { background: #e9ecef; }
+    #dbStatus { margin-left: auto; padding: 0 15px; font-size: 14px; color: #333; }
+    .toolbar {
+      position: fixed; top: 40px; left: 0; right: 0; height: 40px;
+      background-color: white; border-bottom: 1px solid #ccc;
+      display: flex; align-items: center; z-index: 1900; padding: 0 10px;
+    }
+    .toolbar .tool-group { display: flex; align-items: center; margin-right: 10px; }
+    .toolbar .tool-button {
+      padding: 6px; margin: 0 2px; border: 1px solid transparent;
+      border-radius: 3px; background: white; color: #666;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; min-width: 32px; height: 32px;
+    }
+    .toolbar .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
+    .toolbar .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
+    #map { position: fixed; top: 80px; left: 0; right: 0; bottom: 0; z-index: 1000; }
+    .left-panel {
+      position: fixed; top: 80px; left: 0; width: 300px;
+      height: calc(100vh - 80px); background: white; border-right: 1px solid #dee2e6;
+      transform: translateX(-300px); transition: transform 0.3s ease; z-index: 1500;
+      display: flex; flex-direction: column;
+    }
+    .left-panel.visible { transform: translateX(0); }
+    .panel-header { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #dee2e6; font-weight: bold; }
+    .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
+    .base-layer-dropdown {
+      position: absolute; background: white; padding: 10px;
+      border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1800; display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Navigation -->
+  <nav class="main-toolbar">
+    <div class="menu-item" onclick="toggleMenu(this, 'fileMenu')">
+      File
+      <div class="menu-dropdown" id="fileMenu">
+        <div class="menu-dropdown-item" onclick="showNewLocationModal()">New Location</div>
+        <div class="menu-dropdown-item" onclick="showSwitchLocationModal()">Switch Location</div>
+        <div class="menu-dropdown-item" onclick="saveToDatabase()">Save</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'editMenu')">Edit
+      <div class="menu-dropdown" id="editMenu">
+        <div class="menu-dropdown-item">Cut</div>
+        <div class="menu-dropdown-item">Copy</div>
+        <div class="menu-dropdown-item">Paste</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'viewMenu')">View
+      <div class="menu-dropdown" id="viewMenu">
+        <div class="menu-dropdown-item">Layers</div>
+        <div class="menu-dropdown-item">Base Maps</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'toolsMenu')">Tools
+      <div class="menu-dropdown" id="toolsMenu">
+        <div class="menu-dropdown-item">QD Calculator</div>
+        <div class="menu-dropdown-item">Measure</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'helpMenu')">Help
+      <div class="menu-dropdown" id="helpMenu">
+        <div class="menu-dropdown-item">Documentation</div>
+        <div class="menu-dropdown-item">About</div>
+      </div>
+    </div>
+    <div id="dbStatus">No location selected</div>
+  </nav>
+
+  <!-- Toolbar with drawing icons -->
+  <div class="toolbar">
+    <div class="tool-group">
+      <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
+        <i class="fas fa-bars"></i>
+      </button>
+      <button id="baseLayerTool" class="tool-button" title="Base Layers">
+        <i class="fas fa-layer-group"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button id="selectTool" class="tool-button" title="Select Features">
+        <i class="fas fa-mouse-pointer"></i>
+      </button>
+      <button id="panTool" class="tool-button active" title="Pan Map">
+        <i class="fas fa-hand-paper"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button id="drawMarker" class="tool-button" title="Add Point">
+        <i class="fas fa-map-marker-alt"></i>
+      </button>
+      <button id="drawPolygon" class="tool-button" title="Draw Polygon">
+        <i class="fas fa-draw-polygon"></i>
+      </button>
+      <button id="drawRectangle" class="tool-button" title="Draw Rectangle">
+        <i class="fas fa-square"></i>
+      </button>
+      <button id="drawCircle" class="tool-button" title="Draw Circle">
+        <i class="fas fa-circle"></i>
+      </button>
+      <button id="drawPolyline" class="tool-button" title="Draw Line">
+        <i class="fas fa-minus"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Left Panel for Layers -->
+  <div class="left-panel" id="leftPanel">
+    <div class="panel-header">Layers Panel</div>
+    <div class="panel-content">
+      <div class="layer-select-container">
+        <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
+        <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
+        <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
+      </div>
+      <div id="layerControl"></div>
+    </div>
+  </div>
+
+  <!-- Base Layer Dropdown -->
+  <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <script>
+    // Toggle menu dropdowns
+    function toggleMenu(element, menuId) {
+      var dropdown = document.getElementById(menuId);
+      document.querySelectorAll(".menu-dropdown").forEach(function(dd) {
+        if (dd.id !== menuId) dd.style.display = "none";
+      });
+      if (dropdown.style.display === "block") {
+        dropdown.style.display = "none";
+        element.classList.remove("active");
+      } else {
+        dropdown.style.display = "block";
+        element.classList.add("active");
+      }
+    }
+    document.addEventListener("click", function(e) {
+      if (!e.target.closest(".menu-item")) {
+        document.querySelectorAll(".menu-dropdown").forEach(function(dd) {
+          dd.style.display = "none";
+        });
+        document.querySelectorAll(".menu-item").forEach(function(mi) {
+          mi.classList.remove("active");
+        });
+      }
+    });
+
+    // Initialize map and drawing tools
+    document.addEventListener("DOMContentLoaded", function() {
+      window.map = L.map("map", { center: [39.8283, -98.5795], zoom: 4 });
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(window.map);
+      
+      // Global active layer for facility drawings
+      window.activeLayer = L.featureGroup().addTo(window.map);
+      
+      // Ensure the "Draw to Layer" select updates activeLayer:
+      document.getElementById("drawToLayer").onchange = function(e) {
+        var selected = e.target.value;
+        window.activeLayer = window.layers[selected];
+        console.log("Active layer set to:", selected);
+      };
+
+      // Initialize drawing tools
+      window.drawingTools = {
+        polygon: new L.Draw.Polygon(window.map, {
+          allowIntersection: false,
+          showArea: true,
+          drawError: { color: "#e1e100", timeout: 1000 },
+          shapeOptions: { color: "#3388ff" }
+        }),
+        polyline: new L.Draw.Polyline(window.map, { shapeOptions: { color: "#3388ff", weight: 2 } }),
+        rectangle: new L.Draw.Rectangle(window.map, { shapeOptions: { color: "#3388ff" } }),
+        circle: new L.Draw.Circle(window.map, { shapeOptions: { color: "#3388ff" } }),
+        marker: new L.Draw.Marker(window.map)
+      };
+
+      // Setup drawing button events
+      document.getElementById("drawPolygon").addEventListener("click", function(e) {
+        deactivateAllDrawingTools();
+        window.drawingTools.polygon.enable();
+        e.stopPropagation();
+      });
+      document.getElementById("drawPolyline").addEventListener("click", function(e) {
+        deactivateAllDrawingTools();
+        window.drawingTools.polyline.enable();
+        e.stopPropagation();
+      });
+      document.getElementById("drawRectangle").addEventListener("click", function(e) {
+        deactivateAllDrawingTools();
+        window.drawingTools.rectangle.enable();
+        e.stopPropagation();
+      });
+      document.getElementById("drawCircle").addEventListener("click", function(e) {
+        deactivateAllDrawingTools();
+        window.drawingTools.circle.enable();
+        e.stopPropagation();
+      });
+      document.getElementById("drawMarker").addEventListener("click", function(e) {
+        deactivateAllDrawingTools();
+        window.drawingTools.marker.enable();
+        e.stopPropagation();
+      });
+      window.map.on("click", function() { deactivateAllDrawingTools(); });
+
+      // Handle draw:created event
+      window.map.on("draw:created", function(e) {
+        console.log("Draw event fired:", e);
+        var layer = e.layer;
+        if (e.layerType === "polygon" && layer.getLatLngs) {
+          var coords = layer.getLatLngs()[0];
+          if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
+            coords.push(coords[0]);
+            layer.setLatLngs(coords);
+            console.log("Polygon closed by appending first coordinate");
+          }
+        }
+        if (window.activeLayer) {
+          try {
+            window.activeLayer.addLayer(layer);
+            console.log("Added drawing to active layer:", layer.toGeoJSON());
+            openEditPopup(layer);
+            saveToDatabase();
+          } catch (error) {
+            console.error("Error adding drawing:", error);
+          }
+        } else {
+          console.warn("No active layer set for drawing");
+        }
+        deactivateAllDrawingTools();
+      });
+
+      // Force map resize
+      setTimeout(function() { window.map.invalidateSize(); }, 100);
+    });
+
+    function deactivateAllDrawingTools() {
+      if (window.drawingTools) {
+        for (var tool in window.drawingTools) {
+          if (window.drawingTools[tool] && typeof window.drawingTools[tool].disable === "function") {
+            window.drawingTools[tool].disable();
+          }
+        }
+      }
+    }
+
+    function openEditPopup(layer) {
+      var formHtml = `
+        <div style="min-width: 200px;">
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label for="facilityName">Facility Name:</label>
+            <input id="facilityName" type="text" style="width: 100%;" />
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label for="facilityTypeCode">Type Code (PES/ES):</label>
+            <input id="facilityTypeCode" type="text" style="width: 100%;" placeholder="Enter PES or ES designator" />
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label for="facilityDescription">Description:</label>
+            <textarea id="facilityDescription" style="width: 100%; height: 60px;"></textarea>
+          </div>
+          <button id="facilitySaveButton" style="width: 100%; padding: 5px;">Save</button>
+        </div>
+      `;
+      layer.bindPopup(formHtml).openPopup();
+      setTimeout(function() {
+        var saveBtn = document.getElementById("facilitySaveButton");
+        if (saveBtn) {
+          saveBtn.addEventListener("click", function() {
+            var newName = document.getElementById("facilityName").value;
+            var newTypeCode = document.getElementById("facilityTypeCode").value;
+            var newDescription = document.getElementById("facilityDescription").value;
+            layer.feature = layer.feature || {};
+            layer.feature.properties = {
+              name: newName,
+              typeCode: newTypeCode,
+              description: newDescription
+            };
+            layer.bindTooltip(newName + "<br>" + newTypeCode, { permanent: false });
+            saveToDatabase();
+            layer.closePopup();
+          });
+        }
+      }, 100);
+    }
+
+    async function saveToDatabase() {
+      var layerData = { layers: {} };
+      // Iterate through each drawn layer in the active layer group
+      Object.keys(window.activeLayer._layers).forEach(function(layerId) {
+        var layer = window.activeLayer._layers[layerId];
+        if (layer.toGeoJSON) {
+          layerData.layers[layerId] = layer.toGeoJSON();
+        }
+      });
+      console.log("Saving layer data:", JSON.stringify(layerData, null, 2));
+      try {
+        await fetch("/api/save-layers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(layerData)
+        });
+        console.log("Save successful");
+      } catch (error) {
+        console.error("Error saving layers:", error);
+      }
+    }
+  </script>
+</body>
+</html>
