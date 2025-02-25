@@ -460,13 +460,14 @@
   </div>
 
   <script>
-    // Global Variables
+    // Global variables
     let currentDrawnLayer = null;
     let selectedQDPoint = null;
     let qdBufferLayer = null;
     let activeMenu = null;
     window.layers = {};  // Global layers object
     window.activeLayer = null; // Global active layer
+    window.drawingTools = {};
 
     // Global helper: getStyleForFeatureType must be defined before loadFromDatabase is used
     function getStyleForFeatureType(type) {
