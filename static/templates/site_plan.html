@@ -22,8 +22,7 @@
       overflow: hidden;
     }
 
-    /* First toolbar - File menu */
-    nav.file-toolbar {
+    nav.main-toolbar {
       position: fixed;
       top: 0;
       left: 0;
@@ -31,38 +30,36 @@
       height: 40px;
       background-color: #f1f1f1;
       border-bottom: 1px solid #ccc;
-      padding: 0.5rem 1rem;
-      z-index: 1003;
+      padding: 0 1rem;
+      z-index: 1000;
       display: flex;
       align-items: center;
     }
 
-    /* Second toolbar - Tools and Help */
-    nav.tool-toolbar {
-      position: fixed;
-      top: 40px;
-      left: 0;
-      right: 0;
-      height: 40px;
-      background-color: #fafafa;
-      border-bottom: 1px solid #ccc;
-      padding: 0.5rem 1rem;
-      z-index: 1002;
+    .menu-item {
+      padding: 0 15px;
+      height: 100%;
       display: flex;
       align-items: center;
+      cursor: pointer;
+      position: relative;
+      font-size: 14px;
+    }
+
+    .menu-item:hover {
+      background: #e9ecef;
     }
 
     #dbStatus {
-      margin-left: auto; /* Push to the right */
-      padding: 0 10px;
+      margin-left: auto;
+      padding: 0 15px;
       font-size: 14px;
       color: #333;
     }
 
-    /* Third toolbar - Drawing tools */
     .toolbar {
       position: fixed;
-      top: 80px;
+      top: 40px;
       left: 0;
       right: 0;
       height: 40px;
@@ -74,7 +71,7 @@
       padding: 0 10px;
       z-index: 1001;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-top: 0; /* Remove extra margin */
+      margin-top: 0;
     }
 
     .tool-group {
@@ -119,11 +116,8 @@
     }
 
     #map {
-      flex-grow: 1;
-      width: 100%;
-      height: calc(100vh - 120px); /* Adjust height for toolbars */
-      position: absolute;
-      top: 120px; /* Adjust top offset for toolbars */
+      position: fixed;
+      top: 80px;
       left: 0;
       right: 0;
       bottom: 0;
@@ -217,10 +211,10 @@
     .menu-dropdown-item i { margin-right: 8px; width: 16px; color: #666; }
     .left-panel {
       position: fixed;
-      top: 120px; /* Adjust top offset for toolbars */
+      top: 80px;
       left: 0;
       width: 300px;
-      height: calc(100vh - 120px); /* Adjust height for toolbars */
+      height: calc(100vh - 80px);
       background: white;
       border-right: 1px solid #dee2e6;
       transform: translateX(-300px);
@@ -275,16 +269,14 @@
   </style>
 </head>
 <body>
-  <nav class="file-toolbar">
+  <nav class="main-toolbar">
     <div class="menu-item">File</div>
     <div class="menu-item">Edit</div>
     <div class="menu-item">View</div>
-  </nav>
-  <nav class="tool-toolbar">
     <div class="menu-item">Tools</div>
     <div class="menu-item">Help</div>
     <div id="dbStatus">
-      {% if current_location %}Location: {{ current_location }}{% else %}No location selected{% endif %}
+      No location selected
     </div>
   </nav>
 
@@ -1007,11 +999,12 @@
         }
       }
 
+      // Add the layer to the active layer group
       if (window.activeLayer) {
         try {
           window.activeLayer.addLayer(layer);
           console.log('Layer added successfully');
-          openEditPopup(layer);
+          attachEditHandlers(layer);
           saveToDatabase();
         } catch (error) {
           console.error('Error adding layer:', error);
