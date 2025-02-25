@@ -553,30 +553,19 @@ async def save_polygon(data: PolygonData):
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
 
-        # Using PostGIS to store the geometry
         cur.execute("""
-            INSERT INTO map_layers (name, layer_config)
-            VALUES (%s, %s)
-            ON CONFLICT (name) 
-            DO UPDATE SET layer_config = EXCLUDED.layer_config
-            RETURNING id
-        """, (
-            data.location,
-            json.dumps({
-                "type": "Feature",
-                "geometry": data.geometry,
-                "properties": data.properties
-            })
-        ))
+            INSERT INTO map_layers (name, layer_config, is_active)
+            VALUES (%s, %s, true)
+            ON CONFLICT (name) DO UPDATE 
+            SET layer_config = EXCLUDED.layer_config
+        """, (data.location, json.dumps({
+            "type": "Feature",
+            "geometry": data.geometry,
+            "properties": data.properties
+        })))
 
-        layer_id = cur.fetchone()[0]
         conn.commit()
-
-        return {
-            "status": "success",
-            "location": data.location,
-            "layer_id": layer_id
-        }
+        return {"status": "success", "location": data.location}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
