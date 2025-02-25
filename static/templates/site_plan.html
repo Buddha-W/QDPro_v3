@@ -122,6 +122,8 @@
       right: 0;
       bottom: 0;
       z-index: 1;
+      width: 100%;
+      height: calc(100vh - 80px);
     }
     .leaflet-draw-toolbar {
       margin-top: 0 !important;
@@ -898,8 +900,14 @@
       // Initialize map first
       window.map = L.map('map', {
         center: [39.8283, -98.5795],
-        zoom: 4
+        zoom: 4,
+        zoomControl: true
       });
+      
+      // Add the default tile layer immediately
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(window.map);
 
       // Debug log to verify map initialization
       console.log("Map object initialized:", window.map);
