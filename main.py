@@ -542,6 +542,36 @@ from fastapi.responses import Response
 from fastapi.responses import RedirectResponse
 from qd_engine import get_engine, MaterialProperties, EnvironmentalConditions
 
+class PolygonData(BaseModel):
+    location: str
+    geometry: Dict[str, Any]
+    properties: Dict[str, Any] = {}
+
+@app.post("/api/save_polygon")
+async def save_polygon(data: PolygonData):
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+
+        cur.execute("""
+            INSERT INTO map_layers (name, layer_config, is_active)
+            VALUES (%s, %s, true)
+            ON CONFLICT (name) DO UPDATE 
+            SET layer_config = EXCLUDED.layer_config
+        """, (data.location, json.dumps({
+            "type": "Feature",
+            "geometry": data.geometry,
+            "properties": data.properties
+        })))
+
+        conn.commit()
+        return {"status": "success", "location": data.location}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
 if __name__ == "__main__":
     init_db()  # Initialize database tables
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True, access_log=True)

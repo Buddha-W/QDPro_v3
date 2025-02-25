@@ -9,7 +9,43 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" integrity="sha512-ozq8xQKq6urvuU6jNgkfqAmT7jKN2XumbrX1JiB3TnF7tI48DPI4Gy1GXKD/V3EExgAs1V+pRO7vwtS1LHg0Gw==" crossorigin="anonymous"></script>
   <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
   <style>
-    body { margin: 0; padding: 0; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    nav.file-toolbar {
+      background-color: #f1f1f1;
+      border-bottom: 1px solid #ccc;
+      padding: 0.5rem 1rem;
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+    nav.tool-toolbar {
+      background-color: #fafafa;
+      border-bottom: 1px solid #ccc;
+      padding: 0.5rem 1rem;
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    #map {
+      flex-grow: 1;
+      width: 100%;
+      z-index: 1;
+    }
+
+    .leaflet-draw-toolbar {
+      margin-top: 0 !important;
+    }
     .modal {
       display: none;
       position: fixed;
@@ -245,78 +281,15 @@
   </style>
 </head>
 <body>
-  <div class="menu-bar">
-    <div class="menu-item">
-      File
-      <div class="menu-dropdown">
-        <a class="menu-dropdown-item" href="#" onclick="showNewLocationModal()">New</a>
-        <a class="menu-dropdown-item" href="#" onclick="showSwitchLocationModal()">Switch Location...</a>
-        <a class="menu-dropdown-item" href="#">Save</a>
-        <a class="menu-dropdown-item" href="#">Export...</a>
-      </div>
-    </div>
-    <div class="menu-item">
-      Edit
-      <div class="menu-dropdown">
-        <div class="menu-dropdown-item">Undo</div>
-        <div class="menu-dropdown-item">Redo</div>
-        <div class="menu-dropdown-item">Delete Selected</div>
-      </div>
-    </div>
-    <div class="menu-item">
-      View
-      <div class="menu-dropdown">
-        <div class="menu-dropdown-item">Zoom In</div>
-        <div class="menu-dropdown-item">Zoom Out</div>
-        <div class="menu-dropdown-item">Fit to Window</div>
-      </div>
-    </div>
-    <div class="menu-item">
-      Tools
-      <div class="menu-dropdown">
-        <div class="menu-dropdown-item" onclick="showQDCalculator()">QD Calculator</div>
-        <div class="menu-dropdown-item">Measure</div>
-        <div class="menu-dropdown-item">Calculate Area</div>
-        <div class="menu-dropdown-item">Settings</div>
-      </div>
-    </div>
-    <div class="menu-item">
-      Help
-      <div class="menu-dropdown">
-        <div class="menu-dropdown-item">Documentation</div>
-        <div class="menu-dropdown-item">About</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- QD Calculator Modal -->
-  <div id="qdCalculatorModal" class="modal">
-    <div class="modal-content">
-      <span class="modal-close" onclick="closeModal('qdCalculatorModal')">&times;</span>
-      <h2>Quantity-Distance Calculator</h2>
-      <div class="form-group">
-        <label for="quantity">Explosive Quantity (lbs):</label>
-        <input type="number" id="quantity" required>
-      </div>
-      <div class="form-group">
-        <label for="materialType">Material Type:</label>
-        <select id="materialType">
-          <option value="General Explosive">General Explosive (k=40)</option>
-          <option value="High Explosive">High Explosive (k=50)</option>
-          <option value="Low Explosive">Low Explosive (k=30)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label for="siteType">Site Type:</label>
-        <select id="siteType">
-          <option value="DOD">DOD</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      <p>Click on the map to select a location for QD calculation.</p>
-      <button onclick="calculateQD()" class="tool-button">Calculate Safe Distance</button>
-    </div>
-  </div>
+  <nav class="file-toolbar">
+    <div class="menu-item">File</div>
+    <div class="menu-item">Edit</div>
+    <div class="menu-item">View</div>
+  </nav>
+  <nav class="tool-toolbar">
+    <div class="menu-item">Tools</div>
+    <div class="menu-item">Help</div>
+  </nav>
 
   <div class="toolbar">
     <div class="tool-group">
