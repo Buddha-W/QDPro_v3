@@ -801,6 +801,11 @@
 
     // Call initialization after map is loaded
     document.addEventListener('DOMContentLoaded', async function() {
+      console.log('DOM Content Loaded');
+      
+      // Initialize file menu
+      initializeFileMenu();
+      
       // Initialize map first
       window.map = L.map('map', {
         center: [39.8283, -98.5795],
@@ -898,6 +903,67 @@
       window.map.off('click');
     }
 
+    // File menu handlers
+    function initializeFileMenu() {
+      const fileActions = {
+        'newFile': () => {
+          console.log('New file action triggered');
+          Object.values(window.layers).forEach(layer => {
+            layer.clearLayers();
+          });
+          updateLayerControl();
+        },
+        'switchLocation': () => {
+          console.log('Switch location triggered');
+          // Add location switching logic
+        },
+        'saveFile': async () => {
+          console.log('Save triggered');
+          try {
+            const layerData = {};
+            Object.entries(window.layers).forEach(([name, layer]) => {
+              layerData[name] = {
+                properties: layer.properties || {},
+                features: []
+              };
+              layer.eachLayer(l => {
+                if (l.toGeoJSON) {
+                  layerData[name].features.push(l.toGeoJSON());
+                }
+              });
+            });
+            
+            const response = await fetch('/api/save-layers', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(layerData)
+            });
+            
+            if (!response.ok) throw new Error('Save failed');
+            console.log('Save successful');
+          } catch (error) {
+            console.error('Save error:', error);
+          }
+        },
+        'exportFile': () => {
+          console.log('Export triggered');
+          // Add export logic
+        }
+      };
+
+      // Bind click handlers to menu buttons
+      Object.keys(fileActions).forEach(actionId => {
+        const button = document.getElementById(actionId);
+        if (button) {
+          button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileActions[actionId]();
+          });
+        }
+      });
+    }
+
     function setupDrawingButton(buttonId, tool) {
       const button = document.getElementById(buttonId);
       if (!button) return;
@@ -928,14 +994,35 @@
 
     window.map.on('click', function() { deactivateAllDrawingTools(); });
     window.map.on('draw:created', function(e) {
+      console.log('Draw created event fired', e);
       const layer = e.layer;
+      
+      // Ensure proper feature structure
       layer.feature = layer.feature || {};
       layer.feature.properties = layer.feature.properties || {};
-      if (window.activeLayer) {
-        window.activeLayer.addLayer(layer);
-        openEditPopup(layer);
-        saveToDatabase();
+      
+      // For polygons, ensure they're closed
+      if (e.layerType === 'polygon' && layer.getLatLngs) {
+        let coords = layer.getLatLngs()[0];
+        if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
+          coords.push(coords[0]);
+          layer.setLatLngs(coords);
+        }
       }
+      
+      if (window.activeLayer) {
+        try {
+          window.activeLayer.addLayer(layer);
+          console.log('Layer added successfully');
+          openEditPopup(layer);
+          saveToDatabase();
+        } catch (error) {
+          console.error('Error adding layer:', error);
+        }
+      } else {
+        console.warn('No active layer to add the drawn shape to');
+      }
+      
       deactivateAllDrawingTools();
     });
 
