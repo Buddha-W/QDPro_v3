@@ -209,13 +209,19 @@
             z-index: 1;
         }
     .menu-bar {
-            position: relative;
-            z-index: 2;
-        }
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1500;
+        background: white;
+        border-bottom: 1px solid #ccc;
+    }
 
     /* Ensure toolbars and controls are visible */
     .leaflet-top {
         z-index: 1000;
+        top: 60px !important;
     }
     .leaflet-control-zoom {
         z-index: 1000 !important;
@@ -223,14 +229,18 @@
     .toolbar {
         z-index: 1001;
         position: relative;
+        margin-top: 60px;
     }
     .leaflet-draw-toolbar {
         z-index: 1002;
     }
-    /* Added ID to menu-bar for styling */
-    .menu-bar {
-        z-index: 1003;
-        position: relative;
+    #map {
+        position: absolute;
+        top: 90px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1;
     }
   </style>
 </head>
@@ -1024,6 +1034,8 @@
       // For polygons, ensure they're closed
       if (e.layerType === 'polygon' && layer.getLatLngs) {
         let coords = layer.getLatLngs()[0];
+        if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
+          coords.push(coords[0]); // Force close the polygon
         if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
           coords.push(coords[0]);
           layer.setLatLngs(coords);
