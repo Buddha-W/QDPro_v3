@@ -641,10 +641,6 @@
       }
     });
 
-    function closeModal(modalId) {
-      document.getElementById(modalId).style.display = 'none';
-    }
-
     let newLocationData = null;
     async function createLocation() {
       const locationName = document.getElementById('newLocationName').value;
@@ -803,7 +799,7 @@
         const buttonRect = baseLayerTool.getBoundingClientRect();
         baseLayerDropdown.style.top = (buttonRect.bottom + 5) + 'px';
         baseLayerDropdown.style.left = buttonRect.left + 'px';
-        baseLayerDropdown.style.display = (baseLayerDropdown.style.display === 'none' || baseLayerDropdown.style.display === '') ? 'block' : 'none';
+        baseLayerDropdown.style.display = (baseLayerDropdown.style.display === 'none' || baseLayerDropdown.style.display === '') ? 'block' : ''none';
       });
 
       baseLayerDropdown.innerHTML = '';
@@ -877,7 +873,7 @@
     window.toggleMenu = function(menuItem, menuId) {
       const dropdown = document.getElementById(menuId);
       const allDropdowns = document.querySelectorAll('.menu-dropdown');
-      
+
       allDropdowns.forEach(d => {
         if (d.id !== menuId) {
           d.style.display = 'none';
@@ -903,7 +899,7 @@
         zoom: 4,
         zoomControl: true
       });
-      
+
       // Add the default tile layer immediately
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -1102,7 +1098,7 @@
         console.log("Map click event triggered");
         deactivateAllDrawingTools(); 
       });
-      
+
       window.map.on('draw:created', function(e) {
       console.log('Draw created event fired', e);
       const layer = e.layer;
