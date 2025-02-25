@@ -200,6 +200,18 @@
       cursor: pointer;
       border-bottom: 1px solid #ddd;
     }
+    #map {
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .menu-bar {
+            position: relative;
+            z-index: 2;
+        }
   </style>
 </head>
 <body>
@@ -756,7 +768,7 @@
           weight: 2
         }
       };
-      
+
       drawingTools = {
         polygon: new L.Draw.Polygon(window.map, {
           showLength: true,
@@ -849,7 +861,7 @@
     function updateLayerControl() {
       const layerControl = document.getElementById('layerControl');
       if (!layerControl) return;
-      
+
       layerControl.innerHTML = '';
       Object.entries(window.layers).forEach(([name, layer]) => {
         const item = document.createElement('div');
@@ -889,14 +901,14 @@
     function setupDrawingButton(buttonId, tool) {
       const button = document.getElementById(buttonId);
       if (!button) return;
-      
+
       button.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        
+
         // Disable all other drawing tools first
         deactivateAllDrawingTools();
-        
+
         // Enable this tool and activate the button
         if (tool && typeof tool.enable === 'function') {
           tool.enable();
@@ -1015,7 +1027,7 @@
     function updateDrawToLayerSelect() {
       const select = document.getElementById('drawToLayer');
       if (!select) return;
-      
+
       select.innerHTML = '';
       Object.entries(window.layers).forEach(([name, layer]) => {
         const option = document.createElement('option');
@@ -1023,11 +1035,11 @@
         option.textContent = name;
         select.appendChild(option);
       });
-      
+
       select.onchange = (e) => {
         window.activeLayer = window.layers[e.target.value];
       };
-      
+
       // Set initial active layer
       if (select.options.length > 0) {
         select.selectedIndex = 0;
