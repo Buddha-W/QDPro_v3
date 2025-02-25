@@ -875,17 +875,20 @@
     document.addEventListener('DOMContentLoaded', async function() {
       console.log('DOM Content Loaded');
 
-      // Initialize file menu
-      initializeFileMenu();
-
       // Initialize map first
       window.map = L.map('map', {
         center: [39.8283, -98.5795],
         zoom: 4
       });
 
+      // Debug log to verify map initialization
+      console.log("Map object initialized:", window.map);
+
       // Add default base layer immediately
       baseLayers['OpenStreetMap'].addTo(window.map);
+
+      // Initialize file menu after map is ready
+      initializeFileMenu();
 
       // Initialize menu functionality
       const menuItems = document.querySelectorAll('.menu-item');
@@ -1065,8 +1068,14 @@
       setupDrawingButton('drawMarker', drawingTools.marker);
     }
 
-    window.map.on('click', function() { deactivateAllDrawingTools(); });
-    window.map.on('draw:created', function(e) {
+    // Add map event handlers after initialization
+    if (window.map) {
+      window.map.on('click', function() { 
+        console.log("Map click event triggered");
+        deactivateAllDrawingTools(); 
+      });
+      
+      window.map.on('draw:created', function(e) {
       console.log('Draw created event fired', e);
       const layer = e.layer;
 
