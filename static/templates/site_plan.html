@@ -189,7 +189,7 @@
     .menu-dropdown {
       display: none;
       position: absolute;
-      top: 100%;
+      top: 40px;
       left: 0;
       background: white;
       min-width: 200px;
@@ -615,7 +615,7 @@
           d.parentElement.classList.remove('active');
         }
       });
-      
+
       if (dropdown.style.display === 'block') {
         dropdown.style.display = 'none';
         menuItem.classList.remove('active');
@@ -793,8 +793,7 @@
       });
 
       baseLayerDropdown.innerHTML = '';
-      Object.entries(baseLayers).forEach(([name, layer]) => {
-        const option = document.createElement('div');
+      Object.entries(baseLayers).forEach(([name, layer]) => {        const option = document.createElement('div');
         option.className = 'base-layer-option';
         const isActive = window.map.hasLayer(layer);
                 option.innerHTML = `
@@ -1176,7 +1175,7 @@
     function editLayer(layerName) {
       const layer = window.layers[layerName];
       if (!layer) return;
-      
+
       const isQDAnalyzed = layer.properties?.isQDAnalyzed || false;
       const formHtml = `
         <div style="min-width: 200px;">
@@ -1192,7 +1191,7 @@
           <button id="layerSaveButton" style="width: 100%; padding: 5px;">Save Changes</button>
         </div>
       `;
-      
+
       const popup = L.popup()
         .setLatLng(window.map.getCenter())
         .setContent(formHtml)
