@@ -729,28 +729,39 @@
 
     async function saveToDatabase() {
       const layerData = { layers: {} };
-      Object.keys(window.layers).forEach(layerName => {
-        const layer = window.layers[layerName];
-        layerData.layers[layerName] = { properties: layer.properties || {}, features: [] };
-        layer.eachLayer(l => {
-          if (l.toGeoJSON) {
-            const geoJSON = l.toGeoJSON();
-            if (l.feature && l.feature.properties) {
-              geoJSON.properties = { ...l.feature.properties };
+
+      // Iterate through all layers
+      Object.entries(window.layers).forEach(([layerName, layerGroup]) => {
+        const features = [];
+        layerGroup.eachLayer(layer => {
+          if (layer.toGeoJSON) {
+            const geoJSON = layer.toGeoJSON();
+            if (layer.feature && layer.feature.properties) {
+              geoJSON.properties = { ...layer.feature.properties };
             }
-            layerData.layers[layerName].features.push(geoJSON);
+            features.push(geoJSON);
           }
         });
+
+        layerData.layers[layerName] = {
+          properties: layerGroup.properties || {},
+          features: features
+        };
       });
-      console.log('Saving layer data:', JSON.stringify(layerData, null, 2));
+
+      console.log("Saving layer data:", JSON.stringify(layerData, null, 2));
+
       try {
-        await fetch('/api/save-layers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/save-layers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(layerData)
         });
+
+        if (!response.ok) throw new Error('Save failed');
+        console.log("Save successful");
       } catch (error) {
-        console.error('Error saving layers:', error);
+        console.error("Error saving layers:", error);
       }
     }
 
