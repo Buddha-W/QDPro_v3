@@ -1036,8 +1036,6 @@
         let coords = layer.getLatLngs()[0];
         if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
           coords.push(coords[0]); // Force close the polygon
-        if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
-          coords.push(coords[0]);
           layer.setLatLngs(coords);
         }
       }
