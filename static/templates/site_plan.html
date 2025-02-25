@@ -273,6 +273,7 @@
 
     function closeAddLayerModal() {
       document.getElementById('addLayerModal').style.display = 'none';
+      document.getElementById('newLayerName').value = '';
     }
 
     function createNewLayer() {
@@ -288,12 +289,116 @@
       window.layers = window.layers || {};
       window.layers[layerName] = L.featureGroup().addTo(window.map);
       window.layers[layerName].layerType = layerType;
+      window.activeLayer = window.layers[layerName];
       
       // Update layer select
       updateDrawToLayerSelect();
       
+      // Save to database
+      saveToDatabase();
+      
       // Close modal
       closeAddLayerModal();
+    }
+
+    async function loadFromDatabase() {
+      try {
+        const response = await fetch('/api/load-layers');
+        const data = await response.json();
+        
+        // Clear existing layers
+        if (window.layers) {
+          Object.values(window.layers).forEach(layer => {
+            if (window.map.hasLayer(layer)) {
+              window.map.removeLayer(layer);
+            }
+          });
+        }
+        
+        window.layers = {};
+        
+        if (data.layers) {
+          Object.entries(data.layers).forEach(([name, layerData]) => {
+            const layer = L.featureGroup().addTo(window.map);
+            window.layers[name] = layer;
+            
+            if (layerData.features) {
+              layerData.features.forEach(feature => {
+                const drawnLayer = L.geoJSON(feature);
+                drawnLayer.feature = feature; // Preserve properties
+                layer.addLayer(drawnLayer);
+                
+                // Add tooltips if properties exist
+                if (feature.properties && feature.properties.name) {
+                  drawnLayer.bindTooltip(
+                    feature.properties.name + 
+                    (feature.properties.typeCode ? `<br>${feature.properties.typeCode}` : ''),
+                    { permanent: false }
+                  );
+                }
+              });
+            }
+          });
+        }
+        
+        updateDrawToLayerSelect();
+        console.log('Layers loaded successfully');
+      } catch (error) {
+        console.error('Error loading layers:', error);
+      }
+    }
+
+    async function saveToDatabase() {
+      try {
+        const layerData = { layers: {} };
+        
+        Object.entries(window.layers).forEach(([name, layer]) => {
+          layerData.layers[name] = {
+            properties: layer.layerType ? { type: layer.layerType } : {},
+            features: []
+          };
+          
+          layer.eachLayer(sublayer => {
+            if (sublayer.toGeoJSON) {
+              const feature = sublayer.toGeoJSON();
+              if (sublayer.feature && sublayer.feature.properties) {
+                feature.properties = sublayer.feature.properties;
+              }
+              layerData.layers[name].features.push(feature);
+            }
+          });
+        });
+
+        const response = await fetch('/api/save-layers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(layerData)
+        });
+
+        if (!response.ok) throw new Error('Save failed');
+        console.log('Layers saved successfully');
+      } catch (error) {
+        console.error('Error saving layers:', error);
+        alert('Failed to save layers');
+      }
+    }
+
+    function updateDrawToLayerSelect() {
+      const select = document.getElementById('drawToLayer');
+      if (!select) return;
+      
+      select.innerHTML = '';
+      Object.entries(window.layers).forEach(([name, layer]) => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+      
+      if (select.options.length > 0) {
+        select.selectedIndex = 0;
+        window.activeLayer = window.layers[select.options[0].value];
+      }
     }
     // Utility: Toggle menu dropdowns
     function toggleMenu(element, menuId) {
@@ -422,6 +527,8 @@
         console.log("Map clicked at:", e.latlng);
         deactivateAllDrawingTools();
       });
+
+      // Handle draw events
       window.map.on("draw:created", function(e) {
         console.log("Draw created event fired:", e);
         const layer = e.layer;
