@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Explosive Safety Siting</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+  />
+  <!-- Leaflet.draw CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+  />
+
+  <style>
+    /* Basic reset to avoid default browser margins/padding */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Top "File" toolbar */
+    nav.file-toolbar {
+      background-color: #f1f1f1;
+      border-bottom: 1px solid #ccc;
+      padding: 0.5rem 1rem;
+    }
+    nav.file-toolbar ul {
+      list-style: none;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    nav.file-toolbar li {
+      cursor: pointer;
+    }
+
+    /* Second "Tools" toolbar */
+    nav.tool-toolbar {
+      background-color: #fafafa;
+      border-bottom: 1px solid #ccc;
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* Optional: push location dropdown to the right */
+    .location-select {
+      margin-left: auto;
+    }
+
+    /* The map is below both toolbars */
+    #map {
+      width: 100%;
+      height: calc(100vh - 100px); /* Adjust if your toolbars differ in height */
+    }
+
+    /* Layer control styling (optional) */
+    .leaflet-control-layers {
+      margin-top: 1.5rem; /* push it down from the top edge if needed */
+      z-index: 400;       /* ensure it’s on top of other elements */
+    }
+  </style>
+</head>
+<body>
+  <!-- FILE TOOLBAR -->
+  <nav class="file-toolbar">
+    <ul>
+      <li>File</li>
+      <li>Edit</li>
+      <li>View</li>
+      <li>Tools</li>
+      <li>Help</li>
+    </ul>
+  </nav>
+
+  <!-- TOOLS TOOLBAR -->
+  <nav class="tool-toolbar">
+    <strong>Drawing Tools:</strong>
+    <div class="location-select">
+      <label for="locationSelect">Database Location:</label>
+      <select id="locationSelect">
+        <option value="baseA">Base A</option>
+        <option value="baseB">Base B</option>
+      </select>
+    </div>
+  </nav>
+
+  <!-- MAP CONTAINER -->
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <!-- Leaflet.draw JS -->
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+  <script>
+    // 1. Initialize the map
+    const map = L.map('map', {
+      center: [39.8283, -98.5795], // Center of the US
+      zoom: 4
+    });
+
+    // 2. Base layers
+    const osmLayer = L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { maxZoom: 19 }
+    ).addTo(map);
+
+    const cartoLight = L.tileLayer(
+      'https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+      { maxZoom: 19 }
+    );
+
+    // 3. Create a FeatureGroup for drawn items
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    // 4. Layer control
+    const baseLayers = {
+      'OpenStreetMap': osmLayer,
+      'Carto Light': cartoLight
+    };
+    const overlays = {
+      'Drawn Items': drawnItems
+    };
+    L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
+
+    // 5. Leaflet.draw control
+    const drawControl = new L.Control.Draw({
+      edit: {
+        featureGroup: drawnItems
+      },
+      draw: {
+        marker: false,
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        circlemarker: false,
+        polygon: {
+          allowIntersection: false,
+          showArea: true
+        }
+      }
+    });
+    map.addControl(drawControl);
+
+    // 6. Capture polygon creation
+    map.on(L.Draw.Event.CREATED, function(e) {
+      const layer = e.layer;
+      drawnItems.addLayer(layer); // show on map
+
+      // Convert to GeoJSON
+      const shapeGeoJSON = layer.toGeoJSON();
+      const selectedLocation = document.getElementById('locationSelect').value;
+
+      // POST to FastAPI
+      fetch('/api/save_polygon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          location: selectedLocation,
+          geometry: shapeGeoJSON
+        })
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log('Polygon saved:', data);
+        })
+        .catch(error => {
+          console.error('Error saving polygon:', error);
+        });
+    });
+  </script>
+</body>
+</html>
