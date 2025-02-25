@@ -171,12 +171,62 @@
   <!-- Base Layer Dropdown -->
   <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
 
+  <!-- Add Layer Modal -->
+  <div id="addLayerModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4);">
+    <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+      <h2>Add New Layer</h2>
+      <div style="margin: 10px 0;">
+        <label for="newLayerName">Layer Name:</label>
+        <input type="text" id="newLayerName" style="width: 100%; padding: 5px;" />
+      </div>
+      <div style="margin: 10px 0;">
+        <label for="newLayerType">Layer Type:</label>
+        <select id="newLayerType" style="width: 100%; padding: 5px;">
+          <option value="facility">Facility</option>
+          <option value="boundary">Boundary</option>
+          <option value="arc">Arc</option>
+        </select>
+      </div>
+      <div style="text-align: right; margin-top: 20px;">
+        <button onclick="closeAddLayerModal()" style="margin-right: 10px; padding: 5px 10px;">Cancel</button>
+        <button onclick="createNewLayer()" style="padding: 5px 10px;">Create</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Map Container -->
   <div id="map"></div>
 
-  <!-- (Additional modals omitted for brevity) -->
-
   <script>
+    // Layer management functions
+    function showAddLayerModal() {
+      document.getElementById('addLayerModal').style.display = 'block';
+    }
+
+    function closeAddLayerModal() {
+      document.getElementById('addLayerModal').style.display = 'none';
+    }
+
+    function createNewLayer() {
+      const layerName = document.getElementById('newLayerName').value;
+      const layerType = document.getElementById('newLayerType').value;
+      
+      if (!layerName) {
+        alert('Please enter a layer name');
+        return;
+      }
+
+      // Create new layer
+      window.layers = window.layers || {};
+      window.layers[layerName] = L.featureGroup().addTo(window.map);
+      window.layers[layerName].layerType = layerType;
+      
+      // Update layer select
+      updateDrawToLayerSelect();
+      
+      // Close modal
+      closeAddLayerModal();
+    }
     // Utility: Toggle menu dropdowns
     function toggleMenu(element, menuId) {
       const dropdown = document.getElementById(menuId);
