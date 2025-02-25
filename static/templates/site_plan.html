@@ -1101,6 +1101,48 @@
       });
     }
 
+    function editLayer(layerName) {
+      const layer = window.layers[layerName];
+      if (!layer) return;
+      
+      const isQDAnalyzed = layer.properties?.isQDAnalyzed || false;
+      const formHtml = `
+        <div style="min-width: 200px;">
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>Layer Name: ${layerName}</label>
+          </div>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label>
+              <input type="checkbox" id="layerQDAnalyzed" ${isQDAnalyzed ? 'checked' : ''}>
+              QD Analyzed
+            </label>
+          </div>
+          <button id="layerSaveButton" style="width: 100%; padding: 5px;">Save Changes</button>
+        </div>
+      `;
+      
+      const popup = L.popup()
+        .setLatLng(window.map.getCenter())
+        .setContent(formHtml)
+        .openOn(window.map);
+
+      setTimeout(() => {
+        const saveBtn = document.getElementById('layerSaveButton');
+        if (saveBtn) {
+          saveBtn.addEventListener('click', () => {
+            const newIsQDAnalyzed = document.getElementById('layerQDAnalyzed').checked;
+            layer.properties = {
+              ...layer.properties,
+              isQDAnalyzed: newIsQDAnalyzed
+            };
+            updateLayerControl();
+            saveToDatabase();
+            window.map.closePopup(popup);
+          });
+        }
+      }, 100);
+    }
+
     function updateDrawToLayerSelect() {
       const select = document.getElementById('drawToLayer');
       if (!select) return;
