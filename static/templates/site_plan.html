@@ -208,10 +208,30 @@
             left: 0;
             z-index: 1;
         }
-        .menu-bar {
+    .menu-bar {
             position: relative;
             z-index: 2;
         }
+
+    /* Ensure toolbars and controls are visible */
+    .leaflet-top {
+        z-index: 1000;
+    }
+    .leaflet-control-zoom {
+        z-index: 1000 !important;
+    }
+    .toolbar {
+        z-index: 1001;
+        position: relative;
+    }
+    .leaflet-draw-toolbar {
+        z-index: 1002;
+    }
+    /* Added ID to menu-bar for styling */
+    .menu-bar {
+        z-index: 1003;
+        position: relative;
+    }
   </style>
 </head>
 <body>
@@ -736,7 +756,7 @@
         const option = document.createElement('div');
         option.className = 'base-layer-option';
         const isActive = window.map.hasLayer(layer);
-        option.innerHTML = `
+                option.innerHTML = `
           <input type="radio" name="baseLayer" id="base-${name}" ${isActive ? 'checked' : ''}>
           <label for="base-${name}">${name}</label>
         `;
@@ -802,10 +822,10 @@
     // Call initialization after map is loaded
     document.addEventListener('DOMContentLoaded', async function() {
       console.log('DOM Content Loaded');
-      
+
       // Initialize file menu
       initializeFileMenu();
-      
+
       // Initialize map first
       window.map = L.map('map', {
         center: [39.8283, -98.5795],
@@ -932,13 +952,13 @@
                 }
               });
             });
-            
+
             const response = await fetch('/api/save-layers', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(layerData)
             });
-            
+
             if (!response.ok) throw new Error('Save failed');
             console.log('Save successful');
           } catch (error) {
@@ -996,11 +1016,11 @@
     window.map.on('draw:created', function(e) {
       console.log('Draw created event fired', e);
       const layer = e.layer;
-      
+
       // Ensure proper feature structure
       layer.feature = layer.feature || {};
       layer.feature.properties = layer.feature.properties || {};
-      
+
       // For polygons, ensure they're closed
       if (e.layerType === 'polygon' && layer.getLatLngs) {
         let coords = layer.getLatLngs()[0];
@@ -1009,7 +1029,7 @@
           layer.setLatLngs(coords);
         }
       }
-      
+
       if (window.activeLayer) {
         try {
           window.activeLayer.addLayer(layer);
@@ -1022,7 +1042,7 @@
       } else {
         console.warn('No active layer to add the drawn shape to');
       }
-      
+
       deactivateAllDrawingTools();
     });
 
