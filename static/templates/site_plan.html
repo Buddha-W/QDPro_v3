@@ -922,6 +922,16 @@
           activeMenu = item;
         });
       });
+      menuItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (activeMenu) {
+            activeMenu.classList.remove('active');
+          }
+          item.classList.add('active');
+          activeMenu = item;
+        });
+      });
 
       // Close menus when clicking outside
       document.addEventListener('click', (e) => {
