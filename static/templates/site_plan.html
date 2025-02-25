@@ -189,15 +189,16 @@
     .menu-dropdown {
       display: none;
       position: absolute;
-      top: 40px;
+      top: 100%;
       left: 0;
       background: white;
       min-width: 200px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-      z-index: 1600;
+      z-index: 2000;
       border: 1px solid #dee2e6;
       border-radius: 4px;
       padding: 4px 0;
+      margin-top: 1px;
     }
     .menu-dropdown-item {
       padding: 8px 20px;
@@ -284,10 +285,35 @@
         </div>
       </div>
     </div>
-    <div class="menu-item">Edit</div>
-    <div class="menu-item">View</div>
-    <div class="menu-item">Tools</div>
-    <div class="menu-item">Help</div>
+    <div class="menu-item" onclick="toggleMenu(this, 'editMenu')">
+      Edit
+      <div class="menu-dropdown" id="editMenu">
+        <div class="menu-dropdown-item"><i class="fas fa-cut"></i>Cut</div>
+        <div class="menu-dropdown-item"><i class="fas fa-copy"></i>Copy</div>
+        <div class="menu-dropdown-item"><i class="fas fa-paste"></i>Paste</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'viewMenu')">
+      View
+      <div class="menu-dropdown" id="viewMenu">
+        <div class="menu-dropdown-item"><i class="fas fa-layer-group"></i>Layers</div>
+        <div class="menu-dropdown-item"><i class="fas fa-map"></i>Base Maps</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'toolsMenu')">
+      Tools
+      <div class="menu-dropdown" id="toolsMenu">
+        <div class="menu-dropdown-item"><i class="fas fa-calculator"></i>QD Calculator</div>
+        <div class="menu-dropdown-item"><i class="fas fa-ruler"></i>Measure</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'helpMenu')">
+      Help
+      <div class="menu-dropdown" id="helpMenu">
+        <div class="menu-dropdown-item"><i class="fas fa-book"></i>Documentation</div>
+        <div class="menu-dropdown-item"><i class="fas fa-info-circle"></i>About</div>
+      </div>
+    </div>
     <div id="dbStatus">
       No location selected
     </div>
