@@ -930,6 +930,7 @@
       // Force a map resize to ensure proper rendering
       setTimeout(() => {
         window.map.invalidateSize();
+        initializeMapHandlers();
       }, 100);
 
     });
@@ -1259,6 +1260,14 @@
     });
     updateLayerControl();
     updateDrawToLayerSelect();
+
+    function initializeMapHandlers() {
+      // Add your map click handler initialization here.  Example:
+      window.map.on('click', function(e) {
+        console.log("Map clicked at:", e.latlng);
+        // Your map click handling logic here...
+      });
+    }
   </script>
 
 </body>
