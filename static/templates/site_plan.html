@@ -388,7 +388,7 @@
       if (!select) return;
       
       select.innerHTML = '';
-      Object.entries(window.layers).forEach(([name, layer]) => {
+      Object.entries(window.layers || {}).forEach(([name, layer]) => {
         const option = document.createElement('option');
         option.value = name;
         option.textContent = name;
@@ -399,24 +399,102 @@
         select.selectedIndex = 0;
         window.activeLayer = window.layers[select.options[0].value];
       }
+
+      // Update layer select handler
+      select.onchange = function(e) {
+        const selectedLayer = e.target.value;
+        if (window.layers && window.layers[selectedLayer]) {
+          window.activeLayer = window.layers[selectedLayer];
+          console.log("Active layer changed to:", selectedLayer);
+        }
+      };
+    }
+
+    // Load layers from database
+    async function loadFromDatabase() {
+      try {
+        const response = await fetch('/api/load-layers');
+        if (!response.ok) throw new Error('Failed to load layers');
+        
+        const data = await response.json();
+        
+        // Clear existing layers
+        if (window.layers) {
+          Object.values(window.layers).forEach(layer => {
+            if (window.map.hasLayer(layer)) {
+              window.map.removeLayer(layer);
+            }
+          });
+        }
+        
+        window.layers = {};
+        
+        if (data.layers) {
+          Object.entries(data.layers).forEach(([name, layerData]) => {
+            const layer = L.featureGroup().addTo(window.map);
+            window.layers[name] = layer;
+            
+            if (layerData.features) {
+              layerData.features.forEach(feature => {
+                const drawnLayer = L.geoJSON(feature);
+                drawnLayer.feature = feature;
+                layer.addLayer(drawnLayer);
+                
+                if (feature.properties && feature.properties.name) {
+                  drawnLayer.bindTooltip(
+                    feature.properties.name + 
+                    (feature.properties.typeCode ? `<br>${feature.properties.typeCode}` : ''),
+                    { permanent: false }
+                  );
+                }
+              });
+            }
+          });
+        }
+        
+        updateDrawToLayerSelect();
+        console.log('Layers loaded successfully:', data.layers);
+      } catch (error) {
+        console.error('Error loading layers:', error);
+      }
     }
     // Utility: Toggle menu dropdowns
     function toggleMenu(element, menuId) {
       const dropdown = document.getElementById(menuId);
+      if (!dropdown) return;
+      
+      // Close other menus
       document.querySelectorAll(".menu-dropdown").forEach(dd => {
         if (dd.id !== menuId) {
           dd.style.display = "none";
           dd.parentElement.classList.remove("active");
         }
       });
-      if (dropdown.style.display === "block") {
-        dropdown.style.display = "none";
-        element.classList.remove("active");
-      } else {
-        dropdown.style.display = "block";
-        element.classList.add("active");
+      
+      // Toggle current menu
+      const isVisible = dropdown.style.display === "block";
+      dropdown.style.display = isVisible ? "none" : "block";
+      element.classList.toggle("active", !isVisible);
+      
+      // Position dropdown below menu item
+      if (!isVisible) {
+        const rect = element.getBoundingClientRect();
+        dropdown.style.top = `${rect.bottom}px`;
+        dropdown.style.left = `${rect.left}px`;
       }
     }
+
+    // Close menus when clicking outside
+    document.addEventListener("click", function(e) {
+      if (!e.target.closest(".menu-item")) {
+        document.querySelectorAll(".menu-dropdown").forEach(dd => {
+          dd.style.display = "none";
+        });
+        document.querySelectorAll(".menu-item").forEach(mi => {
+          mi.classList.remove("active");
+        });
+      }
+    });
     document.addEventListener("click", function(e) {
       if (!e.target.closest(".menu-item")) {
         document.querySelectorAll(".menu-dropdown").forEach(dd => { dd.style.display = "none"; });
@@ -532,6 +610,10 @@
       window.map.on("draw:created", function(e) {
         console.log("Draw created event fired:", e);
         const layer = e.layer;
+        if (!window.activeLayer) {
+            alert("Please select a layer to draw on");
+            return;
+        }
         // For polygons, force close if needed
         if (e.layerType === "polygon" && layer.getLatLngs) {
           const coords = layer.getLatLngs()[0];
