@@ -872,6 +872,27 @@
     }
 
     // Call initialization after map is loaded
+    // Menu toggle function
+    function toggleMenu(menuItem, menuId) {
+      const dropdown = document.getElementById(menuId);
+      const allDropdowns = document.querySelectorAll('.menu-dropdown');
+      
+      allDropdowns.forEach(d => {
+        if (d.id !== menuId) {
+          d.style.display = 'none';
+          d.parentElement.classList.remove('active');
+        }
+      });
+
+      if (dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+        menuItem.classList.remove('active');
+      } else {
+        dropdown.style.display = 'block';
+        menuItem.classList.add('active');
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', async function() {
       console.log('DOM Content Loaded');
 
