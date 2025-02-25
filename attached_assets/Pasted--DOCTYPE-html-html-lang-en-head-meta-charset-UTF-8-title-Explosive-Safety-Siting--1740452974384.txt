@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Explosive Safety Siting Map</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    integrity="sha512-odNTxgMKtTB6FS6MB2S6JlSZ1AK7DEtcZeJlyBJvONJb23xrsuZwZNYemDJ0a6SGP4QbYV0EP5Sm/Ip5l31r7A=="
+    crossorigin=""
+  />
+
+  <!-- Leaflet.draw CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"
+  />
+
+  <!-- Example CSS for top toolbar and layout -->
+  <style>
+    /* Simple reset to remove default padding/margins */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* Top toolbar/menu bar */
+    nav.navbar {
+      width: 100%;
+      height: 50px;
+      background-color: #f1f1f1;
+      border-bottom: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      z-index: 1000; /* Keep this on top */
+      position: relative; /* or fixed, if you want it to stay at the top when scrolling */
+    }
+
+    nav.navbar ul {
+      list-style: none;
+      display: flex;
+      gap: 1rem;
+    }
+
+    nav.navbar li {
+      cursor: pointer;
+    }
+
+    /* The map container is positioned below the toolbar */
+    #map {
+      position: absolute;
+      top: 50px; /* same height as toolbar */
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
+
+    /* Adjust Leaflet's built-in controls (zoom, draw toolbar) to avoid hiding behind the nav */
+    .leaflet-top {
+      margin-top: 70px; /* push down controls so they don't overlap the nav bar */
+    }
+
+    /* If needed, specifically shift the draw toolbar or zoom controls further */
+    .leaflet-draw-toolbar {
+      margin-top: 1rem;
+    }
+
+    /* Example: Move the default zoom control to top-right (optional) */
+    .leaflet-control-zoom {
+      margin-top: 0; /* remove default margin if you're re-positioning */
+    }
+  </style>
+</head>
+<body>
+  <!-- Simple top toolbar/menu bar -->
+  <nav class="navbar">
+    <ul>
+      <li>File</li>
+      <li>Edit</li>
+      <li>View</li>
+      <li>Tools</li>
+      <li>Help</li>
+    </ul>
+  </nav>
+
+  <!-- Map container -->
+  <div id="map"></div>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+    integrity="sha512-s/A+7p8p0KnZ1a5+gZdx/bd9LC6VxZqKqs0g9scZ09mOMlFET0YscouJ0ZbxaS1HSFumA4MdTt7LI2xF4nYwKg=="
+    crossorigin=""
+  ></script>
+
+  <!-- Leaflet.draw JS -->
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+  <script>
+    // Initialize the map
+    const map = L.map('map', {
+      center: [39.8283, -98.5795],
+      zoom: 4
+    });
+
+    // Optional: Move the zoom control to top-right to avoid overlap
+    map.zoomControl.setPosition('topright');
+
+    // Add a base layer (OpenStreetMap in this example)
+    const osm = L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { maxZoom: 19 }
+    ).addTo(map);
+
+    // Create a FeatureGroup to store drawn items
+    const drawnItems = new L.FeatureGroup().addTo(map);
+
+    // Configure Leaflet.draw
+    const drawControl = new L.Control.Draw({
+      edit: {
+        featureGroup: drawnItems
+      },
+      draw: {
+        // Enable only polygon drawing for this example
+        polygon: {
+          allowIntersection: false,
+          showArea: true,
+          // The draw plugin usually closes the polygon automatically,
+          // but you can also force the last vertex to match the first
+          // by setting "closeShape": true. (This is the default behavior.)
+          // You can also set the "finishOn" event or specify how double-click works.
+        },
+        // Disable other draw tools
+        marker: false,
+        polyline: false,
+        rectangle: false,
+        circle: false,
+        circlemarker: false
+      }
+    });
+    map.addControl(drawControl);
+
+    // Listen for 'draw:created' event to capture the new polygon
+    map.on(L.Draw.Event.CREATED, function (e) {
+      const layer = e.layer;
+
+      // Convert to GeoJSON
+      const shapeGeoJSON = layer.toGeoJSON();
+
+      // Add it to the drawnItems layer so it's visible on the map
+      drawnItems.addLayer(layer);
+
+      // Example fetch call to FastAPI to save polygon to DB
+      // Replace '/save_polygon' with your actual endpoint
+      fetch('/save_polygon', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(shapeGeoJSON)
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          console.log('Save successful:', data);
+          // If needed, store an ID returned from the server on the layer, etc.
+        })
+        .catch((error) => {
+          console.error('Error saving polygon:', error);
+        });
+    });
+  </script>
+</body>
+</html>
