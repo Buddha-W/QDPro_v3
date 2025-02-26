@@ -112,29 +112,49 @@
 
             async performAnalysis() {
                 try {
-                    const layers = this.drawnItems.toGeoJSON();
+                    // Get drawn items as GeoJSON
+                    const drawnFeatures = this.drawnItems.toGeoJSON();
+
+                    // Create analysis request payload
+                    const analysisData = {
+                        site_type: "DOD", // Default to DOD
+                        features: drawnFeatures.features,
+                        quantity: 1000, // Default quantity - you may want to get this from a form
+                        material_type: "General Explosive"
+                    };
+
                     const response = await fetch('/api/analyze_qd', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify(layers)
+                        body: JSON.stringify(analysisData)
                     });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
                     const results = await response.json();
                     this.displayAnalysisResults(results);
                 } catch (err) {
                     console.error("Analysis error:", err);
+                    alert("Analysis failed: " + err.message);
                 }
             },
 
             displayAnalysisResults(results) {
                 const resultsDiv = document.getElementById('analysis-results');
-                if (resultsDiv) {
-                    resultsDiv.innerHTML = `
-                        <h3>Analysis Results</h3>
-                        <pre>${JSON.stringify(results, null, 2)}</pre>
-                    `;
+                if (!resultsDiv) return;
+
+                let html = '<h4>Analysis Results</h4>';
+                if (results.safe_distance) {
+                    html += `<p>Safe Distance: ${results.safe_distance} feet</p>`;
                 }
+                if (results.k_factor) {
+                    html += `<p>K-Factor: ${results.k_factor}</p>`;
+                }
+                resultsDiv.innerHTML = html;
             },
 
             async saveLayer(layer) {

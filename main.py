@@ -230,11 +230,14 @@ os.makedirs(DATA_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="static/templates")
 
+class AnalysisRequest(BaseModel):
+    site_type: str
+    features: List[Dict]
+    quantity: float
+    material_type: str
+
 @app.post("/api/analyze_qd")
-async def analyze_qd(
-    background_tasks: BackgroundTasks,
-    params: Dict,
-):
+async def analyze_qd(request: AnalysisRequest):
     try:
         engine = get_engine(params["site_type"])
         qd_params = QDParameters(
