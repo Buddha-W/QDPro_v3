@@ -29,27 +29,26 @@ const QDPro = {
   // Initialize map references
   initMap: function() {
     try {
-      // Create base layers
-      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      });
-
-      // Initialize map with base layer
+      // Create map instance first
       this.map = L.map('map', {
         center: [39.8283, -98.5795],
-        zoom: 4,
-        layers: [osmLayer]
+        zoom: 4
       });
 
-      // Initialize layers object
-      this.layers = {};
+      // Add base layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(this.map);
 
-      // Create default feature group
-      this.layers["Default"] = new L.featureGroup();
-      this.layers["Default"].addTo(this.map);
+      // Initialize layers object if not exists
+      this.layers = this.layers || {};
+
+      // Create default feature group after map is ready
+      this.layers["Default"] = L.layerGroup();
+      this.map.addLayer(this.layers["Default"]);
       this.activeLayer = this.layers["Default"];
 
-      // Force map resize
+      // Force map resize after everything is initialized
       setTimeout(() => this.map.invalidateSize(), 500);
       
       console.log("Map initialized successfully");
