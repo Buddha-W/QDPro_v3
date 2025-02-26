@@ -380,37 +380,46 @@ async def load_layers():
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
 
-        layers = {}
-
-        # Load layer configurations
-        cur.execute(
-            "SELECT name, layer_config FROM map_layers WHERE is_active = true")
-        for name, config in cur.fetchall():
-            layers[name] = {
-                "properties":
-                config if isinstance(config, dict) else json.loads(config),
+        layers = {
+            "Drawn Items": {
+                "type": "FeatureCollection",
+                "properties": {"isQDAnalyzed": False},
+                "features": []
+            },
+            "Facilities": {
+                "type": "FeatureCollection", 
+                "properties": {"isQDAnalyzed": True},
+                "features": []
+            },
+            "Analysis": {
+                "type": "FeatureCollection",
+                "properties": {"isQDAnalyzed": True},
                 "features": []
             }
+        }
 
         # Load features for each layer
-        for layer_name in layers:
+        for layer_name in layers.keys():
             cur.execute(
                 """
                 SELECT ST_AsGeoJSON(result_geometry), result_data 
                 FROM analysis_results 
                 WHERE analysis_type = %s
-            """, (layer_name, ))
+            """, (layer_name,))
 
             for geom, properties in cur.fetchall():
-                layers[layer_name]["features"].append({
-                    "type":
-                    "Feature",
-                    "geometry":
-                    json.loads(geom),
-                    "properties":
-                    properties
-                    if isinstance(properties, dict) else json.loads(properties)
-                })
+                try:
+                    geometry = json.loads(geom) if isinstance(geom, str) else geom
+                    props = json.loads(properties) if isinstance(properties, str) else properties
+                    
+                    feature = {
+                        "type": "Feature",
+                        "geometry": geometry,
+                        "properties": props
+                    }
+                    layers[layer_name]["features"].append(feature)
+                except json.JSONDecodeError:
+                    continue
 
         return JSONResponse(content={"layers": layers},
                             headers={"Content-Type": "application/json"})
