@@ -217,7 +217,7 @@
         const data = await response.json();
         const locationList = document.getElementById('locationList');
         locationList.innerHTML = '';
-        
+
         data.locations.forEach(location => {
           const div = document.createElement('div');
           div.style.padding = '10px';
@@ -244,7 +244,7 @@
         // Clear existing layers
         Object.values(window.layers || {}).forEach(layer => window.map.removeLayer(layer));
         window.layers = {};
-        
+
         // Load new layers
         if (data.layers) {
           Object.entries(data.layers).forEach(([name, layerData]) => {
@@ -279,7 +279,7 @@
     function createNewLayer() {
       const layerName = document.getElementById('newLayerName').value;
       const layerType = document.getElementById('newLayerType').value;
-      
+
       if (!layerName) {
         alert('Please enter a layer name');
         return;
@@ -290,22 +290,27 @@
       window.layers[layerName] = L.featureGroup().addTo(window.map);
       window.layers[layerName].layerType = layerType;
       window.activeLayer = window.layers[layerName];
-      
+
       // Update layer select
       updateDrawToLayerSelect();
-      
+
       // Save to database
       saveToDatabase();
-      
+
       // Close modal
       closeAddLayerModal();
     }
 
     async function loadFromDatabase() {
+      console.log("Loading layers from database...");
       try {
         const response = await fetch('/api/load-layers');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        
+        console.log("Received layer data:", data);
+
         // Clear existing layers
         if (window.layers) {
           Object.values(window.layers).forEach(layer => {
@@ -314,20 +319,19 @@
             }
           });
         }
-        
         window.layers = {};
-        
+
         if (data.layers) {
           Object.entries(data.layers).forEach(([name, layerData]) => {
             const layer = L.featureGroup().addTo(window.map);
             window.layers[name] = layer;
-            
+
             if (layerData.features) {
               layerData.features.forEach(feature => {
                 const drawnLayer = L.geoJSON(feature);
                 drawnLayer.feature = feature; // Preserve properties
                 layer.addLayer(drawnLayer);
-                
+
                 // Add tooltips if properties exist
                 if (feature.properties && feature.properties.name) {
                   drawnLayer.bindTooltip(
@@ -340,7 +344,7 @@
             }
           });
         }
-        
+
         updateDrawToLayerSelect();
         console.log('Layers loaded successfully');
       } catch (error) {
@@ -351,13 +355,13 @@
     async function saveToDatabase() {
       try {
         const layerData = { layers: {} };
-        
+
         Object.entries(window.layers).forEach(([name, layer]) => {
           layerData.layers[name] = {
             properties: layer.layerType ? { type: layer.layerType } : {},
             features: []
           };
-          
+
           layer.eachLayer(sublayer => {
             if (sublayer.toGeoJSON) {
               const feature = sublayer.toGeoJSON();
@@ -386,7 +390,7 @@
     function updateDrawToLayerSelect() {
       const select = document.getElementById('drawToLayer');
       if (!select) return;
-      
+
       select.innerHTML = '';
       Object.entries(window.layers || {}).forEach(([name, layer]) => {
         const option = document.createElement('option');
@@ -394,7 +398,7 @@
         option.textContent = name;
         select.appendChild(option);
       });
-      
+
       if (select.options.length > 0) {
         select.selectedIndex = 0;
         window.activeLayer = window.layers[select.options[0].value];
@@ -410,59 +414,14 @@
       };
     }
 
-    // Load layers from database
-    async function loadFromDatabase() {
-      try {
-        const response = await fetch('/api/load-layers');
-        if (!response.ok) throw new Error('Failed to load layers');
-        
-        const data = await response.json();
-        
-        // Clear existing layers
-        if (window.layers) {
-          Object.values(window.layers).forEach(layer => {
-            if (window.map.hasLayer(layer)) {
-              window.map.removeLayer(layer);
-            }
-          });
-        }
-        
-        window.layers = {};
-        
-        if (data.layers) {
-          Object.entries(data.layers).forEach(([name, layerData]) => {
-            const layer = L.featureGroup().addTo(window.map);
-            window.layers[name] = layer;
-            
-            if (layerData.features) {
-              layerData.features.forEach(feature => {
-                const drawnLayer = L.geoJSON(feature);
-                drawnLayer.feature = feature;
-                layer.addLayer(drawnLayer);
-                
-                if (feature.properties && feature.properties.name) {
-                  drawnLayer.bindTooltip(
-                    feature.properties.name + 
-                    (feature.properties.typeCode ? `<br>${feature.properties.typeCode}` : ''),
-                    { permanent: false }
-                  );
-                }
-              });
-            }
-          });
-        }
-        
-        updateDrawToLayerSelect();
-        console.log('Layers loaded successfully:', data.layers);
-      } catch (error) {
-        console.error('Error loading layers:', error);
-      }
-    }
     // Utility: Toggle menu dropdowns
     function toggleMenu(element, menuId) {
       const dropdown = document.getElementById(menuId);
-      if (!dropdown) return;
-      
+      if (!dropdown) {
+        console.error(`Menu dropdown with id ${menuId} not found`);
+        return;
+      }
+
       // Close other menus
       document.querySelectorAll(".menu-dropdown").forEach(dd => {
         if (dd.id !== menuId) {
@@ -470,12 +429,12 @@
           dd.parentElement.classList.remove("active");
         }
       });
-      
+
       // Toggle current menu
       const isVisible = dropdown.style.display === "block";
       dropdown.style.display = isVisible ? "none" : "block";
       element.classList.toggle("active", !isVisible);
-      
+
       // Position dropdown below menu item
       if (!isVisible) {
         const rect = element.getBoundingClientRect();
@@ -493,12 +452,6 @@
         document.querySelectorAll(".menu-item").forEach(mi => {
           mi.classList.remove("active");
         });
-      }
-    });
-    document.addEventListener("click", function(e) {
-      if (!e.target.closest(".menu-item")) {
-        document.querySelectorAll(".menu-dropdown").forEach(dd => { dd.style.display = "none"; });
-        document.querySelectorAll(".menu-item").forEach(mi => { mi.classList.remove("active"); });
       }
     });
 
@@ -739,29 +692,6 @@
         }
       });
     }
-    // Dummy implementations for layer loading/editing (adjust as needed)
-    async function loadFromDatabase() {
-      // This function should load layers from your backend and populate window.layers.
-      // For now, we simulate with an empty object.
-      window.layers = {};
-      // After loading, update the draw-to-layer select.
-      updateDrawToLayerSelect();
-    }
-    function updateDrawToLayerSelect() {
-      const select = document.getElementById("drawToLayer");
-      if (!select) return;
-      select.innerHTML = "";
-      Object.entries(window.layers).forEach(([name, layer]) => {
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        select.appendChild(option);
-      });
-      if (select.options.length > 0) {
-        select.selectedIndex = 0;
-        window.activeLayer = window.layers[select.options[0].value];
-      }
-    }
     // Left Panel Toggle
     const toggleLayersPanel = document.getElementById("toggleLayersPanel");
     const leftPanel = document.getElementById("leftPanel");
@@ -818,7 +748,11 @@
         };
         layerControl.appendChild(item);
       });
-   </script>
+    }
+    function showNewLocationModal() {
+      //Add your implementation here.
+    }
+  </script>
   <script src="/static/js/qdpro.js"></script>
 </body>
 </html>
