@@ -1,0 +1,26 @@
+I'm building an explosive safety siting web application called QDPro. It should allow users to draw facility polygons on a map (using Leaflet and Leaflet.draw), select a database layer (via a “Draw to Layer” dropdown), and save/load these drawings via backend endpoints (like /api/save-layers and /api/load-layers). However, nothing is working correctly—my map is not loading, and none of the functionality (drawing, layer management, toolbars, modals, etc.) seems to work as intended. I have been working on this for weeks and am going in circles.
+
+Below are the contents of my site_plan.html and qdpro.js files (both have been uploaded). Please review these files and provide a complete, no-flaw fix to address the following issues:
+
+Map Initialization:
+The map is not loading at all. The qdpro.js file attempts to initialize the map (or use an existing one) but nothing appears.
+Ensure that the map container (with id "map") is properly sized and that the Leaflet map is initialized only once and referenced correctly throughout the code.
+Event Handling & Drawing:
+The draw:created event isn’t firing as expected. When a user draws a facility polygon, it should be added to the currently active layer (selected via the “Draw to Layer” dropdown) and then saved to the database.
+Fix any issues related to how the active layer is updated or how drawn polygons are added (including auto-closing the polygon).
+Layer Management:
+The “Draw to Layer” dropdown is not updating the global activeLayer correctly. New drawings are not being assigned to the selected database layer.
+Ensure that when a user selects a new layer from the dropdown, the activeLayer is updated so that subsequent drawn features are added to that layer.
+UI & Modal Issues:
+Some modal functions (for adding layers, switching locations, and creating new locations) are missing or not working.
+Ensure that the top navigation bar (File, Edit, View, Tools, Help) remains on one row and is fully visible, with dropdowns appearing on top of other elements.
+Debugging & Logging:
+Add clear console logs at key steps (map initialization, event bindings, layer selection, drawing creation, saving, and loading) so I can see in the browser console what’s happening.
+Please fix the code (both HTML and JS in qdpro.js) so that:
+
+The map is properly loaded and sized.
+Drawing events work correctly, adding drawn polygons to the active layer and saving them.
+The active layer updates correctly when the user selects a different layer.
+All UI components (navigation bar, toolbars, left panel, modals) function without overlap or z-index issues.
+Include explanations for your key changes and how they address these issues. Thank you!
+
