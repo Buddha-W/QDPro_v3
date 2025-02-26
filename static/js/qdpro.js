@@ -792,31 +792,40 @@ const QDPro = {
         layer.eachLayer(sublayer => {
           if (sublayer.toGeoJSON) {
             const feature = sublayer.toGeoJSON();
-            // Preserve all properties including style
+
+            // Preserve existing properties
             if (sublayer.feature && sublayer.feature.properties) {
               feature.properties = {...sublayer.feature.properties};
             }
-            // Add style properties if they exist
+
+            // Add style properties
+            const style = {};
             if (sublayer.options) {
-              feature.properties = {
-                ...feature.properties,
-                style: {
-                  color: sublayer.options.color,
-                  fillColor: sublayer.options.fillColor,
-                  weight: sublayer.options.weight,
-                  fillOpacity: sublayer.options.fillOpacity
-                }
-              };
+              style.color = sublayer.options.color;
+              style.fillColor = sublayer.options.fillColor;
+              style.weight = sublayer.options.weight;
+              style.fillOpacity = sublayer.options.fillOpacity;
             }
+
+            // Add additional properties
+            feature.properties = {
+              ...feature.properties,
+              style,
+              layerName: name,
+              type: layer.layerType || 'default'
+            };
+
             features.push(feature);
           }
         });
 
+        // Save layer configuration
         layerData.layers[name] = {
           properties: {
-            ...layer.properties,
-            layerType: layer.layerType,
-            isActive: this.map.hasLayer(layer)
+            type: layer.layerType || 'default',
+            isActive: this.map.hasLayer(layer),
+            visible: this.map.hasLayer(layer),
+            ...layer.properties
           },
           features: features
         };
