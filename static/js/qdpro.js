@@ -270,13 +270,49 @@ const QDPro = {
 
     // File menu actions
     document.querySelector("#fileMenu .menu-dropdown-item:nth-child(1)")
-      .addEventListener("click", () => this.showNewLocationModal());
+      .addEventListener("click", () => this.createNewLocation());
 
     document.querySelector("#fileMenu .menu-dropdown-item:nth-child(2)")
       .addEventListener("click", () => this.showSwitchLocationModal());
 
     document.querySelector("#fileMenu .menu-dropdown-item:nth-child(3)")
       .addEventListener("click", () => this.saveToDatabase());
+  },
+
+  // Create new location
+  createNewLocation: async function() {
+    const locationName = prompt("Enter new location name:");
+    if (!locationName) return;
+
+    try {
+      const response = await fetch("/api/create_location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location_name: locationName })
+      });
+
+      if (!response.ok) throw new Error("Failed to create location");
+
+      const data = await response.json();
+      this.currentLocation = data.id;
+      document.getElementById("dbStatus").textContent = `Location: ${locationName}`;
+      
+      // Clear existing layers
+      Object.values(this.layers).forEach(layer => {
+        if (this.map.hasLayer(layer)) {
+          this.map.removeLayer(layer);
+        }
+      });
+      this.layers = {};
+      this.layers["Default"] = L.featureGroup().addTo(this.map);
+      this.activeLayer = this.layers["Default"];
+      
+      this.updateDrawToLayerSelect();
+      this.updateLayerControl();
+    } catch (error) {
+      console.error("Error creating location:", error);
+      alert("Failed to create location");
+    }
   },
 
   // Activate a specific drawing tool
