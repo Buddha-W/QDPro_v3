@@ -140,7 +140,8 @@ async def calculate_qd(request: QDCalculationRequest, background_tasks: Backgrou
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
         finally:
-            cur.close()
+            if cur:
+                cur.close()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
     finally:
