@@ -353,8 +353,31 @@ const QDPro = {
       .addEventListener("click", () => this.saveToDatabase());
   },
 
+  showNewLocationModal: function() {
+    const modalHtml = `
+      <div id="newLocationModal" style="position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
+        <div style="background: #fff; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+          <h2>Create New Location</h2>
+          <div style="margin: 15px 0;">
+            <label for="newLocationName">Location Name:</label>
+            <input type="text" id="newLocationName" style="width: 100%; padding: 5px; margin-top: 5px;">
+          </div>
+          <div style="text-align: right; margin-top: 20px;">
+            <button onclick="QDPro.closeNewLocationModal()" style="padding: 5px 10px; margin-right: 10px;">Cancel</button>
+            <button onclick="QDPro.createNewLocation()" style="padding: 5px 10px;">Create</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  closeNewLocationModal: function() {
+    const modal = document.getElementById('newLocationModal');
+    if (modal) modal.remove();
+  },
+
   createNewLocation: async function() {
-    // Create modal HTML
     const modalHtml = `
       <div id="newLocationModal" style="position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
         <div style="background-color: #fefefe; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
@@ -660,7 +683,35 @@ const QDPro = {
   },
 
   showAddLayerModal: function() {
-    document.getElementById("addLayerModal").style.display = "block";
+    const modalHtml = `
+      <div id="addLayerModal" style="position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
+        <div style="background: #fff; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+          <h2>Add New Layer</h2>
+          <div style="margin: 15px 0;">
+            <label for="newLayerName">Layer Name:</label>
+            <input type="text" id="newLayerName" style="width: 100%; padding: 5px; margin-top: 5px;">
+          </div>
+          <div style="margin: 15px 0;">
+            <label for="newLayerType">Layer Type:</label>
+            <select id="newLayerType" style="width: 100%; padding: 5px; margin-top: 5px;">
+              <option value="facility">Facility</option>
+              <option value="boundary">Boundary</option>
+              <option value="zone">Zone</option>
+            </select>
+          </div>
+          <div style="text-align: right; margin-top: 20px;">
+            <button onclick="QDPro.closeAddLayerModal()" style="padding: 5px 10px; margin-right: 10px;">Cancel</button>
+            <button onclick="QDPro.createNewLayer()" style="padding: 5px 10px;">Create</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  closeAddLayerModal: function() {
+    const modal = document.getElementById('addLayerModal');
+    if (modal) modal.remove();
   },
 
   closeAddLayerModal: function() {
