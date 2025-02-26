@@ -2,8 +2,8 @@
 <html>
 <head>
     <title>QDPro Site Plan</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <style>
         #map { height: 100vh; }
         .analysis-panel {
@@ -18,6 +18,61 @@
         }
         .uncertainty-band { opacity: 0.3; }
     </style>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script>
+        // Initialize QDPro namespace
+        const QDPro = {
+            map: null,
+            layers: {},
+            activeLayer: null,
+            drawnItems: new L.FeatureGroup(),
+
+            init: function() {
+                console.log("Initializing QDPro...");
+                if (!this.map) {
+                    this.map = L.map('map').setView([39.8283, -98.5795], 4);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(this.map);
+
+                    // Add the drawn items layer
+                    if (this.drawnItems) {
+                        this.map.addLayer(this.drawnItems);
+                    }
+
+                    // Initialize draw control
+                    this.initDrawControls();
+
+                    console.log("QDPro init complete. Map should be visible now.");
+                } else {
+                    console.log("Map already initialized");
+                }
+            },
+
+            initDrawControls: function() {
+                const drawControl = new L.Control.Draw({
+                    draw: {
+                        polygon: true,
+                        circle: true,
+                        rectangle: true,
+                        marker: true,
+                        polyline: true
+                    },
+                    edit: {
+                        featureGroup: this.drawnItems
+                    }
+                });
+                this.map.addControl(drawControl);
+            }
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("DOM Content Loaded – let's init QDPro!");
+            QDPro.init();
+        });
+    </script>
 </head>
 <body>
     <!-- TOP NAV BAR -->
@@ -112,7 +167,7 @@
     <!-- BASE LAYER DROPDOWN -->
     <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
 
-    <div id="map"></div>
+    <div id="map" style="height: 100vh;"></div>
     <div class="analysis-panel">
         <h3>QD Analysis</h3>
         <input type="number" id="explosive-quantity" placeholder="Explosive Quantity (lbs)"/>
@@ -163,121 +218,11 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
     <script>
-        // Map initialization moved to QDPro.init()
-        // Initialize QDPro namespace
-        const QDPro = {
-            map: null,
-            drawnItems: new L.FeatureGroup(),
-            drawControl: null,
+        // Event handlers (moved here from original script)
 
-            init: function() {
-                console.log("Initializing QDPro...");
-                if (!this.map) {
-                    this.map = L.map('map').setView([39.8283, -98.5795], 4);
-                    
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© OpenStreetMap contributors'
-                    }).addTo(this.map);
-
-                    this.drawControl = new L.Control.Draw({
-                        draw: {
-                            polygon: false,
-                            circle: {
-                                shapeOptions: {
-                                    color: '#662d91'
-                                }
-                            },
-                            marker: {
-                                icon: L.icon({
-                                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                                    iconSize: [25, 41],
-                                    iconAnchor: [12, 41]
-                                })
-                            },
-                            circlemarker: false,
-                            rectangle: false,
-                            polyline: false
-                        },
-                        edit: {
-                            featureGroup: this.drawnItems
-                        }
-                    });
-
-                    this.map.addControl(this.drawControl);
-                    this.map.addLayer(this.drawnItems);
-                }
-            }
-
-        };  // Close init function
-
-        // Event handlers
-        this.map.on('draw:created', async function(e) {
-            const layer = e.layer;
-            drawnItems.addLayer(layer);
-
-            if (e.layerType === 'marker') {
-                const quantity = document.getElementById('explosive-quantity').value;
-                if (!quantity) {
-                    alert('Please enter explosive quantity');
-                    return;
-                }
-
-                try {
-                    const response = await fetch('/api/analyze_qd', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            quantity: parseFloat(quantity),
-                            location: [layer.getLatLng().lng, layer.getLatLng().lat],
-                            site_type: 'DOD',
-                            material_props: {
-                                sensitivity: 1.0,
-                                det_velocity: 6000,
-                                tnt_equiv: 1.0
-                            },
-                            env_conditions: {
-                                temperature: 298,
-                                pressure: 101.325,
-                                humidity: 50,
-                                confinement_factor: 0
-                            }
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    // Add buffer zones
-                    L.geoJSON(data.geojson, {
-                        style: (feature) => ({
-                            color: feature.properties.k_factor === 1.0 ? '#ff0000' : '#662d91',
-                            weight: 2,
-                            opacity: feature.properties.isUncertaintyBand ? 0.3 : 0.8
-                        })
-                    }).addTo(drawnItems);
-
-                    // Display results
-                    document.getElementById('analysis-results').innerHTML = `
-                        <p>Mean Safe Distance: ${data.safe_distance.toFixed(2)} ft</p>
-                        <p>Standard Deviation: ${data.std_deviation.toFixed(2)} ft</p>
-                        <p>95% CI: [${data.confidence_interval[0].toFixed(2)}, 
-                                  ${data.confidence_interval[1].toFixed(2)}] ft</p>
-                    `;
-                } catch (error) {
-                    console.error('Analysis failed:', error);
-                    alert('Analysis failed: ' + error.message);
-                }
-            }
-        });
-
-
-        /************************************************************
-         * Minimal toggleMenu function for top nav
-         ************************************************************/
+        // ...rest of the event handlers and functions from lines 216-356 in original.  These need to be included.
         window.toggleMenu = function(element, menuId) {
             const dropdown = document.getElementById(menuId);
             if (!dropdown) {
@@ -354,64 +299,66 @@
             closeAddLayerModal();
         }
 
-        // Initialize QDPro namespace
-        const QDPro = {
-            map: null,
-            layers: {},
-            activeLayer: null,
-            drawnItems: new L.FeatureGroup(),
+        QDPro.map.on('draw:created', async function(e) {
+            const layer = e.layer;
+            QDPro.drawnItems.addLayer(layer);
 
-            init: function() {
-                console.log("Initializing QDPro...");
-                if (!this.map) {
-                    // Initialize the map only if not already initialized
-                    this.map = L.map('map').setView([39.8283, -98.5795], 4);
-
-                    // Add base layers
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© OpenStreetMap contributors'
-                    }).addTo(this.map);
-
-                    // Add the drawn items layer
-                    if (this.drawnItems) {
-                        this.map.addLayer(this.drawnItems);
-                    }
-                    
-                    // Add draw control to the QDPro map instance
-                    if (drawControl) {
-                        this.map.addControl(drawControl);
-                    }
-
-                    // Initialize draw control
-                    this.initDrawControls();
-
-                    console.log("QDPro init complete. Map should be visible now.");
-                } else {
-                    console.log("Map already initialized");
+            if (e.layerType === 'marker') {
+                const quantity = document.getElementById('explosive-quantity').value;
+                if (!quantity) {
+                    alert('Please enter explosive quantity');
+                    return;
                 }
-            },
 
-            initDrawControls: function() {
-                const drawControl = new L.Control.Draw({
-                    draw: {
-                        polygon: true,
-                        circle: true,
-                        rectangle: true,
-                        marker: true,
-                        polyline: true
-                    },
-                    edit: {
-                        featureGroup: this.drawnItems
-                    }
-                });
-                this.map.addControl(drawControl);
+                try {
+                    const response = await fetch('/api/analyze_qd', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            quantity: parseFloat(quantity),
+                            location: [layer.getLatLng().lng, layer.getLatLng().lat],
+                            site_type: 'DOD',
+                            material_props: {
+                                sensitivity: 1.0,
+                                det_velocity: 6000,
+                                tnt_equiv: 1.0
+                            },
+                            env_conditions: {
+                                temperature: 298,
+                                pressure: 101.325,
+                                humidity: 50,
+                                confinement_factor: 0
+                            }
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    // Add buffer zones
+                    L.geoJSON(data.geojson, {
+                        style: (feature) => ({
+                            color: feature.properties.k_factor === 1.0 ? '#ff0000' : '#662d91',
+                            weight: 2,
+                            opacity: feature.properties.isUncertaintyBand ? 0.3 : 0.8
+                        })
+                    }).addTo(QDPro.drawnItems);
+
+                    // Display results
+                    document.getElementById('analysis-results').innerHTML = `
+                        <p>Mean Safe Distance: ${data.safe_distance.toFixed(2)} ft</p>
+                        <p>Standard Deviation: ${data.std_deviation.toFixed(2)} ft</p>
+                        <p>95% CI: [${data.confidence_interval[0].toFixed(2)}, 
+                                  ${data.confidence_interval[1].toFixed(2)}] ft</p>
+                    `;
+                } catch (error) {
+                    console.error('Analysis failed:', error);
+                    alert('Analysis failed: ' + error.message);
+                }
             }
-        };
-
-        document.addEventListener("DOMContentLoaded", () => {
-            console.log("DOM Content Loaded – let's init QDPro!");
-            QDPro.init();
         });
+
     </script>
 </body>
 </html>
