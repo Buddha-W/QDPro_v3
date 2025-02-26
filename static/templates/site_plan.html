@@ -166,11 +166,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script>
-        const map = L.map('map').setView([39.8283, -98.5795], 4);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
+        // Map initialization moved to QDPro.init()
         const drawnItems = new L.FeatureGroup();
-        map.addLayer(drawnItems);
 
         const drawControl = new L.Control.Draw({
             draw: {
@@ -195,7 +192,7 @@
                 featureGroup: drawnItems
             }
         });
-        map.addControl(drawControl);
+        map.addLayer(drawnItems);
 
         map.on('draw:created', async function(e) {
             const layer = e.layer;
@@ -343,28 +340,30 @@
             layers: {},
             activeLayer: null,
             drawnItems: new L.FeatureGroup(),
-            
+
             init: function() {
                 console.log("Initializing QDPro...");
                 if (!this.map) {
                     // Initialize the map only if not already initialized
                     this.map = L.map('map').setView([39.8283, -98.5795], 4);
-                    
+
                     // Add base layers
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         attribution: '© OpenStreetMap contributors'
                     }).addTo(this.map);
-                    
+
                     // Add the drawn items layer
                     this.map.addLayer(this.drawnItems);
-                    
+                    map.addControl(drawControl);
+
+
                     // Initialize draw control
                     this.initDrawControls();
-                    
+
                     console.log("QDPro init complete. Map should be visible now.");
                 }
             },
-            
+
             initDrawControls: function() {
                 const drawControl = new L.Control.Draw({
                     draw: {
