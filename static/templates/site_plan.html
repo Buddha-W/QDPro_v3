@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -66,6 +65,21 @@
             min-width: 200px;
             border: 1px solid #dee2e6;
         }
+        .tools-toolbar {
+            position: fixed;
+            top: 50px;
+            left: 220px; /* Adjust as needed */
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            border: 1px solid #dee2e6;
+        }
+        .tools-toolbar button {
+            margin-right: 5px;
+        }
+
     </style>
 </head>
 <body>
@@ -73,39 +87,37 @@
         <div class="menu-item">
             File
             <div class="dropdown-content">
-                <a href="#" onclick="newProject()">New Project</a>
-                <a href="#" onclick="saveProject()">Save Project</a>
-                <a href="#" onclick="loadProject()">Load Project</a>
+                <a onclick="newFile()">New</a>
+                <a onclick="openFile()">Open</a>
+                <a onclick="saveFile()">Save</a>
+                <a onclick="exportFile()">Export</a>
             </div>
         </div>
         <div class="menu-item">
             Edit
             <div class="dropdown-content">
-                <a href="#" onclick="editSelected()">Edit Selected</a>
-                <a href="#" onclick="deleteSelected()">Delete Selected</a>
+                <a onclick="deleteSelected()">Delete Selected</a>
+                <a onclick="clearAll()">Clear All</a>
             </div>
         </div>
         <div class="menu-item">
             View
             <div class="dropdown-content">
-                <a href="#" onclick="toggleLayers()">Toggle Layers</a>
-                <a href="#" onclick="refreshView()">Refresh View</a>
+                <a onclick="toggleLayers()">Toggle Layers</a>
+                <a onclick="zoomToFit()">Zoom to Fit</a>
             </div>
         </div>
-        <div class="menu-item">
-            Tools
-            <div class="dropdown-content">
-                <a href="#" onclick="addPES()">Add PES</a>
-                <a href="#" onclick="addES()">Add ES</a>
-                <a href="#" onclick="measureDistance()">Measure Distance</a>
-            </div>
-        </div>
-        <div class="menu-item">
-            QD Analysis
-            <div class="dropdown-content">
-                <a href="#" onclick="runQDAnalysis()">Run Analysis</a>
-                <a href="#" onclick="viewResults()">View Results</a>
-            </div>
+    </div>
+    <div class="tools-toolbar" id="drawingTools">
+        <button onclick="activateDrawingTool('polygon')">Draw Polygon</button>
+        <button onclick="activateDrawingTool('marker')">Add Marker</button>
+        <button onclick="activateDrawingTool('circle')">Draw Circle</button>
+        <button onclick="startAnalysis()">QD Analysis</button>
+    </div>
+    <div class="layer-control">
+        <h3>Layers</h3>
+        <div class="layer-list" id="layerList">
+            <!-- Layer items will be dynamically added here -->
         </div>
     </div>
     <div id="map"></div>
@@ -120,7 +132,7 @@
 
         async function initMap() {
             map = L.map('map').setView([0, 0], 2);
-            
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19
             }).addTo(map);
@@ -155,7 +167,7 @@
             try {
                 const response = await fetch('/api/load-layers');
                 const data = await response.json();
-                
+
                 if (data.layers && data.layers.features) {
                     data.layers.features.forEach(feature => {
                         const layer = L.geoJSON(feature);
@@ -205,6 +217,22 @@
             } catch (error) {
                 console.error('Error saving layer:', error);
             }
+        }
+
+        function newFile() { alert('New File');}
+        function openFile() { alert('Open File');}
+        function saveFile() { alert('Save File');}
+        function exportFile() { alert('Export File');}
+        function deleteSelected() { alert('Delete Selected');}
+        function clearAll() { alert('Clear All');}
+        function toggleLayers() { alert('Toggle Layers');}
+        function zoomToFit() { alert('Zoom to Fit');}
+        function activateDrawingTool(type) {
+            drawControl.options.draw[type].enable();
+        }
+
+        function startAnalysis() {
+            alert('QD Analysis Started');
         }
 
         // Initialize map on page load
