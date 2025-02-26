@@ -28,23 +28,30 @@ const QDPro = {
 
   // Initialize map references
   initMap: function() {
-    // Initialize map if it doesn't exist
-    if (!window.map) {
-      window.map = L.map('map').setView([39.8283, -98.5795], 4);
+    try {
+      // Initialize map
+      this.map = L.map('map', {
+        center: [39.8283, -98.5795],
+        zoom: 4
+      });
+
+      // Add default base layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(this.map);
+
+      // Create a default layer group for drawings
+      this.layers["Default"] = new L.featureGroup();
+      this.layers["Default"].addTo(this.map);
+      this.activeLayer = this.layers["Default"];
+
+      // Force map resize after DOM is fully loaded
+      setTimeout(() => this.map.invalidateSize(), 100);
+      
+      console.log("Map initialized successfully");
+    } catch (error) {
+      console.error("Error initializing map:", error);
     }
-    this.map = window.map;
-
-    // Add default base layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(this.map);
-
-    // Create a default layer group for drawings
-    this.activeLayer = L.featureGroup().addTo(this.map);
-    this.layers["Default"] = this.activeLayer;
-
-    // Force map resize after DOM is fully loaded
-    setTimeout(() => this.map.invalidateSize(), 100);
   },
 
   // Initialize drawing tools
