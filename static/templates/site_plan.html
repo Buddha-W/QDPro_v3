@@ -30,11 +30,11 @@
             right: 0;
             height: 40px;
             background: #f8f9fa;
-            padding: 5px 15px;
-            z-index: 999;
-            border-bottom: 1px solid #dee2e6;
+            padding: 0 15px;
+            z-index: 1000;
             display: flex;
             align-items: center;
+            border-bottom: 1px solid #dee2e6;
         }
         .menu-item {
             margin-right: 20px;
@@ -66,21 +66,6 @@
         .menu-item:hover .dropdown-content {
             display: block;
         }
-        .layer-control {
-            position: fixed;
-            top: 90px;
-            left: 10px;
-            background: white;
-            padding: 15px;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 1000;
-            min-width: 250px;
-            border: 1px solid #dee2e6;
-        }
-        .layer-list {
-            margin-top: 10px;
-        }
         .tools-toolbar button {
             margin-right: 10px;
             padding: 5px 10px;
@@ -91,6 +76,10 @@
         }
         .tools-toolbar button:hover {
             background: #f8f9fa;
+        }
+        .layer-select {
+            margin-left: auto;
+            padding: 5px;
         }
     </style>
 </head>
@@ -115,25 +104,23 @@
         <div class="menu-item">
             View
             <div class="dropdown-content">
-                <a onclick="toggleLayers()">Toggle Layers</a>
                 <a onclick="zoomToFit()">Zoom to Fit</a>
             </div>
         </div>
     </div>
-    <div class="tools-toolbar" id="drawingTools">
+    <div class="tools-toolbar">
         <button onclick="activateDrawingTool('polygon')">Draw Polygon</button>
         <button onclick="activateDrawingTool('marker')">Add Marker</button>
         <button onclick="activateDrawingTool('circle')">Draw Circle</button>
         <button onclick="startAnalysis()">QD Analysis</button>
-        <button onclick="toggleLayerPanel()">Toggle Layers</button>
-    </div>
-    <div class="layer-control" id="layerControl">
-        <h3>Layers</h3>
-        <div class="layer-list" id="layerList">
-            <!-- Layer items will be dynamically added here -->
-        </div>
+        <select id="layerSelect" class="layer-select" onchange="changeLayer(this.value)">
+            <option value="Facilities">Facilities</option>
+            <option value="QD Arcs">QD Arcs</option>
+            <option value="Analysis">Analysis</option>
+        </select>
     </div>
     <div id="map"></div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script>
@@ -141,25 +128,21 @@
         let drawnItems;
         let drawControl;
         let currentLayer = 'Facilities';
-        let layerControlVisible = true;
 
         async function initMap() {
             map = L.map('map').setView([0, 0], 2);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
             drawnItems = new L.FeatureGroup();
             map.addLayer(drawnItems);
 
             drawControl = new L.Control.Draw({
                 draw: {
-                    polygon: true,
-                    marker: true,
-                    circle: true,
-                    rectangle: true,
+                    polygon: false,
+                    circle: false,
+                    marker: false,
                     polyline: false,
+                    rectangle: false,
                     circlemarker: false
                 },
                 edit: {
@@ -169,67 +152,27 @@
             map.addControl(drawControl);
 
             map.on('draw:created', function(e) {
-                const layer = e.layer;
-                openLayerTypeSelection(layer);
+                drawnItems.addLayer(e.layer);
             });
-
-            await loadLayers();
         }
 
-        async function loadLayers() {
-            try {
-                const response = await fetch('/api/load-layers');
-                const data = await response.json();
-
-                if (data.layers && data.layers.features) {
-                    data.layers.features.forEach(feature => {
-                        const layer = L.geoJSON(feature);
-                        drawnItems.addLayer(layer);
-                        if (feature.properties && feature.properties.type) {
-                            layer.feature = feature;
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error('Error loading layers:', error);
+        function activateDrawingTool(type) {
+            // Disable any active drawing
+            if (drawControl._toolbars.draw._activeMode) {
+                drawControl._toolbars.draw._activeMode.handler.disable();
             }
+
+            // Enable the selected tool
+            new L.Draw[type.charAt(0).toUpperCase() + type.slice(1)](map).enable();
         }
 
-        function openLayerTypeSelection(layer) {
-            const type = prompt('Enter layer type (PES or ES):', '');
-            if (type && (type.toUpperCase() === 'PES' || type.toUpperCase() === 'ES')) {
-                layer.feature = {
-                    type: 'Feature',
-                    properties: {
-                        type: type.toUpperCase(),
-                        layer: currentLayer
-                    }
-                };
-                drawnItems.addLayer(layer);
-                saveLayerToDatabase(layer);
-            }
+        function changeLayer(layer) {
+            currentLayer = layer;
+            // Add your layer switching logic here
         }
 
-        async function saveLayerToDatabase(layer) {
-            try {
-                const geoJSON = layer.toGeoJSON();
-                await fetch('/api/save-layers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        layers: {
-                            [currentLayer]: {
-                                type: 'FeatureCollection',
-                                features: [geoJSON]
-                            }
-                        }
-                    })
-                });
-            } catch (error) {
-                console.error('Error saving layer:', error);
-            }
+        function startAnalysis() {
+            alert('QD Analysis Started');
         }
 
         function newFile() { alert('New File');}
@@ -238,23 +181,9 @@
         function exportFile() { alert('Export File');}
         function deleteSelected() { alert('Delete Selected');}
         function clearAll() { alert('Clear All');}
-        function toggleLayers() { alert('Toggle Layers');}
         function zoomToFit() { alert('Zoom to Fit');}
-        function activateDrawingTool(type) {
-            drawControl.options.draw[type].enable();
-        }
 
-        function startAnalysis() {
-            alert('QD Analysis Started');
-        }
 
-        function toggleLayerPanel() {
-            const layerControl = document.getElementById('layerControl');
-            layerControlVisible = !layerControlVisible;
-            layerControl.style.display = layerControlVisible ? 'block' : 'none';
-        }
-
-        // Initialize map on page load
         window.onload = initMap;
     </script>
 </body>
