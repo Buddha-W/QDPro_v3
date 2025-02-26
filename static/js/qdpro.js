@@ -1036,6 +1036,11 @@ document.addEventListener("DOMContentLoaded", function() {
   console.log("DOM Content Loaded");
   QDPro.init();
 
+  // Expose modal functions globally
+  window.showSwitchLocationModal = () => QDPro.showSwitchLocationModal();
+  window.closeSwitchLocationModal = () => QDPro.closeSwitchLocationModal();
+  window.switchToLocation = (locationId) => QDPro.switchToLocation(locationId);
+
   // Left Panel Toggle
   const toggleLayersPanel = document.getElementById("toggleLayersPanel");
   const leftPanel= document.getElementById("leftPanel");
