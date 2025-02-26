@@ -5,190 +5,117 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <style>
-        #map { height: 600px; }
-        .layers-control { margin: 10px; }
-        body { margin: 0; padding: 0; }
-        .analysis-panel {
-            position: absolute;
-            right: 10px;
-            top: 10px; /*Adjusted top position*/
-            background: white;
+        #map {
+            height: calc(100vh - 50px);
+            width: 100%;
+        }
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: #f8f9fa;
             padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             z-index: 1000;
+        }
+        .menu-item {
+            margin-right: 15px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
-
-    <div id="map"></div>
-    <div id="analysis-panel" class="analysis-panel">
-        <h3>QD Analysis</h3>
-        <button id="analyzeBtn">Analyze</button> <div id="analysis-results"></div>
+    <div class="toolbar">
+        <span class="menu-item" onclick="showFileMenu()">File</span>
+        <span class="menu-item" onclick="showLayerControls()">Layers</span>
+        <span class="menu-item" onclick="showAnalysisTools()">Analysis</span>
     </div>
+    <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script>
-        const QDPro = {
-            map: null,
-            drawnItems: null,
-            drawControl: null,
+        let map, drawnItems;
 
-            init() {
-                if (!this.map) {
-                    console.log("Initializing map...");
-                    this.map = L.map('map').setView([39.8283, -98.5795], 4);
+        async function initMap() {
+            map = L.map('map').setView([51.505, -0.09], 13);
 
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        attribution: '© OpenStreetMap contributors'
-                    }).addTo(this.map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(map);
 
-                    this.drawnItems = new L.FeatureGroup();
-                    this.map.addLayer(this.drawnItems);
+            drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
 
-                    this.initDrawControls();
-                    this.loadSavedLayers();
-                    this.setupEventHandlers();
+            const drawControl = new L.Control.Draw({
+                draw: {
+                    polygon: true,
+                    marker: true,
+                    circle: true,
+                    rectangle: true
+                },
+                edit: {
+                    featureGroup: drawnItems
                 }
-            },
+            });
+            map.addControl(drawControl);
 
-            initDrawControls() {
-                this.drawControl = new L.Control.Draw({
-                    draw: {
-                        polygon: true,
-                        circle: true,
-                        marker: true,
-                        rectangle: true
-                    },
-                    edit: {
-                        featureGroup: this.drawnItems
-                    }
+            map.on('draw:created', function(e) {
+                drawnItems.addLayer(e.layer);
+                saveLayers();
+            });
+
+            await loadLayers();
+        }
+
+        async function saveLayers() {
+            try {
+                const layers = drawnItems.toGeoJSON();
+                await fetch('/api/save-layers', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({layers: layers})
                 });
-                this.map.addControl(this.drawControl);
-            },
-
-            async loadSavedLayers() {
-                try {
-                    const response = await fetch('/api/load-layers');
-                    const data = await response.json();
-
-                    if (data.layers && typeof data.layers === 'object') {
-                        Object.entries(data.layers).forEach(([name, layerData]) => {
-                            try {
-                                if (this.isValidGeoJSON(layerData)) {
-                                    const layer = L.geoJSON(layerData);
-                                    this.drawnItems.addLayer(layer);
-                                }
-                            } catch (err) {
-                                console.error(`Error loading layer ${name}:`, err);
-                            }
-                        });
-                    }
-                } catch (err) {
-                    console.error("Error loading layers:", err);
-                }
-            },
-
-            isValidGeoJSON(data) {
-                return data && 
-                       (data.type === 'Feature' || data.type === 'FeatureCollection') &&
-                       data.features &&
-                       Array.isArray(data.features);
-            },
-
-            setupEventHandlers() {
-                this.map.on('draw:created', (e) => {
-                    const layer = e.layer;
-                    this.drawnItems.addLayer(layer);
-                    this.saveLayer(layer);
-                });
-
-                document.getElementById('analyzeBtn')?.addEventListener('click', () => {
-                    this.performAnalysis();
-                });
-            },
-
-            async performAnalysis() {
-                try {
-                    if (!this.drawnItems) {
-                        throw new Error("No items drawn on map");
-                    }
-                    
-                    const drawnFeatures = this.drawnItems.toGeoJSON();
-                    if (!drawnFeatures.features || !drawnFeatures.features.length) {
-                        throw new Error("Please draw at least one shape to analyze");
-                    }
-
-                    // Get the first drawn feature's center point
-                    let firstFeature = drawnFeatures.features[0];
-                    if (!firstFeature) {
-                        throw new Error("No features available for analysis");
-                    }
-
-                    const analysisData = {
-                        site_type: "DOD",
-                        features: drawnFeatures.features,
-                        quantity: 1000, // You might want to get this from a form input
-                        material_type: "General Explosive"
-                    };
-
-                    const response = await fetch('/api/analyze_qd', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(analysisData)
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const results = await response.json();
-                    this.displayAnalysisResults(results);
-                } catch (err) {
-                    console.error("Analysis error:", err);
-                    alert("Analysis failed: " + err.message);
-                }
-            },
-
-            displayAnalysisResults(results) {
-                const resultsDiv = document.getElementById('analysis-results');
-                if (!resultsDiv) return;
-
-                let html = '<h4>Analysis Results</h4>';
-                if (results.safe_distance) {
-                    html += `<p>Safe Distance: ${results.safe_distance} feet</p>`;
-                }
-                if (results.k_factor) {
-                    html += `<p>K-Factor: ${results.k_factor}</p>`;
-                }
-                resultsDiv.innerHTML = html;
-            },
-
-            async saveLayer(layer) {
-                try {
-                    await fetch('/api/save-layers', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            layers: {
-                                [Date.now()]: layer.toGeoJSON()
-                            }
-                        })
-                    });
-                } catch (err) {
-                    console.error("Error saving layer:", err);
-                }
+            } catch (error) {
+                console.error('Error saving layers:', error);
             }
-        };
+        }
 
-        // Initialize map when DOM is ready
-        document.addEventListener('DOMContentLoaded', () => QDPro.init());
+        async function loadLayers() {
+            try {
+                const response = await fetch('/api/load-layers');
+                const data = await response.json();
+                if (data.layers) {
+                    L.geoJSON(data.layers, {
+                        onEachFeature: (feature, layer) => {
+                            drawnItems.addLayer(layer);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading layers:', error);
+            }
+        }
+
+        // Placeholder functions - replace with actual implementation
+        function showFileMenu() {
+            // Add your file menu logic here
+            alert('File menu clicked');
+        }
+
+        function showLayerControls() {
+            // Add your layer controls logic here
+            alert('Layer controls clicked');
+        }
+
+        function showAnalysisTools() {
+            // Add your analysis tools logic here
+            alert('Analysis tools clicked');
+        }
+
+
+        window.onload = initMap;
     </script>
 </body>
 </html>

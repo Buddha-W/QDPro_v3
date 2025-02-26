@@ -320,9 +320,14 @@ async def return_facilities_report():
 async def save_layers(request: Request):
     data = await request.json()
     try:
-        import psycopg2
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        conn = psycopg2.connect(os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/postgres'))
         cur = conn.cursor()
+        
+        # Ensure data structure is correct
+        if not isinstance(data, dict):
+            data = {"layers": data}
+        elif "layers" not in data:
+            data = {"layers": data}
 
         # Ensure data is in correct format
         if not isinstance(data, dict):

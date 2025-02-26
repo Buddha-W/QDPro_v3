@@ -1,4 +1,3 @@
-
 import numpy as np
 import math
 from typing import List, Dict, Tuple, Optional, Literal
@@ -31,6 +30,13 @@ class QDParameters:
     material_props: Optional[MaterialProperties] = None
     env_conditions: Optional[EnvironmentalConditions] = None
 
+    def validate(self):
+        if self.quantity <= 0:
+            raise ValueError("Quantity must be positive")
+        if self.site_type not in ["DOD", "DOE"]:
+            raise ValueError("Invalid site type")
+
+
 def get_engine(site_type: str = "DOD") -> 'QDEngine':
     """Create and return a QDEngine instance based on site type."""
     scaling_constants = {
@@ -55,7 +61,7 @@ class QDEngine:
         sensitivities = np.random.normal(material_props.sensitivity, 
                                        material_props.sensitivity * 0.05, iterations)
         temperatures = np.random.normal(env_conditions.temperature, 2.0, iterations)
-        
+
         # Calculate distances for each variation
         distances = []
         for i in range(iterations):
@@ -64,12 +70,12 @@ class QDEngine:
             base_distance = self.D * math.pow(modified_quantity, 1/3)
             adjusted_distance = base_distance * temp_factor * sensitivities[i]
             distances.append(adjusted_distance)
-            
+
         distances = np.array(distances)
         mean_distance = np.mean(distances)
         std_distance = np.std(distances)
         confidence_interval = np.percentile(distances, [2.5, 97.5])
-        
+
         return {
             "mean_distance": float(mean_distance),
             "std_deviation": float(std_distance),
@@ -84,12 +90,12 @@ class QDEngine:
             material_props = MaterialProperties(sensitivity=1.0, det_velocity=6000, tnt_equiv=1.0)
         if env_conditions is None:
             env_conditions = EnvironmentalConditions(temperature=298, pressure=101.325, humidity=50, confinement_factor=0.0)
-            
+
         temp_factor = 1.0 + 0.002 * (env_conditions.temperature - 298)
         humidity_factor = 1.0 + 0.001 * (env_conditions.humidity - 50)
         base_distance = self.D * math.pow(quantity, 1/3)
         distance = base_distance * temp_factor * humidity_factor * material_props.sensitivity
-        
+
         return round(distance, 2)
 
     def generate_k_factor_rings(self, center: List[float], safe_distance: float,
