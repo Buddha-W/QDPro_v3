@@ -7,62 +7,59 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <style>
         body { margin: 0; padding: 0; }
-        #map { position: absolute; top: 40px; bottom: 0; width: 100%; }
-        .top-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 40px;
+        #map { position: absolute; top: 80px; bottom: 0; width: 100%; }
+        .menu-bar {
             background: #f8f9fa;
+            padding: 5px;
             border-bottom: 1px solid #dee2e6;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            z-index: 1000;
         }
-        .menu-item {
+        .dropdown {
             position: relative;
-            margin-right: 20px;
+            display: inline-block;
         }
-        .menu-content {
+        .dropdown-content {
             display: none;
             position: absolute;
             background: white;
             min-width: 160px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1001;
+            z-index: 1000;
         }
-        .menu-content a {
+        .dropdown-content a {
             padding: 8px 12px;
             display: block;
             text-decoration: none;
             color: black;
+            cursor: pointer;
         }
-        .menu-content a:hover {
-            background: #f1f1f1;
-        }
+        .dropdown:hover .dropdown-content { display: block; }
         .tools-toolbar {
-            display: flex;
-            gap: 5px;
+            position: fixed;
+            top: 40px;
+            left: 0;
+            right: 0;
+            background: #f8f9fa;
+            padding: 5px;
+            z-index: 1000;
+            border-bottom: 1px solid #dee2e6;
         }
         .tools-toolbar button {
+            margin: 0 5px;
             padding: 5px 10px;
-            background: white;
             border: 1px solid #dee2e6;
-            border-radius: 4px;
+            background: white;
             cursor: pointer;
         }
         .layer-panel {
             position: fixed;
             left: 10px;
-            top: 50px;
+            top: 100px;
             background: white;
             padding: 10px;
             border-radius: 4px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 999;
-            display: none;
+            z-index: 1000;
+            min-width: 200px;
         }
         .layer-item {
             margin: 5px 0;
@@ -70,26 +67,22 @@
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <div class="menu-item">
-            <span onclick="toggleMenu('file-menu')">File</span>
-            <div id="file-menu" class="menu-content">
-                <a href="#" onclick="newProject()">New Project</a>
-                <a href="#" onclick="openProject()">Open Project</a>
-                <a href="#" onclick="saveProject()">Save Project</a>
+    <div class="menu-bar">
+        <div class="dropdown">
+            <span>File</span>
+            <div class="dropdown-content">
+                <a onclick="newProject()">New Project</a>
+                <a onclick="openProject()">Open Project</a>
+                <a onclick="saveProject()">Save Project</a>
             </div>
         </div>
-        <div class="tools-toolbar">
-            <button onclick="toggleLayerPanel()">Layers</button>
-            <button onclick="activateDrawingTool('polygon')">Draw Polygon</button>
-            <button onclick="activateDrawingTool('marker')">Add Marker</button>
-            <button onclick="activateDrawingTool('polyline')">Draw Line</button>
-            <button onclick="activateDrawingTool('circle')">Draw Circle</button>
-            <button onclick="deactivateDrawing()">Cancel Drawing</button>
-        </div>
     </div>
-
-    <div class="layer-panel" id="layerPanel">
+    <div class="tools-toolbar">
+        <button onclick="toggleDrawingTools()">Drawing Tools</button>
+        <button onclick="toggleLayerPanel()">Toggle Layers</button>
+        <button onclick="analyzeSite()">Analyze Site</button>
+    </div>
+    <div id="layer-panel" class="layer-panel" style="display: none;">
         <div class="layer-item">
             <input type="checkbox" id="facilitiesLayer" checked> Facilities
         </div>
@@ -100,7 +93,6 @@
             <input type="checkbox" id="analysisLayer" checked> Analysis
         </div>
     </div>
-
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -108,105 +100,130 @@
     <script>
         let map;
         let drawControl;
+        let drawnItems;
         let facilitiesLayer, qdArcsLayer, analysisLayer;
-        
-        function initMap() {
+
+        async function initMap() {
             map = L.map('map').setView([0, 0], 2);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             
-            facilitiesLayer = L.featureGroup().addTo(map);
-            qdArcsLayer = L.featureGroup().addTo(map);
-            analysisLayer = L.featureGroup().addTo(map);
-            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            drawnItems = new L.FeatureGroup().addTo(map);
+            facilitiesLayer = new L.FeatureGroup().addTo(map);
+            qdArcsLayer = new L.FeatureGroup().addTo(map);
+            analysisLayer = new L.FeatureGroup().addTo(map);
+
             drawControl = new L.Control.Draw({
                 draw: {
                     polygon: true,
-                    marker: true,
                     circle: true,
-                    polyline: true
+                    marker: true,
+                    rectangle: true
                 },
                 edit: {
-                    featureGroup: facilitiesLayer
+                    featureGroup: drawnItems
                 }
             });
-            
+
             map.on('draw:created', function(e) {
-                facilitiesLayer.addLayer(e.layer);
+                drawnItems.addLayer(e.layer);
             });
+
+            // Initialize layer controls
+            document.getElementById('facilitiesLayer').addEventListener('change', function(e) {
+                if(e.target.checked) map.addLayer(facilitiesLayer);
+                else map.removeLayer(facilitiesLayer);
+            });
+
+            document.getElementById('qdArcsLayer').addEventListener('change', function(e) {
+                if(e.target.checked) map.addLayer(qdArcsLayer);
+                else map.removeLayer(qdArcsLayer);
+            });
+
+            document.getElementById('analysisLayer').addEventListener('change', function(e) {
+                if(e.target.checked) map.addLayer(analysisLayer);
+                else map.removeLayer(analysisLayer);
+            });
+
+            await loadProject();
         }
 
-        function toggleMenu(menuId) {
-            document.getElementById(menuId).style.display = 
-                document.getElementById(menuId).style.display === 'block' ? 'none' : 'block';
+        function toggleDrawingTools() {
+            if(map.hasLayer(drawControl)) {
+                map.removeControl(drawControl);
+            } else {
+                map.addControl(drawControl);
+            }
         }
 
         function toggleLayerPanel() {
-            document.getElementById('layerPanel').style.display = 
-                document.getElementById('layerPanel').style.display === 'block' ? 'none' : 'block';
+            const panel = document.getElementById('layer-panel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         }
 
-        function activateDrawingTool(type) {
-            map.removeControl(drawControl);
-            drawControl = new L.Control.Draw({
-                draw: {
-                    polygon: type === 'polygon',
-                    marker: type === 'marker',
-                    circle: type === 'circle',
-                    polyline: type === 'polyline',
-                    rectangle: false,
-                    circlemarker: false
-                },
-                edit: {
-                    featureGroup: facilitiesLayer
-                }
-            });
-            map.addControl(drawControl);
-        }
-
-        function deactivateDrawing() {
-            map.removeControl(drawControl);
-        }
-
-        function newProject() {
-            facilitiesLayer.clearLayers();
-            qdArcsLayer.clearLayers();
-            analysisLayer.clearLayers();
+        async function newProject() {
+            if(confirm('Create new project? This will clear current data.')) {
+                drawnItems.clearLayers();
+                facilitiesLayer.clearLayers();
+                qdArcsLayer.clearLayers();
+                analysisLayer.clearLayers();
+            }
         }
 
         async function saveProject() {
-            const data = {
-                facilities: facilitiesLayer.toGeoJSON(),
-                qdArcs: qdArcsLayer.toGeoJSON(),
-                analysis: analysisLayer.toGeoJSON()
-            };
             try {
-                await fetch('/api/save', {
+                const data = {
+                    facilities: facilitiesLayer.toGeoJSON(),
+                    qdArcs: qdArcsLayer.toGeoJSON(),
+                    analysis: analysisLayer.toGeoJSON()
+                };
+                
+                const response = await fetch('/api/save', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(data)
                 });
-                alert('Project saved successfully');
-            } catch (error) {
+                
+                if(response.ok) {
+                    alert('Project saved successfully');
+                }
+            } catch(error) {
+                console.error('Error saving project:', error);
                 alert('Error saving project');
             }
         }
 
-        async function openProject() {
+        async function loadProject() {
             try {
                 const response = await fetch('/api/load');
                 const data = await response.json();
-                facilitiesLayer.clearLayers();
-                qdArcsLayer.clearLayers();
-                analysisLayer.clearLayers();
-                L.geoJSON(data.facilities).addTo(facilitiesLayer);
-                L.geoJSON(data.qdArcs).addTo(qdArcsLayer);
-                L.geoJSON(data.analysis).addTo(analysisLayer);
-            } catch (error) {
-                alert('Error loading project');
+                
+                if(data.facilities) {
+                    L.geoJSON(data.facilities).addTo(facilitiesLayer);
+                }
+                if(data.qdArcs) {
+                    L.geoJSON(data.qdArcs).addTo(qdArcsLayer);
+                }
+                if(data.analysis) {
+                    L.geoJSON(data.analysis).addTo(analysisLayer);
+                }
+            } catch(error) {
+                console.error('Error loading project:', error);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', initMap);
+        async function openProject() {
+            await loadProject();
+        }
+
+        async function analyzeSite() {
+            // Implement site analysis logic here
+            console.log('Analyzing site...');
+        }
+
+        window.onload = initMap;
     </script>
 </body>
 </html>
