@@ -378,9 +378,45 @@ const QDPro = {
   },
 
   createNewLocation: async function() {
-    const modalHtml = `
-      <div id="newLocationModal" style="position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
-        <div style="background-color: #fefefe; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+    const locationName = document.getElementById("newLocationName")?.value.trim();
+    if (!locationName) {
+      alert("Please enter a location name");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/create_location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location_name: locationName })
+      });
+
+      if (!response.ok) throw new Error("Failed to create location");
+
+      const data = await response.json();
+      this.currentLocation = data.id;
+      document.getElementById("dbStatus").textContent = `Location: ${locationName}`;
+
+      // Clear existing layers
+      Object.values(this.layers).forEach(layer => {
+        if (this.map.hasLayer(layer)) {
+          this.map.removeLayer(layer);
+        }
+      });
+      this.layers = {};
+      this.layers["Default"] = L.featureGroup().addTo(this.map);
+      this.activeLayer = this.layers["Default"];
+
+      this.updateDrawToLayerSelect();
+      this.updateLayerControl();
+
+      // Close modal
+      const modal = document.getElementById("newLocationModal");
+      if (modal) modal.remove();
+    } catch (error) {
+      console.error("Error creating location:", error);
+      alert("Failed to create location");
+    }
           <h2>Create New Location</h2>
           <input type="text" id="newLocationName" style="width: 100%; padding: 5px; margin: 10px 0;" placeholder="Enter location name">
           <div style="text-align: right; margin-top: 20px;">
@@ -714,19 +750,35 @@ const QDPro = {
     if (modal) modal.remove();
   },
 
-  closeAddLayerModal: function() {
-    document.getElementById("addLayerModal").style.display = "none";
-    document.getElementById("newLayerName").value = "";
-  },
-
   createNewLayer: function() {
-    const layerName = document.getElementById("newLayerName").value;
+    const layerName = document.getElementById("newLayerName").value.trim();
     const layerType = document.getElementById("newLayerType").value;
 
     if (!layerName) {
       alert("Please enter a layer name");
       return;
     }
+
+    if (this.layers[layerName]) {
+      alert("Layer with this name already exists");
+      return;
+    }
+
+    // Create new layer
+    const newLayer = L.featureGroup().addTo(this.map);
+    newLayer.layerType = layerType;
+    newLayer.properties = { type: layerType };
+    this.layers[layerName] = newLayer;
+    this.activeLayer = newLayer;
+
+    // Update UI
+    this.updateDrawToLayerSelect();
+    this.updateLayerControl();
+    this.saveToDatabase();
+
+    // Close modal
+    const modal = document.getElementById("addLayerModal");
+    if (modal) modal.remove();
 
     // Check if layer already exists
     if (this.layers[layerName]) {
