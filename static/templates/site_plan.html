@@ -579,6 +579,55 @@
     /************************************************************
      * DOMContentLoaded => Initialize QDPro
      ************************************************************/
+    // Modal management functions
+    function showNewLocationModal() {
+      document.getElementById("newLocationModal").classList.add("visible");
+    }
+
+    function closeNewLocationModal() {
+      document.getElementById("newLocationModal").classList.remove("visible");
+      document.getElementById("newLocationName").value = "";
+    }
+
+    function showSwitchLocationModal() {
+      document.getElementById("switchLocationModal").classList.add("visible");
+    }
+
+    function closeSwitchLocationModal() {
+      document.getElementById("switchLocationModal").classList.remove("visible");
+    }
+
+    function showAddLayerModal() {
+      document.getElementById("addLayerModal").classList.add("visible");
+    }
+
+    function closeAddLayerModal() {
+      document.getElementById("addLayerModal").classList.remove("visible");
+      document.getElementById("newLayerName").value = "";
+    }
+
+    async function createNewLayer() {
+      const name = document.getElementById("newLayerName").value.trim();
+      const type = document.getElementById("newLayerType").value;
+      
+      if (!name) {
+        alert("Please enter a layer name");
+        return;
+      }
+
+      if (QDPro.layers[name]) {
+        alert("Layer name already exists");
+        return;
+      }
+
+      const newLayer = L.featureGroup().addTo(QDPro.map);
+      newLayer.properties = { type: type };
+      QDPro.layers[name] = newLayer;
+      QDPro.activeLayer = newLayer;
+      QDPro.updateDrawToLayerSelect();
+      closeAddLayerModal();
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       console.log("DOM Content Loaded – let's init QDPro!");
       QDPro.init();
