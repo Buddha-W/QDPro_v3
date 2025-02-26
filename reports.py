@@ -1,97 +1,24 @@
+
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
-from sqlalchemy import create_engine, text
 from datetime import datetime
-import json
 import pdfkit
+import json
+import logging
+from fastapi import HTTPException
+import os
+from jinja2 import Template
 
 class Report(BaseModel):
     title: str
     generated_at: datetime
     data: dict
 
-async def generate_facility_report(engine) -> Report:
-    query = """
-    SELECT 
-        f.facility_number,
-        f.description,
-        f.category_code,
-        ST_AsGeoJSON(f.location) as location,
-        COUNT(es.id) as explosive_sites_count
-    FROM facilities f
-    LEFT JOIN explosive_sites es ON f.id = es.facility_id
-    GROUP BY f.id
-    """
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        facilities = [dict(row) for row in result]
-
-    return Report(
-        title="Facility Summary Report",
-        generated_at=datetime.now(),
-        data={"facilities": facilities}
-    )
-
-async def generate_safety_analysis(engine) -> Report:
-    query = """
-    SELECT 
-        es.id,
-        f.facility_number,
-        es.net_explosive_weight,
-        es.net_explosive_weight * 0.453592 as net_explosive_weight_kg,
-        es.hazard_type,
-        ST_AsGeoJSON(ST_Buffer(
-            f.location::geography, 
-            (es.net_explosive_weight ^ (1.0/3.0)) * es.k_factor
-        )::geometry) as safety_arc,
-        es.approval_status,
-        es.review_date,
-        es.reviewer_comments
-    FROM explosive_sites es
-    JOIN facilities f ON es.facility_id = f.id
-    """
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        analysis = [dict(row) for row in result]
-
-    return Report(
-        title="Safety Analysis Report",
-        generated_at=datetime.now(),
-        data={"safety_analysis": analysis}
-    )
-
-async def generate_site_plan_report(engine, site_id: int) -> Report:
-    query = """
-    SELECT 
-        f.facility_number,
-        f.description,
-        es.net_explosive_weight,
-        es.hazard_type,
-        es.approval_status,
-        es.review_date,
-        es.reviewer_comments,
-        ST_AsGeoJSON(f.location) as location,
-        ST_AsGeoJSON(ST_Buffer(
-            f.location::geography, 
-            (es.net_explosive_weight ^ (1.0/3.0)) * es.k_factor
-        )::geometry) as safety_arc
-    FROM explosive_sites es
-    JOIN facilities f ON es.facility_id = f.id
-    WHERE es.id = :site_id
-    """
-    with engine.connect() as conn:
-        result = conn.execute(text(query), {"site_id": site_id})
-        site_data = dict(result.fetchone())
-
-    return Report(
-        title="Site Plan Review Report",
-        generated_at=datetime.now(),
-        data={"site_plan": site_data}
-    )
-
-async def generate_pdf_report(report: Report, output_filename: str, template_name: str = "default_report.html"):
+async def generate_pdf_report(report: Report, output_filename: str, 
+                            map_snapshot: Optional[str] = None) -> Dict[str, Any]:
+    """Generate enhanced PDF report with map snapshots and styling."""
     try:
-        # Configure pdfkit options
+        # Configure wkhtmltopdf options
         options = {
             'page-size': 'Letter',
             'margin-top': '0.75in',
@@ -99,29 +26,125 @@ async def generate_pdf_report(report: Report, output_filename: str, template_nam
             'margin-bottom': '0.75in',
             'margin-left': '0.75in',
             'encoding': "UTF-8",
-            'custom-header': [('Accept-Encoding', 'gzip')]
+            'custom-header': [('Accept-Encoding', 'gzip')],
+            'enable-local-file-access': True,
+            'javascript-delay': 2000,
+            'no-stop-slow-scripts': True,
+            'debug-javascript': True,
+            'quiet': ''
         }
-        
-        # Generate HTML using Jinja2 template
-        template = templates.get_template(template_name)
+
+        if map_snapshot:
+            options.update({
+                'enable-javascript': True,
+                'window-status': 'MapReady'
+            })
+
+        # Custom CSS for report styling
+        css = """
+            body { 
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #662d91;
+                padding-bottom: 10px;
+            }
+            .map-container {
+                height: 500px;
+                margin: 20px 0;
+                border: 1px solid #ccc;
+            }
+            .analysis-results {
+                background: #f9f9f9;
+                padding: 15px;
+                border-radius: 4px;
+                margin: 20px 0;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+            }
+            th, td {
+                padding: 8px;
+                border: 1px solid #ddd;
+                text-align: left;
+            }
+            th {
+                background-color: #662d91;
+                color: white;
+            }
+        """
+
+        # Create HTML template
+        template_str = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>{{ css }}</style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>{{ report.title }}</h1>
+                    <p>Generated: {{ report.generated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                </div>
+
+                {% if map_snapshot %}
+                <div class="map-container">
+                    <img src="{{ map_snapshot }}" style="width: 100%; height: auto;"/>
+                </div>
+                {% endif %}
+
+                <div class="analysis-results">
+                    <h2>Analysis Results</h2>
+                    {% for key, value in report.data.items() %}
+                    <div class="result-item">
+                        <h3>{{ key|title }}</h3>
+                        {% if value is mapping %}
+                            <table>
+                            {% for k, v in value.items() %}
+                                <tr>
+                                    <th>{{ k|title }}</th>
+                                    <td>{{ v }}</td>
+                                </tr>
+                            {% endfor %}
+                            </table>
+                        {% else %}
+                            <p>{{ value }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </body>
+            </html>
+        """
+
+        # Render template
+        template = Template(template_str)
         html_content = template.render(
-            title=report.title,
-            generated_at=report.generated_at,
-            data=report.data
+            report=report,
+            css=css,
+            map_snapshot=map_snapshot
         )
-        
+
         # Generate PDF
-        pdfkit.from_string(html_content, output_filename, options=options)
+        pdf = pdfkit.from_string(html_content, output_filename, options=options)
         
-        # Validate PDF was created
+        # Verify PDF generation
         if not os.path.exists(output_filename):
-            raise Exception("PDF file was not generated")
-            
+            raise Exception("PDF generation failed")
+
         return {
-            "success": True,
+            "status": "success",
             "filename": output_filename,
-            "size": os.path.getsize(output_filename)
+            "size": os.path.getsize(output_filename),
+            "generated_at": datetime.now().isoformat()
         }
+
     except Exception as e:
         logging.error(f"PDF generation error: {str(e)}")
         raise HTTPException(

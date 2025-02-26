@@ -1,656 +1,346 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>QDPro – Full Modal Example</title>
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
-  <!-- Leaflet.draw CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" crossorigin="anonymous"/>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous"/>
-  <!-- Leaflet and Leaflet.draw JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
-
-  <style>
-    /* BASIC RESET & BODY */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
-
-    /* TOP NAV BAR */
-    nav.main-toolbar {
-      position: fixed; top: 0; left: 0; right: 0;
-      height: 40px; background: #f1f1f1; border-bottom: 1px solid #ccc;
-      display: flex; align-items: center; z-index: 3000; padding: 0 10px;
-      white-space: nowrap;
-    }
-    .menu-item {
-      padding: 0 15px; font-size: 14px; display: flex; align-items: center;
-      cursor: pointer; position: relative;
-    }
-    .menu-item:hover { background: #e9ecef; }
-    .menu-dropdown {
-      display: none; position: fixed; background: white; min-width: 150px;
-      border: 1px solid #ccc; border-radius: 4px; z-index: 3500;
-    }
-    .menu-dropdown-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
-    .menu-dropdown-item:hover { background: #f0f0f0; }
-    #dbStatus { margin-left: auto; }
-
-    /* SECOND TOOLBAR (Drawing) */
-    .toolbar {
-      position: fixed; top: 40px; left: 0; right: 0;
-      height: 40px; background: #fff; border-bottom: 1px solid #ccc;
-      display: flex; align-items: center; z-index: 2900; padding: 0 10px;
-    }
-    .tool-group { display: flex; align-items: center; margin-right: 10px; }
-    .tool-button {
-      padding: 6px; margin: 0 2px; border: 1px solid transparent;
-      border-radius: 3px; background: #fff; color: #666; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      min-width: 32px; height: 32px;
-    }
-    .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
-    .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
-
-    /* MAP (Below 2 Toolbars => top: 80px) */
-    #map {
-      position: fixed; top: 80px; left: 0; right: 0; bottom: 0;
-      z-index: 1000; background: #eee;
-    }
-
-    /* LEFT PANEL */
-    .left-panel {
-      position: fixed; top: 80px; left: 0; width: 300px;
-      height: calc(100vh - 80px); background: white; border-right: 1px solid #ccc;
-      transform: translateX(-300px); transition: transform 0.3s ease; z-index: 1500;
-      display: flex; flex-direction: column;
-    }
-    .left-panel.visible { transform: translateX(0); }
-    .panel-header {
-      padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ccc; font-weight: bold;
-    }
-    .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
-
-    /* BASE LAYER DROPDOWN */
-    .base-layer-dropdown {
-      position: fixed; background: white; padding: 10px; border: 1px solid #ccc;
-      border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      z-index: 2800; display: none;
-    }
-
-    /* MODALS (New Location, Switch Location, Add Layer) */
-    .modal-overlay {
-      display: none; position: fixed; z-index: 4000; left: 0; top: 0;
-      width: 100%; height: 100%; background: rgba(0,0,0,0.4);
-      align-items: center; justify-content: center;
-    }
-    .modal-overlay.visible { display: flex; }
-    .modal-content {
-      background: #fff; padding: 20px; border: 1px solid #888;
-      width: 80%; max-width: 500px;
-    }
-    .modal-content h2 { margin-bottom: 15px; }
-    .modal-content input, .modal-content select, .modal-content textarea {
-      width: 100%; padding: 5px; margin-top: 5px; margin-bottom: 10px;
-    }
-    .modal-content button { margin: 5px; }
-  </style>
+    <title>QDPro Site Plan</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+    <style>
+        #map { height: 100vh; }
+        .analysis-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .uncertainty-band { opacity: 0.3; }
+    </style>
 </head>
 <body>
-  <!-- TOP NAV BAR -->
-  <nav class="main-toolbar">
-    <div class="menu-item" onclick="toggleMenu(this, 'fileMenu')">File
-      <div class="menu-dropdown" id="fileMenu">
-        <div class="menu-dropdown-item" onclick="showNewLocationModal()">New Location</div>
-        <div class="menu-dropdown-item" onclick="showSwitchLocationModal()">Switch Location</div>
-        <div class="menu-dropdown-item" onclick="alert('Save to DB not implemented');">Save</div>
-      </div>
+    <!-- TOP NAV BAR -->
+    <nav class="main-toolbar">
+        <div class="menu-item" onclick="toggleMenu(this, 'fileMenu')">File
+            <div class="menu-dropdown" id="fileMenu">
+                <div class="menu-dropdown-item" onclick="showNewLocationModal()">New Location</div>
+                <div class="menu-dropdown-item" onclick="showSwitchLocationModal()">Switch Location</div>
+                <div class="menu-dropdown-item" onclick="alert('Save to DB not implemented');">Save</div>
+            </div>
+        </div>
+        <div class="menu-item" onclick="toggleMenu(this, 'editMenu')">Edit
+            <div class="menu-dropdown" id="editMenu">
+                <div class="menu-dropdown-item">Cut</div>
+                <div class="menu-dropdown-item">Copy</div>
+                <div class="menu-dropdown-item">Paste</div>
+            </div>
+        </div>
+        <div class="menu-item" onclick="toggleMenu(this, 'viewMenu')">View
+            <div class="menu-dropdown" id="viewMenu">
+                <div class="menu-dropdown-item">Layers</div>
+                <div class="menu-dropdown-item">Base Maps</div>
+            </div>
+        </div>
+        <div class="menu-item" onclick="toggleMenu(this, 'toolsMenu')">Tools
+            <div class="menu-dropdown" id="toolsMenu">
+                <div class="menu-dropdown-item">QD Calculator</div>
+                <div class="menu-dropdown-item">Measure</div>
+            </div>
+        </div>
+        <div class="menu-item" onclick="toggleMenu(this, 'helpMenu')">Help
+            <div class="menu-dropdown" id="helpMenu">
+                <div class="menu-dropdown-item">Documentation</div>
+                <div class="menu-dropdown-item">About</div>
+            </div>
+        </div>
+        <div id="dbStatus">No location selected</div>
+    </nav>
+
+    <!-- SECOND TOOLBAR -->
+    <div class="toolbar">
+        <div class="tool-group">
+            <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
+                <i class="fas fa-bars"></i>
+            </button>
+            <button id="baseLayerTool" class="tool-button" title="Base Layers">
+                <i class="fas fa-layer-group"></i>
+            </button>
+        </div>
+        <div class="tool-group">
+            <button id="selectTool" class="tool-button" title="Select Features">
+                <i class="fas fa-mouse-pointer"></i>
+            </button>
+            <button id="panTool" class="tool-button active" title="Pan Map">
+                <i class="fas fa-hand-paper"></i>
+            </button>
+        </div>
+        <div class="tool-group">
+            <button id="drawMarker" class="tool-button" title="Add Point">
+                <i class="fas fa-map-marker-alt"></i>
+            </button>
+            <button id="drawPolygon" class="tool-button" title="Draw Polygon">
+                <i class="fas fa-draw-polygon"></i>
+            </button>
+            <button id="drawRectangle" class="tool-button" title="Draw Rectangle">
+                <i class="fas fa-square"></i>
+            </button>
+            <button id="drawCircle" class="tool-button" title="Draw Circle">
+                <i class="fas fa-circle"></i>
+            </button>
+            <button id="drawPolyline" class="tool-button" title="Draw Line">
+                <i class="fas fa-minus"></i>
+            </button>
+        </div>
     </div>
-    <div class="menu-item" onclick="toggleMenu(this, 'editMenu')">Edit
-      <div class="menu-dropdown" id="editMenu">
-        <div class="menu-dropdown-item">Cut</div>
-        <div class="menu-dropdown-item">Copy</div>
-        <div class="menu-dropdown-item">Paste</div>
-      </div>
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel" id="leftPanel">
+        <div class="panel-header">Layers Panel</div>
+        <div class="panel-content">
+            <div class="layer-select-container">
+                <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
+                <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
+                <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">
+                    Add New Layer
+                </button>
+            </div>
+            <div id="layerControl" style="margin-top:20px;"></div>
+        </div>
     </div>
-    <div class="menu-item" onclick="toggleMenu(this, 'viewMenu')">View
-      <div class="menu-dropdown" id="viewMenu">
-        <div class="menu-dropdown-item">Layers</div>
-        <div class="menu-dropdown-item">Base Maps</div>
-      </div>
+
+    <!-- BASE LAYER DROPDOWN -->
+    <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
+
+    <div id="map"></div>
+    <div class="analysis-panel">
+        <h3>QD Analysis</h3>
+        <input type="number" id="explosive-quantity" placeholder="Explosive Quantity (lbs)"/>
+        <button onclick="runMonteCarloAnalysis()">Analyze</button>
+        <div id="analysis-results"></div>
     </div>
-    <div class="menu-item" onclick="toggleMenu(this, 'toolsMenu')">Tools
-      <div class="menu-dropdown" id="toolsMenu">
-        <div class="menu-dropdown-item">QD Calculator</div>
-        <div class="menu-dropdown-item">Measure</div>
-      </div>
+
+    <!-- MODALS: New Location, Switch Location, Add Layer -->
+
+    <!-- New Location Modal -->
+    <div id="newLocationModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Create New Location</h2>
+            <input type="text" id="newLocationName" placeholder="Enter location name"/>
+            <div style="text-align:right;">
+                <button onclick="closeNewLocationModal()" style="margin-right:10px;">Cancel</button>
+                <button onclick="createNewLocation()">Create</button>
+            </div>
+        </div>
     </div>
-    <div class="menu-item" onclick="toggleMenu(this, 'helpMenu')">Help
-      <div class="menu-dropdown" id="helpMenu">
-        <div class="menu-dropdown-item">Documentation</div>
-        <div class="menu-dropdown-item">About</div>
-      </div>
+
+    <!-- Switch Location Modal -->
+    <div id="switchLocationModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Switch Location</h2>
+            <div id="locationList" style="margin:10px 0; max-height:200px; overflow-y:auto;">
+                <!-- We'll fill this with JS -->
+            </div>
+            <div style="text-align:right;">
+                <button onclick="closeSwitchLocationModal()">Close</button>
+            </div>
+        </div>
     </div>
-    <div id="dbStatus">No location selected</div>
-  </nav>
 
-  <!-- SECOND TOOLBAR -->
-  <div class="toolbar">
-    <div class="tool-group">
-      <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
-        <i class="fas fa-bars"></i>
-      </button>
-      <button id="baseLayerTool" class="tool-button" title="Base Layers">
-        <i class="fas fa-layer-group"></i>
-      </button>
+    <!-- Add Layer Modal -->
+    <div id="addLayerModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Add New Layer</h2>
+            <input type="text" id="newLayerName" placeholder="Layer Name"/>
+            <select id="newLayerType">
+                <option value="facility">Facility</option>
+                <option value="boundary">Boundary</option>
+            </select>
+            <div style="text-align:right;">
+                <button onclick="closeAddLayerModal()" style="margin-right:10px;">Cancel</button>
+                <button onclick="createNewLayer()">Create</button>
+            </div>
+        </div>
     </div>
-    <div class="tool-group">
-      <button id="selectTool" class="tool-button" title="Select Features">
-        <i class="fas fa-mouse-pointer"></i>
-      </button>
-      <button id="panTool" class="tool-button active" title="Pan Map">
-        <i class="fas fa-hand-paper"></i>
-      </button>
-    </div>
-    <div class="tool-group">
-      <button id="drawMarker" class="tool-button" title="Add Point">
-        <i class="fas fa-map-marker-alt"></i>
-      </button>
-      <button id="drawPolygon" class="tool-button" title="Draw Polygon">
-        <i class="fas fa-draw-polygon"></i>
-      </button>
-      <button id="drawRectangle" class="tool-button" title="Draw Rectangle">
-        <i class="fas fa-square"></i>
-      </button>
-      <button id="drawCircle" class="tool-button" title="Draw Circle">
-        <i class="fas fa-circle"></i>
-      </button>
-      <button id="drawPolyline" class="tool-button" title="Draw Line">
-        <i class="fas fa-minus"></i>
-      </button>
-    </div>
-  </div>
 
-  <!-- LEFT PANEL -->
-  <div class="left-panel" id="leftPanel">
-    <div class="panel-header">Layers Panel</div>
-    <div class="panel-content">
-      <div class="layer-select-container">
-        <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
-        <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
-        <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">
-          Add New Layer
-        </button>
-      </div>
-      <div id="layerControl" style="margin-top:20px;"></div>
-    </div>
-  </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script>
+        const map = L.map('map').setView([39.8283, -98.5795], 4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-  <!-- BASE LAYER DROPDOWN -->
-  <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
 
-  <!-- MAP -->
-  <div id="map"></div>
-
-  <!-- MODALS: New Location, Switch Location, Add Layer -->
-
-  <!-- New Location Modal -->
-  <div id="newLocationModal" class="modal-overlay">
-    <div class="modal-content">
-      <h2>Create New Location</h2>
-      <input type="text" id="newLocationName" placeholder="Enter location name"/>
-      <div style="text-align:right;">
-        <button onclick="closeNewLocationModal()" style="margin-right:10px;">Cancel</button>
-        <button onclick="createNewLocation()">Create</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Switch Location Modal -->
-  <div id="switchLocationModal" class="modal-overlay">
-    <div class="modal-content">
-      <h2>Switch Location</h2>
-      <div id="locationList" style="margin:10px 0; max-height:200px; overflow-y:auto;">
-        <!-- We'll fill this with JS -->
-      </div>
-      <div style="text-align:right;">
-        <button onclick="closeSwitchLocationModal()">Close</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add Layer Modal -->
-  <div id="addLayerModal" class="modal-overlay">
-    <div class="modal-content">
-      <h2>Add New Layer</h2>
-      <input type="text" id="newLayerName" placeholder="Layer Name"/>
-      <select id="newLayerType">
-        <option value="facility">Facility</option>
-        <option value="boundary">Boundary</option>
-      </select>
-      <div style="text-align:right;">
-        <button onclick="closeAddLayerModal()" style="margin-right:10px;">Cancel</button>
-        <button onclick="createNewLayer()">Create</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    /************************************************************
-     * Minimal toggleMenu function for top nav
-     ************************************************************/
-    window.toggleMenu = function(element, menuId) {
-      const dropdown = document.getElementById(menuId);
-      if (!dropdown) {
-        console.error("Menu dropdown not found:", menuId);
-        return;
-      }
-      // Close other menus
-      document.querySelectorAll(".menu-dropdown").forEach(dd => {
-        if (dd.id !== menuId) {
-          dd.style.display = "none";
-          dd.parentElement.classList.remove("active");
-        }
-      });
-      // Toggle this menu
-      const isVisible = dropdown.style.display === "block";
-      dropdown.style.display = isVisible ? "none" : "block";
-      element.classList.toggle("active", !isVisible);
-      // Position dropdown
-      if (!isVisible) {
-        const rect = element.getBoundingClientRect();
-        dropdown.style.position = "fixed";
-        dropdown.style.top = rect.bottom + "px";
-        dropdown.style.left = rect.left + "px";
-        dropdown.style.zIndex = "3500";
-      }
-    };
-
-    /************************************************************
-     * Minimal QDPro object to handle map, layers, modals, etc.
-     ************************************************************/
-    const QDPro = {
-      map: null,
-      layers: {},
-      activeLayer: null,
-      isDrawing: false,
-      currentLocation: null,
-      // For demonstration, a fake location array
-      mockLocations: [
-        { id: 1, name: "Location A", created_at: "2023-01-01" },
-        { id: 2, name: "Location B", created_at: "2023-02-15" }
-      ],
-
-      init: function() {
-        console.log("Initializing QDPro...");
-
-        // 1) Initialize the map
-        this.map = L.map("map", {
-          center: [39.8283, -98.5795],
-          zoom: 4
-        });
-        // Add a default tile layer
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap contributors"
-        }).addTo(this.map);
-
-        // 2) Create a default layer group
-        this.activeLayer = L.featureGroup().addTo(this.map);
-        this.layers["Default"] = this.activeLayer;
-
-        // 3) Setup event handlers for the draw tools
-        this.setupDrawTools();
-
-        // 4) Setup left panel toggle
-        const leftPanel = document.getElementById("leftPanel");
-        const mapElement = document.getElementById("map");
-        document.getElementById("toggleLayersPanel").addEventListener("click", () => {
-          leftPanel.classList.toggle("visible");
-          if (leftPanel.classList.contains("visible")) {
-            mapElement.style.left = "300px";
-            mapElement.style.width = "calc(100% - 300px)";
-          } else {
-            mapElement.style.left = "0";
-            mapElement.style.width = "100%";
-          }
-          this.map.invalidateSize();
-        });
-
-        // 5) Update "Draw to Layer" dropdown
-        this.updateDrawToLayerSelect();
-
-        console.log("QDPro init complete. Map should be visible now.");
-      },
-
-      setupDrawTools: function() {
-        // Define draw tools
-        const drawOptions = { shapeOptions: { color: "#3388ff" } };
-        const polygonTool = new L.Draw.Polygon(this.map, {
-          allowIntersection: false, showArea: true,
-          drawError: { color: "#e1e100", timeout: 1000 },
-          shapeOptions: { color: "#3388ff" }
-        });
-        const polylineTool = new L.Draw.Polyline(this.map, drawOptions);
-        const rectangleTool = new L.Draw.Rectangle(this.map, drawOptions);
-        const circleTool = new L.Draw.Circle(this.map, drawOptions);
-        const markerTool = new L.Draw.Marker(this.map);
-
-        // Hook up the toolbar buttons
-        document.getElementById("drawPolygon").addEventListener("click", () => this.activateTool(polygonTool, "drawPolygon"));
-        document.getElementById("drawPolyline").addEventListener("click", () => this.activateTool(polylineTool, "drawPolyline"));
-        document.getElementById("drawRectangle").addEventListener("click", () => this.activateTool(rectangleTool, "drawRectangle"));
-        document.getElementById("drawCircle").addEventListener("click", () => this.activateTool(circleTool, "drawCircle"));
-        document.getElementById("drawMarker").addEventListener("click", () => this.activateTool(markerTool, "drawMarker"));
-
-        // Deactivate on "panTool" click
-        document.getElementById("panTool").addEventListener("click", () => this.deactivateAllTools());
-
-        // Minimal "selectTool" logic
-        document.getElementById("selectTool").addEventListener("click", () => {
-          this.deactivateAllTools();
-          document.getElementById("selectTool").classList.add("active");
-          console.log("Select mode not fully implemented in this example.");
-        });
-
-        // Leaflet draw:created event
-        this.map.on("draw:created", (e) => {
-          console.log("draw:created event fired", e);
-          const layer = e.layer;
-          // Force polygon closure if needed
-          if (e.layerType === "polygon") {
-            const coords = layer.getLatLngs()[0];
-            if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
-              coords.push(coords[0]);
-              layer.setLatLngs(coords);
-            }
-          }
-          // Add to active layer
-          this.activeLayer.addLayer(layer);
-          console.log("Shape added to active layer:", layer);
-
-          // Deactivate
-          this.deactivateAllTools();
-        });
-      },
-
-      activateTool: function(tool, buttonId) {
-        this.deactivateAllTools();
-        tool.enable();
-        document.getElementById(buttonId).classList.add("active");
-        this.isDrawing = true;
-      },
-
-      deactivateAllTools: function() {
-        // Turn off Leaflet Draw
-        if (L.Draw && L.Draw.Feature && L.Draw.Feature.prototype.disable) {
-          // A quick approach: manually disable each type
-          new L.Draw.Polygon(this.map).disable();
-          new L.Draw.Polyline(this.map).disable();
-          new L.Draw.Rectangle(this.map).disable();
-          new L.Draw.Circle(this.map).disable();
-          new L.Draw.Marker(this.map).disable();
-        }
-        // Clear "active" highlight
-        document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("active"));
-        // Pan tool is default
-        document.getElementById("panTool").classList.add("active");
-        this.isDrawing = false;
-      },
-
-      updateDrawToLayerSelect: function() {
-        const select = document.getElementById("drawToLayer");
-        select.innerHTML = "";
-        Object.keys(this.layers).forEach(layerName => {
-          const opt = document.createElement("option");
-          opt.value = layerName;
-          opt.textContent = layerName;
-          select.appendChild(opt);
-        });
-        select.addEventListener("change", (e) => {
-          const selected = e.target.value;
-          this.activeLayer = this.layers[selected];
-          console.log("Active layer changed to:", selected);
-        });
-      },
-
-      /*********************************
-       * Add New Layer Modal Functions *
-       *********************************/
-      showAddLayerModal: function() {
-        document.getElementById("addLayerModal").classList.add("visible");
-      },
-      closeAddLayerModal: function() {
-        document.getElementById("addLayerModal").classList.remove("visible");
-        // Clear input
-        document.getElementById("newLayerName").value = "";
-      },
-      createNewLayer: function() {
-        const layerName = document.getElementById("newLayerName").value.trim();
-        const layerType = document.getElementById("newLayerType").value;
-        if (!layerName) {
-          alert("Please enter a layer name");
-          return;
-        }
-        if (this.layers[layerName]) {
-          alert(`Layer "${layerName}" already exists`);
-          return;
-        }
-        const newLayer = L.featureGroup().addTo(this.map);
-        newLayer.properties = { type: layerType };
-        this.layers[layerName] = newLayer;
-        this.activeLayer = newLayer;
-        this.updateDrawToLayerSelect();
-        this.closeAddLayerModal();
-        console.log(`Created new layer: ${layerName}, type: ${layerType}`);
-      },
-
-      /*************************************
-       * New Location Modal Functions
-       *************************************/
-      showNewLocationModal: function() {
-        document.getElementById("newLocationModal").classList.add("visible");
-      },
-      closeNewLocationModal: function() {
-        document.getElementById("newLocationModal").classList.remove("visible");
-        document.getElementById("newLocationName").value = "";
-      },
-      createNewLocation: async function() {
-        const locName = document.getElementById("newLocationName").value.trim();
-        if (!locName) {
-          alert("Please enter a location name");
-          return;
-        }
-        try {
-          const response = await fetch('/api/create_location', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
+        const drawControl = new L.Control.Draw({
+            draw: {
+                polygon: false,
+                circle: {
+                    shapeOptions: {
+                        color: '#662d91'
+                    }
+                },
+                marker: {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41]
+                    })
+                },
+                circlemarker: false,
+                rectangle: false,
+                polyline: false
             },
-            body: JSON.stringify({ location_name: locName })
-          });
-          const data = await response.json();
-          console.log("Created new location:", data);
-          document.getElementById("dbStatus").textContent = `Location: ${locName}`;
-          // Clear all existing layers
-          Object.values(this.layers).forEach(layer => {
-            this.map.removeLayer(layer);
-          });
-          this.layers = {};
-          // Create a default layer
-          this.activeLayer = L.featureGroup().addTo(this.map);
-          this.layers["Default"] = this.activeLayer;
-          this.updateDrawToLayerSelect();
-          this.closeNewLocationModal();
-        } catch (error) {
-          console.error("Error creating location:", error);
-          alert("Error creating location");
-        }
-      },
-
-      /*************************************
-       * Switch Location Modal Functions
-       *************************************/
-      showSwitchLocationModal: async function() {
-        try {
-          const response = await fetch('/api/locations');
-          const data = await response.json();
-
-          const locationList = document.getElementById("locationList");
-          locationList.innerHTML = "";
-
-          data.locations.forEach(loc => {
-            const div = document.createElement("div");
-            div.style.padding = "10px";
-            div.style.borderBottom = "1px solid #eee";
-            div.style.cursor = "pointer";
-            div.textContent = `${loc.name} (Created: ${loc.created_at})`;
-            div.addEventListener("click", () => this.switchToLocation(loc));
-            locationList.appendChild(div);
-          });
-
-          document.getElementById("switchLocationModal").classList.add("visible");
-        } catch (error) {
-          console.error("Error fetching locations:", error);
-          alert("Failed to load locations");
-        }
-      },
-      closeSwitchLocationModal: function() {
-        document.getElementById("switchLocationModal").classList.remove("visible");
-      },
-      switchToLocation: async function(locObj) {
-        try {
-          const response = await fetch(`/api/load-layers?location=${locObj.id}`);
-          const data = await response.json();
-
-          // Clear existing layers
-          Object.values(this.layers).forEach(layer => this.map.removeLayer(layer));
-          this.layers = {};
-
-          // Create layers from loaded data
-          Object.entries(data.layers).forEach(([name, layerData]) => {
-            const newLayer = L.featureGroup().addTo(this.map);
-            this.layers[name] = newLayer;
-
-            // Add features if they exist
-            if (layerData.features) {
-              layerData.features.forEach(feature => {
-                L.geoJSON(feature).addTo(newLayer);
-              });
+            edit: {
+                featureGroup: drawnItems
             }
-          });
+        });
+        map.addControl(drawControl);
 
-          // Set default active layer
-          this.activeLayer = this.layers["Default"] || L.featureGroup().addTo(this.map);
-          if (!this.layers["Default"]) {
-            this.layers["Default"] = this.activeLayer;
-          }
+        map.on('draw:created', async function(e) {
+            const layer = e.layer;
+            drawnItems.addLayer(layer);
 
-          this.updateDrawToLayerSelect();
-          this.currentLocation = locObj.name;
-          document.getElementById("dbStatus").textContent = `Location: ${locObj.name}`;
-          this.closeSwitchLocationModal();
-        } catch (error) {
-          console.error("Error loading layers:", error);
-          alert("Failed to load location layers");
+            if (e.layerType === 'marker') {
+                const quantity = document.getElementById('explosive-quantity').value;
+                if (!quantity) {
+                    alert('Please enter explosive quantity');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/analyze_qd', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            quantity: parseFloat(quantity),
+                            location: [layer.getLatLng().lng, layer.getLatLng().lat],
+                            site_type: 'DOD',
+                            material_props: {
+                                sensitivity: 1.0,
+                                det_velocity: 6000,
+                                tnt_equiv: 1.0
+                            },
+                            env_conditions: {
+                                temperature: 298,
+                                pressure: 101.325,
+                                humidity: 50,
+                                confinement_factor: 0
+                            }
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    // Add buffer zones
+                    L.geoJSON(data.geojson, {
+                        style: (feature) => ({
+                            color: feature.properties.k_factor === 1.0 ? '#ff0000' : '#662d91',
+                            weight: 2,
+                            opacity: feature.properties.isUncertaintyBand ? 0.3 : 0.8
+                        })
+                    }).addTo(drawnItems);
+
+                    // Display results
+                    document.getElementById('analysis-results').innerHTML = `
+                        <p>Mean Safe Distance: ${data.safe_distance.toFixed(2)} ft</p>
+                        <p>Standard Deviation: ${data.std_deviation.toFixed(2)} ft</p>
+                        <p>95% CI: [${data.confidence_interval[0].toFixed(2)}, 
+                                  ${data.confidence_interval[1].toFixed(2)}] ft</p>
+                    `;
+                } catch (error) {
+                    console.error('Analysis failed:', error);
+                    alert('Analysis failed: ' + error.message);
+                }
+            }
+        });
+
+
+        /************************************************************
+         * Minimal toggleMenu function for top nav
+         ************************************************************/
+        window.toggleMenu = function(element, menuId) {
+            const dropdown = document.getElementById(menuId);
+            if (!dropdown) {
+                console.error("Menu dropdown not found:", menuId);
+                return;
+            }
+            // Close other menus
+            document.querySelectorAll(".menu-dropdown").forEach(dd => {
+                if (dd.id !== menuId) {
+                    dd.style.display = "none";
+                    dd.parentElement.classList.remove("active");
+                }
+            });
+            // Toggle this menu
+            const isVisible = dropdown.style.display === "block";
+            dropdown.style.display = isVisible ? "none" : "block";
+            element.classList.toggle("active", !isVisible);
+            // Position dropdown
+            if (!isVisible) {
+                const rect = element.getBoundingClientRect();
+                dropdown.style.position = "fixed";
+                dropdown.style.top = rect.bottom + "px";
+                dropdown.style.left = rect.left + "px";
+                dropdown.style.zIndex = "3500";
+            }
+        };
+
+        // Modal management functions
+        function showNewLocationModal() {
+            document.getElementById("newLocationModal").classList.add("visible");
         }
-      },
 
-      showNewLocationModal: function() {
-        document.getElementById("newLocationModal").classList.add("visible");
-      },
-
-      closeNewLocationModal: function() {
-        document.getElementById("newLocationModal").classList.remove("visible");
-        document.getElementById("newLocationName").value = "";
-      },
-
-      showSwitchLocationModal: async function() {
-        try {
-          const response = await fetch('/api/locations');
-          const data = await response.json();
-
-          const locationList = document.getElementById("locationList");
-          locationList.innerHTML = "";
-
-          data.locations.forEach(loc => {
-            const div = document.createElement("div");
-            div.style.padding = "10px";
-            div.style.borderBottom = "1px solid #eee";
-            div.style.cursor = "pointer";
-            div.textContent = `${loc.name} (Created: ${loc.created_at})`;
-            div.addEventListener("click", () => this.switchToLocation(loc));
-            locationList.appendChild(div);
-          });
-
-          document.getElementById("switchLocationModal").classList.add("visible");
-        } catch (error) {
-          console.error("Error fetching locations:", error);
-          alert("Failed to load locations");
+        function closeNewLocationModal() {
+            document.getElementById("newLocationModal").classList.remove("visible");
+            document.getElementById("newLocationName").value = "";
         }
-      },
 
-      closeSwitchLocationModal: function() {
-        document.getElementById("switchLocationModal").classList.remove("visible");
-      }
-    };
+        function showSwitchLocationModal() {
+            document.getElementById("switchLocationModal").classList.add("visible");
+        }
 
-    /************************************************************
-     * DOMContentLoaded => Initialize QDPro
-     ************************************************************/
-    // Modal management functions
-    function showNewLocationModal() {
-      document.getElementById("newLocationModal").classList.add("visible");
-    }
+        function closeSwitchLocationModal() {
+            document.getElementById("switchLocationModal").classList.remove("visible");
+        }
 
-    function closeNewLocationModal() {
-      document.getElementById("newLocationModal").classList.remove("visible");
-      document.getElementById("newLocationName").value = "";
-    }
+        function showAddLayerModal() {
+            document.getElementById("addLayerModal").classList.add("visible");
+        }
 
-    function showSwitchLocationModal() {
-      document.getElementById("switchLocationModal").classList.add("visible");
-    }
+        function closeAddLayerModal() {
+            document.getElementById("addLayerModal").classList.remove("visible");
+            document.getElementById("newLayerName").value = "";
+        }
 
-    function closeSwitchLocationModal() {
-      document.getElementById("switchLocationModal").classList.remove("visible");
-    }
+        async function createNewLayer() {
+            const name = document.getElementById("newLayerName").value.trim();
+            const type = document.getElementById("newLayerType").value;
 
-    function showAddLayerModal() {
-      document.getElementById("addLayerModal").classList.add("visible");
-    }
+            if (!name) {
+                alert("Please enter a layer name");
+                return;
+            }
 
-    function closeAddLayerModal() {
-      document.getElementById("addLayerModal").classList.remove("visible");
-      document.getElementById("newLayerName").value = "";
-    }
+            if (QDPro.layers[name]) {
+                alert("Layer name already exists");
+                return;
+            }
 
-    async function createNewLayer() {
-      const name = document.getElementById("newLayerName").value.trim();
-      const type = document.getElementById("newLayerType").value;
+            const newLayer = L.featureGroup().addTo(QDPro.map);
+            newLayer.properties = { type: type };
+            QDPro.layers[name] = newLayer;
+            QDPro.activeLayer = newLayer;
+            QDPro.updateDrawToLayerSelect();
+            closeAddLayerModal();
+        }
 
-      if (!name) {
-        alert("Please enter a layer name");
-        return;
-      }
-
-      if (QDPro.layers[name]) {
-        alert("Layer name already exists");
-        return;
-      }
-
-      const newLayer = L.featureGroup().addTo(QDPro.map);
-      newLayer.properties = { type: type };
-      QDPro.layers[name] = newLayer;
-      QDPro.activeLayer = newLayer;
-      QDPro.updateDrawToLayerSelect();
-      closeAddLayerModal();
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      console.log("DOM Content Loaded – let's init QDPro!");
-      QDPro.init();
-    });
-  </script>
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("DOM Content Loaded – let's init QDPro!");
+            QDPro.init();
+        });
+    </script>
 </body>
 </html>
