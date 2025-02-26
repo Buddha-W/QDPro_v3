@@ -30,7 +30,7 @@ const QDPro = {
   initMap: function() {
     // Use existing map instance
     this.map = window.map;
-    
+
     // Create a default layer group for drawings
     this.activeLayer = L.featureGroup().addTo(this.map);
     this.layers["Default"] = this.activeLayer;
@@ -857,26 +857,16 @@ document.addEventListener("DOMContentLoaded", function() {
     dropdown.style.display = isVisible ? "none" : "block";
     element.classList.toggle("active", !isVisible);
 
-    // Position dropdown
+    // Position dropdown correctly below menu item
     if (!isVisible) {
       const rect = element.getBoundingClientRect();
+      dropdown.style.position = "fixed";
       dropdown.style.top = `${rect.bottom}px`;
       dropdown.style.left = `${rect.left}px`;
+      dropdown.style.zIndex = "2000";
     }
-
-    // Stop event propagation
-    event.stopPropagation();
   };
 
-  // Close menus when clicking outside
-  document.addEventListener("click", function(e) {
-    if (!e.target.closest(".menu-item")) {
-      document.querySelectorAll(".menu-dropdown").forEach(dd => {
-        dd.style.display = "none";
-        dd.parentElement.classList.remove("active");
-      });
-    }
-  });
 
   window.showAddLayerModal = function() {
     QDPro.showAddLayerModal();
