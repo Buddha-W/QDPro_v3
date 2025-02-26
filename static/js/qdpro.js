@@ -704,42 +704,58 @@ const QDPro = {
   },
 
   showSwitchLocationModal: async function() {
-    document.getElementById("switchLocationModal").style.display = "block";
+    // Show the modal with flex display for better centering
+    document.getElementById('switchLocationModal').style.display = 'flex';
 
     try {
-      const response = await fetch("/api/locations");
+      // Fetch the list of locations from backend
+      const response = await fetch('/api/locations');
+      if (!response.ok) throw new Error("Failed to load locations");
+      
       const data = await response.json();
-
-      const locationList = document.getElementById("locationList");
-      locationList.innerHTML = "";
+      const locationList = document.getElementById('locationList');
+      locationList.innerHTML = ''; // Clear existing content
 
       if (data.locations && data.locations.length > 0) {
-        data.locations.forEach(location => {
-          const div = document.createElement("div");
-          div.style.padding = "10px";
-          div.style.borderBottom = "1px solid #eee";
-          div.style.cursor = "pointer";
+        data.locations.forEach(loc => {
+          const div = document.createElement('div');
+          div.style.padding = '10px';
+          div.style.borderBottom = '1px solid #eee';
+          div.style.cursor = 'pointer';
+          div.style.backgroundColor = '#fff';
+          div.style.transition = 'background-color 0.2s';
+          
+          // Format the date nicely
+          const createdDate = new Date(loc.created_at).toLocaleDateString();
+          div.textContent = `${loc.name} (Created: ${createdDate})`;
 
-          div.innerHTML = `${location.name} (Created: ${location.created_at})`;
+          // Hover effect
+          div.addEventListener('mouseover', () => {
+            div.style.backgroundColor = '#f0f0f0';
+          });
+          div.addEventListener('mouseout', () => {
+            div.style.backgroundColor = '#fff';
+          });
 
-          div.addEventListener("click", () => {
-            this.switchToLocation(location.id);
+          // Click handler to switch location
+          div.addEventListener('click', () => {
+            this.switchToLocation(loc.id);
           });
 
           locationList.appendChild(div);
         });
       } else {
-        locationList.innerHTML = "<p>No locations found</p>";
+        locationList.innerHTML = '<p style="text-align: center; padding: 20px;">No locations found</p>';
       }
     } catch (error) {
       console.error("Error loading locations:", error);
-      document.getElementById("locationList").innerHTML = 
-        "<p>Failed to load locations. Please try again.</p>";
+      document.getElementById('locationList').innerHTML = 
+        '<p style="color: red; text-align: center; padding: 20px;">Failed to load locations. Please try again.</p>';
     }
   },
 
   closeSwitchLocationModal: function() {
-    document.getElementById("switchLocationModal").style.display = "none";
+    document.getElementById('switchLocationModal').style.display = 'none';
   },
 
   switchToLocation: async function(locationId) {
