@@ -6,9 +6,12 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <style>
         #map {
-            height: calc(100vh - 40px);
-            width: 100%;
-            margin-top: 40px;
+            position: absolute;
+            top: 80px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
         }
         .toolbar {
             position: fixed;
@@ -54,27 +57,29 @@
             display: block;
         }
         .layer-control {
-            position: absolute;
-            top: 50px;
-            left: 10px;
-            background: white;
-            padding: 15px;
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 1000;
-            min-width: 200px;
-            border: 1px solid #dee2e6;
-        }
-        .tools-toolbar {
             position: fixed;
-            top: 50px;
-            left: 220px; /* Adjust as needed */
+            top: 80px;
+            left: 10px;
             background: white;
             padding: 10px;
             border-radius: 4px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 1000;
+            z-index: 998;
+            max-width: 200px;
             border: 1px solid #dee2e6;
+        }
+        .tools-toolbar {
+            position: fixed;
+            top: 40px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: #f8f9fa;
+            padding: 5px 15px;
+            z-index: 999;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            align-items: center;
         }
         .tools-toolbar button {
             margin-right: 5px;
