@@ -240,16 +240,23 @@ class AnalysisRequest(BaseModel):
 async def analyze_qd(request: AnalysisRequest):
     try:
         engine = get_engine(request.site_type)
+        
+        # Extract location from first feature if available
+        location = None
+        if request.features and len(request.features) > 0:
+            feature = request.features[0]
+            if feature.get('geometry') and feature['geometry'].get('coordinates'):
+                coords = feature['geometry']['coordinates']
+                location = {"lat": coords[1], "lng": coords[0]} if len(coords) >= 2 else None
+
         qd_params = QDParameters(
             quantity=float(request.quantity),
             site_type=request.site_type,
-            material_type=request.material_type
+            material_type=request.material_type,
+            location=location
         )
 
-        result = await engine.calculate_safe_distance(
-            qd_params,
-            params["location"]
-        )
+        result = await engine.calculate_safe_distance(qd_params)
 
         return {
             "safe_distance": result.safe_distance,
