@@ -1,8 +1,30 @@
 
 import numpy as np
 import math
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Literal
 from dataclasses import dataclass
+from enum import Enum
+
+class SiteType(str, Enum):
+    DOD = "DOD"
+    DOE = "DOE"
+
+@dataclass
+class QDParameters:
+    quantity: float
+    site_type: SiteType = SiteType.DOD
+    material_type: str = "default"
+    location: Optional[Dict[str, float]] = None
+    material_props: Optional[MaterialProperties] = None
+    env_conditions: Optional[EnvironmentalConditions] = None
+
+def get_engine(site_type: str = "DOD") -> 'QDEngine':
+    """Create and return a QDEngine instance based on site type."""
+    scaling_constants = {
+        "DOD": 40.0,  # Default K-factor for DoD
+        "DOE": 50.0   # Default K-factor for DoE
+    }
+    return QDEngine(scaling_constant=scaling_constants.get(site_type, 40.0))
 
 @dataclass
 class MaterialProperties:
