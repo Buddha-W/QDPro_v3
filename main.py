@@ -94,7 +94,7 @@ async def calculate_qd(request: QDCalculationRequest, background_tasks: Backgrou
     try:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
-        
+
         # Get facility data
         cur.execute("""
             SELECT f.id, f.name, f.location, es.net_explosive_weight 
@@ -102,11 +102,11 @@ async def calculate_qd(request: QDCalculationRequest, background_tasks: Backgrou
             JOIN explosive_sites es ON f.id = es.facility_id 
             WHERE f.id = %s
         """, (request.facility_id,))
-        
+
         facility_data = cur.fetchone()
         if not facility_data:
             raise HTTPException(status_code=404, detail="Facility not found")
-            
+
         # Calculate safe distance using QD engine
         qd_engine = get_engine(request.site_type)
         safe_distance = qd_engine.calculate_safe_distance(
@@ -123,13 +123,13 @@ async def calculate_qd(request: QDCalculationRequest, background_tasks: Backgrou
                 confinement_factor=request.confinement_factor
             )
         )
-        
+
         # Generate buffer zones
         buffer_zones = qd_engine.generate_k_factor_rings(
             center=[facility_data[2]['coordinates'][0], facility_data[2]['coordinates'][1]],
             safe_distance=safe_distance
         )
-        
+
         return {
             "facility_id": facility_data[0],
             "facility_name": facility_data[1],
@@ -403,32 +403,39 @@ async def load_layers():
 @app.get("/api/locations")
 async def get_locations():
     """Get list of locations as JSON."""
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor()
     try:
-        cur.execute("""
-            SELECT l.id, l.location_name, l.created_at, COUNT(r.id) as record_count 
-            FROM locations l 
-            LEFT JOIN records r ON l.id = r.location_id 
-            GROUP BY l.id, l.location_name, l.created_at 
-            ORDER BY l.created_at DESC
-        """)
-        locations = [{
-            "id": id,
-            "name": name,
-            "created_at": str(created_at),
-            "record_count": record_count
-        } for id, name, created_at, record_count in cur.fetchall()]
-        return JSONResponse(content={"locations": locations})
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                SELECT l.id, l.location_name, l.created_at, COUNT(r.id) as record_count 
+                FROM locations l 
+                LEFT JOIN records r ON l.id = r.location_id 
+                GROUP BY l.id, l.location_name, l.created_at 
+                ORDER BY l.created_at DESC
+            """)
+            locations = [{
+                "id": id,
+                "name": name,
+                "created_at": str(created_at),
+                "record_count": record_count
+            } for id, name, created_at, record_count in cur.fetchall()]
+            return JSONResponse(content={"locations": locations})
+        except Exception as e:
+            print(f"Error fetching locations: {e}")
+            return JSONResponse(
+                content={"error": "Failed to fetch locations"},
+                status_code=500
+            )
+        finally:
+            cur.close()
+            conn.close()
     except Exception as e:
-        print(f"Error fetching locations: {e}")
+        print(f"Database connection error: {e}")
         return JSONResponse(
-            content={"error": "Failed to fetch locations"},
+            content={"error": "Failed to connect to database"},
             status_code=500
         )
-    finally:
-        cur.close()
-        conn.close()
 
 @app.post("/api/create_location")
 async def create_location_api(request: Request):
