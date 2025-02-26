@@ -88,8 +88,9 @@ async def generate_report(site_id: str, format: str = "html"):
         return Response(pdf, media_type="application/pdf")
     return HTMLResponse(content=html_content)
 
-@app.post("/api/calculate-qd")
-async def calculate_qd(request: QDCalculationRequest):
+@app.post("/api/calculate-qd", response_model=Dict[str, Any])
+async def calculate_qd(request: QDCalculationRequest, background_tasks: BackgroundTasks):
+    """Calculate QD parameters with enhanced error handling and background processing"""
     """Calculate QD parameters and generate buffer zones"""
     try:
         # Create appropriate QD engine

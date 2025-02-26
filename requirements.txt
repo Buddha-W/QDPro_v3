@@ -45,3 +45,6 @@ uvicorn
 flask
 folium
 reportlab
+jinja2
+pdfkit
+reportlab

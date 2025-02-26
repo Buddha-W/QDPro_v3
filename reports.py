@@ -1,9 +1,9 @@
-
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from sqlalchemy import create_engine, text
 from datetime import datetime
 import json
+import pdfkit
 
 class Report(BaseModel):
     title: str
@@ -25,7 +25,7 @@ async def generate_facility_report(engine) -> Report:
     with engine.connect() as conn:
         result = conn.execute(text(query))
         facilities = [dict(row) for row in result]
-    
+
     return Report(
         title="Facility Summary Report",
         generated_at=datetime.now(),
@@ -50,6 +50,15 @@ async def generate_safety_analysis(engine) -> Report:
     FROM explosive_sites es
     JOIN facilities f ON es.facility_id = f.id
     """
+    with engine.connect() as conn:
+        result = conn.execute(text(query))
+        analysis = [dict(row) for row in result]
+
+    return Report(
+        title="Safety Analysis Report",
+        generated_at=datetime.now(),
+        data={"safety_analysis": analysis}
+    )
 
 async def generate_site_plan_report(engine, site_id: int) -> Report:
     query = """
@@ -73,18 +82,18 @@ async def generate_site_plan_report(engine, site_id: int) -> Report:
     with engine.connect() as conn:
         result = conn.execute(text(query), {"site_id": site_id})
         site_data = dict(result.fetchone())
-    
+
     return Report(
         title="Site Plan Review Report",
         generated_at=datetime.now(),
         data={"site_plan": site_data}
     )
-    with engine.connect() as conn:
-        result = conn.execute(text(query))
-        analysis = [dict(row) for row in result]
-    
-    return Report(
-        title="Safety Analysis Report",
-        generated_at=datetime.now(),
-        data={"safety_analysis": analysis}
-    )
+
+async def generate_pdf_report(report: Report, output_filename: str):
+    try:
+        html_content = json.dumps(report.data, indent=4) #This needs a template engine for proper formatting.
+        pdfkit.from_string(html_content, output_filename)
+        return True
+    except Exception as e:
+        print(f"Error generating PDF: {e}")
+        return False
