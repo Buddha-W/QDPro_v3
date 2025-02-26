@@ -1,46 +1,37 @@
 import math
-from typing import Dict, List, Optional
+from typing import List, Dict, Optional
 from dataclasses import dataclass
-from fastapi import BackgroundTasks
-import json
-import numpy as np
-
-@dataclass
-class MaterialProperties:
-    sensitivity: float
-    det_velocity: float
-    tnt_equiv: float
-
-@dataclass
-class EnvironmentalConditions:
-    temperature: float
-    pressure: float
-    humidity: float
-    confinement_factor: float
 
 @dataclass
 class QDParameters:
-    quantity: float
-    site_type: str  # 'DoD' or 'DoE'
-    material_type: str
-    environmental_conditions: Dict = None
+    quantity: float  # Net explosive weight
+    hazard_class: str  # Explosive hazard classification
+    site_type: str  # "DOD" or "DOE"
+    material_type: str  # Description of explosive material
 
-@dataclass
-class QDResult:
-    safe_distance: float
-    k_factor: float
-    psi_at_distance: Dict[float, float]
-    geojson: Dict
+class QDEngine:
+    def __init__(self, scaling_constant: float):
+        self.D = scaling_constant  # Scaling constant (D)
 
-class BaseQDEngine:
-    def __init__(self):
-        self.cache = {}
+    def calculate_safe_distance(self, quantity: float) -> float:
+        """Calculate safe separation distance using cube root scaling law."""
+        return self.D * math.pow(quantity, 1/3)
 
-    def _generate_safe_ring_geojson(self, center: List[float], radius: float) -> Dict:
-        # Generate GeoJSON circle with 64 points
+    def generate_k_factor_rings(self, center: List[float], safe_distance: float, 
+                              k_factors: List[float] = [1.0, 1.5, 2.0]) -> List[Dict]:
+        """Generate GeoJSON features for K-factor safety rings."""
+        features = []
+        for k in k_factors:
+            radius = safe_distance * k
+            features.append(self._create_circle_feature(center, radius, k))
+        return features
+
+    def _create_circle_feature(self, center: List[float], radius: float, k_factor: float,
+                             num_points: int = 32) -> Dict:
+        """Create a GeoJSON feature approximating a circle."""
         coords = []
-        for i in range(64):
-            angle = (i / 64.0) * 2 * math.pi
+        for i in range(num_points):
+            angle = (i / num_points) * 2 * math.pi
             dx = radius * math.cos(angle)
             dy = radius * math.sin(angle)
             coords.append([center[0] + dx, center[1] + dy])
@@ -53,72 +44,44 @@ class BaseQDEngine:
                 "coordinates": [coords]
             },
             "properties": {
-                "distance": radius,
-                "description": f"Safe distance ring ({radius:.1f} meters)"
+                "k_factor": k_factor,
+                "radius": radius,
+                "description": f"K{k_factor} Safety Ring"
             }
         }
 
-class DoDQDEngine(BaseQDEngine):
-    def __init__(self):
-        super().__init__()
-        self.k_factor = 40  # Example K factor for DoD
-
-    async def calculate_safe_distance(self, params: QDParameters, location: List[float]) -> QDResult:
-        quantity = params.quantity
-        # Basic cube root scaling law
-        safe_distance = self.k_factor * math.pow(quantity, 1/3)
-
-        # TODO: Add Monte Carlo simulation for uncertainty
-        # TODO: Implement caching with background task processing
-
-        # Calculate PSI at various distances
-        psi_values = {
-            safe_distance * 0.5: 8.0,  # Example PSI values
-            safe_distance: 4.0,
-            safe_distance * 1.5: 2.0
-        }
-
-        geojson = self._generate_safe_ring_geojson(location, safe_distance)
-
-        return QDResult(
-            safe_distance=safe_distance,
-            k_factor=self.k_factor,
-            psi_at_distance=psi_values,
-            geojson=geojson
-        )
-
-class DoEQDEngine(BaseQDEngine):
-    def __init__(self):
-        super().__init__()
-        self.k_factor = 50  # Higher K factor for DoE sites
-
-    async def calculate_safe_distance(self, params: QDParameters, location: List[float]) -> QDResult:
-        quantity = params.quantity
-        # Enhanced scaling law with environmental factor
-        env_factor = 1.1  # Example environmental correction
-        safe_distance = self.k_factor * math.pow(quantity, 1/3) * env_factor
-
-        # TODO: Implement ML-based prediction model
-        # TODO: Add sensitivity analysis
-
-        psi_values = {
-            safe_distance * 0.5: 10.0,
-            safe_distance: 5.0,
-            safe_distance * 1.5: 2.5
-        }
-
-        geojson = self._generate_safe_ring_geojson(location, safe_distance)
-
-        return QDResult(
-            safe_distance=safe_distance,
-            k_factor=self.k_factor,
-            psi_at_distance=psi_values,
-            geojson=geojson
-        )
-
-def get_engine(site_type: str) -> BaseQDEngine:
+def get_engine(site_type: str = "DOD") -> QDEngine:
+    """Factory function to create appropriate QD engine."""
     if site_type.upper() == "DOD":
-        return DoDQDEngine()
+        return QDEngine(scaling_constant=10)
     elif site_type.upper() == "DOE":
-        return DoEQDEngine()
-    raise ValueError("Invalid site type")
+        return QDEngine(scaling_constant=12)
+    raise ValueError(f"Unsupported site type: {site_type}")
+
+if __name__ == "__main__":
+    # Example usage
+    params = QDParameters(
+        quantity=1000,  # 1000 lbs NEW
+        hazard_class="A",
+        site_type="DOD",
+        material_type="General Explosive"
+    )
+
+    # Get appropriate engine and calculate safe distance
+    engine = get_engine(params.site_type)
+    safe_distance = engine.calculate_safe_distance(params.quantity)
+    print(f"Safe distance for {params.quantity} lbs NEW: {safe_distance:.2f} feet")
+
+    # Generate safety rings
+    center = [-98.5795, 39.8283]  # Example location (lon, lat)
+    rings = engine.generate_k_factor_rings(center, safe_distance)
+
+    # Create GeoJSON FeatureCollection
+    feature_collection = {
+        "type": "FeatureCollection",
+        "features": rings
+    }
+
+    import json
+    print("\nGeoJSON Safety Rings:")
+    print(json.dumps(feature_collection, indent=2))
