@@ -353,14 +353,21 @@
                     }).addTo(this.map);
 
                     // Add the drawn items layer
-                    this.map.addLayer(this.drawnItems);
-                    map.addControl(drawControl);
-
+                    if (this.drawnItems) {
+                        this.map.addLayer(this.drawnItems);
+                    }
+                    
+                    // Add draw control to the QDPro map instance
+                    if (drawControl) {
+                        this.map.addControl(drawControl);
+                    }
 
                     // Initialize draw control
                     this.initDrawControls();
 
                     console.log("QDPro init complete. Map should be visible now.");
+                } else {
+                    console.log("Map already initialized");
                 }
             },
 
