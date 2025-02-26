@@ -828,9 +828,13 @@ document.addEventListener("DOMContentLoaded", function() {
   QDPro.init();
 
   // Make functions available globally for HTML event handlers
+  // Expose toggleMenu function globally
   window.toggleMenu = function(element, menuId) {
     const dropdown = document.getElementById(menuId);
-    if (!dropdown) return;
+    if (!dropdown) {
+      console.error(`Menu dropdown with id ${menuId} not found`);
+      return;
+    }
 
     // Close other menus
     document.querySelectorAll(".menu-dropdown").forEach(dd => {
@@ -851,7 +855,20 @@ document.addEventListener("DOMContentLoaded", function() {
       dropdown.style.top = `${rect.bottom}px`;
       dropdown.style.left = `${rect.left}px`;
     }
+
+    // Stop event propagation
+    event.stopPropagation();
   };
+
+  // Close menus when clicking outside
+  document.addEventListener("click", function(e) {
+    if (!e.target.closest(".menu-item")) {
+      document.querySelectorAll(".menu-dropdown").forEach(dd => {
+        dd.style.display = "none";
+        dd.parentElement.classList.remove("active");
+      });
+    }
+  });
 
   window.showAddLayerModal = function() {
     QDPro.showAddLayerModal();
