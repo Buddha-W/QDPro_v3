@@ -1,6 +1,6 @@
 import os
 import psycopg2
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, status, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -276,7 +276,7 @@ class AnalysisRequest(BaseModel):
 async def analyze_qd(request: AnalysisRequest):
     try:
         engine = get_engine(request.site_type)
-        
+
         # Extract location from first feature if available
         location = None
         if request.features and len(request.features) > 0:
@@ -358,7 +358,7 @@ async def save_layers(request: Request):
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL', 'postgresql://postgres:postgres@localhost:5432/postgres'))
         cur = conn.cursor()
-        
+
         # Ensure data structure is correct
         if not isinstance(data, dict):
             data = {"layers": data}
@@ -437,7 +437,7 @@ async def load_layers():
                     "type": layer_type,
                     "layer": "Facilities"
                 })
-                
+
                 feature = {
                     "type": "Feature",
                     "geometry": geometry,
@@ -656,6 +656,7 @@ import json
 from fastapi.responses import Response
 from fastapi.responses import RedirectResponse
 from qd_engine import get_engine, MaterialProperties, EnvironmentalConditions
+from fastapi import Form
 
 class PolygonData(BaseModel):
     location: str
