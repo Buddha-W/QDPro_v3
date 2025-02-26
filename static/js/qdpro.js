@@ -377,6 +377,15 @@ const QDPro = {
             description: newDescription 
           };
 
+          // Set facility type styling
+          if (newTypeCode) {
+            if (newTypeCode.toUpperCase().includes("PES")) {
+              layer.setStyle({ color: "#ff0000", fillColor: "#ff6666", weight: 2, fillOpacity: 0.5 });
+            } else if (newTypeCode.toUpperCase().includes("ES")) {
+              layer.setStyle({ color: "#00cc00", fillColor: "#66ff66", weight: 2, fillOpacity: 0.5 });
+            }
+          }
+
           // Add tooltip with name and type
           if (newName || newTypeCode) {
             layer.bindTooltip(
@@ -640,6 +649,16 @@ const QDPro = {
             layerData.features.forEach(feature => {
               const featureLayer = L.geoJSON(feature);
               featureLayer.feature = feature;
+
+              // Set facility type styling for loaded features
+              if (feature.properties && feature.properties.typeCode) {
+                const typeCode = feature.properties.typeCode;
+                if (typeCode.toUpperCase().includes("PES")) {
+                  featureLayer.setStyle({ color: "#ff0000", fillColor: "#ff6666", weight: 2, fillOpacity: 0.5 });
+                } else if (typeCode.toUpperCase().includes("ES")) {
+                  featureLayer.setStyle({ color: "#00cc00", fillColor: "#66ff66", weight: 2, fillOpacity: 0.5 });
+                }
+              }
 
               // Add tooltip if name exists
               if (feature.properties && feature.properties.name) {
