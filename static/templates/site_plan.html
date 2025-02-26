@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,229 +6,207 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <style>
-        #map {
-            height: calc(100vh - 80px);
-            margin-top: 80px;
-            width: 100%;
-        }
-        .toolbar {
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 40px; bottom: 0; width: 100%; }
+        .top-bar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             height: 40px;
             background: #f8f9fa;
-            padding: 0 15px;
-            z-index: 1000;
+            border-bottom: 1px solid #dee2e6;
             display: flex;
             align-items: center;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .tools-toolbar {
-            position: fixed;
-            top: 40px;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background: #f8f9fa;
-            padding: 0 15px;
+            padding: 0 10px;
             z-index: 1000;
-            display: flex;
-            align-items: center;
-            border-bottom: 1px solid #dee2e6;
         }
         .menu-item {
-            margin-right: 20px;
-            cursor: pointer;
             position: relative;
-            padding: 10px 0;
+            margin-right: 20px;
         }
-        .dropdown-content {
+        .menu-content {
             display: none;
             position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: #ffffff;
-            min-width: 180px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 1200;
-            border-radius: 4px;
-            border: 1px solid #dee2e6;
+            background: white;
+            min-width: 160px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1001;
         }
-        .dropdown-content a {
-            color: #333;
-            padding: 8px 16px;
+        .menu-content a {
+            padding: 8px 12px;
+            display: block;
             text-decoration: none;
-            display: block;
+            color: black;
         }
-        .dropdown-content a:hover {
-            background-color: #f8f9fa;
+        .menu-content a:hover {
+            background: #f1f1f1;
         }
-        .menu-item:hover .dropdown-content {
-            display: block;
+        .tools-toolbar {
+            display: flex;
+            gap: 5px;
         }
         .tools-toolbar button {
-            margin-right: 10px;
             padding: 5px 10px;
+            background: white;
             border: 1px solid #dee2e6;
             border-radius: 4px;
-            background: white;
             cursor: pointer;
         }
-        .tools-toolbar button:hover {
-            background: #f8f9fa;
-        }
-        .layer-control {
+        .layer-panel {
             position: fixed;
-            top: 120px;
-            right: 10px;
+            left: 10px;
+            top: 50px;
             background: white;
-            padding: 15px;
+            padding: 10px;
             border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            z-index: 1000;
-            min-width: 250px;
-            border: 1px solid #dee2e6;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 999;
             display: none;
         }
-        .layer-control input[type="checkbox"] {
-            margin-right: 5px;
+        .layer-item {
+            margin: 5px 0;
         }
-
     </style>
 </head>
 <body>
-    <div class="toolbar">
+    <div class="top-bar">
         <div class="menu-item">
-            File
-            <div class="dropdown-content">
-                <a onclick="newFile()">New</a>
-                <a onclick="openFile()">Open</a>
-                <a onclick="saveFile()">Save</a>
-                <a onclick="exportFile()">Export</a>
+            <span onclick="toggleMenu('file-menu')">File</span>
+            <div id="file-menu" class="menu-content">
+                <a href="#" onclick="newProject()">New Project</a>
+                <a href="#" onclick="openProject()">Open Project</a>
+                <a href="#" onclick="saveProject()">Save Project</a>
             </div>
         </div>
-        <div class="menu-item">
-            Edit
-            <div class="dropdown-content">
-                <a onclick="deleteSelected()">Delete Selected</a>
-                <a onclick="clearAll()">Clear All</a>
-            </div>
+        <div class="tools-toolbar">
+            <button onclick="toggleLayerPanel()">Layers</button>
+            <button onclick="activateDrawingTool('polygon')">Draw Polygon</button>
+            <button onclick="activateDrawingTool('marker')">Add Marker</button>
+            <button onclick="activateDrawingTool('polyline')">Draw Line</button>
+            <button onclick="activateDrawingTool('circle')">Draw Circle</button>
+            <button onclick="deactivateDrawing()">Cancel Drawing</button>
         </div>
-        <div class="menu-item">
-            View
-            <div class="dropdown-content">
-                <a onclick="zoomToFit()">Zoom to Fit</a>
-            </div>
-        </div>
-        <button id="layerPanelToggle">Layers</button>
     </div>
-    <div class="tools-toolbar">
-        <button onclick="activateDrawingTool('polygon')">Draw Polygon</button>
-        <button onclick="activateDrawingTool('marker')">Add Marker</button>
-        <button onclick="activateDrawingTool('circle')">Draw Circle</button>
-        <button onclick="startAnalysis()">QD Analysis</button>
-        <select id="layerSelect" class="layer-select" onchange="changeLayer(this.value)">
-            <option value="Facilities">Facilities</option>
-            <option value="QD Arcs">QD Arcs</option>
-            <option value="Analysis">Analysis</option>
-        </select>
+
+    <div class="layer-panel" id="layerPanel">
+        <div class="layer-item">
+            <input type="checkbox" id="facilitiesLayer" checked> Facilities
+        </div>
+        <div class="layer-item">
+            <input type="checkbox" id="qdArcsLayer" checked> QD Arcs
+        </div>
+        <div class="layer-item">
+            <input type="checkbox" id="analysisLayer" checked> Analysis
+        </div>
     </div>
+
     <div id="map"></div>
-    <div class="layer-control" id="layerPanel">
-        <input type="checkbox" id="facilitiesLayer" checked> Facilities<br>
-        <input type="checkbox" id="qdArcsLayer"> QD Arcs<br>
-        <input type="checkbox" id="analysisLayer"> Analysis<br>
-    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script>
         let map;
-        let drawnItems;
         let drawControl;
-        let currentLayer = 'Facilities';
         let facilitiesLayer, qdArcsLayer, analysisLayer;
-
-        async function initMap() {
+        
+        function initMap() {
             map = L.map('map').setView([0, 0], 2);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-            drawnItems = new L.FeatureGroup();
-            map.addLayer(drawnItems);
-
+            
+            facilitiesLayer = L.featureGroup().addTo(map);
+            qdArcsLayer = L.featureGroup().addTo(map);
+            analysisLayer = L.featureGroup().addTo(map);
+            
             drawControl = new L.Control.Draw({
                 draw: {
                     polygon: true,
-                    circle: true,
                     marker: true,
-                    polyline: true,
-                    rectangle: true,
-                    circlemarker: true
+                    circle: true,
+                    polyline: true
                 },
                 edit: {
-                    featureGroup: drawnItems
+                    featureGroup: facilitiesLayer
                 }
             });
-            map.addControl(drawControl);
-
+            
             map.on('draw:created', function(e) {
-                drawnItems.addLayer(e.layer);
+                facilitiesLayer.addLayer(e.layer);
             });
+        }
 
-
-            facilitiesLayer = L.layerGroup().addTo(map);
-            qdArcsLayer = L.layerGroup().addTo(map);
-            analysisLayer = L.layerGroup().addTo(map);
-
-            document.getElementById('layerPanelToggle').addEventListener('click', toggleLayerPanel);
-            document.getElementById('facilitiesLayer').addEventListener('change', () => toggleLayer(facilitiesLayer));
-            document.getElementById('qdArcsLayer').addEventListener('change', () => toggleLayer(qdArcsLayer));
-            document.getElementById('analysisLayer').addEventListener('change', () => toggleLayer(analysisLayer));
-
+        function toggleMenu(menuId) {
+            document.getElementById(menuId).style.display = 
+                document.getElementById(menuId).style.display === 'block' ? 'none' : 'block';
         }
 
         function toggleLayerPanel() {
-            document.getElementById('layerPanel').style.display = document.getElementById('layerPanel').style.display === 'none' ? 'block' : 'none';
-        }
-
-        function toggleLayer(layer) {
-            if (document.getElementById(layer._leaflet_id).checked) {
-                map.addLayer(layer);
-            } else {
-                map.removeLayer(layer);
-            }
+            document.getElementById('layerPanel').style.display = 
+                document.getElementById('layerPanel').style.display === 'block' ? 'none' : 'block';
         }
 
         function activateDrawingTool(type) {
-            // Disable any active drawing
-            if (drawControl._toolbars.draw._activeMode) {
-                drawControl._toolbars.draw._activeMode.handler.disable();
+            map.removeControl(drawControl);
+            drawControl = new L.Control.Draw({
+                draw: {
+                    polygon: type === 'polygon',
+                    marker: type === 'marker',
+                    circle: type === 'circle',
+                    polyline: type === 'polyline',
+                    rectangle: false,
+                    circlemarker: false
+                },
+                edit: {
+                    featureGroup: facilitiesLayer
+                }
+            });
+            map.addControl(drawControl);
+        }
+
+        function deactivateDrawing() {
+            map.removeControl(drawControl);
+        }
+
+        function newProject() {
+            facilitiesLayer.clearLayers();
+            qdArcsLayer.clearLayers();
+            analysisLayer.clearLayers();
+        }
+
+        async function saveProject() {
+            const data = {
+                facilities: facilitiesLayer.toGeoJSON(),
+                qdArcs: qdArcsLayer.toGeoJSON(),
+                analysis: analysisLayer.toGeoJSON()
+            };
+            try {
+                await fetch('/api/save', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                alert('Project saved successfully');
+            } catch (error) {
+                alert('Error saving project');
             }
-
-            // Enable the selected tool
-            new L.Draw[type.charAt(0).toUpperCase() + type.slice(1)](map).enable();
         }
 
-        function changeLayer(layer) {
-            currentLayer = layer;
-            // Add your layer switching logic here
+        async function openProject() {
+            try {
+                const response = await fetch('/api/load');
+                const data = await response.json();
+                facilitiesLayer.clearLayers();
+                qdArcsLayer.clearLayers();
+                analysisLayer.clearLayers();
+                L.geoJSON(data.facilities).addTo(facilitiesLayer);
+                L.geoJSON(data.qdArcs).addTo(qdArcsLayer);
+                L.geoJSON(data.analysis).addTo(analysisLayer);
+            } catch (error) {
+                alert('Error loading project');
+            }
         }
 
-        function startAnalysis() {
-            alert('QD Analysis Started');
-        }
-
-        function newFile() { alert('New File');}
-        function openFile() { alert('Open File');}
-        function saveFile() { alert('Save File');}
-        function exportFile() { alert('Export File');}
-        function deleteSelected() { alert('Delete Selected');}
-        function clearAll() { alert('Clear All');}
-        function zoomToFit() { alert('Zoom to Fit');}
-
-
-        window.onload = initMap;
+        document.addEventListener('DOMContentLoaded', initMap);
     </script>
 </body>
 </html>

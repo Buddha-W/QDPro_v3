@@ -51,6 +51,7 @@ class QDEngine:
         self.calibration_factor = 1.0
         self.uncertainty_margin = 0.1
         self.confidence_level = 0.95
+        self.K_FACTOR = 40 #Added from edited code
 
     def monte_carlo_analysis(self, quantity: float, material_props: MaterialProperties,
                            env_conditions: EnvironmentalConditions,
@@ -133,3 +134,36 @@ class QDEngine:
                 "description": f"K{k_factor} Safety Ring"
             }
         }
+
+    def calculate_arc_radius(self, net_explosive_weight: float) -> float:
+        """Calculate the radius for QD arc based on NEW"""
+        return self.K_FACTOR * math.pow(net_explosive_weight, 1/3)
+
+    def analyze_facility(self, facility: Dict, surrounding_features: List[Dict]) -> Dict:
+        """Analyze a facility against surrounding features"""
+        results = {
+            "violations": [],
+            "safe_distance": self.calculate_arc_radius(facility.get("new", 0)),
+            "facility_id": facility.get("id")
+        }
+
+        for feature in surrounding_features:
+            distance = self.calculate_distance(
+                facility["geometry"]["coordinates"],
+                feature["geometry"]["coordinates"]
+            )
+            if distance < results["safe_distance"]:
+                results["violations"].append({
+                    "feature_id": feature.get("id"),
+                    "distance": distance,
+                    "required": results["safe_distance"]
+                })
+
+        return results
+
+    def calculate_distance(self, point1: Tuple[float, float], point2: Tuple[float, float]) -> float:
+        """Calculate distance between two points"""
+        return math.sqrt(
+            math.pow(point2[0] - point1[0], 2) + 
+            math.pow(point2[1] - point1[1], 2)
+        )

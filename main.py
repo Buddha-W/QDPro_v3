@@ -1,6 +1,42 @@
 import os
 import psycopg2
-from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks, Form, status
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+import json
+
+app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="static/templates")
+
+@app.get("/")
+async def root(request: Request):
+    return templates.TemplateResponse("site_plan.html", {"request": request})
+
+@app.post("/api/save")
+async def save_project(data: dict):
+    try:
+        with open("data/layer_data.json", "w") as f:
+            json.dump(data, f)
+        return {"status": "success"}
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)}
+        )
+
+@app.get("/api/load")
+async def load_project():
+    try:
+        with open("data/layer_data.json", "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {
+            "facilities": {"type": "FeatureCollection", "features": []},
+            "qdArcs": {"type": "FeatureCollection", "features": []},
+            "analysis": {"type": "FeatureCollection", "features": []}
+        }, Request, Depends, HTTPException, BackgroundTasks, Form, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
