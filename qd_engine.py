@@ -5,6 +5,19 @@ from typing import List, Dict, Tuple, Optional, Literal
 from dataclasses import dataclass
 from enum import Enum
 
+@dataclass
+class MaterialProperties:
+    sensitivity: float
+    det_velocity: float
+    tnt_equiv: float
+
+@dataclass
+class EnvironmentalConditions:
+    temperature: float
+    pressure: float
+    humidity: float
+    confinement_factor: float
+
 class SiteType(str, Enum):
     DOD = "DOD"
     DOE = "DOE"
@@ -25,19 +38,6 @@ def get_engine(site_type: str = "DOD") -> 'QDEngine':
         "DOE": 50.0   # Default K-factor for DoE
     }
     return QDEngine(scaling_constant=scaling_constants.get(site_type, 40.0))
-
-@dataclass
-class MaterialProperties:
-    sensitivity: float
-    det_velocity: float
-    tnt_equiv: float
-
-@dataclass
-class EnvironmentalConditions:
-    temperature: float
-    pressure: float
-    humidity: float
-    confinement_factor: float
 
 class QDEngine:
     def __init__(self, scaling_constant: float):
