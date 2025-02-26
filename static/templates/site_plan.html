@@ -211,7 +211,10 @@
                 }
             }
 
-        map.on('draw:created', async function(e) {
+        };  // Close init function
+
+        // Event handlers
+        this.map.on('draw:created', async function(e) {
             const layer = e.layer;
             drawnItems.addLayer(layer);
 
