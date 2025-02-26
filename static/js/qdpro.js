@@ -29,28 +29,40 @@ const QDPro = {
   // Initialize map references
   initMap: function() {
     try {
-      // Initialize map
+      // Wait for DOM to be ready
+      if (!document.getElementById('map')) {
+        throw new Error('Map container not found');
+      }
+
+      // Initialize map with options
       this.map = L.map('map', {
         center: [39.8283, -98.5795],
-        zoom: 4
+        zoom: 4,
+        layers: [] // Start with no layers
       });
 
-      // Add default base layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      // Add base layer first
+      const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
-      }).addTo(this.map);
+      });
+      baseLayer.addTo(this.map);
 
-      // Create a default layer group for drawings
-      this.layers["Default"] = new L.featureGroup();
-      this.layers["Default"].addTo(this.map);
-      this.activeLayer = this.layers["Default"];
+      // Initialize layers object
+      this.layers = {};
 
-      // Force map resize after DOM is fully loaded
+      // Create and add default feature group
+      const defaultLayer = new L.featureGroup();
+      this.map.addLayer(defaultLayer);
+      this.layers["Default"] = defaultLayer;
+      this.activeLayer = defaultLayer;
+
+      // Force map resize
       setTimeout(() => this.map.invalidateSize(), 100);
       
       console.log("Map initialized successfully");
     } catch (error) {
       console.error("Error initializing map:", error);
+      throw error; // Rethrow to handle in caller
     }
   },
 
