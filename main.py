@@ -36,7 +36,9 @@ async def load_project():
             "facilities": {"type": "FeatureCollection", "features": []},
             "qdArcs": {"type": "FeatureCollection", "features": []},
             "analysis": {"type": "FeatureCollection", "features": []}
-        }, Request, Depends, HTTPException, BackgroundTasks, Form, status
+        }
+
+from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks, Form, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -52,8 +54,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
 from qd_engine import get_engine, QDParameters
@@ -253,8 +255,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
 from auth import get_current_user
