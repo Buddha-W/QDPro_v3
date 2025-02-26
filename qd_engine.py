@@ -3,6 +3,19 @@ from typing import List, Dict, Optional
 from dataclasses import dataclass
 
 @dataclass
+class MaterialProperties:
+    sensitivity: float
+    det_velocity: float
+    tnt_equiv: float
+
+@dataclass
+class EnvironmentalConditions:
+    temperature: float
+    pressure: float
+    humidity: float
+    confinement_factor: float
+
+@dataclass
 class QDParameters:
     quantity: float  # Net explosive weight
     hazard_class: str  # Explosive hazard classification
