@@ -112,14 +112,19 @@
 
             async performAnalysis() {
                 try {
-                    // Get drawn items as GeoJSON
+                    if (!this.drawnItems) {
+                        throw new Error("No items drawn on map");
+                    }
+                    
                     const drawnFeatures = this.drawnItems.toGeoJSON();
+                    if (!drawnFeatures.features || !drawnFeatures.features.length) {
+                        throw new Error("Please draw at least one shape to analyze");
+                    }
 
-                    // Create analysis request payload
                     const analysisData = {
-                        site_type: "DOD", // Default to DOD
+                        site_type: "DOD",
                         features: drawnFeatures.features,
-                        quantity: 1000, // Default quantity - you may want to get this from a form
+                        quantity: 1000,
                         material_type: "General Explosive"
                     };
 

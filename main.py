@@ -239,11 +239,11 @@ class AnalysisRequest(BaseModel):
 @app.post("/api/analyze_qd")
 async def analyze_qd(request: AnalysisRequest):
     try:
-        engine = get_engine(params["site_type"])
+        engine = get_engine(request.site_type)
         qd_params = QDParameters(
-            quantity=float(params["quantity"]),
-            site_type=params["site_type"],
-            material_type=params.get("material_type", "default")
+            quantity=float(request.quantity),
+            site_type=request.site_type,
+            material_type=request.material_type
         )
 
         result = await engine.calculate_safe_distance(
