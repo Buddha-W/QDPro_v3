@@ -783,29 +783,56 @@ const QDPro = {
           // Add features to layer
           if (layerData.features && layerData.features.length > 0) {
             layerData.features.forEach(feature => {
-              const featureLayer = L.geoJSON(feature);
-              featureLayer.feature = feature;
+              try {
+                const featureLayer = L.geoJSON(feature);
+                featureLayer.feature = feature;
 
-              // Set facility type styling for loaded features
-              if (feature.properties && feature.properties.typeCode) {
-                const typeCode = feature.properties.typeCode;
-                if (typeCode.toUpperCase().includes("PES")) {
-                  featureLayer.setStyle({ color: "#ff0000", fillColor: "#ff6666", weight: 2, fillOpacity: 0.5 });
-                } else if (typeCode.toUpperCase().includes("ES")) {
-                  featureLayer.setStyle({ color: "#00cc00", fillColor: "#66ff66", weight: 2, fillOpacity: 0.5 });
+                // Restore feature properties
+                if (feature.properties) {
+                  // Set facility type styling
+                  if (feature.properties.typeCode) {
+                    const typeCode = feature.properties.typeCode.toUpperCase();
+                    if (typeCode.includes("PES")) {
+                      featureLayer.setStyle({ 
+                        color: "#ff0000", 
+                        fillColor: "#ff6666", 
+                        weight: 2, 
+                        fillOpacity: 0.5 
+                      });
+                    } else if (typeCode.includes("ES")) {
+                      featureLayer.setStyle({ 
+                        color: "#00cc00", 
+                        fillColor: "#66ff66", 
+                        weight: 2, 
+                        fillOpacity: 0.5 
+                      });
+                    }
+                  }
+
+                  // Restore custom style if saved
+                  if (feature.properties.style) {
+                    featureLayer.setStyle(feature.properties.style);
+                  }
+
+                  // Add tooltip
+                  if (feature.properties.name) {
+                    const tooltipContent = feature.properties.name + 
+                      (feature.properties.typeCode ? `<br>${feature.properties.typeCode}` : "") +
+                      (feature.properties.description ? `<br>${feature.properties.description}` : "");
+                    featureLayer.bindTooltip(tooltipContent, { permanent: false });
+                  }
+
+                  // Make features clickable for editing
+                  featureLayer.on("click", e => {
+                    L.DomEvent.stopPropagation(e);
+                    this.openEditPopup(featureLayer);
+                  });
                 }
-              }
 
-              // Add tooltip if name exists
-              if (feature.properties && feature.properties.name) {
-                featureLayer.bindTooltip(
-                  feature.properties.name + 
-                  (feature.properties.typeCode ? `<br>${feature.properties.typeCode}` : ""),
-                  { permanent: false }
-                );
+                layer.addLayer(featureLayer);
+              } catch (err) {
+                console.error("Error adding feature to layer:", err);
               }
-
-              layer.addLayer(featureLayer);
             });
           }
 
@@ -820,6 +847,12 @@ const QDPro = {
 
       // Set the first layer as active
       this.activeLayer = Object.values(this.layers)[0];
+
+      // Find bounds of all features and zoom to them
+      const bounds = L.featureGroup(Object.values(this.layers)).getBounds();
+      if (bounds.isValid()) {
+        this.map.fitBounds(bounds, { padding: [50, 50] });
+      }
 
       // Update UI
       this.updateDrawToLayerSelect();
