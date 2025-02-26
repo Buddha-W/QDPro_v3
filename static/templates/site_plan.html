@@ -1,159 +1,109 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>QDPro Minimal Working Example</title>
+  <title>QDPro – Full Modal Example</title>
   <!-- Leaflet CSS -->
-  <link 
-    rel="stylesheet" 
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
-    crossorigin="anonymous"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
   <!-- Leaflet.draw CSS -->
-  <link 
-    rel="stylesheet" 
-    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" 
-    crossorigin="anonymous"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" crossorigin="anonymous"/>
   <!-- Font Awesome -->
-  <link 
-    rel="stylesheet" 
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" 
-    crossorigin="anonymous"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous"/>
   <!-- Leaflet and Leaflet.draw JS -->
-  <script 
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-    crossorigin="anonymous">
-  </script>
-  <script 
-    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" 
-    crossorigin="anonymous">
-  </script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
 
   <style>
-    /* Basic Reset and Body Setup */
+    /* BASIC RESET & BODY */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
 
-    /* TOP NAVIGATION BAR */
+    /* TOP NAV BAR */
     nav.main-toolbar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 40px;
-      background: #f1f1f1;
-      border-bottom: 1px solid #ccc;
-      display: flex;
-      align-items: center;
-      z-index: 3000;
-      padding: 0 10px;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 40px; background: #f1f1f1; border-bottom: 1px solid #ccc;
+      display: flex; align-items: center; z-index: 3000; padding: 0 10px;
       white-space: nowrap;
     }
     .menu-item {
-      padding: 0 15px;
-      font-size: 14px;
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      position: relative;
+      padding: 0 15px; font-size: 14px; display: flex; align-items: center;
+      cursor: pointer; position: relative;
     }
     .menu-item:hover { background: #e9ecef; }
     .menu-dropdown {
-      display: none;
-      position: fixed;
-      background: white;
-      min-width: 150px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      z-index: 3500;
+      display: none; position: fixed; background: white; min-width: 150px;
+      border: 1px solid #ccc; border-radius: 4px; z-index: 3500;
     }
-    .menu-dropdown-item {
-      padding: 8px 12px;
-      font-size: 14px;
-      cursor: pointer;
-    }
+    .menu-dropdown-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
     .menu-dropdown-item:hover { background: #f0f0f0; }
     #dbStatus { margin-left: auto; }
 
-    /* DRAWING TOOLBAR (Second Row) */
+    /* SECOND TOOLBAR (Drawing) */
     .toolbar {
-      position: fixed;
-      top: 40px; left: 0; right: 0;
-      height: 40px;
-      background: #fff;
-      border-bottom: 1px solid #ccc;
-      display: flex;
-      align-items: center;
-      z-index: 2900;
-      padding: 0 10px;
+      position: fixed; top: 40px; left: 0; right: 0;
+      height: 40px; background: #fff; border-bottom: 1px solid #ccc;
+      display: flex; align-items: center; z-index: 2900; padding: 0 10px;
     }
-    .tool-group {
-      display: flex;
-      align-items: center;
-      margin-right: 10px;
-    }
+    .tool-group { display: flex; align-items: center; margin-right: 10px; }
     .tool-button {
-      padding: 6px; margin: 0 2px;
-      border: 1px solid transparent; border-radius: 3px;
-      background: #fff; color: #666;
-      cursor: pointer; display: flex; align-items: center;
-      justify-content: center; min-width: 32px; height: 32px;
+      padding: 6px; margin: 0 2px; border: 1px solid transparent;
+      border-radius: 3px; background: #fff; color: #666; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      min-width: 32px; height: 32px;
     }
     .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
     .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
 
-    /* MAP (Below the 2 Toolbars => top: 80px) */
+    /* MAP (Below 2 Toolbars => top: 80px) */
     #map {
-      position: fixed;
-      top: 80px; 
-      left: 0; right: 0; bottom: 0;
-      z-index: 1000;
-      background: #eee;
+      position: fixed; top: 80px; left: 0; right: 0; bottom: 0;
+      z-index: 1000; background: #eee;
     }
 
-    /* LEFT PANEL (Layer Control) */
+    /* LEFT PANEL */
     .left-panel {
-      position: fixed;
-      top: 80px;
-      left: 0;
-      width: 300px;
-      height: calc(100vh - 80px);
-      background: white;
-      border-right: 1px solid #ccc;
-      transform: translateX(-300px);
-      transition: transform 0.3s ease;
-      z-index: 1500;
-      display: flex;
-      flex-direction: column;
+      position: fixed; top: 80px; left: 0; width: 300px;
+      height: calc(100vh - 80px); background: white; border-right: 1px solid #ccc;
+      transform: translateX(-300px); transition: transform 0.3s ease; z-index: 1500;
+      display: flex; flex-direction: column;
     }
     .left-panel.visible { transform: translateX(0); }
     .panel-header {
-      padding: 15px;
-      background: #f8f9fa;
-      border-bottom: 1px solid #ccc;
-      font-weight: bold;
+      padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ccc; font-weight: bold;
     }
     .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
 
     /* BASE LAYER DROPDOWN */
     .base-layer-dropdown {
-      position: fixed;
-      background: white;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      z-index: 2800;
-      display: none;
+      position: fixed; background: white; padding: 10px; border: 1px solid #ccc;
+      border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 2800; display: none;
     }
+
+    /* MODALS (New Location, Switch Location, Add Layer) */
+    .modal-overlay {
+      display: none; position: fixed; z-index: 4000; left: 0; top: 0;
+      width: 100%; height: 100%; background: rgba(0,0,0,0.4);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal-content {
+      background: #fff; padding: 20px; border: 1px solid #888;
+      width: 80%; max-width: 500px;
+    }
+    .modal-content h2 { margin-bottom: 15px; }
+    .modal-content input, .modal-content select, .modal-content textarea {
+      width: 100%; padding: 5px; margin-top: 5px; margin-bottom: 10px;
+    }
+    .modal-content button { margin: 5px; }
   </style>
 </head>
 <body>
-  <!-- TOP NAVIGATION BAR -->
+  <!-- TOP NAV BAR -->
   <nav class="main-toolbar">
     <div class="menu-item" onclick="toggleMenu(this, 'fileMenu')">File
       <div class="menu-dropdown" id="fileMenu">
-        <div class="menu-dropdown-item" onclick="alert('New Location modal not implemented');">New Location</div>
-        <div class="menu-dropdown-item" onclick="alert('Switch Location modal not implemented');">Switch Location</div>
+        <div class="menu-dropdown-item" onclick="showNewLocationModal()">New Location</div>
+        <div class="menu-dropdown-item" onclick="showSwitchLocationModal()">Switch Location</div>
         <div class="menu-dropdown-item" onclick="alert('Save to DB not implemented');">Save</div>
       </div>
     </div>
@@ -222,41 +172,74 @@
     </div>
   </div>
 
-  <!-- LEFT PANEL (Layers) -->
+  <!-- LEFT PANEL -->
   <div class="left-panel" id="leftPanel">
     <div class="panel-header">Layers Panel</div>
     <div class="panel-content">
       <div class="layer-select-container">
         <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
         <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
-        <button style="margin-top: 10px; width: 100%;" onclick="alert('Add new layer not implemented');">
+        <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">
           Add New Layer
         </button>
       </div>
-      <div id="layerControl" style="margin-top: 20px;"></div>
+      <div id="layerControl" style="margin-top:20px;"></div>
     </div>
   </div>
 
   <!-- BASE LAYER DROPDOWN -->
   <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
 
-  <!-- MAP CONTAINER -->
+  <!-- MAP -->
   <div id="map"></div>
 
+  <!-- MODALS: New Location, Switch Location, Add Layer -->
+
+  <!-- New Location Modal -->
+  <div id="newLocationModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>Create New Location</h2>
+      <input type="text" id="newLocationName" placeholder="Enter location name"/>
+      <div style="text-align:right;">
+        <button onclick="closeNewLocationModal()" style="margin-right:10px;">Cancel</button>
+        <button onclick="createNewLocation()">Create</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Switch Location Modal -->
-  <div id="switchLocationModal" 
-       style="display: none; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%;
-              background: rgba(0,0,0,0.4); align-items: center; justify-content: center;">
-    <div style="background: #fff; margin: 10% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+  <div id="switchLocationModal" class="modal-overlay">
+    <div class="modal-content">
       <h2>Switch Location</h2>
-      <div id="locationList" style="margin: 15px 0; max-height: 300px; overflow-y: auto;"></div>
-      <div style="text-align: right; margin-top: 20px;">
-        <button onclick="closeSwitchLocationModal()" style="padding: 5px 10px;">Close</button>
+      <div id="locationList" style="margin:10px 0; max-height:200px; overflow-y:auto;">
+        <!-- We'll fill this with JS -->
+      </div>
+      <div style="text-align:right;">
+        <button onclick="closeSwitchLocationModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Layer Modal -->
+  <div id="addLayerModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>Add New Layer</h2>
+      <input type="text" id="newLayerName" placeholder="Layer Name"/>
+      <select id="newLayerType">
+        <option value="facility">Facility</option>
+        <option value="boundary">Boundary</option>
+      </select>
+      <div style="text-align:right;">
+        <button onclick="closeAddLayerModal()" style="margin-right:10px;">Cancel</button>
+        <button onclick="createNewLayer()">Create</button>
       </div>
     </div>
   </div>
 
   <script>
+    /************************************************************
+     * Minimal toggleMenu function for top nav
+     ************************************************************/
     window.toggleMenu = function(element, menuId) {
       const dropdown = document.getElementById(menuId);
       if (!dropdown) {
@@ -284,157 +267,260 @@
       }
     };
 
-    // 1) Initialize the Leaflet map
-    let map;
-    document.addEventListener("DOMContentLoaded", function() {
-      console.log("DOM Content Loaded: Starting minimal QDPro example...");
+    /************************************************************
+     * Minimal QDPro object to handle map, layers, modals, etc.
+     ************************************************************/
+    const QDPro = {
+      map: null,
+      layers: {},
+      activeLayer: null,
+      isDrawing: false,
+      currentLocation: null,
+      // For demonstration, a fake location array
+      mockLocations: [
+        { id: 1, name: "Location A", created_at: "2023-01-01" },
+        { id: 2, name: "Location B", created_at: "2023-02-15" }
+      ],
 
-      // Create the map
-      map = L.map("map", {
-        center: [39.8283, -98.5795],
-        zoom: 4
-      });
-      // Add a default tile layer
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap contributors"
-      }).addTo(map);
-      console.log("Map initialized:", map);
+      init: function() {
+        console.log("Initializing QDPro...");
 
-      // 2) Create a default FeatureGroup for drawings
-      const activeLayer = L.featureGroup().addTo(map);
-      // Add a dictionary for layers
-      const layers = { "Default": activeLayer };
+        // 1) Initialize the map
+        this.map = L.map("map", {
+          center: [39.8283, -98.5795],
+          zoom: 4
+        });
+        // Add a default tile layer
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors"
+        }).addTo(this.map);
 
-      // 3) Setup Leaflet Draw tools
-      const drawingTools = {
-        polygon: new L.Draw.Polygon(map, {
-          allowIntersection: false,
-          showArea: true,
+        // 2) Create a default layer group
+        this.activeLayer = L.featureGroup().addTo(this.map);
+        this.layers["Default"] = this.activeLayer;
+
+        // 3) Setup event handlers for the draw tools
+        this.setupDrawTools();
+
+        // 4) Setup left panel toggle
+        const leftPanel = document.getElementById("leftPanel");
+        const mapElement = document.getElementById("map");
+        document.getElementById("toggleLayersPanel").addEventListener("click", () => {
+          leftPanel.classList.toggle("visible");
+          if (leftPanel.classList.contains("visible")) {
+            mapElement.style.left = "300px";
+            mapElement.style.width = "calc(100% - 300px)";
+          } else {
+            mapElement.style.left = "0";
+            mapElement.style.width = "100%";
+          }
+          this.map.invalidateSize();
+        });
+
+        // 5) Update "Draw to Layer" dropdown
+        this.updateDrawToLayerSelect();
+
+        console.log("QDPro init complete. Map should be visible now.");
+      },
+
+      setupDrawTools: function() {
+        // Define draw tools
+        const drawOptions = { shapeOptions: { color: "#3388ff" } };
+        const polygonTool = new L.Draw.Polygon(this.map, {
+          allowIntersection: false, showArea: true,
           drawError: { color: "#e1e100", timeout: 1000 },
           shapeOptions: { color: "#3388ff" }
-        }),
-        polyline: new L.Draw.Polyline(map, { shapeOptions: { color: "#3388ff", weight: 2 } }),
-        rectangle: new L.Draw.Rectangle(map, { shapeOptions: { color: "#3388ff" } }),
-        circle: new L.Draw.Circle(map, { shapeOptions: { color: "#3388ff" } }),
-        marker: new L.Draw.Marker(map)
-      };
-      let isDrawing = false;
-
-      function deactivateAllDrawingTools() {
-        Object.values(drawingTools).forEach(tool => {
-          if (tool && typeof tool.disable === "function") { tool.disable(); }
         });
-        document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("active"));
-        document.getElementById("panTool").classList.add("active");
-        isDrawing = false;
-      }
+        const polylineTool = new L.Draw.Polyline(this.map, drawOptions);
+        const rectangleTool = new L.Draw.Rectangle(this.map, drawOptions);
+        const circleTool = new L.Draw.Circle(this.map, drawOptions);
+        const markerTool = new L.Draw.Marker(this.map);
 
-      function activateDrawingTool(toolName) {
-        deactivateAllDrawingTools();
-        const tool = drawingTools[toolName];
-        if (tool && typeof tool.enable === "function") {
-          tool.enable();
-          document.getElementById("draw" + toolName.charAt(0).toUpperCase() + toolName.slice(1)).classList.add("active");
-          isDrawing = true;
-        }
-      }
+        // Hook up the toolbar buttons
+        document.getElementById("drawPolygon").addEventListener("click", () => this.activateTool(polygonTool, "drawPolygon"));
+        document.getElementById("drawPolyline").addEventListener("click", () => this.activateTool(polylineTool, "drawPolyline"));
+        document.getElementById("drawRectangle").addEventListener("click", () => this.activateTool(rectangleTool, "drawRectangle"));
+        document.getElementById("drawCircle").addEventListener("click", () => this.activateTool(circleTool, "drawCircle"));
+        document.getElementById("drawMarker").addEventListener("click", () => this.activateTool(markerTool, "drawMarker"));
 
-      // 4) Hook up toolbar buttons
-      document.getElementById("drawPolygon").addEventListener("click", e => {
-        e.preventDefault(); activateDrawingTool("polygon");
-      });
-      document.getElementById("drawPolyline").addEventListener("click", e => {
-        e.preventDefault(); activateDrawingTool("polyline");
-      });
-      document.getElementById("drawRectangle").addEventListener("click", e => {
-        e.preventDefault(); activateDrawingTool("rectangle");
-      });
-      document.getElementById("drawCircle").addEventListener("click", e => {
-        e.preventDefault(); activateDrawingTool("circle");
-      });
-      document.getElementById("drawMarker").addEventListener("click", e => {
-        e.preventDefault(); activateDrawingTool("marker");
-      });
-      document.getElementById("panTool").addEventListener("click", e => {
-        e.preventDefault(); deactivateAllDrawingTools();
-      });
-      document.getElementById("selectTool").addEventListener("click", e => {
-        e.preventDefault(); deactivateAllDrawingTools();
-        document.getElementById("selectTool").classList.add("active");
-        // Minimal: no select logic here, just a placeholder
-      });
+        // Deactivate on "panTool" click
+        document.getElementById("panTool").addEventListener("click", () => this.deactivateAllTools());
 
-      // 5) Left panel toggle
-      const leftPanel = document.getElementById("leftPanel");
-      const mapElement = document.getElementById("map");
-      document.getElementById("toggleLayersPanel").addEventListener("click", () => {
-        leftPanel.classList.toggle("visible");
-        if (leftPanel.classList.contains("visible")) {
-          mapElement.style.left = "300px";
-          mapElement.style.width = "calc(100% - 300px)";
-        } else {
-          mapElement.style.left = "0";
-          mapElement.style.width = "100%";
-        }
-        map.invalidateSize();
-        console.log("Left panel toggled. Visible:", leftPanel.classList.contains("visible"));
-      });
+        // Minimal "selectTool" logic
+        document.getElementById("selectTool").addEventListener("click", () => {
+          this.deactivateAllTools();
+          document.getElementById("selectTool").classList.add("active");
+          console.log("Select mode not fully implemented in this example.");
+        });
 
-      // 6) Hook up Leaflet Draw's draw:created event
-      map.on("draw:created", e => {
-        console.log("draw:created event fired", e);
-        const layer = e.layer;
-
-        // For polygons, force closure
-        if (e.layerType === "polygon" && layer.getLatLngs) {
-          const coords = layer.getLatLngs()[0];
-          if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
-            coords.push(coords[0]);
-            layer.setLatLngs(coords);
+        // Leaflet draw:created event
+        this.map.on("draw:created", (e) => {
+          console.log("draw:created event fired", e);
+          const layer = e.layer;
+          // Force polygon closure if needed
+          if (e.layerType === "polygon") {
+            const coords = layer.getLatLngs()[0];
+            if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
+              coords.push(coords[0]);
+              layer.setLatLngs(coords);
+            }
           }
+          // Add to active layer
+          this.activeLayer.addLayer(layer);
+          console.log("Shape added to active layer:", layer);
+
+          // Deactivate
+          this.deactivateAllTools();
+        });
+      },
+
+      activateTool: function(tool, buttonId) {
+        this.deactivateAllTools();
+        tool.enable();
+        document.getElementById(buttonId).classList.add("active");
+        this.isDrawing = true;
+      },
+
+      deactivateAllTools: function() {
+        // Turn off Leaflet Draw
+        if (L.Draw && L.Draw.Feature && L.Draw.Feature.prototype.disable) {
+          // A quick approach: manually disable each type
+          new L.Draw.Polygon(this.map).disable();
+          new L.Draw.Polyline(this.map).disable();
+          new L.Draw.Rectangle(this.map).disable();
+          new L.Draw.Circle(this.map).disable();
+          new L.Draw.Marker(this.map).disable();
         }
+        // Clear "active" highlight
+        document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("active"));
+        // Pan tool is default
+        document.getElementById("panTool").classList.add("active");
+        this.isDrawing = false;
+      },
 
-        // Add the drawn shape to our active layer (in this minimal example, "Default")
-        activeLayer.addLayer(layer);
-        console.log("Shape added to 'Default' layer.");
+      updateDrawToLayerSelect: function() {
+        const select = document.getElementById("drawToLayer");
+        select.innerHTML = "";
+        Object.keys(this.layers).forEach(layerName => {
+          const opt = document.createElement("option");
+          opt.value = layerName;
+          opt.textContent = layerName;
+          select.appendChild(opt);
+        });
+        select.addEventListener("change", (e) => {
+          const selected = e.target.value;
+          this.activeLayer = this.layers[selected];
+          console.log("Active layer changed to:", selected);
+        });
+      },
 
-        // Deactivate the drawing tool
-        deactivateAllDrawingTools();
-      });
-
-      // 7) "Draw to Layer" dropdown (just a placeholder in this minimal example)
-      const drawToLayerSelect = document.getElementById("drawToLayer");
-      drawToLayerSelect.innerHTML = `<option value="Default">Default</option>`;
-      // In a real scenario, you'd have multiple layers in 'layers' object, then pick one.
-      drawToLayerSelect.addEventListener("change", e => {
-        console.log("Selected layer:", e.target.value);
-        // If you had multiple layers, you'd set activeLayer = layers[e.target.value];
-      });
-
-      // 8) Base layer dropdown logic
-      const baseLayerTool = document.getElementById("baseLayerTool");
-      const baseLayerDropdown = document.getElementById("baseLayerDropdown");
-      baseLayerTool.addEventListener("click", () => {
-        const rect = baseLayerTool.getBoundingClientRect();
-        baseLayerDropdown.style.top = (rect.bottom + 5) + "px";
-        baseLayerDropdown.style.left = rect.left + "px";
-        baseLayerDropdown.style.display = 
-          (baseLayerDropdown.style.display === "none" || baseLayerDropdown.style.display === "") ? "block" : "none";
-      });
-      document.addEventListener("click", (e) => {
-        if (!e.target.closest("#baseLayerTool") && !e.target.closest("#baseLayerDropdown")) {
-          baseLayerDropdown.style.display = "none";
+      /*********************************
+       * Add New Layer Modal Functions *
+       *********************************/
+      showAddLayerModal: function() {
+        document.getElementById("addLayerModal").classList.add("visible");
+      },
+      closeAddLayerModal: function() {
+        document.getElementById("addLayerModal").classList.remove("visible");
+        // Clear input
+        document.getElementById("newLayerName").value = "";
+      },
+      createNewLayer: function() {
+        const layerName = document.getElementById("newLayerName").value.trim();
+        const layerType = document.getElementById("newLayerType").value;
+        if (!layerName) {
+          alert("Please enter a layer name");
+          return;
         }
-      });
+        if (this.layers[layerName]) {
+          alert(`Layer "${layerName}" already exists`);
+          return;
+        }
+        const newLayer = L.featureGroup().addTo(this.map);
+        newLayer.properties = { type: layerType };
+        this.layers[layerName] = newLayer;
+        this.activeLayer = newLayer;
+        this.updateDrawToLayerSelect();
+        this.closeAddLayerModal();
+        console.log(`Created new layer: ${layerName}, type: ${layerType}`);
+      },
 
-      // Minimal example of base layers
-      baseLayerDropdown.innerHTML = `
-        <div style="padding:8px; border-bottom:1px solid #eee; cursor:pointer;" onclick="alert('Switch to OpenStreetMap base');">OpenStreetMap</div>
-        <div style="padding:8px; border-bottom:1px solid #eee; cursor:pointer;" onclick="alert('Switch to Google Satellite');">Google Satellite</div>
-      `;
+      /*************************************
+       * New Location Modal Functions
+       *************************************/
+      showNewLocationModal: function() {
+        document.getElementById("newLocationModal").classList.add("visible");
+      },
+      closeNewLocationModal: function() {
+        document.getElementById("newLocationModal").classList.remove("visible");
+      },
+      createNewLocation: function() {
+        const locName = document.getElementById("newLocationName").value.trim();
+        if (!locName) {
+          alert("Please enter a location name");
+          return;
+        }
+        // For demonstration, just set dbStatus and log
+        this.currentLocation = locName;
+        document.getElementById("dbStatus").textContent = `Location: ${locName}`;
+        // Clear all existing layers
+        Object.values(this.layers).forEach(layer => {
+          this.map.removeLayer(layer);
+        });
+        this.layers = {};
+        // Create a default layer
+        this.activeLayer = L.featureGroup().addTo(this.map);
+        this.layers["Default"] = this.activeLayer;
+        this.updateDrawToLayerSelect();
+        this.closeNewLocationModal();
+        console.log("Created new location:", locName);
+      },
 
-      // 9) Some minimal placeholders for "File" menu
-      console.log("Minimal QDPro example loaded. The map should appear below the 2 toolbars.");
+      /*************************************
+       * Switch Location Modal Functions
+       *************************************/
+      showSwitchLocationModal: function() {
+        document.getElementById("switchLocationModal").classList.add("visible");
+        // For demonstration, we use a mockLocations array
+        const locationList = document.getElementById("locationList");
+        locationList.innerHTML = "";
+        this.mockLocations.forEach(loc => {
+          const div = document.createElement("div");
+          div.style.padding = "10px";
+          div.style.borderBottom = "1px solid #eee";
+          div.style.cursor = "pointer";
+          div.textContent = `${loc.name} (Created: ${loc.created_at})`;
+          div.addEventListener("click", () => {
+            this.switchToLocation(loc);
+          });
+          locationList.appendChild(div);
+        });
+      },
+      closeSwitchLocationModal: function() {
+        document.getElementById("switchLocationModal").classList.remove("visible");
+      },
+      switchToLocation: function(locObj) {
+        // In a real app, you'd fetch layers from backend: /api/load-layers?location=locObj.id
+        console.log("Switching to location:", locObj);
+        // Clear existing layers
+        Object.values(this.layers).forEach(layer => this.map.removeLayer(layer));
+        this.layers = {};
+        // Create a default layer again
+        this.activeLayer = L.featureGroup().addTo(this.map);
+        this.layers["Default"] = this.activeLayer;
+        this.updateDrawToLayerSelect();
+        this.currentLocation = locObj.name;
+        document.getElementById("dbStatus").textContent = `Location: ${locObj.name}`;
+        this.closeSwitchLocationModal();
+      }
+    };
+
+    /************************************************************
+     * DOMContentLoaded => Initialize QDPro
+     ************************************************************/
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("DOM Content Loaded – let's init QDPro!");
+      QDPro.init();
     });
   </script>
 </body>
