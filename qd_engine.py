@@ -77,13 +77,20 @@ class QDEngine:
             "iterations": iterations
         }
 
-    def calculate_safe_distance(self, quantity: float, material_props: MaterialProperties,
-                              env_conditions: EnvironmentalConditions) -> float:
+    def calculate_safe_distance(self, quantity: float, material_props: MaterialProperties = None,
+                              env_conditions: EnvironmentalConditions = None) -> float:
         """Calculate deterministic safe distance with environmental corrections."""
+        if material_props is None:
+            material_props = MaterialProperties(sensitivity=1.0, det_velocity=6000, tnt_equiv=1.0)
+        if env_conditions is None:
+            env_conditions = EnvironmentalConditions(temperature=298, pressure=101.325, humidity=50, confinement_factor=0.0)
+            
         temp_factor = 1.0 + 0.002 * (env_conditions.temperature - 298)
         humidity_factor = 1.0 + 0.001 * (env_conditions.humidity - 50)
         base_distance = self.D * math.pow(quantity, 1/3)
-        return base_distance * temp_factor * humidity_factor * material_props.sensitivity
+        distance = base_distance * temp_factor * humidity_factor * material_props.sensitivity
+        
+        return round(distance, 2)
 
     def generate_k_factor_rings(self, center: List[float], safe_distance: float,
                               uncertainty: Optional[float] = None,
