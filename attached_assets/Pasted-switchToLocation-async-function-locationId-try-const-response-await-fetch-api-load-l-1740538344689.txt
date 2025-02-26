@@ -1,0 +1,71 @@
+switchToLocation: async function(locationId) {
+  try {
+    const response = await fetch(`/api/load-layers?location=${locationId}`);
+    if (!response.ok) throw new Error("Failed to load location");
+
+    const data = await response.json();
+    // Clear old layers from the map
+    Object.values(this.layers).forEach(layer => {
+      if (this.map.hasLayer(layer)) {
+        this.map.removeLayer(layer);
+      }
+    });
+    this.layers = {};
+
+    // Rebuild layers from the data
+    if (data.layers) {
+      Object.entries(data.layers).forEach(([layerName, layerData]) => {
+        const layerGroup = L.featureGroup().addTo(this.map);
+        layerGroup.properties = layerData.properties || {};
+
+        // Add features
+        if (layerData.features) {
+          layerData.features.forEach(feature => {
+            const featureLayer = L.geoJSON(feature);
+            featureLayer.feature = feature;
+
+            // If there's color coding logic for PES/ES, do it here
+            if (feature.properties && feature.properties.typeCode) {
+              // e.g. if PES => red, if ES => green
+            }
+
+            // Add tooltips if name property exists
+            if (feature.properties && feature.properties.name) {
+              featureLayer.bindTooltip(
+                feature.properties.name + 
+                (feature.properties.typeCode ? `<br>${feature.properties.typeCode}` : ''),
+                { permanent: false }
+              );
+            }
+
+            layerGroup.addLayer(featureLayer);
+          });
+        }
+
+        this.layers[layerName] = layerGroup;
+      });
+    }
+
+    // If no layers found, create a Default layer
+    if (Object.keys(this.layers).length === 0) {
+      this.layers["Default"] = L.featureGroup().addTo(this.map);
+    }
+
+    // Set the first layer as active
+    this.activeLayer = Object.values(this.layers)[0];
+
+    // Update UI
+    this.updateDrawToLayerSelect();
+    this.updateLayerControl();
+
+    // Track the current location
+    this.currentLocation = locationId;
+    document.getElementById('dbStatus').textContent = `Location ID: ${locationId}`;
+
+    // Close the modal
+    this.closeSwitchLocationModal();
+  } catch (error) {
+    console.error("Error switching location:", error);
+    alert("Failed to switch location. Please try again.");
+  }
+},
