@@ -29,40 +29,32 @@ const QDPro = {
   // Initialize map references
   initMap: function() {
     try {
-      // Wait for DOM to be ready
-      if (!document.getElementById('map')) {
-        throw new Error('Map container not found');
-      }
+      // Create base layers
+      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      });
 
-      // Initialize map with options
+      // Initialize map with base layer
       this.map = L.map('map', {
         center: [39.8283, -98.5795],
         zoom: 4,
-        layers: [] // Start with no layers
+        layers: [osmLayer]
       });
-
-      // Add base layer first
-      const baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      });
-      baseLayer.addTo(this.map);
 
       // Initialize layers object
       this.layers = {};
 
-      // Create and add default feature group
-      const defaultLayer = new L.featureGroup();
-      this.map.addLayer(defaultLayer);
-      this.layers["Default"] = defaultLayer;
-      this.activeLayer = defaultLayer;
+      // Create default feature group
+      this.layers["Default"] = new L.featureGroup();
+      this.layers["Default"].addTo(this.map);
+      this.activeLayer = this.layers["Default"];
 
       // Force map resize
-      setTimeout(() => this.map.invalidateSize(), 100);
+      setTimeout(() => this.map.invalidateSize(), 500);
       
       console.log("Map initialized successfully");
     } catch (error) {
       console.error("Error initializing map:", error);
-      throw error; // Rethrow to handle in caller
     }
   },
 
