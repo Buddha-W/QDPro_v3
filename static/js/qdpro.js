@@ -26,17 +26,11 @@ const QDPro = {
     this.loadFromDatabase();
   },
 
-  // Initialize the Leaflet map
+  // Initialize map references
   initMap: function() {
-    this.map = L.map("map", {
-      center: [39.8283, -98.5795],
-      zoom: 4,
-      zoomControl: true
-    });
-
-    // Add default base layer
-    this.baseLayers.OpenStreetMap.addTo(this.map);
-
+    // Use existing map instance
+    this.map = window.map;
+    
     // Create a default layer group for drawings
     this.activeLayer = L.featureGroup().addTo(this.map);
     this.layers["Default"] = this.activeLayer;
