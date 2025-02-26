@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, Depends, HTTPException, status, Background
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 import json
 
 logger = logging.getLogger(__name__)
