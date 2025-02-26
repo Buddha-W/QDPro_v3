@@ -131,22 +131,27 @@ async def calculate_qd(request: QDCalculationRequest, background_tasks: Backgrou
                 safe_distance=safe_distance
             )
 
-            return {
-                "facility_id": facility_data[0],
-                "facility_name": facility_data[1],
-                "safe_distance": safe_distance,
-                "buffer_zones": buffer_zones
-            }
+            try:
+                return {
+                    "facility_id": facility_data[0],
+                    "facility_name": facility_data[1],
+                    "safe_distance": safe_distance,
+                    "buffer_zones": buffer_zones
+                }
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+            finally:
+                if 'cur' in locals(): 
+                    cur.close()
+                if 'conn' in locals(): 
+                    conn.close()
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
         finally:
-            if cur:
+            if 'cur' in locals(): 
                 cur.close()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database connection error: {str(e)}")
-    finally:
-        if 'conn' in locals():
-            conn.close()
+            if 'conn' in locals(): 
+                conn.close()
 
         # Create material properties object
         material_props = MaterialProperties(
