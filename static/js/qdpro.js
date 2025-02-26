@@ -281,15 +281,34 @@ const QDPro = {
 
   // Create new location
   createNewLocation: async function() {
-    const locationName = prompt("Enter new location name:");
-    if (!locationName) return;
+    // Create modal HTML
+    const modalHtml = `
+      <div id="newLocationModal" style="position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center;">
+        <div style="background-color: #fefefe; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+          <h2>Create New Location</h2>
+          <input type="text" id="newLocationName" style="width: 100%; padding: 5px; margin: 10px 0;" placeholder="Enter location name">
+          <div style="text-align: right; margin-top: 20px;">
+            <button onclick="document.getElementById('newLocationModal').remove()" style="margin-right: 10px; padding: 5px 10px;">Cancel</button>
+            <button id="createLocationBtn" style="padding: 5px 10px;">Create</button>
+          </div>
+        </div>
+      </div>
+    `;
 
-    try {
-      const response = await fetch("/api/create_location", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ location_name: locationName })
-      });
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Set up create button handler
+    document.getElementById('createLocationBtn').onclick = async () => {
+      const locationName = document.getElementById('newLocationName').value.trim();
+      if (!locationName) return;
+
+      try {
+        const response = await fetch("/api/create_location", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ location_name: locationName })
+        });
 
       if (!response.ok) throw new Error("Failed to create location");
 
@@ -309,10 +328,13 @@ const QDPro = {
       
       this.updateDrawToLayerSelect();
       this.updateLayerControl();
+      document.getElementById('newLocationModal').remove();
     } catch (error) {
       console.error("Error creating location:", error);
       alert("Failed to create location");
+      document.getElementById('newLocationModal').remove();
     }
+  };
   },
 
   // Activate a specific drawing tool
