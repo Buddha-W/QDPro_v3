@@ -5,58 +5,13 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <style>
+        #map { height: 600px; }
+        .layers-control { margin: 10px; }
         body { margin: 0; padding: 0; }
-        #map { height: calc(100vh - 40px); width: 100%; }
-        .menu-bar {
-            height: 40px;
-            background: #2c3e50;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-        }
-        .menu-item {
-            position: relative;
-            color: white;
-            padding: 10px;
-            cursor: pointer;
-        }
-        .menu-item:hover .dropdown-content {
-            display: block;
-        }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background: white;
-            min-width: 160px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            z-index: 1000;
-            top: 100%;
-            left: 0;
-        }
-        .dropdown-content a {
-            color: black;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-        }
-        .dropdown-content a:hover {
-            background: #f1f1f1;
-        }
-        .layers-panel {
-            position: absolute;
-            left: 10px;
-            top: 50px;
-            background: white;
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            max-width: 250px;
-        }
         .analysis-panel {
             position: absolute;
             right: 10px;
-            top: 50px;
+            top: 10px; /*Adjusted top position*/
             background: white;
             padding: 10px;
             border-radius: 4px;
@@ -66,47 +21,11 @@
     </style>
 </head>
 <body>
-    <div class="menu-bar">
-        <div class="menu-item">
-            File
-            <div class="dropdown-content">
-                <a href="#" onclick="createNewLocation()">New Location</a>
-                <a href="#" onclick="openLocation()">Open Location</a>
-                <a href="#" onclick="saveCurrentLocation()">Save</a>
-            </div>
-        </div>
-        <div class="menu-item">
-            Edit
-            <div class="dropdown-content">
-                <a href="#" onclick="deleteSelected()">Delete Selected</a>
-                <a href="#" onclick="editSelected()">Edit Properties</a>
-            </div>
-        </div>
-        <div class="menu-item">
-            View
-            <div class="dropdown-content">
-                <a href="#" onclick="toggleLayersPanel()">Toggle Layers Panel</a>
-                <a href="#" onclick="toggleAnalysisPanel()">Toggle Analysis Panel</a>
-            </div>
-        </div>
-    </div>
 
     <div id="map"></div>
-
-    <div id="layers-panel" class="layers-panel">
-        <h3>Layers</h3>
-        <div id="layer-list"></div>
-    </div>
-
     <div id="analysis-panel" class="analysis-panel">
         <h3>QD Analysis</h3>
-        <input type="number" id="quantity" placeholder="Explosive Quantity (lbs)">
-        <select id="siteType">
-            <option value="DOD">DOD</option>
-            <option value="DOE">DOE</option>
-        </select>
-        <button onclick="performAnalysis()">Analyze</button>
-        <div id="analysis-results"></div>
+        <button id="analyzeBtn">Analyze</button> <div id="analysis-results"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -117,31 +36,30 @@
             drawnItems: null,
             drawControl: null,
 
-            init: function() {
-                if (this.map) {
-                    console.log("Map already initialized");
-                    return;
+            init() {
+                if (!this.map) {
+                    console.log("Initializing map...");
+                    this.map = L.map('map').setView([39.8283, -98.5795], 4);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(this.map);
+
+                    this.drawnItems = new L.FeatureGroup();
+                    this.map.addLayer(this.drawnItems);
+
+                    this.initDrawControls();
+                    this.loadSavedLayers();
+                    this.setupEventHandlers();
                 }
+            },
 
-                // Initialize map
-                this.map = L.map('map').setView([39.8283, -98.5795], 4);
-
-                // Add base layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(this.map);
-
-                // Initialize feature group for drawn items
-                this.drawnItems = new L.FeatureGroup();
-                this.map.addLayer(this.drawnItems);
-
-                // Initialize draw control
+            initDrawControls() {
                 this.drawControl = new L.Control.Draw({
                     draw: {
                         polygon: true,
                         circle: true,
                         marker: true,
-                        polyline: true,
                         rectangle: true
                     },
                     edit: {
@@ -149,323 +67,97 @@
                     }
                 });
                 this.map.addControl(this.drawControl);
-
-                // Event handlers
-                this.map.on('draw:created', this.handleDrawCreated.bind(this));
-                this.map.on('draw:edited', this.handleDrawEdited.bind(this));
-                this.map.on('draw:deleted', this.handleDrawDeleted.bind(this));
-
-                // Load saved layers
-                this.loadSavedLayers();
             },
 
-            handleDrawCreated: function(e) {
-                const layer = e.layer;
-                this.drawnItems.addLayer(layer);
-                this.saveLayers();
+            async loadSavedLayers() {
+                try {
+                    const response = await fetch('/api/load-layers');
+                    const data = await response.json();
+
+                    if (data.layers && typeof data.layers === 'object') {
+                        Object.entries(data.layers).forEach(([name, layerData]) => {
+                            try {
+                                if (this.isValidGeoJSON(layerData)) {
+                                    const layer = L.geoJSON(layerData);
+                                    this.drawnItems.addLayer(layer);
+                                }
+                            } catch (err) {
+                                console.error(`Error loading layer ${name}:`, err);
+                            }
+                        });
+                    }
+                } catch (err) {
+                    console.error("Error loading layers:", err);
+                }
             },
 
-            handleDrawEdited: function(e) {
-                this.saveLayers();
+            isValidGeoJSON(data) {
+                return data && 
+                       (data.type === 'Feature' || data.type === 'FeatureCollection') &&
+                       data.features &&
+                       Array.isArray(data.features);
             },
 
-            handleDrawDeleted: function(e) {
-                this.saveLayers();
+            setupEventHandlers() {
+                this.map.on('draw:created', (e) => {
+                    const layer = e.layer;
+                    this.drawnItems.addLayer(layer);
+                    this.saveLayer(layer);
+                });
+
+                document.getElementById('analyzeBtn')?.addEventListener('click', () => {
+                    this.performAnalysis();
+                });
             },
 
-            saveLayers: async function() {
+            async performAnalysis() {
                 try {
                     const layers = this.drawnItems.toGeoJSON();
-                    await fetch('/api/save-layers', {
+                    const response = await fetch('/api/analyze_qd', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(layers)
                     });
-                } catch (error) {
-                    console.error('Error saving layers:', error);
-                }
-            },
-
-            loadSavedLayers: async function() {
-                try {
-                    const response = await fetch('/api/load-layers');
-                    const data = await response.json();
-                    if (data.layers) {
-                        L.geoJSON(data.layers).eachLayer(layer => {
-                            this.drawnItems.addLayer(layer);
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error loading layers:', error);
-                }
-            },
-
-            performAnalysis: async function() {
-                const quantity = document.getElementById('quantity').value;
-                const siteType = document.getElementById('siteType').value;
-
-                try {
-                    const response = await fetch('/api/analyze_qd', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            quantity: parseFloat(quantity),
-                            site_type: siteType
-                        })
-                    });
-
                     const results = await response.json();
-                    document.getElementById('analysis-results').innerHTML = `
-                        <p>Safe Distance: ${results.safe_distance} ft</p>
-                        <p>K-Factor: ${results.k_factor}</p>
+                    this.displayAnalysisResults(results);
+                } catch (err) {
+                    console.error("Analysis error:", err);
+                }
+            },
+
+            displayAnalysisResults(results) {
+                const resultsDiv = document.getElementById('analysis-results');
+                if (resultsDiv) {
+                    resultsDiv.innerHTML = `
+                        <h3>Analysis Results</h3>
+                        <pre>${JSON.stringify(results, null, 2)}</pre>
                     `;
-                } catch (error) {
-                    console.error('Analysis failed:', error);
                 }
-            }
-        };
+            },
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => QDPro.init());
-
-        // UI Helper Functions
-        function toggleLayersPanel() {
-            const panel = document.getElementById('layers-panel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function toggleAnalysisPanel() {
-            const panel = document.getElementById('analysis-panel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        }
-
-
-        // Event handlers (from original script)
-        window.toggleMenu = function(element, menuId) {
-            const dropdown = document.getElementById(menuId);
-            if (!dropdown) {
-                console.error("Menu dropdown not found:", menuId);
-                return;
-            }
-            // Close other menus
-            document.querySelectorAll(".menu-dropdown").forEach(dd => {
-                if (dd.id !== menuId) {
-                    dd.style.display = "none";
-                    dd.parentElement.classList.remove("active");
-                }
-            });
-            // Toggle this menu
-            const isVisible = dropdown.style.display === "block";
-            dropdown.style.display = isVisible ? "none" : "block";
-            element.classList.toggle("active", !isVisible);
-            // Position dropdown
-            if (!isVisible) {
-                const rect = element.getBoundingClientRect();
-                dropdown.style.position = "fixed";
-                dropdown.style.top = rect.bottom + "px";
-                dropdown.style.left = rect.left + "px";
-                dropdown.style.zIndex = "3500";
-            }
-        };
-
-        // Modal management functions (from original script)
-        function showNewLocationModal() {
-            document.getElementById("newLocationModal").classList.add("visible");
-        }
-
-        function closeNewLocationModal() {
-            document.getElementById("newLocationModal").classList.remove("visible");
-            document.getElementById("newLocationName").value = "";
-        }
-
-        function showSwitchLocationModal() {
-            document.getElementById("switchLocationModal").classList.add("visible");
-        }
-
-        function closeSwitchLocationModal() {
-            document.getElementById("switchLocationModal").classList.remove("visible");
-        }
-
-        function showAddLayerModal() {
-            document.getElementById("addLayerModal").classList.add("visible");
-        }
-
-        function closeAddLayerModal() {
-            document.getElementById("addLayerModal").classList.remove("visible");
-            document.getElementById("newLayerName").value = "";
-        }
-
-        async function createNewLayer() {
-            const name = document.getElementById("newLayerName").value.trim();
-            const type = document.getElementById("newLayerType").value;
-
-            if (!name) {
-                alert("Please enter a layer name");
-                return;
-            }
-
-            if (QDPro.layers && QDPro.layers[name]) {
-                alert("Layer name already exists");
-                return;
-            }
-
-            const newLayer = L.featureGroup().addTo(QDPro.map);
-            newLayer.properties = { type: type };
-            QDPro.layers = QDPro.layers || {}; //Ensure layers object exists
-            QDPro.layers[name] = newLayer;
-            QDPro.activeLayer = newLayer;
-            QDPro.updateDrawToLayerSelect();
-            closeAddLayerModal();
-        }
-
-        QDPro.updateDrawToLayerSelect = function(){
-            //This function needs to be implemented based on how layers are managed in the edited code
-            console.warn("updateDrawToLayerSelect function not implemented.  Layer selection may not work correctly.");
-        };
-
-        QDPro.map.on('draw:created', async function(e) {
-            const layer = e.layer;
-            QDPro.drawnItems.addLayer(layer);
-
-            if (e.layerType === 'marker') {
-                const quantity = document.getElementById('quantity').value; // Changed to match edited ID
-                if (!quantity) {
-                    alert('Please enter explosive quantity');
-                    return;
-                }
-
+            async saveLayer(layer) {
                 try {
-                    const response = await fetch('/api/analyze_qd', {
+                    await fetch('/api/save-layers', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            quantity: parseFloat(quantity),
-                            location: [layer.getLatLng().lng, layer.getLatLng().lat],
-                            site_type: 'DOD', // Hardcoded for now, should be dynamic
-                            material_props: {
-                                sensitivity: 1.0,
-                                det_velocity: 6000,
-                                tnt_equiv: 1.0
-                            },
-                            env_conditions: {
-                                temperature: 298,
-                                pressure: 101.325,
-                                humidity: 50,
-                                confinement_factor: 0
+                            layers: {
+                                [Date.now()]: layer.toGeoJSON()
                             }
                         })
                     });
-
-                    const data = await response.json();
-
-                    // Add buffer zones
-                    L.geoJSON(data.geojson, {
-                        style: (feature) => ({
-                            color: feature.properties.k_factor === 1.0 ? '#ff0000' : '#662d91',
-                            weight: 2,
-                            opacity: feature.properties.isUncertaintyBand ? 0.3 : 0.8
-                        })
-                    }).addTo(QDPro.drawnItems);
-
-                    // Display results
-                    document.getElementById('analysis-results').innerHTML = `
-                        <p>Mean Safe Distance: ${data.safe_distance.toFixed(2)} ft</p>
-                        <p>Standard Deviation: ${data.std_deviation.toFixed(2)} ft</p>
-                        <p>95% CI: [${data.confidence_interval[0].toFixed(2)}, 
-                                  ${data.confidence_interval[1].toFixed(2)}] ft</p>
-                    `;
-                } catch (error) {
-                    console.error('Analysis failed:', error);
-                    alert('Analysis failed: ' + error.message);
+                } catch (err) {
+                    console.error("Error saving layer:", err);
                 }
             }
-        });
+        };
 
-
-        // Placeholder functions -  These need proper implementations based on backend API
-        function createNewLocation() {
-            alert('createNewLocation not implemented');
-        }
-
-        function openLocation() {
-            alert('openLocation not implemented');
-        }
-
-        function saveCurrentLocation() {
-            alert('saveCurrentLocation not implemented');
-        }
-
-        function deleteSelected() {
-            alert('deleteSelected not implemented');
-        }
-
-        function editSelected() {
-            alert('editSelected not implemented');
-        }
-
-
-        // MODALS (from original, needs to be integrated with the new structure)
-        // New Location Modal
-        const newLocationModal = document.createElement('div');
-        newLocationModal.id = "newLocationModal";
-        newLocationModal.className = "modal-overlay";
-        newLocationModal.innerHTML = `
-            <div class="modal-content">
-                <h2>Create New Location</h2>
-                <input type="text" id="newLocationName" placeholder="Enter location name"/>
-                <div style="text-align:right;">
-                    <button onclick="closeNewLocationModal()" style="margin-right:10px;">Cancel</button>
-                    <button onclick="createNewLocation()">Create</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(newLocationModal);
-
-
-        // Switch Location Modal
-        const switchLocationModal = document.createElement('div');
-        switchLocationModal.id = "switchLocationModal";
-        switchLocationModal.className = "modal-overlay";
-        switchLocationModal.innerHTML = `
-            <div class="modal-content">
-                <h2>Switch Location</h2>
-                <div id="locationList" style="margin:10px 0; max-height:200px; overflow-y:auto;">
-                    <!-- We'll fill this with JS -->
-                </div>
-                <div style="text-align:right;">
-                    <button onclick="closeSwitchLocationModal()">Close</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(switchLocationModal);
-
-
-        // Add Layer Modal
-        const addLayerModal = document.createElement('div');
-        addLayerModal.id = "addLayerModal";
-        addLayerModal.className = "modal-overlay";
-        addLayerModal.innerHTML = `
-            <div class="modal-content">
-                <h2>Add New Layer</h2>
-                <input type="text" id="newLayerName" placeholder="Layer Name"/>
-                <select id="newLayerType">
-                    <option value="facility">Facility</option>
-                    <option value="boundary">Boundary</option>
-                </select>
-                <div style="text-align:right;">
-                    <button onclick="closeAddLayerModal()" style="margin-right:10px;">Cancel</button>
-                    <button onclick="createNewLayer()">Create</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(addLayerModal);
-
+        // Initialize map when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => QDPro.init());
     </script>
 </body>
 </html>
