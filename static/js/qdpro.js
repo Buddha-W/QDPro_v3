@@ -422,7 +422,10 @@ const QDPro = {
   // Update the layer control panel
   updateLayerControl: function() {
     const layerControl = document.getElementById("layerControl");
-    if (!layerControl) return;
+    if (!layerControl) {
+      console.log("Layer control element not found");
+      return;
+    }
 
     layerControl.innerHTML = "";
 
@@ -445,23 +448,28 @@ const QDPro = {
         </div>
       `;
 
-      // Add checkbox change handler
-      const checkbox = item.querySelector(`#layer-${name}`);
-      checkbox.addEventListener("change", e => {
-        if (e.target.checked) {
-          this.map.addLayer(layer);
-        } else {
-          this.map.removeLayer(layer);
-        }
-      });
-
-      // Add edit button handler
-      const editBtn = item.querySelector(".edit-layer-btn");
-      editBtn.addEventListener("click", () => {
-        this.editLayer(name);
-      });
-
+      // Add the item to layer control before adding event listeners
       layerControl.appendChild(item);
+
+      // Add checkbox change handler after the item is in the DOM
+      const checkbox = item.querySelector(`#layer-${name}`);
+      if (checkbox) {
+        checkbox.addEventListener("change", e => {
+          if (e.target.checked) {
+            this.map.addLayer(layer);
+          } else {
+            this.map.removeLayer(layer);
+          }
+        });
+      }
+
+      // Add edit button handler after the item is in the DOM
+      const editBtn = item.querySelector(".edit-layer-btn");
+      if (editBtn) {
+        editBtn.addEventListener("click", () => {
+          this.editLayer(name);
+        });
+      }
     });
   },
 
