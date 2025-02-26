@@ -376,8 +376,6 @@ async def save_layers(request: Request):
 @app.get("/api/load-layers")
 async def load_layers():
     try:
-        import psycopg2
-        import json
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
 
@@ -386,10 +384,11 @@ async def load_layers():
             "features": []
         }
 
-        # Load all features from database
+        # Load PES and ES features
         cur.execute("""
             SELECT analysis_type, ST_AsGeoJSON(result_geometry), result_data 
-            FROM analysis_results
+            FROM analysis_results 
+            WHERE analysis_type IN ('PES', 'ES')
         """)
 
         for layer_type, geom, properties in cur.fetchall():
@@ -398,7 +397,10 @@ async def load_layers():
                 props = json.loads(properties) if isinstance(properties, str) else properties
                 if not props:
                     props = {}
-                props["layer"] = layer_type
+                props.update({
+                    "type": layer_type,
+                    "layer": "Facilities"
+                })
                 
                 feature = {
                     "type": "Feature",
@@ -406,11 +408,11 @@ async def load_layers():
                     "properties": props
                 }
                 layers["features"].append(feature)
-            except (json.JSONDecodeError, TypeError):
+            except (json.JSONDecodeError, TypeError) as e:
+                print(f"Error processing feature: {e}")
                 continue
 
-        return JSONResponse(content={"layers": layers},
-                            headers={"Content-Type": "application/json"})
+        return JSONResponse(content={"layers": layers})
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
