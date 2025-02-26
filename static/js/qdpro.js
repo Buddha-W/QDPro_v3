@@ -784,24 +784,45 @@ const QDPro = {
     try {
       const layerData = { layers: {} };
 
+      // Iterate through all layers
       Object.entries(this.layers).forEach(([name, layer]) => {
-        const features = [];
+        if (!layer) return;
 
+        const features = [];
         layer.eachLayer(sublayer => {
           if (sublayer.toGeoJSON) {
             const feature = sublayer.toGeoJSON();
+            // Preserve all properties including style
             if (sublayer.feature && sublayer.feature.properties) {
-              feature.properties = sublayer.feature.properties;
+              feature.properties = {...sublayer.feature.properties};
+            }
+            // Add style properties if they exist
+            if (sublayer.options) {
+              feature.properties = {
+                ...feature.properties,
+                style: {
+                  color: sublayer.options.color,
+                  fillColor: sublayer.options.fillColor,
+                  weight: sublayer.options.weight,
+                  fillOpacity: sublayer.options.fillOpacity
+                }
+              };
             }
             features.push(feature);
           }
         });
 
         layerData.layers[name] = {
-          properties: layer.properties || {},
+          properties: {
+            ...layer.properties,
+            layerType: layer.layerType,
+            isActive: this.map.hasLayer(layer)
+          },
           features: features
         };
       });
+
+      console.log("Saving layer data:", layerData);
 
       const response = await fetch("/api/save-layers", {
         method: "POST",
@@ -809,7 +830,10 @@ const QDPro = {
         body: JSON.stringify(layerData)
       });
 
-      if (!response.ok) throw new Error("Save failed");
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Save failed: ${error}`);
+      }
 
       console.log("Layers saved successfully");
       document.getElementById("dbStatus").textContent = 
