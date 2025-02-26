@@ -90,10 +90,57 @@ async def generate_report(site_id: str, format: str = "html"):
 
 @app.post("/api/calculate-qd", response_model=Dict[str, Any])
 async def calculate_qd(request: QDCalculationRequest, background_tasks: BackgroundTasks):
-    """Calculate QD parameters with enhanced error handling and background processing"""
-    """Calculate QD parameters and generate buffer zones"""
+    """Calculate QD parameters with enhanced error handling and PostgreSQL integration"""
     try:
-        # Create appropriate QD engine
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        # Get facility data
+        cur.execute("""
+            SELECT f.id, f.name, f.location, es.net_explosive_weight 
+            FROM facilities f 
+            JOIN explosive_sites es ON f.id = es.facility_id 
+            WHERE f.id = %s
+        """, (request.facility_id,))
+        
+        facility_data = cur.fetchone()
+        if not facility_data:
+            raise HTTPException(status_code=404, detail="Facility not found")
+            
+        # Calculate safe distance using QD engine
+        qd_engine = get_engine(request.site_type)
+        safe_distance = qd_engine.calculate_safe_distance(
+            quantity=facility_data[3], 
+            material_props=MaterialProperties(
+                sensitivity=request.sensitivity,
+                det_velocity=request.det_velocity,
+                tnt_equiv=request.tnt_equiv
+            ),
+            env_conditions=EnvironmentalConditions(
+                temperature=request.temperature,
+                pressure=request.pressure,
+                humidity=request.humidity,
+                confinement_factor=request.confinement_factor
+            )
+        )
+        
+        # Generate buffer zones
+        buffer_zones = qd_engine.generate_k_factor_rings(
+            center=[facility_data[2]['coordinates'][0], facility_data[2]['coordinates'][1]],
+            safe_distance=safe_distance
+        )
+        
+        return {
+            "facility_id": facility_data[0],
+            "facility_name": facility_data[1],
+            "safe_distance": safe_distance,
+            "buffer_zones": buffer_zones
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
         qd_engine = create_qd_engine(request.site_type)
 
         # Create material properties object

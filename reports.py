@@ -89,11 +89,42 @@ async def generate_site_plan_report(engine, site_id: int) -> Report:
         data={"site_plan": site_data}
     )
 
-async def generate_pdf_report(report: Report, output_filename: str):
+async def generate_pdf_report(report: Report, output_filename: str, template_name: str = "default_report.html"):
     try:
-        html_content = json.dumps(report.data, indent=4) #This needs a template engine for proper formatting.
-        pdfkit.from_string(html_content, output_filename)
-        return True
+        # Configure pdfkit options
+        options = {
+            'page-size': 'Letter',
+            'margin-top': '0.75in',
+            'margin-right': '0.75in',
+            'margin-bottom': '0.75in',
+            'margin-left': '0.75in',
+            'encoding': "UTF-8",
+            'custom-header': [('Accept-Encoding', 'gzip')]
+        }
+        
+        # Generate HTML using Jinja2 template
+        template = templates.get_template(template_name)
+        html_content = template.render(
+            title=report.title,
+            generated_at=report.generated_at,
+            data=report.data
+        )
+        
+        # Generate PDF
+        pdfkit.from_string(html_content, output_filename, options=options)
+        
+        # Validate PDF was created
+        if not os.path.exists(output_filename):
+            raise Exception("PDF file was not generated")
+            
+        return {
+            "success": True,
+            "filename": output_filename,
+            "size": os.path.getsize(output_filename)
+        }
     except Exception as e:
-        print(f"Error generating PDF: {e}")
-        return False
+        logging.error(f"PDF generation error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate PDF: {str(e)}"
+        )

@@ -48,3 +48,6 @@ reportlab
 jinja2
 pdfkit
 reportlab
+pdfkit
+reportlab
+wkhtmltopdf
