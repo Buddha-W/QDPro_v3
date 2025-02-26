@@ -1,5 +1,4 @@
 // QDPro Main Application JavaScript
-// Global state management
 const QDPro = {
   map: null,
   layers: {},
@@ -16,7 +15,6 @@ const QDPro = {
     "None": L.tileLayer("")
   },
 
-  // Initialize the application
   init: function() {
     console.log("Initializing QDPro application...");
     this.initMap();
@@ -26,67 +24,63 @@ const QDPro = {
     this.loadFromDatabase();
   },
 
-  // Initialize map references
   initMap: function() {
     try {
-      // Create map instance first
+      console.log("Starting map initialization...");
+
+      // Initialize map with OSM base layer
       this.map = L.map('map', {
         center: [39.8283, -98.5795],
-        zoom: 4
+        zoom: 4,
+        layers: [this.baseLayers["OpenStreetMap"]]
       });
 
-      // Add base layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(this.map);
+      // Initialize layers object
+      this.layers = {};
 
-      // Initialize layers object if not exists
-      this.layers = this.layers || {};
-
-      // Create default feature group after map is ready
-      this.layers["Default"] = L.layerGroup();
+      // Create default layer group
+      this.layers["Default"] = new L.featureGroup();
       this.map.addLayer(this.layers["Default"]);
       this.activeLayer = this.layers["Default"];
 
-      // Force map resize after everything is initialized
-      setTimeout(() => this.map.invalidateSize(), 500);
-      
+      // Force map resize
+      setTimeout(() => {
+        console.log("Forcing map resize...");
+        this.map.invalidateSize(true);
+      }, 100);
+
       console.log("Map initialized successfully");
     } catch (error) {
       console.error("Error initializing map:", error);
+      throw error;
     }
   },
 
-  // Initialize drawing tools
   initDrawingTools: function() {
-    this.drawingTools = {
-      polygon: new L.Draw.Polygon(this.map, {
-        allowIntersection: false,
-        showArea: true,
-        drawError: { color: "#e1e100", timeout: 1000 },
-        shapeOptions: { color: "#3388ff" }
-      }),
-      polyline: new L.Draw.Polyline(this.map, { 
-        shapeOptions: { color: "#3388ff", weight: 2 } 
-      }),
-      rectangle: new L.Draw.Rectangle(this.map, { 
-        shapeOptions: { color: "#3388ff" } 
-      }),
-      circle: new L.Draw.Circle(this.map, { 
-        shapeOptions: { color: "#3388ff" } 
-      }),
-      marker: new L.Draw.Marker(this.map)
-    };
+    try {
+      console.log("Initializing drawing tools...");
+      this.drawingTools = {
+        polygon: new L.Draw.Polygon(this.map, {
+          showArea: true,
+          shapeOptions: { color: '#3388ff' }
+        }),
+        marker: new L.Draw.Marker(this.map),
+        polyline: new L.Draw.Polyline(this.map),
+        rectangle: new L.Draw.Rectangle(this.map),
+        circle: new L.Draw.Circle(this.map)
+      };
+      console.log("Drawing tools initialized");
+    } catch (error) {
+      console.error("Error initializing drawing tools:", error);
+    }
   },
 
-  // Initialize UI components
   initUIComponents: function() {
     this.initToolbar();
     this.initLayersPanel();
     this.initBaseLayerDropdown();
   },
 
-  // Initialize toolbar buttons
   initToolbar: function() {
     // Drawing tools buttons
     document.getElementById("drawPolygon").addEventListener("click", e => {
@@ -148,7 +142,6 @@ const QDPro = {
     });
   },
 
-  // Initialize layers panel and controls
   initLayersPanel: function() {
     const drawToLayerSelect = document.getElementById("drawToLayer");
     drawToLayerSelect.addEventListener("change", e => {
@@ -167,7 +160,6 @@ const QDPro = {
     this.updateDrawToLayerSelect();
   },
 
-  // Initialize base layer dropdown
   initBaseLayerDropdown: function() {
     const baseLayerTool = document.getElementById("baseLayerTool");
     const baseLayerDropdown = document.getElementById("baseLayerDropdown");
@@ -223,8 +215,58 @@ const QDPro = {
     });
   },
 
-  // Initialize event handlers
   initEventHandlers: function() {
+    // Map drawing events
+    this.map.on('draw:created', (e) => {
+      console.log('Draw created event fired:', e);
+      try {
+        if (!this.activeLayer) {
+          console.error('No active layer');
+          alert('Please select a layer to draw on');
+          return;
+        }
+
+        const layer = e.layer;
+
+        // Ensure polygon is closed
+        if (e.layerType === 'polygon' && layer.getLatLngs) {
+          const coords = layer.getLatLngs()[0];
+          if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
+            coords.push(coords[0]);
+            layer.setLatLngs(coords);
+          }
+        }
+
+        // Add to active layer
+        this.activeLayer.addLayer(layer);
+
+        // Create feature properties
+        layer.feature = {
+          type: 'Feature',
+          properties: {},
+          geometry: layer.toGeoJSON().geometry
+        };
+
+        this.openEditPopup(layer);
+        this.saveToDatabase();
+        console.log('Feature added to layer:', this.activeLayer);
+      } catch (error) {
+        console.error('Error handling draw:created:', error);
+      }
+    });
+
+    // Handle layer selection changes
+    const drawToLayerSelect = document.getElementById('drawToLayer');
+    if (drawToLayerSelect) {
+      drawToLayerSelect.addEventListener('change', (e) => {
+        const selectedLayer = e.target.value;
+        if (this.layers[selectedLayer]) {
+          this.activeLayer = this.layers[selectedLayer];
+          console.log('Active layer changed to:', selectedLayer);
+        }
+      });
+    }
+
     // Draw created event - handles new geometries
     this.map.on("draw:created", e => {
       console.log("Draw created event fired:", e);
@@ -311,7 +353,6 @@ const QDPro = {
       .addEventListener("click", () => this.saveToDatabase());
   },
 
-  // Create new location
   createNewLocation: async function() {
     // Create modal HTML
     const modalHtml = `
@@ -369,7 +410,6 @@ const QDPro = {
   };
   },
 
-  // Activate a specific drawing tool
   activateDrawingTool: function(toolName) {
     this.deactivateAllDrawingTools();
 
@@ -381,7 +421,6 @@ const QDPro = {
     }
   },
 
-  // Deactivate all drawing tools
   deactivateAllDrawingTools: function() {
     Object.values(this.drawingTools).forEach(tool => {
       if (tool && typeof tool.disable === "function") {
@@ -401,7 +440,6 @@ const QDPro = {
     this.map.getContainer().style.cursor = "";
   },
 
-  // Enable select mode for features
   enableSelectMode: function() {
     this.map.getContainer().style.cursor = "pointer";
 
@@ -416,7 +454,6 @@ const QDPro = {
     });
   },
 
-  // Open edit popup for a feature
   openEditPopup: function(layer) {
     // Default properties if none exist
     const props = layer.feature?.properties || {};
@@ -486,7 +523,6 @@ const QDPro = {
     }, 100);
   },
 
-  // Update the Draw To Layer select dropdown
   updateDrawToLayerSelect: function() {
     const select = document.getElementById("drawToLayer");
     if (!select) return;
@@ -509,7 +545,6 @@ const QDPro = {
     }
   },
 
-  // Update the layer control panel
   updateLayerControl: function() {
     const layerControl = document.getElementById("layerControl");
     if (!layerControl) {
@@ -563,7 +598,6 @@ const QDPro = {
     });
   },
 
-  // Edit a layer's properties
   editLayer: function(layerName) {
     const layer = this.layers[layerName];
     if (!layer) return;
@@ -625,18 +659,15 @@ const QDPro = {
     }, 100);
   },
 
-  // Show dialog to create a new layer
   showAddLayerModal: function() {
     document.getElementById("addLayerModal").style.display = "block";
   },
 
-  // Close the add layer modal
   closeAddLayerModal: function() {
     document.getElementById("addLayerModal").style.display = "none";
     document.getElementById("newLayerName").value = "";
   },
 
-  // Create a new layer from the modal
   createNewLayer: function() {
     const layerName = document.getElementById("newLayerName").value;
     const layerType = document.getElementById("newLayerType").value;
@@ -672,7 +703,6 @@ const QDPro = {
     this.closeAddLayerModal();
   },
 
-  // Show modal to switch locations
   showSwitchLocationModal: async function() {
     document.getElementById("switchLocationModal").style.display = "block";
 
@@ -708,12 +738,10 @@ const QDPro = {
     }
   },
 
-  // Close the switch location modal
   closeSwitchLocationModal: function() {
     document.getElementById("switchLocationModal").style.display = "none";
   },
 
-  // Switch to a different location
   switchToLocation: async function(locationId) {
     try {
       const response = await fetch(`/api/load-layers?location=${locationId}`);
@@ -793,7 +821,6 @@ const QDPro = {
     }
   },
 
-  // Load layers from database
   loadFromDatabase: async function() {
     try {
       const response = await fetch("/api/load-layers");
@@ -869,7 +896,6 @@ const QDPro = {
     }
   },
 
-  // Save layers to database
   saveToDatabase: async function() {
     try {
       console.log("Starting save to database...");
@@ -888,7 +914,7 @@ const QDPro = {
 
             // Preserve existing properties
             if (sublayer.feature && sublayer.feature.properties) {
-              feature.properties = {...sublayer.feature.properties};
+              feature.properties ={...sublayer.feature.properties};
             }
 
             // Add style properties
