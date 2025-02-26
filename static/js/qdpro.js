@@ -141,16 +141,19 @@ const QDPro = {
   // Initialize layers panel and controls
   initLayersPanel: function() {
     const drawToLayerSelect = document.getElementById("drawToLayer");
-
     drawToLayerSelect.addEventListener("change", e => {
       const selectedLayer = e.target.value;
       if (this.layers[selectedLayer]) {
         this.activeLayer = this.layers[selectedLayer];
         console.log("Active layer changed to:", selectedLayer);
+        // Force map update to show active layer
+        this.map.eachLayer(layer => {
+          if (layer instanceof L.FeatureGroup) {
+            layer.bringToFront();
+          }
+        });
       }
     });
-
-    // Update layer select with initial layers
     this.updateDrawToLayerSelect();
   },
 
@@ -215,6 +218,8 @@ const QDPro = {
     // Draw created event - handles new geometries
     this.map.on("draw:created", e => {
       console.log("Draw created event fired:", e);
+      console.log("Active layer:", this.activeLayer ? this.activeLayer.getLayers().length : "no active layer");
+
       const layer = e.layer;
 
       if (!this.activeLayer) {
@@ -222,12 +227,21 @@ const QDPro = {
         return;
       }
 
+      // Ensure the layer is properly tracked
+      layer._qdproLayerName = document.getElementById("drawToLayer").value;
+
       // For polygons, ensure they're closed
       if (e.layerType === "polygon" && layer.getLatLngs) {
         const coords = layer.getLatLngs()[0];
         if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
           coords.push(coords[0]);
           layer.setLatLngs(coords);
+          console.log("Auto-closed polygon coordinates");
+        }
+        // Validate minimum vertices for a polygon
+        if (coords.length < 4) { // 3 unique points + closure point
+          alert("A polygon must have at least 3 points");
+          return;
         }
       }
 
@@ -848,12 +862,15 @@ const QDPro = {
   // Save layers to database
   saveToDatabase: async function() {
     try {
+      console.log("Starting save to database...");
       const layerData = { layers: {} };
 
-      // Iterate through all layers
       Object.entries(this.layers).forEach(([name, layer]) => {
-        if (!layer) return;
-
+        if (!layer) {
+          console.log(`Skipping invalid layer: ${name}`);
+          return;
+        }
+        console.log(`Processing layer ${name} with ${layer.getLayers().length} features`);
         const features = [];
         layer.eachLayer(sublayer => {
           if (sublayer.toGeoJSON) {
