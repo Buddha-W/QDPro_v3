@@ -3,6 +3,9 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 fastapi
+flask
+folium
+reportlab
 geoalchemy2
 jose
 pydantic
@@ -39,3 +42,6 @@ fastapi
 jinja2
 psycopg2-binary
 uvicorn
+flask
+folium
+reportlab
