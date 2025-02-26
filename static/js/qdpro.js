@@ -111,7 +111,7 @@ const QDPro = {
     });
 
     // Toggle layers panel
-    document.getElementById("toggleLayersPanel").addEventListener("click", e => {
+    document.getElementById("toggleLayersPanel").addEventListener("click", () => {
       const leftPanel = document.getElementById("leftPanel");
       const mapElement = document.getElementById("map");
 
@@ -315,7 +315,7 @@ const QDPro = {
       const data = await response.json();
       this.currentLocation = data.id;
       document.getElementById("dbStatus").textContent = `Location: ${locationName}`;
-      
+
       // Clear existing layers
       Object.values(this.layers).forEach(layer => {
         if (this.map.hasLayer(layer)) {
@@ -325,7 +325,7 @@ const QDPro = {
       this.layers = {};
       this.layers["Default"] = L.featureGroup().addTo(this.map);
       this.activeLayer = this.layers["Default"];
-      
+
       this.updateDrawToLayerSelect();
       this.updateLayerControl();
       document.getElementById('newLocationModal').remove();
@@ -925,6 +925,29 @@ const QDPro = {
 document.addEventListener("DOMContentLoaded", function() {
   console.log("DOM Content Loaded");
   QDPro.init();
+
+  // Left Panel Toggle
+  const toggleLayersPanel = document.getElementById("toggleLayersPanel");
+  const leftPanel= document.getElementById("leftPanel");
+  const mapElement = document.getElementById("map");
+
+  toggleLayersPanel.addEventListener("click", () => {
+    // Toggle the 'visible' class on the left panel
+    leftPanel.classList.toggle("visible");
+
+    // Adjust the map's container style based on whether the panel is visible
+    if (leftPanel.classList.contains("visible")) {
+      mapElement.style.left = "300px";
+      mapElement.style.width = "calc(100% - 300px)";
+    } else {
+      mapElement.style.left = "0";
+      mapElement.style.width = "100%";
+    }
+
+    // Invalidate map size to force Leaflet to recalc dimensions
+    QDPro.map.invalidateSize();
+    console.log("Left panel toggled. Visible:", leftPanel.classList.contains("visible"));
+  });
 
   // Make functions available globally for HTML event handlers
   // Expose toggleMenu function globally
