@@ -1,0 +1,19 @@
+I'm building an explosive safety siting web application called QDPro. The application uses Leaflet and Leaflet.draw on the frontend to let users draw facility polygons (such as building footprints) and save them to a selected database layer. The FastAPI backend handles saving (/api/save-layers) and loading (/api/load-layers) of GeoJSON data.
+
+I have a file (qdpro.js) that manages the map initialization, drawing tools, layer management (including a "Draw to Layer" dropdown), and event handling (e.g., the draw:created event). However, I am facing several issues:
+
+Layer Persistence:
+When I select a new database (layer) from the "Draw to Layer" dropdown and then draw a facility polygon, the drawn shape is not being added to the active layer nor saved to the correct database. After a page refresh, the new drawings do not persist—only old database layers load correctly.
+Active Layer Update:
+The global activeLayer (i.e. QDPro.activeLayer) is not being updated properly when I change the selection in the "Draw to Layer" dropdown. As a result, new drawings always default to the default layer rather than the selected one.
+Drawing Event Handling:
+The draw:created event should validate the drawn polygon (ensuring it auto-closes if necessary), add it to the active layer, open an edit popup for facility details, and then call saveToDatabase(). This does not seem to work reliably.
+UI & Global Functions:
+Some global functions (like toggleMenu and modal functions) need to be correctly exposed so that inline onclick handlers work.
+Please analyze the qdpro.js code below and provide a complete, corrected version that:
+
+Ensures that when a user selects a new layer from the dropdown, the active layer is updated properly.
+Fixes the draw:created event so that new drawn polygons are added to the currently selected layer and saved to the backend via /api/save-layers.
+Improves debugging and error handling (adding console logs, etc.) to help diagnose any issues.
+Ensures that multiple geo-referenced points in a drawn polygon are handled correctly (forcing closure when needed).
+Verifies that global functions (like toggleMenu) are properly defined and accessible.
