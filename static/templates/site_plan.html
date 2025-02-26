@@ -167,32 +167,49 @@
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script>
         // Map initialization moved to QDPro.init()
-        const drawnItems = new L.FeatureGroup();
+        // Initialize QDPro namespace
+        const QDPro = {
+            map: null,
+            drawnItems: new L.FeatureGroup(),
+            drawControl: null,
 
-        const drawControl = new L.Control.Draw({
-            draw: {
-                polygon: false,
-                circle: {
-                    shapeOptions: {
-                        color: '#662d91'
-                    }
-                },
-                marker: {
-                    icon: L.icon({
-                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                        iconSize: [25, 41],
-                        iconAnchor: [12, 41]
-                    })
-                },
-                circlemarker: false,
-                rectangle: false,
-                polyline: false
-            },
-            edit: {
-                featureGroup: drawnItems
+            init: function() {
+                console.log("Initializing QDPro...");
+                if (!this.map) {
+                    this.map = L.map('map').setView([39.8283, -98.5795], 4);
+                    
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(this.map);
+
+                    this.drawControl = new L.Control.Draw({
+                        draw: {
+                            polygon: false,
+                            circle: {
+                                shapeOptions: {
+                                    color: '#662d91'
+                                }
+                            },
+                            marker: {
+                                icon: L.icon({
+                                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                                    iconSize: [25, 41],
+                                    iconAnchor: [12, 41]
+                                })
+                            },
+                            circlemarker: false,
+                            rectangle: false,
+                            polyline: false
+                        },
+                        edit: {
+                            featureGroup: this.drawnItems
+                        }
+                    });
+
+                    this.map.addControl(this.drawControl);
+                    this.map.addLayer(this.drawnItems);
+                }
             }
-        });
-        map.addLayer(drawnItems);
 
         map.on('draw:created', async function(e) {
             const layer = e.layer;
