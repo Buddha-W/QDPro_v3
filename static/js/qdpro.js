@@ -28,8 +28,16 @@ const QDPro = {
 
   // Initialize map references
   initMap: function() {
-    // Use existing map instance
+    // Initialize map if it doesn't exist
+    if (!window.map) {
+      window.map = L.map('map').setView([39.8283, -98.5795], 4);
+    }
     this.map = window.map;
+
+    // Add default base layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(this.map);
 
     // Create a default layer group for drawings
     this.activeLayer = L.featureGroup().addTo(this.map);
