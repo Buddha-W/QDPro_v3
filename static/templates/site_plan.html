@@ -337,6 +337,49 @@
             closeAddLayerModal();
         }
 
+        // Initialize QDPro namespace
+        const QDPro = {
+            map: null,
+            layers: {},
+            activeLayer: null,
+            drawnItems: new L.FeatureGroup(),
+            
+            init: function() {
+                console.log("Initializing QDPro...");
+                // Initialize the map
+                this.map = L.map('map').setView([39.8283, -98.5795], 4);
+                
+                // Add base layers
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(this.map);
+                
+                // Add the drawn items layer
+                this.map.addLayer(this.drawnItems);
+                
+                // Initialize draw control
+                this.initDrawControls();
+                
+                console.log("QDPro init complete. Map should be visible now.");
+            },
+            
+            initDrawControls: function() {
+                const drawControl = new L.Control.Draw({
+                    draw: {
+                        polygon: true,
+                        circle: true,
+                        rectangle: true,
+                        marker: true,
+                        polyline: true
+                    },
+                    edit: {
+                        featureGroup: this.drawnItems
+                    }
+                });
+                this.map.addControl(drawControl);
+            }
+        };
+
         document.addEventListener("DOMContentLoaded", () => {
             console.log("DOM Content Loaded – let's init QDPro!");
             QDPro.init();
