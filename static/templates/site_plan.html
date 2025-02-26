@@ -499,19 +499,80 @@
       closeSwitchLocationModal: function() {
         document.getElementById("switchLocationModal").classList.remove("visible");
       },
-      switchToLocation: function(locObj) {
-        // In a real app, you'd fetch layers from backend: /api/load-layers?location=locObj.id
-        console.log("Switching to location:", locObj);
-        // Clear existing layers
-        Object.values(this.layers).forEach(layer => this.map.removeLayer(layer));
-        this.layers = {};
-        // Create a default layer again
-        this.activeLayer = L.featureGroup().addTo(this.map);
-        this.layers["Default"] = this.activeLayer;
-        this.updateDrawToLayerSelect();
-        this.currentLocation = locObj.name;
-        document.getElementById("dbStatus").textContent = `Location: ${locObj.name}`;
-        this.closeSwitchLocationModal();
+      switchToLocation: async function(locObj) {
+        try {
+          const response = await fetch(`/api/load-layers?location=${locObj.id}`);
+          const data = await response.json();
+          
+          // Clear existing layers
+          Object.values(this.layers).forEach(layer => this.map.removeLayer(layer));
+          this.layers = {};
+          
+          // Create layers from loaded data
+          Object.entries(data.layers).forEach(([name, layerData]) => {
+            const newLayer = L.featureGroup().addTo(this.map);
+            this.layers[name] = newLayer;
+            
+            // Add features if they exist
+            if (layerData.features) {
+              layerData.features.forEach(feature => {
+                L.geoJSON(feature).addTo(newLayer);
+              });
+            }
+          });
+          
+          // Set default active layer
+          this.activeLayer = this.layers["Default"] || L.featureGroup().addTo(this.map);
+          if (!this.layers["Default"]) {
+            this.layers["Default"] = this.activeLayer;
+          }
+          
+          this.updateDrawToLayerSelect();
+          this.currentLocation = locObj.name;
+          document.getElementById("dbStatus").textContent = `Location: ${locObj.name}`;
+          this.closeSwitchLocationModal();
+        } catch (error) {
+          console.error("Error loading layers:", error);
+          alert("Failed to load location layers");
+        }
+      },
+
+      showNewLocationModal: function() {
+        document.getElementById("newLocationModal").classList.add("visible");
+      },
+
+      closeNewLocationModal: function() {
+        document.getElementById("newLocationModal").classList.remove("visible");
+        document.getElementById("newLocationName").value = "";
+      },
+
+      showSwitchLocationModal: async function() {
+        try {
+          const response = await fetch('/api/locations');
+          const data = await response.json();
+          
+          const locationList = document.getElementById("locationList");
+          locationList.innerHTML = "";
+          
+          data.locations.forEach(loc => {
+            const div = document.createElement("div");
+            div.style.padding = "10px";
+            div.style.borderBottom = "1px solid #eee";
+            div.style.cursor = "pointer";
+            div.textContent = `${loc.name} (Created: ${loc.created_at})`;
+            div.addEventListener("click", () => this.switchToLocation(loc));
+            locationList.appendChild(div);
+          });
+          
+          document.getElementById("switchLocationModal").classList.add("visible");
+        } catch (error) {
+          console.error("Error fetching locations:", error);
+          alert("Failed to load locations");
+        }
+      },
+
+      closeSwitchLocationModal: function() {
+        document.getElementById("switchLocationModal").classList.remove("visible");
       }
     };
 
