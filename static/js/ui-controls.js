@@ -294,11 +294,38 @@ function setupToolButtons() {
     
     // Function to remove additional Leaflet Draw UI elements that may appear during drawing
     function aggressiveUICleanup() {
+        // Use the existing removeLeafletDrawButtons
         removeLeafletDrawButtons();
+        
+        // Additional unwanted elements to remove, including the ones from your suggestion
+        const extraUnwantedElements = [
+            '.leaflet-draw-actions', // Extra buttons that appear after clicking
+            '.leaflet-draw-tooltip', // The tooltip "Draw a polygon"
+            '.leaflet-draw-toolbar', // The unwanted toolbar
+            '.leaflet-draw-section', 
+            '.leaflet-draw', 
+            '.leaflet-draw-toolbar-top',
+            // Additional selectors to ensure all UI elements are caught
+            'a[title="Finish drawing"]',
+            'a[title="Cancel drawing"]',
+            'a[title="Delete last point"]',
+            '.leaflet-tooltip',
+            '.leaflet-draw-tooltip-single',
+            '.leaflet-draw-tooltip-subtext',
+            // Any element containing 'draw' in its class
+            '[class*="draw"]'
+        ];
+        
+        // Remove all unwanted elements
+        document.querySelectorAll(extraUnwantedElements.join(', ')).forEach(el => {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
         
         // Remove any controls that might have been added
         if (window.map && window.map._controlContainer) {
-            const drawControls = window.map._controlContainer.querySelectorAll('.leaflet-draw');
+            const drawControls = window.map._controlContainer.querySelectorAll('.leaflet-draw, [class*="draw"]');
             drawControls.forEach(control => {
                 if (control && control.parentNode) {
                     control.parentNode.removeChild(control);
@@ -307,9 +334,13 @@ function setupToolButtons() {
         }
         
         // Hide any tooltips that might appear
-        const tooltips = document.querySelectorAll('.leaflet-draw-tooltip');
+        const tooltips = document.querySelectorAll('.leaflet-draw-tooltip, .leaflet-tooltip');
         tooltips.forEach(tooltip => {
-            tooltip.style.display = 'none';
+            if (tooltip && tooltip.parentNode) {
+                tooltip.parentNode.removeChild(tooltip);
+            } else if (tooltip) {
+                tooltip.style.display = 'none';
+            }
         });
     }
 
@@ -331,6 +362,7 @@ function setupToolButtons() {
             }
             
             activeTool = null;
+            aggressiveUICleanup(); // Clean up again after disabling
             return;
         }
         
@@ -374,6 +406,14 @@ function setupToolButtons() {
                 L.Draw.Feature.prototype._showErrorTooltip = function() {
                     originalShowErrorTooltip.call(this);
                     setTimeout(aggressiveUICleanup, 0);
+                };
+            }
+            
+            // Override any UI-generating methods
+            if (L.Draw.Feature.prototype._showActionsToolbar) {
+                L.Draw.Feature.prototype._showActionsToolbar = function() { 
+                    // Do nothing instead of showing toolbar
+                    return;
                 };
             }
             
@@ -452,6 +492,11 @@ function setupToolButtons() {
                     window.activeDrawHandler = null;
                 }
                 aggressiveUICleanup();
+                
+                // Do multiple cleanups to catch any elements created asynchronously
+                setTimeout(aggressiveUICleanup, 50);
+                setTimeout(aggressiveUICleanup, 100);
+                setTimeout(aggressiveUICleanup, 200);
             });
         });
         
@@ -459,6 +504,36 @@ function setupToolButtons() {
         window.map.on('click', function() {
             aggressiveUICleanup();
         });
+        
+        // Add mousemove listener to catch any tooltips that might appear
+        window.map.on('mousemove', function() {
+            const tooltips = document.querySelectorAll('.leaflet-draw-tooltip');
+            if (tooltips.length > 0) {
+                aggressiveUICleanup();
+            }
+        });
+        
+        // Added DOM mutation observer to catch any dynamic UI elements
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length > 0) {
+                    // Check if any added nodes are Leaflet Draw UI elements
+                    for (let i = 0; i < mutation.addedNodes.length; i++) {
+                        const node = mutation.addedNodes[i];
+                        if (node.nodeType === 1) { // Element node
+                            if (node.className && typeof node.className === 'string' && 
+                                (node.className.includes('leaflet-draw') || node.className.includes('draw'))) {
+                                aggressiveUICleanup();
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Start observing the document body for changes
+        observer.observe(document.body, { childList: true, subtree: true });
     }
     
     // Initial cleanup
