@@ -40,8 +40,37 @@ if (L && L.DrawToolbar) {
     };
 }
 
-// Run this on page load and set an interval to continuously check for and remove draw buttons
+// Ensure that Leaflet Draw toolbars don't appear
 window.addEventListener('DOMContentLoaded', function() {
+    // Completely disable Leaflet.Draw UI creation
+    if (L && L.Draw) {
+        // Override the toolbar prototype to prevent creation
+        if (L.Draw.Toolbar) {
+            L.Draw.Toolbar.prototype.initialize = function() {};
+            L.Draw.Toolbar.prototype.addToolbar = function() { return this; };
+            L.Draw.Toolbar.prototype._createButton = function() { return null; };
+        }
+
+        // Override actions bar creation
+        if (L.DrawToolbar) {
+            L.DrawToolbar.prototype._createActions = function() { return null; };
+        }
+
+        // Override each handler to suppress UI
+        ['Polygon', 'Rectangle', 'Marker', 'Circle', 'CircleMarker'].forEach(function(type) {
+            if (L.Draw[type]) {
+                const originalEnable = L.Draw[type].prototype.enable;
+                L.Draw[type].prototype.enable = function() {
+                    // Remove any UI before enabling
+                    removeLeafletDrawButtons();
+                    if (originalEnable) originalEnable.call(this);
+                    // Remove any UI after enabling
+                    removeLeafletDrawButtons();
+                };
+            }
+        });
+    }
+
     // Initial removal
     removeLeafletDrawButtons();
 
