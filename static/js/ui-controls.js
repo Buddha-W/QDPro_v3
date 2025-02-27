@@ -2,15 +2,68 @@
 // Function to update location display
 function updateLocationDisplay(locationName) {
     const displayElement = document.getElementById('current-location-display');
-    if (displayElement) {
-        displayElement.textContent = `Location: ${locationName || 'None'}`;
-    }
-}
 
 // Function to remove all Leaflet Draw toolbar buttons and elements
 function removeLeafletDrawButtons() {
-    document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions").forEach(el => {
-        el.remove();
+    // Comprehensive list of selectors to target all Leaflet Draw UI elements
+    const selectors = [
+        '.leaflet-draw-draw-polygon',
+        '.leaflet-draw-draw-rectangle',
+        '.leaflet-draw-draw-marker',
+        '.leaflet-draw-draw-circle',
+        '.leaflet-draw-draw-circlemarker',
+        '.leaflet-draw-draw-polyline',
+        '.leaflet-draw-toolbar',
+        '.leaflet-draw-toolbar-top',
+        '.leaflet-draw-toolbar-button',
+        '.leaflet-draw-actions',
+        '.leaflet-draw-section',
+        '.leaflet-draw',
+        '.leaflet-draw-tooltip',
+        '.leaflet-draw-guide-dash',
+        // Additional selectors to ensure all UI elements are caught
+        'a.leaflet-draw-edit-edit',
+        'a.leaflet-draw-edit-remove',
+        '.leaflet-draw-edit-edit',
+        '.leaflet-draw-edit-remove',
+        '.leaflet-draw-draw-toolbar',
+        '.leaflet-draw-edit-toolbar',
+        '.leaflet-toolbar-editable',
+        // Ensure all buttons with text are removed
+        'a[title^="Draw"]',
+        'a[title^="Cancel"]',
+        'a[title^="Finish"]',
+        // Match any element with leaflet-draw in its class
+        '[class*="leaflet-draw"]'
+    ];
+    
+    // Combined selector for efficiency
+    const allLeafletDrawElements = document.querySelectorAll(selectors.join(', '));
+    
+    // Remove all elements
+    allLeafletDrawElements.forEach(function(element) {
+        if (element && element.parentNode) {
+            element.parentNode.removeChild(element);
+        }
+    });
+    
+    // Also clean up any draw controls from the map container
+    const mapContainers = document.querySelectorAll('.leaflet-container');
+    mapContainers.forEach(function(container) {
+        const drawControls = container.querySelectorAll('.leaflet-draw');
+        drawControls.forEach(function(control) {
+            if (control && control.parentNode) {
+                control.parentNode.removeChild(control);
+            }
+        });
+    });
+    
+    // Remove any dynamically added draw styles
+    const drawStyles = document.querySelectorAll('style[class*="leaflet-draw"]');
+    drawStyles.forEach(function(style) {
+        if (style && style.parentNode) {
+            style.parentNode.removeChild(style);
+        }
     });
 }
 
@@ -32,7 +85,6 @@ if (L && L.DrawToolbar) {
     };
 }
 
-
 // Ensure that Leaflet Draw toolbars don't appear
 window.addEventListener('DOMContentLoaded', function() {
     // Completely disable Leaflet.Draw UI creation
@@ -48,7 +100,7 @@ window.addEventListener('DOMContentLoaded', function() {
         if (L.DrawToolbar) {
             L.DrawToolbar.prototype._createActions = function() { return null; };
         }
-
+        
         // Override _showActionsToolbar to prevent toolbar display
         if (L.Draw.Feature && L.Draw.Feature.prototype._showActionsToolbar) {
             L.Draw.Feature.prototype._showActionsToolbar = function() {
@@ -56,7 +108,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 return;
             };
         }
-
+        
         // Override _updateFinishHandler to avoid additional UI
         if (L.Draw.Feature && L.Draw.Feature.prototype._updateFinishHandler) {
             L.Draw.Feature.prototype._updateFinishHandler = function() {
@@ -67,6 +119,34 @@ window.addEventListener('DOMContentLoaded', function() {
                 }
             };
         }
+
+        // Override each handler to suppress UI
+        ['Polygon', 'Rectangle', 'Marker', 'Circle', 'CircleMarker'].forEach(function(type) {
+            if (L.Draw[type]) {
+                const originalEnable = L.Draw[type].prototype.enable;
+                L.Draw[type].prototype.enable = function() {
+                    // Remove any UI before enabling
+                    removeLeafletDrawButtons();
+                    if (originalEnable) originalEnable.call(this);
+                    // Remove any UI after enabling
+                    removeLeafletDrawButtons();
+                    
+                    // Prevent any additional UI creation
+                    if (this._map && this._map._toolbars) {
+                        this._map._toolbars = {};
+                    }
+                };
+                
+                // Override addHooks to prevent UI creation
+                const originalAddHooks = L.Draw[type].prototype.addHooks;
+                if (originalAddHooks) {
+                    L.Draw[type].prototype.addHooks = function() {
+                        originalAddHooks.call(this);
+                        removeLeafletDrawButtons();
+                    };
+                }
+            }
+        });
     }
 
     // Initial removal
@@ -136,262 +216,53 @@ window.addEventListener('DOMContentLoaded', function() {
             L.DrawToolbar.prototype.addToolbar = function() { return; };
         }
     }
+});
 
-    // Initial removal
-    removeLeafletDrawButtons();
+    if (displayElement) {
+        displayElement.textContent = `Location: ${locationName || 'None'}`;
+    }
+}
 
-    // Set interval to keep checking and removing any buttons that might appear
-    setInterval(removeLeafletDrawButtons, 50);
+document.addEventListener('DOMContentLoaded', function() {
+    // Update location from URL if available
+    const urlParams = new URLSearchParams(window.location.search);
+    const locationParam = urlParams.get('location');
+    if (locationParam) {
+        updateLocationDisplay(locationParam);
+    }
 
-    //Setup the tool buttons from the edited code.
-    document.addEventListener("DOMContentLoaded", function () {
-        if (!window.map) {
-            console.error("Map is not initialized.");
-            return;
-        }
+    // Toggle layers panel
+    const toggleLayersBtn = document.getElementById('toggle-layers-btn');
+    const layersPanel = document.getElementById('layers-panel');
 
-        const toolButtons = {
-            polygon: document.getElementById("draw-polygon-btn"),
-            rectangle: document.getElementById("draw-rectangle-btn"),
-            marker: document.getElementById("draw-marker-btn"),
-        };
+    if (toggleLayersBtn && layersPanel) {
+        toggleLayersBtn.addEventListener('click', function() {
+            layersPanel.classList.toggle('visible');
+        });
+    }
 
-        let activeDrawHandler = null;
-        let activeTool = null;
-
-        // Create a drawn items group if not already present
-        window.drawnItems = window.drawnItems || new L.FeatureGroup();
-        if (!window.map.hasLayer(window.drawnItems)) {
-            window.map.addLayer(window.drawnItems);
-        }
-
-        function disableAllTools() {
-            Object.values(toolButtons).forEach((btn) => btn.classList.remove("active"));
-
-            if (activeDrawHandler) {
-                activeDrawHandler.disable();
-                activeDrawHandler = null;
-            }
-
-            activeTool = null;
-
-            // Remove any lingering UI
-            setTimeout(() => {
-                document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
-            }, 10);
-        }
-
-        function toggleDrawing(toolType) {
-            if (!window.map) {
-                console.error("Map is not initialized.");
-                return;
-            }
-
-            if (activeTool === toolType) {
-                disableAllTools();
-                return;
-            }
-
-            disableAllTools();
-            toolButtons[toolType]?.classList.add("active");
-            activeTool = toolType;
-
-            switch (toolType) {
-                case "polygon":
-                    activeDrawHandler = new L.Draw.Polygon(window.map, {
-                        shapeOptions: { color: "#662d91" },
-                    });
-                    break;
-                case "rectangle":
-                    activeDrawHandler = new L.Draw.Rectangle(window.map, {
-                        shapeOptions: { color: "#228B22" },
-                    });
-                    break;
-                case "marker":
-                    activeDrawHandler = new L.Draw.Marker(window.map, {
-                        icon: L.icon({
-                            iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-                            iconSize: [25, 41],
-                            iconAnchor: [12, 41],
-                        }),
-                    });
-                    break;
-            }
-
-            if (activeDrawHandler) {
-                console.log(`Activating tool: ${toolType}`);
-                activeDrawHandler.enable();
-            }
-        }
-
-        // Attach event listeners to buttons
-        Object.keys(toolButtons).forEach((toolType) => {
-            if (toolButtons[toolType]) {
-                toolButtons[toolType].addEventListener("click", function () {
-                    toggleDrawing(toolType);
-                });
+    // Handle dropdown z-index issues
+    const dropdowns = document.querySelectorAll('.dropdown');
+    dropdowns.forEach(dropdown => {
+        dropdown.addEventListener('mouseenter', function() {
+            // Ensure dropdown content appears above all other elements
+            const content = this.querySelector('.dropdown-content');
+            if (content) {
+                content.style.zIndex = '1050';
             }
         });
-
-        // Edit button functionality
-        const editButton = document.getElementById("edit-layer-btn");
-        if (editButton) {
-            editButton.addEventListener("click", function() {
-                disableAllTools();
-
-                // Toggle the active state of the edit button
-                editButton.classList.toggle("active");
-
-                if (editButton.classList.contains("active")) {
-                    // Enable the edit mode on all feature groups
-                    window.editControl = new L.EditToolbar.Edit(window.map, {
-                        featureGroup: new L.FeatureGroup([
-                            window.featureGroups.facilities,
-                            window.featureGroups.safetyArcs,
-                            window.featureGroups.pesLocations,
-                            window.featureGroups.esLocations,
-                            window.drawnItems
-                        ])
-                    });
-                    window.editControl.enable();
-                } else if (window.editControl) {
-                    window.editControl.disable();
-                    window.editControl = null;
-                }
-
-                // Remove any Leaflet Draw UI elements
-                setTimeout(() => {
-                    document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
-                }, 10);
-            });
-        }
-
-        // Delete button functionality
-        const deleteButton = document.getElementById("delete-layer-btn");
-        if (deleteButton) {
-            deleteButton.addEventListener("click", function() {
-                disableAllTools();
-
-                // Toggle the active state of the delete button
-                deleteButton.classList.toggle("active");
-
-                if (deleteButton.classList.contains("active")) {
-                    // Enable the delete mode on all feature groups
-                    window.deleteHandler = new L.EditToolbar.Delete(window.map, {
-                        featureGroup: new L.FeatureGroup([
-                            window.featureGroups.facilities,
-                            window.featureGroups.safetyArcs,
-                            window.featureGroups.pesLocations,
-                            window.featureGroups.esLocations,
-                            window.drawnItems
-                        ])
-                    });
-                    window.deleteHandler.enable();
-                } else if (window.deleteHandler) {
-                    window.deleteHandler.disable();
-                    window.deleteHandler = null;
-                }
-
-                // Remove any Leaflet Draw UI elements
-                setTimeout(() => {
-                    document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
-                }, 10);
-            });
-        }
-
-        // Clicking on the map disables drawing tools
-        window.map.on("click", function () {
-            disableAllTools();
-        });
-
-        // 🔥 Remove sub-buttons permanently
-        setTimeout(() => {
-            document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
-        }, 500);
-
-        // Toggle layers panel
-        const toggleLayersBtn = document.getElementById("toggle-layers-btn");
-        if (toggleLayersBtn) {
-            toggleLayersBtn.addEventListener("click", function() {
-                const layersPanel = document.getElementById("layers-panel");
-                if (layersPanel) {
-                    layersPanel.classList.toggle("visible");
-                }
-            });
-        }
-
-        // Zoom controls
-        const zoomInBtn = document.getElementById("zoom-in-btn");
-        const zoomOutBtn = document.getElementById("zoom-out-btn");
-
-        if (zoomInBtn) {
-            zoomInBtn.addEventListener("click", function() {
-                window.map.zoomIn();
-            });
-        }
-
-        if (zoomOutBtn) {
-            zoomOutBtn.addEventListener("click", function() {
-                window.map.zoomOut();
-            });
-        }
-
-        // Update layers list
-        function updateLayersList() {
-            const layersList = document.querySelector(".layers-list");
-            if (!layersList) return;
-
-            // Clear current list
-            layersList.innerHTML = "";
-
-            // Add layers from feature groups
-            Object.entries(window.featureGroups).forEach(([groupName, featureGroup]) => {
-                let count = 0;
-                featureGroup.eachLayer(() => { count++; });
-
-                if (count > 0) {
-                    const li = document.createElement("li");
-                    li.innerHTML = `
-                        <span class="layer-name">${formatLayerName(groupName)} (${count})</span>
-                        <div class="layer-controls">
-                            <button class="toggle-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
-                        </div>
-                    `;
-                    layersList.appendChild(li);
-
-                    // Add event listener for visibility toggle
-                    li.querySelector(".toggle-visibility").addEventListener("click", function() {
-                        if (window.map.hasLayer(featureGroup)) {
-                            window.map.removeLayer(featureGroup);
-                            this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-                        } else {
-                            window.map.addLayer(featureGroup);
-                            this.innerHTML = '<i class="fas fa-eye"></i>';
-                        }
-                    });
-                }
-            });
-        }
-
-        // Helper function to format layer names
-        function formatLayerName(name) {
-            return name.charAt(0).toUpperCase() + name.slice(1).replace(/([A-Z])/g, ' $1');
-        }
-
-        // Call updateLayersList whenever layers change
-        window.map.on("layeradd layerremove", updateLayersList);
-
-        // Initial layers list update
-        setTimeout(updateLayersList, 1000);
     });
+
+    // Initialize tool buttons functionality
+    setupToolButtons();
 
     // Add a map click handler to cancel drawing when clicking on the map with no tool active
     if (window.map) {
         window.map.on('click', function(e) {
             // This will only fire if the click wasn't handled by another handler
             // (like drawing tools), effectively cancelling drawing mode on map click
-            if (window.activeDrawHandler ||
-                (window.editControl && window.editControl.enabled()) ||
+            if (window.activeDrawHandler || 
+                (window.editControl && window.editControl.enabled()) || 
                 (window.deleteHandler && window.deleteHandler.enabled())) {
                 // Cancel active tools on map click
                 const toolButtons = document.querySelectorAll('.tool-button');
@@ -411,6 +282,112 @@ window.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function setupToolButtons() {
+    if (!window.map) {
+        console.error("Map is not initialized.");
+        return;
+    }
+
+    const toolButtons = {
+        polygon: document.getElementById("draw-polygon-btn"),
+        rectangle: document.getElementById("draw-rectangle-btn"),
+        marker: document.getElementById("draw-marker-btn"),
+    };
+
+    let activeDrawHandler = null;
+    let activeTool = null;
+
+    // Create a drawn items group if not already present
+    window.drawnItems = window.drawnItems || new L.FeatureGroup();
+    if (!window.map.hasLayer(window.drawnItems)) {
+        window.map.addLayer(window.drawnItems);
+    }
+
+    function disableAllTools() {
+        Object.values(toolButtons).forEach((btn) => btn.classList.remove("active"));
+
+        if (activeDrawHandler) {
+            activeDrawHandler.disable();
+            activeDrawHandler = null;
+        }
+
+        activeTool = null;
+
+        // Remove any lingering UI
+        setTimeout(() => {
+            document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
+        }, 10);
+    }
+
+    function toggleDrawing(toolType) {
+        if (!window.map) {
+            console.error("Map is not initialized.");
+            return;
+        }
+
+        if (activeTool === toolType) {
+            disableAllTools();
+            return;
+        }
+
+        disableAllTools();
+        toolButtons[toolType]?.classList.add("active");
+        activeTool = toolType;
+
+        switch (toolType) {
+            case "polygon":
+                activeDrawHandler = new L.Draw.Polygon(window.map, {
+                    shapeOptions: { color: "#662d91" },
+                });
+                break;
+            case "rectangle":
+                activeDrawHandler = new L.Draw.Rectangle(window.map, {
+                    shapeOptions: { color: "#228B22" },
+                });
+                break;
+            case "marker":
+                activeDrawHandler = new L.Draw.Marker(window.map, {
+                    icon: L.icon({
+                        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                    }),
+                });
+                break;
+        }
+
+        if (activeDrawHandler) {
+            console.log(`Activating tool: ${toolType}`);
+            activeDrawHandler.enable();
+        }
+    }
+
+    // Attach event listeners to buttons
+    Object.keys(toolButtons).forEach((toolType) => {
+        if (toolButtons[toolType]) {
+            toolButtons[toolType].addEventListener("click", function () {
+                toggleDrawing(toolType);
+            });
+        }
+    });
+
+    // Ensure drawn shapes are added to the map
+    window.map.on("draw:created", function (e) {
+        disableAllTools();
+        window.drawnItems.addLayer(e.layer);
+    });
+
+    // Clicking on the map disables drawing tools
+    window.map.on("click", function () {
+        disableAllTools();
+    });
+
+    // 🔥 Remove sub-buttons permanently
+    setTimeout(() => {
+        document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
+    }, 500);
+}
 
 // Update the layers list
 function updateLayersList() {

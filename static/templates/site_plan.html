@@ -2,134 +2,149 @@
 <html>
 <head>
     <title>QDPro Site Plan</title>
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet Draw CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-    <!-- Custom Styles -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="/static/css/ui-controls.css" />
-    <link rel="stylesheet" href="/static/css/site-plan.css" />
-
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Draw JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <!-- Custom Scripts -->
-    <script src="/static/js/ui-controls.js"></script>
-    <script src="/static/js/site-plan.js"></script>
 </head>
 <body>
     <div class="ui-container">
-        <!-- Top Navigation Bar -->
-        <nav class="menu-bar">
-            <div class="menu-item">File
+        <!-- Menu Bar -->
+        <div class="menu-bar">
+            <div class="menu-item">
+                File
                 <div class="dropdown-content">
-                    <a href="#" id="new-project-btn">New Project</a>
-                    <a href="#" id="open-project-btn">Open Project</a>
-                    <a href="#" id="save-project-btn">Save Project</a>
-                    <a href="#" id="export-project-btn">Export</a>
+                    <div class="dropdown-item" id="new-project">New Project</div>
+                    <div class="dropdown-item" id="open-location">Open Location</div>
+                    <div class="dropdown-item" id="save-project">Save Project</div>
+                    <div class="dropdown-item" id="export-data">Export Data</div>
                 </div>
             </div>
-            <div class="menu-item">Edit
+            <div class="menu-item">
+                Edit
                 <div class="dropdown-content">
-                    <a href="#" id="undo-btn">Undo</a>
-                    <a href="#" id="redo-btn">Redo</a>
-                    <a href="#" id="delete-selected-btn">Delete Selected</a>
+                    <div class="dropdown-item" id="undo">Undo</div>
+                    <div class="dropdown-item" id="redo">Redo</div>
+                    <div class="dropdown-item" id="delete-selected">Delete Selected</div>
+                    <div class="dropdown-item" id="select-all">Select All</div>
                 </div>
             </div>
-            <div class="menu-item">View
+            <div class="menu-item">
+                View
                 <div class="dropdown-content">
-                    <a href="#" id="zoom-in-btn">Zoom In</a>
-                    <a href="#" id="zoom-out-btn">Zoom Out</a>
-                    <a href="#" id="toggle-layers-btn">Toggle Layers Panel</a>
+                    <div class="dropdown-item" id="zoom-in">Zoom In</div>
+                    <div class="dropdown-item" id="zoom-out">Zoom Out</div>
+                    <div class="dropdown-item" id="reset-view">Reset View</div>
                 </div>
             </div>
-            <div class="menu-item">Analysis
+            <div class="menu-item">
+                Tools
                 <div class="dropdown-content">
-                    <a href="#" id="run-qd-analysis-btn">Run QD Analysis</a>
-                    <a href="#" id="generate-report-btn">Generate Report</a>
+                    <div class="dropdown-item" id="measure-distance">Measure Distance</div>
+                    <div class="dropdown-item" id="calculate-qd">Calculate QD</div>
+                    <div class="dropdown-item" id="generate-report">Generate Report</div>
                 </div>
             </div>
-        </nav>
+            <div class="menu-item">
+                Help
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="user-guide">User Guide</div>
+                    <div class="dropdown-item" id="about">About</div>
+                </div>
+            </div>
+        </div>
 
         <!-- Toolbar -->
         <div class="toolbar">
-            <button id="draw-polygon-btn" class="tool-button"><i class="fas fa-draw-polygon"></i> Polygon</button>
-            <button id="draw-rectangle-btn" class="tool-button"><i class="fas fa-square"></i> Rectangle</button>
-            <button id="draw-marker-btn" class="tool-button"><i class="fas fa-map-marker-alt"></i> Marker</button>
-            <button id="edit-layer-btn" class="tool-button"><i class="fas fa-edit"></i> Edit</button>
-            <button id="delete-layer-btn" class="tool-button"><i class="fas fa-trash"></i> Delete</button>
+            <button class="tool-button" id="toggle-draw-polygon" title="Draw Polygon">
+                <i class="fas fa-draw-polygon"></i> Polygon
+            </button>
+            <button class="tool-button" id="toggle-draw-rectangle" title="Draw Rectangle">
+                <i class="fas fa-square"></i> Rectangle
+            </button>
+            <button class="tool-button" id="toggle-draw-marker" title="Place Marker">
+                <i class="fas fa-map-marker-alt"></i> Marker
+            </button>
+            <button class="tool-button" id="toggle-edit" title="Edit Features">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="tool-button" id="toggle-delete" title="Delete Features">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <button class="tool-button" id="toggle-layers" title="Toggle Layers Panel">
+                <i class="fas fa-layer-group"></i> Layers
+            </button>
+            <span class="location-display" id="current-location-display">Location: None</span>
         </div>
 
-        <!-- Content Area -->
-        <div class="content-area">
-            <!-- Layers Panel -->
-            <div id="layers-panel" class="layers-panel">
+        <!-- Layers Panel -->
+        <div class="layers-panel">
+            <div class="layers-header">
                 <h3>Layers</h3>
-                <button id="add-new-layer" class="tool-button"><i class="fas fa-plus"></i> Add Layer</button>
-                <ul class="layers-list"></ul>
+                <button id="add-new-layer" class="tool-button">
+                    <i class="fas fa-plus"></i> Add Layer
+                </button>
             </div>
+            <ul class="layers-list">
+                <!-- Layers will be added here dynamically -->
+            </ul>
+        </div>
 
-            <!-- Map Container -->
-            <div class="map-container">
-                <div id="map" style="width: 100%; height: 100%;"></div>
-            </div>
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map" style="width: 100%; height: 100%;"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div id="coordinates">Coordinates: --</div>
+            <div id="scale">Scale: --</div>
         </div>
     </div>
 
-    <!-- Modals for File Operations -->
+    <!-- New Project Modal -->
     <div id="new-project-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h2>New Project</h2>
+            <h2>Create New Project</h2>
             <form id="new-project-form">
                 <div class="form-group">
-                    <label for="new-project-name">Project Name:</label>
-                    <input type="text" id="new-project-name" required>
+                    <label for="project-name">Project Name</label>
+                    <input type="text" id="project-name" class="form-control" required>
                 </div>
-                <button type="submit" class="btn btn-primary">Create</button>
+                <div class="form-group">
+                    <label for="project-description">Description</label>
+                    <textarea id="project-description" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Create Project</button>
             </form>
         </div>
     </div>
 
-    <div id="open-project-modal" class="modal">
+    <!-- Layer Properties Modal -->
+    <div id="layer-properties-modal" class="modal">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <h2>Open Project</h2>
-            <div id="projects-list" class="projects-list">
-                <!-- Projects will be loaded here dynamically -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Analysis Modal -->
-    <div id="qd-analysis-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Quantity Distance Analysis</h2>
-            <form id="qd-analysis-form">
+            <h2>Layer Properties</h2>
+            <form id="layer-properties-form">
                 <div class="form-group">
-                    <label for="site-type">Site Type:</label>
-                    <select id="site-type" required>
-                        <option value="DOD">DOD</option>
-                        <option value="DOE">DOE</option>
+                    <label for="layer-name">Layer Name</label>
+                    <input type="text" id="layer-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="layer-type">Layer Type</label>
+                    <select id="layer-type" class="form-control">
+                        <option value="facility">Facility</option>
+                        <option value="safety_arc">Safety Arc</option>
+                        <option value="pes">Potential Explosion Site</option>
+                        <option value="es">Exposed Site</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="material-type">Material Type:</label>
-                    <select id="material-type" required>
-                        <option value="General Explosive">General Explosive</option>
-                        <option value="High Explosive">High Explosive</option>
-                        <option value="Propellant">Propellant</option>
-                    </select>
+                    <label for="layer-color">Layer Color</label>
+                    <input type="color" id="layer-color" class="form-control" value="#3388ff">
                 </div>
-                <div class="form-group">
-                    <label for="quantity">Quantity (lbs):</label>
-                    <input type="number" id="quantity" required min="0">
-                </div>
-                <button type="submit" class="btn btn-primary">Run Analysis</button>
+                <button type="submit" class="btn-primary">Save Layer</button>
             </form>
         </div>
     </div>
@@ -141,272 +156,542 @@
             <h2>Feature Properties</h2>
             <form id="feature-properties-form">
                 <div class="form-group">
-                    <label for="feature-name">Name:</label>
-                    <input type="text" id="feature-name">
+                    <label for="feature-name">Name</label>
+                    <input type="text" id="feature-name" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="feature-type">Type:</label>
-                    <select id="feature-type">
-                        <option value="PES">Potential Explosion Site (PES)</option>
-                        <option value="ES">Exposed Site (ES)</option>
-                        <option value="Other">Other</option>
-                    </select>
+                    <label for="feature-description">Description</label>
+                    <textarea id="feature-description" class="form-control" rows="3"></textarea>
                 </div>
-                <div class="form-group pes-specific">
-                    <label for="feature-quantity">Explosive Quantity (lbs):</label>
-                    <input type="number" id="feature-quantity" min="0">
+                <div id="feature-specific-properties">
+                    <!-- Dynamic properties based on feature type will be added here -->
                 </div>
-                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="submit" class="btn-primary">Save Feature</button>
             </form>
         </div>
     </div>
 
-    <!-- JavaScript to initialize map and handle events -->
+    <!-- Open Location Modal -->
+    <div id="open-location-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Open Location</h2>
+            <div id="location-list">
+                <!-- Location list will be populated here -->
+                <p>Loading locations...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="/static/js/ui-controls.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map
-            if (!window.map) {
-                window.map = L.map('map', {
-                    center: [39.8283, -98.5795],
-                    zoom: 4
-                });
+        // Initialize map
+        const map = L.map('map', {
+            zoomControl: false  // We'll add this in a custom position
+        }).setView([39.8283, -98.5795], 4);
 
-                // Add tile layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                }).addTo(window.map);
+        // Add zoom control in a better position
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
 
-                // Initialize feature groups for different layer types
-                window.featureGroups = {
-                    facilities: new L.FeatureGroup().addTo(window.map),
-                    safetyArcs: new L.FeatureGroup().addTo(window.map),
-                    pesLocations: new L.FeatureGroup().addTo(window.map),
-                    esLocations: new L.FeatureGroup().addTo(window.map)
-                };
+        // Add base layers
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
 
-                // Initialize drawnItems for Leaflet.Draw
-                window.drawnItems = new L.FeatureGroup();
-                window.map.addLayer(window.drawnItems);
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
 
-                console.log("Map initialized successfully");
+        const baseMaps = {
+            "OpenStreetMap": osm,
+            "Satellite": satellite
+        };
+
+        L.control.layers(baseMaps, null, { position: 'bottomright' }).addTo(map);
+
+        // Initialize feature groups for different layers
+        const featureGroups = {
+            facilities: new L.FeatureGroup().addTo(map),
+            safetyArcs: new L.FeatureGroup().addTo(map),
+            pesLocations: new L.FeatureGroup().addTo(map),
+            esLocations: new L.FeatureGroup().addTo(map)
+        };
+
+        // Initialize Leaflet Draw
+        const drawControl = new L.Control.Draw({
+            position: 'topleft',
+            draw: {
+                polyline: false,
+                polygon: true,
+                circle: true,
+                rectangle: true,
+                marker: true,
+                circlemarker: false
+            },
+            edit: {
+                featureGroup: new L.FeatureGroup([
+                    featureGroups.facilities,
+                    featureGroups.safetyArcs,
+                    featureGroups.pesLocations,
+                    featureGroups.esLocations
+                ]),
+                remove: true
             }
+        });
 
-            // Menu item event listeners
-            document.getElementById('toggle-layers-btn').addEventListener('click', function() {
-                document.getElementById('layers-panel').classList.toggle('visible');
+        // Variables to track current state
+        let currentEditingLayer = null;
+        let activeDrawControl = null;
+        let isEditMode = false;
+        let isDeleteMode = false;
+
+        // Toggle the layers panel
+        document.getElementById('toggle-layers').addEventListener('click', function() {
+            const layersPanel = document.querySelector('.layers-panel');
+            layersPanel.classList.toggle('visible');
+            this.classList.toggle('active');
+        });
+
+        // Close modals when clicking on X
+        document.querySelectorAll('.close-modal').forEach(function(closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
             });
+        });
 
-            document.getElementById('save-project-btn').addEventListener('click', async function() {
-                try {
-                    const response = await fetch('/api/save', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            facilities: getGeoJsonFromFeatureGroup(window.featureGroups.facilities),
-                            qdArcs: getGeoJsonFromFeatureGroup(window.featureGroups.safetyArcs),
-                            analysis: getGeoJsonFromFeatureGroup(window.featureGroups.pesLocations)
-                        }),
-                    });
-
-                    if (response.ok) {
-                        alert('Project saved successfully');
-                    } else {
-                        alert('Failed to save project');
-                    }
-                } catch (error) {
-                    console.error('Error saving project:', error);
-                    alert('An error occurred while saving the project');
-                }
-            });
-
-            document.getElementById('open-project-btn').addEventListener('click', async function() {
-                try {
-                    const response = await fetch('/api/load');
-                    const data = await response.json();
-
-                    // Clear existing layers
-                    Object.values(window.featureGroups).forEach(group => group.clearLayers());
-
-                    // Load facilities
-                    if (data.facilities && data.facilities.features) {
-                        addGeoJsonToFeatureGroup(data.facilities, window.featureGroups.facilities);
-                    }
-
-                    // Load QD arcs
-                    if (data.qdArcs && data.qdArcs.features) {
-                        addGeoJsonToFeatureGroup(data.qdArcs, window.featureGroups.safetyArcs);
-                    }
-
-                    // Load analysis results
-                    if (data.analysis && data.analysis.features) {
-                        addGeoJsonToFeatureGroup(data.analysis, window.featureGroups.pesLocations);
-                    }
-
-                    alert('Project loaded successfully');
-                } catch (error) {
-                    console.error('Error loading project:', error);
-                    alert('An error occurred while loading the project');
-                }
-            });
-
-            document.getElementById('run-qd-analysis-btn').addEventListener('click', function() {
-                document.getElementById('qd-analysis-modal').style.display = 'block';
-            });
-
-            // Close modals when clicking the X
-            document.querySelectorAll('.close-modal').forEach(function(closeBtn) {
-                closeBtn.addEventListener('click', function() {
-                    this.closest('.modal').style.display = 'none';
-                });
-            });
-
-            // QD Analysis form submission
-            document.getElementById('qd-analysis-form').addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const siteType = document.getElementById('site-type').value;
-                const materialType = document.getElementById('material-type').value;
-                const quantity = parseFloat(document.getElementById('quantity').value);
-
-                try {
-                    const selectedFeatures = getSelectedFeatures();
-
-                    const response = await fetch('/api/analyze_qd', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            site_type: siteType,
-                            features: selectedFeatures,
-                            quantity: quantity,
-                            material_type: materialType
-                        }),
-                    });
-
-                    const result = await response.json();
-
-                    // Display analysis results
-                    if (result.geojson) {
-                        addGeoJsonToFeatureGroup(result.geojson, window.featureGroups.safetyArcs);
-                    }
-
-                    document.getElementById('qd-analysis-modal').style.display = 'none';
-                } catch (error) {
-                    console.error('Error performing QD analysis:', error);
-                    alert('An error occurred during analysis');
-                }
-            });
-
-            // Helper functions
-            function getGeoJsonFromFeatureGroup(featureGroup) {
-                const geoJson = {
-                    type: 'FeatureCollection',
-                    features: []
-                };
-
-                featureGroup.eachLayer(function(layer) {
-                    if (layer.toGeoJSON) {
-                        const feature = layer.toGeoJSON();
-                        if (layer.options) {
-                            feature.properties = { ...feature.properties, ...layer.options };
-                        }
-                        geoJson.features.push(feature);
-                    }
-                });
-
-                return geoJson;
-            }
-
-            function addGeoJsonToFeatureGroup(geoJson, featureGroup) {
-                if (geoJson.features) {
-                    geoJson.features.forEach(function(feature) {
-                        const layer = L.geoJSON(feature);
-                        layer.eachLayer(function(l) {
-                            if (feature.properties) {
-                                l.options = { ...l.options, ...feature.properties };
-                            }
-                            featureGroup.addLayer(l);
-                        });
-                    });
-                }
-            }
-
-            function getSelectedFeatures() {
-                const selectedFeatures = [];
-                Object.values(window.featureGroups).forEach(group => {
-                    group.eachLayer(function(layer) {
-                        if (layer.options && layer.options.selected && layer.toGeoJSON) {
-                            selectedFeatures.push(layer.toGeoJSON());
-                        }
-                    });
-                });
-                return selectedFeatures;
-            }
-
-            // Map event handling for drawing features
-            window.map.on('draw:created', function(e) {
-                const layer = e.layer;
-                window.drawnItems.addLayer(layer);
-
-                // Open properties modal for the new feature
-                openFeaturePropertiesModal(layer);
-            });
-
-            function openFeaturePropertiesModal(layer) {
-                const modal = document.getElementById('feature-properties-modal');
-                const form = document.getElementById('feature-properties-form');
-
-                modal.style.display = 'block';
-
-                // Reset form
-                form.reset();
-
-                // Store reference to the current layer
-                form.dataset.layerId = window.drawnItems.getLayerId(layer);
-
-                // Handle form submission
-                form.onsubmit = function(e) {
-                    e.preventDefault();
-
-                    const name = document.getElementById('feature-name').value;
-                    const type = document.getElementById('feature-type').value;
-                    const quantity = document.getElementById('feature-quantity').value;
-
-                    // Set properties on the layer
-                    layer.options = {
-                        ...layer.options,
-                        name: name,
-                        type: type,
-                        quantity: quantity
-                    };
-
-                    // Move the layer to the appropriate feature group
-                    window.drawnItems.removeLayer(layer);
-
-                    if (type === 'PES') {
-                        window.featureGroups.pesLocations.addLayer(layer);
-                    } else if (type === 'ES') {
-                        window.featureGroups.esLocations.addLayer(layer);
-                    } else {
-                        window.featureGroups.facilities.addLayer(layer);
-                    }
-
+        // Close modals when clicking outside
+        window.addEventListener('click', function(event) {
+            document.querySelectorAll('.modal').forEach(function(modal) {
+                if (event.target === modal) {
                     modal.style.display = 'none';
-                };
-            }
-
-            // Show/hide explosive quantity field based on feature type
-            document.getElementById('feature-type').addEventListener('change', function() {
-                const pesSpecificFields = document.querySelectorAll('.pes-specific');
-                if (this.value === 'PES') {
-                    pesSpecificFields.forEach(field => field.style.display = 'block');
-                } else {
-                    pesSpecificFields.forEach(field => field.style.display = 'none');
                 }
             });
         });
+
+        // Tool buttons functionality
+        document.getElementById('toggle-draw-polygon').addEventListener('click', function() {
+            toggleDrawControl('polygon');
+        });
+
+        document.getElementById('toggle-draw-rectangle').addEventListener('click', function() {
+            toggleDrawControl('rectangle');
+        });
+
+        document.getElementById('toggle-draw-marker').addEventListener('click', function() {
+            toggleDrawControl('marker');
+        });
+
+        document.getElementById('toggle-edit').addEventListener('click', function() {
+            toggleEditMode();
+        });
+
+        document.getElementById('toggle-delete').addEventListener('click', function() {
+            toggleDeleteMode();
+        });
+
+        // Menu item functionality
+        document.getElementById('new-project').addEventListener('click', function() {
+            document.getElementById('new-project-modal').style.display = 'block';
+        });
+
+        document.getElementById('open-location').addEventListener('click', function() {
+            openLocationModal();
+        });
+
+        document.getElementById('save-project').addEventListener('click', function() {
+            saveProject();
+        });
+
+        // Update coordinates in status bar
+        map.on('mousemove', function(e) {
+            document.getElementById('coordinates').textContent = 
+                `Coordinates: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+        });
+
+        // Update scale in status bar
+        map.on('zoomend', function() {
+            const scale = Math.round(map.getZoom() * map.getZoom() * 10) / 10;
+            document.getElementById('scale').textContent = `Scale: ~1:${scale}k`;
+        });
+
+        // Function to toggle drawing tools
+        function toggleDrawControl(drawType) {
+            // Remove any existing draw control
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+            }
+
+            // Disable edit and delete modes
+            isEditMode = false;
+            isDeleteMode = false;
+            updateButtonStates();
+
+            // Create new draw control with only the selected type
+            const drawOptions = {
+                position: 'topleft',
+                draw: {
+                    polyline: false,
+                    polygon: false,
+                    circle: false,
+                    rectangle: false,
+                    marker: false,
+                    circlemarker: false
+                }
+            };
+
+            // Enable only the selected drawing type
+            drawOptions.draw[drawType] = true;
+
+            // Create and add the new control
+            activeDrawControl = new L.Control.Draw(drawOptions);
+            map.addControl(activeDrawControl);
+
+            // Set the active button
+            document.querySelectorAll('.toolbar .tool-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`toggle-draw-${drawType}`).classList.add('active');
+        }
+
+        // Function to toggle edit mode
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            isDeleteMode = false;
+
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+                activeDrawControl = null;
+            }
+
+            if (isEditMode) {
+                const editOptions = {
+                    position: 'topleft',
+                    draw: false,
+                    edit: {
+                        featureGroup: new L.FeatureGroup([
+                            featureGroups.facilities,
+                            featureGroups.safetyArcs,
+                            featureGroups.pesLocations,
+                            featureGroups.esLocations
+                        ]),
+                        remove: false
+                    }
+                };
+                activeDrawControl = new L.Control.Draw(editOptions);
+                map.addControl(activeDrawControl);
+            }
+
+            updateButtonStates();
+        }
+
+        // Function to toggle delete mode
+        function toggleDeleteMode() {
+            isDeleteMode = !isDeleteMode;
+            isEditMode = false;
+
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+                activeDrawControl = null;
+            }
+
+            if (isDeleteMode) {
+                const deleteOptions = {
+                    position: 'topleft',
+                    draw: false,
+                    edit: {
+                        featureGroup: new L.FeatureGroup([
+                            featureGroups.facilities,
+                            featureGroups.safetyArcs,
+                            featureGroups.pesLocations,
+                            featureGroups.esLocations
+                        ]),
+                        edit: false,
+                        remove: true
+                    }
+                };
+                activeDrawControl = new L.Control.Draw(deleteOptions);
+                map.addControl(activeDrawControl);
+            }
+
+            updateButtonStates();
+        }
+
+        // Update the styles of toolbar buttons based on active states
+        function updateButtonStates() {
+            document.querySelectorAll('.toolbar .tool-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            if (isEditMode) {
+                document.getElementById('toggle-edit').classList.add('active');
+            } else if (isDeleteMode) {
+                document.getElementById('toggle-delete').classList.add('active');
+            }
+        }
+
+        // Handle drawing created event
+        map.on('draw:created', function(e) {
+            const layer = e.layer;
+            openFeaturePropertiesModal(layer);
+        });
+
+        // Function to open feature properties modal
+        function openFeaturePropertiesModal(layer) {
+            document.getElementById('feature-properties-modal').style.display = 'block';
+            document.getElementById('feature-properties-form').onsubmit = function(e) {
+                e.preventDefault();
+                const name = document.getElementById('feature-name').value;
+                const description = document.getElementById('feature-description').value;
+
+                layer.feature = {
+                    type: 'Feature',
+                    properties: {
+                        name: name,
+                        description: description
+                    }
+                };
+
+                // Add the layer to the appropriate feature group
+                featureGroups.facilities.addLayer(layer);
+
+                // Add the layer to the layers list in UI
+                updateLayersList();
+
+                document.getElementById('feature-properties-modal').style.display = 'none';
+            };
+        }
+
+        // Function to update the layers list in the UI
+        function updateLayersList() {
+            const layersList = document.querySelector('.layers-list');
+            layersList.innerHTML = '';
+
+            // Add facilities layer
+            const facilitiesItem = document.createElement('li');
+            facilitiesItem.className = 'layer-item';
+            facilitiesItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">Facilities</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(facilitiesItem);
+
+            // Add safety arcs layer
+            const safetyArcsItem = document.createElement('li');
+            safetyArcsItem.className = 'layer-item';
+            safetyArcsItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">Safety Arcs</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(safetyArcsItem);
+
+            // Add PES locations layer
+            const pesItem = document.createElement('li');
+            pesItem.className = 'layer-item';
+            pesItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">PES Locations</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(pesItem);
+
+            // Add ES locations layer
+            const esItem = document.createElement('li');
+            esItem.className = 'layer-item';
+            esItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">ES Locations</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(esItem);
+
+            // Add event listeners for layer visibility and edit actions
+            document.querySelectorAll('.layer-checkbox').forEach(function(checkbox, index) {
+                checkbox.addEventListener('change', function() {
+                    const featureGroupKeys = Object.keys(featureGroups);
+                    const featureGroup = featureGroups[featureGroupKeys[index]];
+
+                    if (this.checked) {
+                        map.addLayer(featureGroup);
+                    } else {
+                        map.removeLayer(featureGroup);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.layer-edit').forEach(function(button, index) {
+                button.addEventListener('click', function() {
+                    const featureGroupKeys = Object.keys(featureGroups);
+                    currentEditingLayer = featureGroupKeys[index];
+                    openLayerPropertiesModal(currentEditingLayer);
+                });
+            });
+        }
+
+        // Function to open layer properties modal
+        function openLayerPropertiesModal(layerKey) {
+            document.getElementById('layer-properties-modal').style.display = 'block';
+            document.getElementById('layer-name').value = layerKey;
+
+            document.getElementById('layer-properties-form').onsubmit = function(e) {
+                e.preventDefault();
+                // Update layer properties
+                // (In a real app, you'd update the layer styling, name, etc.)
+                document.getElementById('layer-properties-modal').style.display = 'none';
+                updateLayersList();
+            };
+        }
+
+        // Function to open location modal
+        function openLocationModal() {
+            document.getElementById('open-location-modal').style.display = 'block';
+
+            // Fetch locations from the server
+            fetch('/api/locations')
+                .then(response => response.json())
+                .then(data => {
+                    const locationList = document.getElementById('location-list');
+                    const locations = data.locations || [];
+
+                    if (!locations || locations.length === 0) {
+                        locationList.innerHTML = '<p>No locations found.</p>';
+                        return;
+                    }
+
+                    let html = '<ul class="location-list">';
+                    locations.forEach(location => {
+                        html += `<li><a href="#" data-id="${location.id}">${location.name}</a></li>`;
+                    });
+                    html += '</ul>';
+
+                    locationList.innerHTML = html;
+
+                    // Add click event listeners to location links
+                    locationList.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            const locationId = this.getAttribute('data-id');
+                            loadLocation(locationId);
+                            document.getElementById('open-location-modal').style.display = 'none';
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching locations:', error);
+                    document.getElementById('location-list').innerHTML = 
+                        '<p>Error loading locations. Please try again later.</p>';
+                });
+        }
+
+        // Function to load a location
+        function loadLocation(locationId) {
+            fetch(`/api/load_location/${locationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear existing layers
+                    Object.values(featureGroups).forEach(group => group.clearLayers());
+
+                    // Load data into appropriate layers
+                    if (data.facilities) {
+                        data.facilities.forEach(facility => {
+                            const layer = L.geoJSON(facility, {
+                                onEachFeature: function(feature, layer) {
+                                    layer.feature = feature;
+                                }
+                            });
+                            featureGroups.facilities.addLayer(layer);
+                        });
+                    }
+
+                    // Similar for other layer types...
+
+                    // Update layer list in UI
+                    updateLayersList();
+
+                    // Zoom to fit all features
+                    const bounds = new L.LatLngBounds();
+                    Object.values(featureGroups).forEach(group => {
+                        if (group.getBounds().isValid()) {
+                            bounds.extend(group.getBounds());
+                        }
+                    });
+
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading location:', error);
+                    alert('Error loading location. Please try again.');
+                });
+        }
+
+        // Function to save the current project
+        function saveProject() {
+            const projectData = {
+                facilities: [],
+                safetyArcs: [],
+                pesLocations: [],
+                esLocations: []
+            };
+
+            // Collect data from each feature group
+            featureGroups.facilities.eachLayer(layer => {
+                if (layer.toGeoJSON) {
+                    projectData.facilities.push(layer.toGeoJSON());
+                }
+            });
+
+            // Similar for other feature groups...
+
+            // Send data to server
+            fetch('/api/save_project', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(projectData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Project saved successfully!');
+                } else {
+                    alert('Error saving project: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving project:', error);
+                alert('Error saving project. Please try again.');
+            });
+        }
+
+        // Initialize the UI
+        function initUI() {
+            // Initialize layers list
+            updateLayersList();
+        }
+
+        // Start the application
+        initUI();
     </script>
 </body>
 </html>
