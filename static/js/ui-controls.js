@@ -129,3 +129,82 @@ function updateLayersList() {
 
 // Expose functions to global scope
 window.updateLayersList = updateLayersList;
+/**
+ * UI Controls for QDPro application
+ * Handles user interface interactions, toolbar functionality,
+ * and layer management
+ */
+
+// Document ready handler
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('UI Controls initialized');
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        adjustUILayout();
+    });
+    
+    // Initial UI adjustment
+    adjustUILayout();
+});
+
+/**
+ * Adjusts UI layout based on window size
+ */
+function adjustUILayout() {
+    const windowHeight = window.innerHeight;
+    const menuBarHeight = document.querySelector('.menu-bar').offsetHeight;
+    const toolbarHeight = document.querySelector('.toolbar').offsetHeight;
+    const statusBarHeight = document.querySelector('.status-bar')?.offsetHeight || 0;
+    
+    // Adjust map container height
+    const mapContainer = document.querySelector('.map-container');
+    if (mapContainer) {
+        mapContainer.style.height = `${windowHeight - menuBarHeight - toolbarHeight - statusBarHeight}px`;
+        mapContainer.style.top = `${menuBarHeight + toolbarHeight}px`;
+    }
+    
+    // Adjust layers panel height
+    const layersPanel = document.querySelector('.layers-panel');
+    if (layersPanel) {
+        layersPanel.style.top = `${menuBarHeight + toolbarHeight}px`;
+        layersPanel.style.height = `${windowHeight - menuBarHeight - toolbarHeight - statusBarHeight}px`;
+    }
+}
+
+/**
+ * Resets active tool buttons
+ */
+function resetActiveTools() {
+    document.querySelectorAll('.tool-button').forEach(button => {
+        button.classList.remove('active');
+    });
+}
+
+/**
+ * Shows notification to user
+ * @param {string} message - Message to display
+ * @param {string} type - Type of notification (success, error, info)
+ */
+function showNotification(message, type = 'info') {
+    // Create notification element if it doesn't exist
+    let notification = document.getElementById('notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'notification';
+        document.body.appendChild(notification);
+    }
+    
+    // Set message and type
+    notification.textContent = message;
+    notification.className = 'notification';
+    notification.classList.add(type);
+    
+    // Show notification
+    notification.style.display = 'block';
+    
+    // Hide after 3 seconds
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
+}

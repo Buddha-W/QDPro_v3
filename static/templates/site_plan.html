@@ -4,465 +4,691 @@
     <title>QDPro Site Plan</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-    <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-        #map { position: absolute; top: 160px; /* Increased top margin to accommodate toolbars */ bottom: 0; width: 100%; }
-        .menu-bar {
-            background: #f8f9fa;
-            padding: 10px;
-            border-bottom: 1px solid #dee2e6;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-        .dropdown {
-            position: relative;
-            display: inline-block;
-            margin-right: 15px;
-        }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background: white;
-            min-width: 160px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1001;
-            border-radius: 4px;
-        }
-        .dropdown-content a {
-            padding: 8px 12px;
-            display: block;
-            text-decoration: none;
-            color: black;
-            cursor: pointer;
-        }
-        .dropdown-content a:hover { background-color: #f1f1f1; }
-        .dropdown:hover .dropdown-content { display: block; }
-        .tools-toolbar {
-            position: fixed;
-            top: 40px;
-            left: 0;
-            right: 0;
-            background: #f8f9fa;
-            padding: 10px;
-            z-index: 1000;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .tools-toolbar button {
-            margin: 0 5px;
-            padding: 5px 10px;
-            border: 1px solid #dee2e6;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-        .tools-toolbar button:hover {
-            background: #e9ecef;
-        }
-        .layer-panel {
-            position: fixed;
-            left: 10px;
-            top: 80px; /* Adjusted top position */
-            background: white;
-            padding: 10px;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 1000;
-            max-width: 250px;
-            max-height: 70%;
-            overflow-y: auto;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1002;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 50%;
-            border-radius: 5px;
-        }
-        .close-btn {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .close-btn:hover {
-            color: black;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="text"], select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .btn {
-            padding: 8px 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn:hover {
-            background-color: #45a049;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/static/css/ui-controls.css" />
 </head>
 <body>
-    <div class="menu-bar">
-        <div class="dropdown">
-            <span>File</span>
-            <div class="dropdown-content">
-                <a id="new-project">New Project</a>
-                <a id="open-project">Open Project</a>
-                <a id="save-project">Save Project</a>
-                <a id="export-project">Export</a>
+    <div class="ui-container">
+        <!-- Menu Bar -->
+        <div class="menu-bar">
+            <div class="menu-item">
+                File
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="new-project">New Project</div>
+                    <div class="dropdown-item" id="open-location">Open Location</div>
+                    <div class="dropdown-item" id="save-project">Save Project</div>
+                    <div class="dropdown-item" id="export-data">Export Data</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                Edit
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="undo">Undo</div>
+                    <div class="dropdown-item" id="redo">Redo</div>
+                    <div class="dropdown-item" id="delete-selected">Delete Selected</div>
+                    <div class="dropdown-item" id="select-all">Select All</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                View
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="zoom-in">Zoom In</div>
+                    <div class="dropdown-item" id="zoom-out">Zoom Out</div>
+                    <div class="dropdown-item" id="reset-view">Reset View</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                Tools
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="measure-distance">Measure Distance</div>
+                    <div class="dropdown-item" id="calculate-qd">Calculate QD</div>
+                    <div class="dropdown-item" id="generate-report">Generate Report</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                Help
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="user-guide">User Guide</div>
+                    <div class="dropdown-item" id="about">About</div>
+                </div>
             </div>
         </div>
-        <div class="dropdown">
-            <span>Edit</span>
-            <div class="dropdown-content">
-                <a id="undo">Undo</a>
-                <a id="redo">Redo</a>
-                <a id="delete-selected">Delete Selected</a>
-            </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="tool-button" id="toggle-draw-polygon" title="Draw Polygon">
+                <i class="fas fa-draw-polygon"></i> Polygon
+            </button>
+            <button class="tool-button" id="toggle-draw-rectangle" title="Draw Rectangle">
+                <i class="fas fa-square"></i> Rectangle
+            </button>
+            <button class="tool-button" id="toggle-draw-marker" title="Place Marker">
+                <i class="fas fa-map-marker-alt"></i> Marker
+            </button>
+            <button class="tool-button" id="toggle-edit" title="Edit Features">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="tool-button" id="toggle-delete" title="Delete Features">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <button class="tool-button" id="toggle-layers" title="Toggle Layers Panel">
+                <i class="fas fa-layer-group"></i> Layers
+            </button>
         </div>
-        <div class="dropdown">
-            <span>View</span>
-            <div class="dropdown-content">
-                <a id="toggle-grid">Toggle Grid</a>
-                <a id="toggle-layers">Toggle Layers Panel</a>
-                <a id="toggle-measurements">Toggle Measurements</a>
+
+        <!-- Layers Panel -->
+        <div class="layers-panel">
+            <div class="layers-header">
+                <h3>Layers</h3>
+                <button id="add-new-layer" class="tool-button">
+                    <i class="fas fa-plus"></i> Add Layer
+                </button>
             </div>
+            <ul class="layers-list">
+                <!-- Layers will be added here dynamically -->
+            </ul>
         </div>
-        <div class="dropdown">
-            <span>Tools</span>
-            <div class="dropdown-content">
-                <a id="run-analysis">Run Analysis</a>
-                <a id="generate-report">Generate Report</a>
-                <a id="settings">Settings</a>
-            </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map" style="width: 100%; height: 100%;"></div>
         </div>
-        <div class="dropdown">
-            <span>Help</span>
-            <div class="dropdown-content">
-                <a id="documentation">Documentation</a>
-                <a id="about">About</a>
-            </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div id="coordinates">Coordinates: --</div>
+            <div id="scale">Scale: --</div>
         </div>
     </div>
 
-    <div class="tools-toolbar">
-        <button id="toggle-layers-btn" title="Toggle Layers Panel">
-            <i class="fa fa-layers"></i> Layers
-        </button>
-        <button id="tool-select">Select</button>
-        <button id="tool-draw-point">Draw Point</button>
-        <button id="tool-draw-polygon">Draw Polygon</button>
-        <button id="tool-draw-line">Draw Line</button>
-        <button id="tool-measure">Measure</button>
-        <button id="tool-clear">Clear All</button>
-    </div>
-
-    <div id="layer-panel" class="layer-panel">
-        <h3>Layers</h3>
-        <div id="layers-list"></div>
-    </div>
-
-    <div id="map"></div>
-
-    <!-- Modal dialogs -->
+    <!-- New Project Modal -->
     <div id="new-project-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>New Project</h2>
+            <span class="close-modal">&times;</span>
+            <h2>Create New Project</h2>
             <form id="new-project-form">
                 <div class="form-group">
-                    <label for="project-name">Project Name:</label>
-                    <input type="text" id="project-name" required>
+                    <label for="project-name">Project Name</label>
+                    <input type="text" id="project-name" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="project-location">Location:</label>
-                    <input type="text" id="project-location">
+                    <label for="project-description">Description</label>
+                    <textarea id="project-description" class="form-control" rows="3"></textarea>
                 </div>
-                <button type="submit" class="btn">Create Project</button>
+                <button type="submit" class="btn-primary">Create Project</button>
             </form>
         </div>
     </div>
 
-    <div id="open-project-modal" class="modal">
+    <!-- Layer Properties Modal -->
+    <div id="layer-properties-modal" class="modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Open Project</h2>
-            <div id="project-list">
-                <!-- Project list will be populated dynamically -->
-            </div>
-        </div>
-    </div>
-
-    <div id="edit-properties-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Edit Properties</h2>
-            <form id="edit-properties-form">
+            <span class="close-modal">&times;</span>
+            <h2>Layer Properties</h2>
+            <form id="layer-properties-form">
                 <div class="form-group">
-                    <label for="facility-name">Facility Name:</label>
-                    <input type="text" id="facility-name" required>
+                    <label for="layer-name">Layer Name</label>
+                    <input type="text" id="layer-name" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="facility-type">Facility Type:</label>
-                    <select id="facility-type">
-                        <option value="magazine">Magazine</option>
-                        <option value="operating">Operating Building</option>
-                        <option value="admin">Administration</option>
-                        <option value="storage">Storage</option>
+                    <label for="layer-type">Layer Type</label>
+                    <select id="layer-type" class="form-control">
+                        <option value="facility">Facility</option>
+                        <option value="safety_arc">Safety Arc</option>
+                        <option value="pes">Potential Explosion Site</option>
+                        <option value="es">Exposed Site</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="explosive-amount">Explosive Amount (lbs):</label>
-                    <input type="text" id="explosive-amount">
+                    <label for="layer-color">Layer Color</label>
+                    <input type="color" id="layer-color" class="form-control" value="#3388ff">
                 </div>
-                <button type="submit" class="btn">Save Properties</button>
+                <button type="submit" class="btn-primary">Save Layer</button>
             </form>
         </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Feature Properties Modal -->
+    <div id="feature-properties-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Feature Properties</h2>
+            <form id="feature-properties-form">
+                <div class="form-group">
+                    <label for="feature-name">Name</label>
+                    <input type="text" id="feature-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="feature-description">Description</label>
+                    <textarea id="feature-description" class="form-control" rows="3"></textarea>
+                </div>
+                <div id="feature-specific-properties">
+                    <!-- Dynamic properties based on feature type will be added here -->
+                </div>
+                <button type="submit" class="btn-primary">Save Feature</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Open Location Modal -->
+    <div id="open-location-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Open Location</h2>
+            <div id="location-list">
+                <!-- Location list will be populated here -->
+                <p>Loading locations...</p>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="/static/js/ui-controls.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize map
-            const map = L.map('map').setView([39.8283, -98.5795], 5);
+        // Initialize map
+        const map = L.map('map', {
+            zoomControl: false  // We'll add this in a custom position
+        }).setView([39.8283, -98.5795], 4);
 
-            // Add base layers
-            const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+        // Add zoom control in a better position
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
 
-            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        // Add base layers
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        });
+
+        const baseMaps = {
+            "OpenStreetMap": osm,
+            "Satellite": satellite
+        };
+
+        L.control.layers(baseMaps, null, { position: 'bottomright' }).addTo(map);
+
+        // Initialize feature groups for different layers
+        const featureGroups = {
+            facilities: new L.FeatureGroup().addTo(map),
+            safetyArcs: new L.FeatureGroup().addTo(map),
+            pesLocations: new L.FeatureGroup().addTo(map),
+            esLocations: new L.FeatureGroup().addTo(map)
+        };
+
+        // Initialize Leaflet Draw
+        const drawControl = new L.Control.Draw({
+            position: 'topleft',
+            draw: {
+                polyline: false,
+                polygon: true,
+                circle: true,
+                rectangle: true,
+                marker: true,
+                circlemarker: false
+            },
+            edit: {
+                featureGroup: new L.FeatureGroup([
+                    featureGroups.facilities,
+                    featureGroups.safetyArcs,
+                    featureGroups.pesLocations,
+                    featureGroups.esLocations
+                ]),
+                remove: true
+            }
+        });
+
+        // Variables to track current state
+        let currentEditingLayer = null;
+        let activeDrawControl = null;
+        let isEditMode = false;
+        let isDeleteMode = false;
+
+        // Toggle the layers panel
+        document.getElementById('toggle-layers').addEventListener('click', function() {
+            const layersPanel = document.querySelector('.layers-panel');
+            layersPanel.classList.toggle('visible');
+            this.classList.toggle('active');
+        });
+
+        // Close modals when clicking on X
+        document.querySelectorAll('.close-modal').forEach(function(closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
             });
+        });
 
-            const baseLayers = {
-                "OpenStreetMap": osmLayer,
-                "Satellite": satelliteLayer
-            };
-
-            // Create layer groups
-            const facilitiesLayer = L.layerGroup().addTo(map);
-            const boundariesLayer = L.layerGroup().addTo(map);
-            const qdzoneLayer = L.layerGroup().addTo(map);
-
-            const overlays = {
-                "Facilities": facilitiesLayer,
-                "Boundaries": boundariesLayer,
-                "QD Zones": qdzoneLayer
-            };
-
-            // Initialize draw control
-            const drawnItems = new L.FeatureGroup();
-            map.addLayer(drawnItems);
-
-            const drawControl = new L.Control.Draw({
-                draw: {
-                    polygon: {
-                        allowIntersection: false,
-                        showArea: true
-                    },
-                    polyline: true,
-                    rectangle: true,
-                    circle: true,
-                    marker: true,
-                    circlemarker: false
-                },
-                edit: {
-                    featureGroup: drawnItems
+        // Close modals when clicking outside
+        window.addEventListener('click', function(event) {
+            document.querySelectorAll('.modal').forEach(function(modal) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
                 }
             });
+        });
 
-            // Setup modal handling
-            const modals = document.querySelectorAll('.modal');
-            const closeBtns = document.querySelectorAll('.close-btn');
+        // Tool buttons functionality
+        document.getElementById('toggle-draw-polygon').addEventListener('click', function() {
+            toggleDrawControl('polygon');
+        });
 
-            closeBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    modals.forEach(modal => {
-                        modal.style.display = "none";
-                    });
-                });
+        document.getElementById('toggle-draw-rectangle').addEventListener('click', function() {
+            toggleDrawControl('rectangle');
+        });
+
+        document.getElementById('toggle-draw-marker').addEventListener('click', function() {
+            toggleDrawControl('marker');
+        });
+
+        document.getElementById('toggle-edit').addEventListener('click', function() {
+            toggleEditMode();
+        });
+
+        document.getElementById('toggle-delete').addEventListener('click', function() {
+            toggleDeleteMode();
+        });
+
+        // Menu item functionality
+        document.getElementById('new-project').addEventListener('click', function() {
+            document.getElementById('new-project-modal').style.display = 'block';
+        });
+
+        document.getElementById('open-location').addEventListener('click', function() {
+            openLocationModal();
+        });
+
+        document.getElementById('save-project').addEventListener('click', function() {
+            saveProject();
+        });
+
+        // Update coordinates in status bar
+        map.on('mousemove', function(e) {
+            document.getElementById('coordinates').textContent = 
+                `Coordinates: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+        });
+
+        // Update scale in status bar
+        map.on('zoomend', function() {
+            const scale = Math.round(map.getZoom() * map.getZoom() * 10) / 10;
+            document.getElementById('scale').textContent = `Scale: ~1:${scale}k`;
+        });
+
+        // Function to toggle drawing tools
+        function toggleDrawControl(drawType) {
+            // Remove any existing draw control
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+            }
+
+            // Disable edit and delete modes
+            isEditMode = false;
+            isDeleteMode = false;
+            updateButtonStates();
+
+            // Create new draw control with only the selected type
+            const drawOptions = {
+                position: 'topleft',
+                draw: {
+                    polyline: false,
+                    polygon: false,
+                    circle: false,
+                    rectangle: false,
+                    marker: false,
+                    circlemarker: false
+                }
+            };
+
+            // Enable only the selected drawing type
+            drawOptions.draw[drawType] = true;
+
+            // Create and add the new control
+            activeDrawControl = new L.Control.Draw(drawOptions);
+            map.addControl(activeDrawControl);
+
+            // Set the active button
+            document.querySelectorAll('.toolbar .tool-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`toggle-draw-${drawType}`).classList.add('active');
+        }
+
+        // Function to toggle edit mode
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            isDeleteMode = false;
+
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+                activeDrawControl = null;
+            }
+
+            if (isEditMode) {
+                const editOptions = {
+                    position: 'topleft',
+                    draw: false,
+                    edit: {
+                        featureGroup: new L.FeatureGroup([
+                            featureGroups.facilities,
+                            featureGroups.safetyArcs,
+                            featureGroups.pesLocations,
+                            featureGroups.esLocations
+                        ]),
+                        remove: false
+                    }
+                };
+                activeDrawControl = new L.Control.Draw(editOptions);
+                map.addControl(activeDrawControl);
+            }
+
+            updateButtonStates();
+        }
+
+        // Function to toggle delete mode
+        function toggleDeleteMode() {
+            isDeleteMode = !isDeleteMode;
+            isEditMode = false;
+
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+                activeDrawControl = null;
+            }
+
+            if (isDeleteMode) {
+                const deleteOptions = {
+                    position: 'topleft',
+                    draw: false,
+                    edit: {
+                        featureGroup: new L.FeatureGroup([
+                            featureGroups.facilities,
+                            featureGroups.safetyArcs,
+                            featureGroups.pesLocations,
+                            featureGroups.esLocations
+                        ]),
+                        edit: false,
+                        remove: true
+                    }
+                };
+                activeDrawControl = new L.Control.Draw(deleteOptions);
+                map.addControl(activeDrawControl);
+            }
+
+            updateButtonStates();
+        }
+
+        // Update the styles of toolbar buttons based on active states
+        function updateButtonStates() {
+            document.querySelectorAll('.toolbar .tool-button').forEach(button => {
+                button.classList.remove('active');
             });
 
-            window.addEventListener('click', function(event) {
-                modals.forEach(modal => {
-                    if (event.target == modal) {
-                        modal.style.display = "none";
+            if (isEditMode) {
+                document.getElementById('toggle-edit').classList.add('active');
+            } else if (isDeleteMode) {
+                document.getElementById('toggle-delete').classList.add('active');
+            }
+        }
+
+        // Handle drawing created event
+        map.on('draw:created', function(e) {
+            const layer = e.layer;
+            openFeaturePropertiesModal(layer);
+        });
+
+        // Function to open feature properties modal
+        function openFeaturePropertiesModal(layer) {
+            document.getElementById('feature-properties-modal').style.display = 'block';
+            document.getElementById('feature-properties-form').onsubmit = function(e) {
+                e.preventDefault();
+                const name = document.getElementById('feature-name').value;
+                const description = document.getElementById('feature-description').value;
+
+                layer.feature = {
+                    type: 'Feature',
+                    properties: {
+                        name: name,
+                        description: description
+                    }
+                };
+
+                // Add the layer to the appropriate feature group
+                featureGroups.facilities.addLayer(layer);
+
+                // Add the layer to the layers list in UI
+                updateLayersList();
+
+                document.getElementById('feature-properties-modal').style.display = 'none';
+            };
+        }
+
+        // Function to update the layers list in the UI
+        function updateLayersList() {
+            const layersList = document.querySelector('.layers-list');
+            layersList.innerHTML = '';
+
+            // Add facilities layer
+            const facilitiesItem = document.createElement('li');
+            facilitiesItem.className = 'layer-item';
+            facilitiesItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">Facilities</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(facilitiesItem);
+
+            // Add safety arcs layer
+            const safetyArcsItem = document.createElement('li');
+            safetyArcsItem.className = 'layer-item';
+            safetyArcsItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">Safety Arcs</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(safetyArcsItem);
+
+            // Add PES locations layer
+            const pesItem = document.createElement('li');
+            pesItem.className = 'layer-item';
+            pesItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">PES Locations</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(pesItem);
+
+            // Add ES locations layer
+            const esItem = document.createElement('li');
+            esItem.className = 'layer-item';
+            esItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">ES Locations</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(esItem);
+
+            // Add event listeners for layer visibility and edit actions
+            document.querySelectorAll('.layer-checkbox').forEach(function(checkbox, index) {
+                checkbox.addEventListener('change', function() {
+                    const featureGroupKeys = Object.keys(featureGroups);
+                    const featureGroup = featureGroups[featureGroupKeys[index]];
+
+                    if (this.checked) {
+                        map.addLayer(featureGroup);
+                    } else {
+                        map.removeLayer(featureGroup);
                     }
                 });
             });
 
-            // Setup menu item handlers
-            document.getElementById('new-project').addEventListener('click', function() {
-                document.getElementById('new-project-modal').style.display = "block";
+            document.querySelectorAll('.layer-edit').forEach(function(button, index) {
+                button.addEventListener('click', function() {
+                    const featureGroupKeys = Object.keys(featureGroups);
+                    currentEditingLayer = featureGroupKeys[index];
+                    openLayerPropertiesModal(currentEditingLayer);
+                });
             });
+        }
 
-            document.getElementById('open-project').addEventListener('click', function() {
-                // Fetch and display projects
-                fetch('/api/projects')
-                    .then(response => response.json())
-                    .then(data => {
-                        const projectList = document.getElementById('project-list');
-                        projectList.innerHTML = '';
+        // Function to open layer properties modal
+        function openLayerPropertiesModal(layerKey) {
+            document.getElementById('layer-properties-modal').style.display = 'block';
+            document.getElementById('layer-name').value = layerKey;
 
-                        if(data.projects && data.projects.length > 0) {
-                            data.projects.forEach(project => {
-                                const projectItem = document.createElement('div');
-                                projectItem.textContent = project.name;
-                                projectItem.classList.add('project-item');
-                                projectItem.addEventListener('click', function() {
-                                    loadProject(project.id);
-                                    document.getElementById('open-project-modal').style.display = "none";
-                                });
-                                projectList.appendChild(projectItem);
+            document.getElementById('layer-properties-form').onsubmit = function(e) {
+                e.preventDefault();
+                // Update layer properties
+                // (In a real app, you'd update the layer styling, name, etc.)
+                document.getElementById('layer-properties-modal').style.display = 'none';
+                updateLayersList();
+            };
+        }
+
+        // Function to open location modal
+        function openLocationModal() {
+            document.getElementById('open-location-modal').style.display = 'block';
+
+            // Fetch locations from the server
+            fetch('/api/locations')
+                .then(response => response.json())
+                .then(locations => {
+                    const locationList = document.getElementById('location-list');
+
+                    if (locations.length === 0) {
+                        locationList.innerHTML = '<p>No locations found.</p>';
+                        return;
+                    }
+
+                    let html = '<ul class="location-list">';
+                    locations.forEach(location => {
+                        html += `<li><a href="#" data-id="${location.id}">${location.name}</a></li>`;
+                    });
+                    html += '</ul>';
+
+                    locationList.innerHTML = html;
+
+                    // Add click event listeners to location links
+                    locationList.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            const locationId = this.getAttribute('data-id');
+                            loadLocation(locationId);
+                            document.getElementById('open-location-modal').style.display = 'none';
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching locations:', error);
+                    document.getElementById('location-list').innerHTML = 
+                        '<p>Error loading locations. Please try again later.</p>';
+                });
+        }
+
+        // Function to load a location
+        function loadLocation(locationId) {
+            fetch(`/api/load_location/${locationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear existing layers
+                    Object.values(featureGroups).forEach(group => group.clearLayers());
+
+                    // Load data into appropriate layers
+                    if (data.facilities) {
+                        data.facilities.forEach(facility => {
+                            const layer = L.geoJSON(facility, {
+                                onEachFeature: function(feature, layer) {
+                                    layer.feature = feature;
+                                }
                             });
-                        } else {
-                            projectList.innerHTML = '<p>No projects found</p>';
+                            featureGroups.facilities.addLayer(layer);
+                        });
+                    }
+
+                    // Similar for other layer types...
+
+                    // Update layer list in UI
+                    updateLayersList();
+
+                    // Zoom to fit all features
+                    const bounds = new L.LatLngBounds();
+                    Object.values(featureGroups).forEach(group => {
+                        if (group.getBounds().isValid()) {
+                            bounds.extend(group.getBounds());
                         }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching projects:', error);
-                        alert('Error loading projects');
                     });
 
-                document.getElementById('open-project-modal').style.display = "block";
-            });
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading location:', error);
+                    alert('Error loading location. Please try again.');
+                });
+        }
 
-            document.getElementById('save-project').addEventListener('click', function() {
-                saveProject();
-            });
+        // Function to save the current project
+        function saveProject() {
+            const projectData = {
+                facilities: [],
+                safetyArcs: [],
+                pesLocations: [],
+                esLocations: []
+            };
 
-            // Draw control event handlers
-            map.on('draw:created', function(e) {
-                const layer = e.layer;
-                drawnItems.addLayer(layer);
-
-                // Open edit properties modal
-                document.getElementById('edit-properties-modal').style.display = "block";
-
-                // Store reference to current layer being edited
-                window.currentEditLayer = layer;
-            });
-
-            document.getElementById('edit-properties-form').addEventListener('submit', function(e) {
-                e.preventDefault();
-
-                if(window.currentEditLayer) {
-                    const facilityName = document.getElementById('facility-name').value;
-                    const facilityType = document.getElementById('facility-type').value;
-                    const explosiveAmount = document.getElementById('explosive-amount').value;
-
-                    // Store properties with the layer
-                    window.currentEditLayer.properties = {
-                        name: facilityName,
-                        type: facilityType,
-                        explosiveAmount: explosiveAmount
-                    };
-
-                    // Add a popup to the layer
-                    window.currentEditLayer.bindPopup(
-                        `<b>${facilityName}</b><br>
-                        Type: ${facilityType}<br>
-                        Explosive Amount: ${explosiveAmount} lbs`
-                    );
-
-                    // Close the modal
-                    document.getElementById('edit-properties-modal').style.display = "none";
+            // Collect data from each feature group
+            featureGroups.facilities.eachLayer(layer => {
+                if (layer.toGeoJSON) {
+                    projectData.facilities.push(layer.toGeoJSON());
                 }
             });
 
-            // Add event listener for layers toggle button
-            const toggleLayersBtn = document.getElementById('toggle-layers-btn');
-            const layerPanel = document.getElementById('layer-panel');
-            toggleLayersBtn.addEventListener('click', () => {
-                layerPanel.style.display = layerPanel.style.display === 'none' ? 'block' : 'none';
-            });
+            // Similar for other feature groups...
 
-
-            // Initialize the UI
-            console.log("Map initialized successfully");
-        });
-
-        function saveProject() {
-            // Get all layers and their properties
-            const layerData = {
-                facilities: [],
-                boundaries: [],
-                qdzones: []
-            };
-
-            // TODO: Implement gathering layer data from the map
-
+            // Send data to server
             fetch('/api/save_project', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(layerData)
+                body: JSON.stringify(projectData)
             })
             .then(response => response.json())
             .then(data => {
-                if(data.success) {
-                    alert('Project saved successfully');
+                if (data.success) {
+                    alert('Project saved successfully!');
                 } else {
                     alert('Error saving project: ' + data.error);
                 }
             })
             .catch(error => {
                 console.error('Error saving project:', error);
-                alert('Error saving project');
+                alert('Error saving project. Please try again.');
             });
         }
 
-        function loadProject(projectId) {
-            fetch(`/api/load_project/${projectId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if(data.success) {
-                        // Clear existing layers
-                        // TODO: Implement clearing and loading project data
-
-                        alert('Project loaded successfully');
-                    } else {
-                        alert('Error loading project: ' + data.error);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading project:', error);
-                    alert('Error loading project');
-                });
+        // Initialize the UI
+        function initUI() {
+            // Initialize layers list
+            updateLayersList();
         }
+
+        // Start the application
+        initUI();
     </script>
 </body>
 </html>
