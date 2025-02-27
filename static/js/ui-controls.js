@@ -1,6 +1,21 @@
 
 // UI Control Functions
+// Function to update location display
+function updateLocationDisplay(locationName) {
+    const displayElement = document.getElementById('current-location-display');
+    if (displayElement) {
+        displayElement.textContent = `Location: ${locationName || 'None'}`;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Update location from URL if available
+    const urlParams = new URLSearchParams(window.location.search);
+    const locationParam = urlParams.get('location');
+    if (locationParam) {
+        updateLocationDisplay(locationParam);
+    }
+    
     // Toggle layers panel
     const toggleLayersBtn = document.getElementById('toggle-layers-btn');
     const layersPanel = document.getElementById('layers-panel');

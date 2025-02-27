@@ -171,6 +171,15 @@
   background: #f5f5f5;
 }
 
+/* Location Display */
+.location-display {
+  margin-left: 10px;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-block;
+}
+
 /* Status Bar */
 .status-bar {
   position: absolute;
