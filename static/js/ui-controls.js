@@ -298,7 +298,7 @@ function setupToolButtons() {
     let activeDrawHandler = null;
     let activeTool = null;
 
-    // Ensure the drawn items layer is added
+    // Create a drawn items group if not already present
     window.drawnItems = window.drawnItems || new L.FeatureGroup();
     if (!window.map.hasLayer(window.drawnItems)) {
         window.map.addLayer(window.drawnItems);
@@ -313,6 +313,11 @@ function setupToolButtons() {
         }
 
         activeTool = null;
+
+        // Remove any lingering UI
+        setTimeout(() => {
+            document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
+        }, 10);
     }
 
     function toggleDrawing(toolType) {
@@ -377,6 +382,11 @@ function setupToolButtons() {
     window.map.on("click", function () {
         disableAllTools();
     });
+
+    // 🔥 Remove sub-buttons permanently
+    setTimeout(() => {
+        document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
+    }, 500);
 }
 
 // Update the layers list
