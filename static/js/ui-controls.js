@@ -114,7 +114,9 @@ function setupToolButtons() {
 
             // Enable polygon drawing
             if (window.map) {
-                window.activeDrawHandler = new L.Draw.Polygon(window.map);
+                window.activeDrawHandler = new L.Draw.Polygon(window.map, {
+                    showDrawingTools: false
+                });
                 window.activeDrawHandler.enable();
             }
         });
@@ -137,7 +139,9 @@ function setupToolButtons() {
 
             // Enable rectangle drawing
             if (window.map) {
-                window.activeDrawHandler = new L.Draw.Rectangle(window.map);
+                window.activeDrawHandler = new L.Draw.Rectangle(window.map, {
+                    showDrawingTools: false
+                });
                 window.activeDrawHandler.enable();
             }
         });
@@ -160,7 +164,9 @@ function setupToolButtons() {
 
             // Enable marker drawing
             if (window.map) {
-                window.activeDrawHandler = new L.Draw.Marker(window.map);
+                window.activeDrawHandler = new L.Draw.Marker(window.map, {
+                    showDrawingTools: false
+                });
                 window.activeDrawHandler.enable();
             }
         });
@@ -193,7 +199,8 @@ function setupToolButtons() {
                             maintainColor: true,
                             opacity: 0.8
                         }
-                    }
+                    },
+                    showDrawingTools: false
                 };
 
                 window.editControl = new L.EditToolbar.Edit(window.map, editOptions);
