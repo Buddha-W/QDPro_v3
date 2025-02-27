@@ -284,6 +284,42 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupToolButtons() {
+    // Override Leaflet Draw's prototype to block UI creation
+    if (L && L.Draw) {
+        // Prevent any toolbars from appearing
+        L.Draw.Toolbar = L.Toolbar.extend({
+            initialize: function() { return this; },
+            addToolbar: function() { return this; }
+        });
+
+        // Override action bar creation to prevent "Finish" and "Cancel" buttons
+        L.Draw.Feature.prototype._showActionsToolbar = function() {
+            return;
+        };
+
+        // Ensure no tooltips appear
+        L.Draw.Feature.prototype._fireCreatedEvent = function() {
+            if (this._shape && !this._shape._eventFired) {
+                this._fireCreatedEvent();
+                this._shape._eventFired = true;
+            }
+        };
+
+        // Override addHooks method to remove UI elements
+        const originalAddHooks = L.Draw.Feature.prototype.addHooks;
+        L.Draw.Feature.prototype.addHooks = function() {
+            if (originalAddHooks) originalAddHooks.call(this);
+            setTimeout(removeLeafletDrawButtons, 10);
+        };
+
+        // Override removeHooks to clean up extra elements
+        const originalRemoveHooks = L.Draw.Feature.prototype.removeHooks;
+        L.Draw.Feature.prototype.removeHooks = function() {
+            if (originalRemoveHooks) originalRemoveHooks.call(this);
+            removeLeafletDrawButtons();
+        };
+    }
+
     const toolButtons = {
         polygon: document.getElementById("draw-polygon-btn"),
         rectangle: document.getElementById("draw-rectangle-btn"),
@@ -491,11 +527,17 @@ function setupToolButtons() {
                     window.activeDrawHandler.disable();
                     window.activeDrawHandler = null;
                 }
+                
+                // Run both cleanup functions for more comprehensive removal
+                removeLeafletDrawButtons();
                 aggressiveUICleanup();
                 
-                // Do multiple cleanups to catch any elements created asynchronously
+                // Multiple staggered cleanups to catch any elements created asynchronously
+                setTimeout(removeLeafletDrawButtons, 25);
                 setTimeout(aggressiveUICleanup, 50);
+                setTimeout(removeLeafletDrawButtons, 75);
                 setTimeout(aggressiveUICleanup, 100);
+                setTimeout(removeLeafletDrawButtons, 150);
                 setTimeout(aggressiveUICleanup, 200);
             });
         });
@@ -538,6 +580,18 @@ function setupToolButtons() {
     
     // Initial cleanup
     aggressiveUICleanup();
+    removeLeafletDrawButtons();
+    
+    // Debug helper - uncomment if you need to identify remaining UI elements
+    /*
+    setInterval(() => {
+        const elements = document.querySelectorAll('[class*="leaflet-draw"], [title*="Draw"]');
+        if (elements.length > 0) {
+            console.log(`Found ${elements.length} unwanted UI elements`);
+            elements.forEach(el => console.log('Unwanted UI:', el));
+        }
+    }, 500);
+    */
 }
 
 // Update the layers list
