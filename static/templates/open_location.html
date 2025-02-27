@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,6 +7,13 @@
         .location-info { margin-bottom: 20px; }
         .records-list { margin-top: 20px; }
         .add-record-form { margin: 20px 0; }
+        textarea { width: 100%; min-height: 100px; }
+        button { padding: 8px 16px; margin-top: 10px; cursor: pointer; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px; }
+        small { color: #666; }
+        a { color: #0066cc; text-decoration: none; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -41,33 +47,10 @@
                 <p>No records found.</p>
             {% endif %}
         </div>
-        
+
         <div>
             <a href="/ui/locations">Back to Locations</a>
         </div>
     </div>
-</body>
-</html>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ location_name }}</title>
-</head>
-<body>
-    <h1>Location: {{ location_name }}</h1>
-    <p>Created at: {{ location_created_at }}</p>
-    <h2>Records</h2>
-    <ul>
-      {% for record in records %}
-        <li>{{ record.info }} ({{ record.created_at }})</li>
-      {% endfor %}
-    </ul>
-    <h3>Add New Record</h3>
-    <form action="/ui/open_location/{{ location_id }}/add_record" method="post">
-        <label for="info">Info:</label>
-        <input type="text" id="info" name="info" required>
-        <button type="submit">Add Record</button>
-    </form>
-    <p><a href="/ui/locations">Back to Locations</a></p>
 </body>
 </html>
