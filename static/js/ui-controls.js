@@ -284,6 +284,18 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupToolButtons() {
+    // Prevent Draw Control from being added to the map
+    L.Control.Draw.include({
+        addTo: function () {
+            return this;
+        }
+    });
+
+    // Ensure map doesn't automatically add draw control
+    L.Map.mergeOptions({
+        drawControl: false
+    });
+    
     if (L && L.Draw) {
         // Prevent any toolbars from appearing
         L.Draw.Toolbar = L.Toolbar.extend({
