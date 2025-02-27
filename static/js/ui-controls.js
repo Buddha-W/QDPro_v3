@@ -318,6 +318,14 @@ function setupToolButtons() {
     let activeDrawHandler = null;
     let activeTool = null;
 
+    // Layer group to store drawn items if not already created
+    if (!window.drawnItems) {
+        window.drawnItems = new L.FeatureGroup();
+        if (window.map) {
+            window.map.addLayer(window.drawnItems);
+        }
+    }
+
     function disableAllTools() {
         Object.values(toolButtons).forEach((btn) => btn.classList.remove("active"));
 
@@ -352,7 +360,13 @@ function setupToolButtons() {
                     });
                     break;
                 case "marker":
-                    activeDrawHandler = new L.Draw.Marker(window.map);
+                    activeDrawHandler = new L.Draw.Marker(window.map, {
+                        icon: L.icon({
+                            iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                        }),
+                    });
                     break;
             }
 
@@ -362,6 +376,7 @@ function setupToolButtons() {
         }
     }
 
+    // Attach event listeners to each button
     Object.keys(toolButtons).forEach((toolType) => {
         if (toolButtons[toolType]) {
             toolButtons[toolType].addEventListener("click", function () {
@@ -370,12 +385,16 @@ function setupToolButtons() {
         }
     });
 
+    // Ensure shapes are saved to the map when drawn
     if (window.map) {
         window.map.on("draw:created", function (e) {
+            disableAllTools(); // Reset UI after drawing
+            window.drawnItems.addLayer(e.layer);
+        });
+
+        // Clicking on the map disables drawing tools
+        window.map.on("click", function () {
             disableAllTools();
-            if (window.drawnItems) {
-                window.drawnItems.addLayer(e.layer);
-            }
         });
     }
 }
