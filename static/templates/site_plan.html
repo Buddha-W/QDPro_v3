@@ -566,10 +566,11 @@
             // Fetch locations from the server
             fetch('/api/locations')
                 .then(response => response.json())
-                .then(locations => {
+                .then(data => {
                     const locationList = document.getElementById('location-list');
+                    const locations = data.locations || [];
 
-                    if (locations.length === 0) {
+                    if (!locations || locations.length === 0) {
                         locationList.innerHTML = '<p>No locations found.</p>';
                         return;
                     }
