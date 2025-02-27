@@ -173,11 +173,19 @@
 
 /* Location Display */
 .location-display {
-  margin-left: 10px;
+  margin-left: auto;
   color: #333;
   font-size: 14px;
   font-weight: 500;
   display: inline-block;
+  padding-right: 15px;
+  text-align: center;
+}
+
+/* Make toolbar a flex container to position elements */
+.toolbar {
+  display: flex;
+  align-items: center;
 }
 
 /* Status Bar */
