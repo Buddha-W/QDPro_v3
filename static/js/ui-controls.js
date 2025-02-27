@@ -12,6 +12,32 @@ function removeLeafletDrawButtons() {
             button.parentNode.removeChild(button);
         }
     });
+
+    // Also remove any leftovers at the document level
+    const toolbars = document.querySelectorAll('.leaflet-draw-toolbar');
+    toolbars.forEach(function(toolbar) {
+        if (toolbar && toolbar.parentNode) {
+            toolbar.parentNode.removeChild(toolbar);
+        }
+    });
+}
+
+// Completely disable the Leaflet.Draw toolbar functionality
+if (L && L.DrawToolbar) {
+    // Override the toolbar initialization
+    L.DrawToolbar.prototype.initialize = function() {
+        // Do nothing
+    };
+
+    // Override the addToolbar method
+    L.DrawToolbar.prototype.addToolbar = function() {
+        return this;
+    };
+
+    // Ensure no buttons are added
+    L.DrawToolbar.prototype._createButton = function() {
+        return null;
+    };
 }
 
 // Run this on page load and set an interval to continuously check for and remove draw buttons
@@ -20,7 +46,17 @@ window.addEventListener('DOMContentLoaded', function() {
     removeLeafletDrawButtons();
 
     // Set interval to keep checking and removing any buttons that might appear
-    setInterval(removeLeafletDrawButtons, 100);
+    setInterval(removeLeafletDrawButtons, 50);
+
+    // Also check for and remove toolbars after any drawing handler is enabled
+    const originalDrawEnable = L.Draw.Feature.prototype.enable;
+    if (originalDrawEnable) {
+        L.Draw.Feature.prototype.enable = function() {
+            originalDrawEnable.call(this);
+            setTimeout(removeLeafletDrawButtons, 0);
+            setTimeout(removeLeafletDrawButtons, 50);
+        };
+    }
 
     // Override Leaflet.Draw handlers to prevent toolbars
     if (L && L.Draw) {
