@@ -1,0 +1,86 @@
+document.addEventListener("DOMContentLoaded", function () {
+    const toolButtons = {
+        polygon: document.getElementById("draw-polygon-btn"),
+        rectangle: document.getElementById("draw-rectangle-btn"),
+        marker: document.getElementById("draw-marker-btn"),
+    };
+
+    let activeDrawHandler = null;
+    let activeTool = null;
+
+    // Layer group to store drawn items
+    window.drawnItems = new L.FeatureGroup();
+    window.map.addLayer(window.drawnItems);
+
+    function disableAllTools() {
+        Object.values(toolButtons).forEach((btn) => btn.classList.remove("active"));
+
+        if (activeDrawHandler) {
+            activeDrawHandler.disable();
+            activeDrawHandler = null;
+        }
+
+        activeTool = null;
+    }
+
+    function toggleDrawing(toolType) {
+        if (activeTool === toolType) {
+            disableAllTools();
+            return;
+        }
+
+        disableAllTools();
+        toolButtons[toolType].classList.add("active");
+        activeTool = toolType;
+
+        if (window.map) {
+            switch (toolType) {
+                case "polygon":
+                    activeDrawHandler = new L.Draw.Polygon(window.map, {
+                        shapeOptions: { color: "#662d91" },
+                    });
+                    break;
+                case "rectangle":
+                    activeDrawHandler = new L.Draw.Rectangle(window.map, {
+                        shapeOptions: { color: "#228B22" },
+                    });
+                    break;
+                case "marker":
+                    activeDrawHandler = new L.Draw.Marker(window.map, {
+                        icon: L.icon({
+                            iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+                            iconSize: [25, 41],
+                            iconAnchor: [12, 41],
+                        }),
+                    });
+                    break;
+            }
+
+            if (activeDrawHandler) {
+                activeDrawHandler.enable();
+            }
+        }
+    }
+
+    // Attach event listeners to each button
+    Object.keys(toolButtons).forEach((toolType) => {
+        if (toolButtons[toolType]) {
+            toolButtons[toolType].addEventListener("click", function () {
+                toggleDrawing(toolType);
+            });
+        }
+    });
+
+    // Ensure shapes are saved to the map when drawn
+    if (window.map) {
+        window.map.on("draw:created", function (e) {
+            disableAllTools(); // Reset UI after drawing
+            window.drawnItems.addLayer(e.layer);
+        });
+
+        // Clicking on the map disables drawing tools
+        window.map.on("click", function () {
+            disableAllTools();
+        });
+    }
+});
