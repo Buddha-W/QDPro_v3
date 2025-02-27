@@ -2,6 +2,21 @@
 // Function to update location display
 function updateLocationDisplay(locationName) {
     const displayElement = document.getElementById('current-location-display');
+
+// Ensure that Leaflet Draw toolbars don't appear
+window.addEventListener('DOMContentLoaded', function() {
+    // Override the Leaflet.Draw Control creation to prevent additional toolbars
+    if (L && L.Draw && L.Draw.Control) {
+        const originalAddToolbar = L.Draw.Control.prototype._addToolbar;
+        L.Draw.Control.prototype._addToolbar = function() {
+            // Only call the original method if explicitly allowed
+            if (this.options.showDrawToolbar !== false) {
+                originalAddToolbar.call(this);
+            }
+        };
+    }
+});
+
     if (displayElement) {
         displayElement.textContent = `Location: ${locationName || 'None'}`;
     }
@@ -115,8 +130,17 @@ function setupToolButtons() {
             // Enable polygon drawing
             if (window.map) {
                 window.activeDrawHandler = new L.Draw.Polygon(window.map, {
-                    showDrawingTools: false
+                    showDrawingTools: false,
+                    shapeOptions: {
+                        showAttribution: false
+                    }
                 });
+                
+                // Prevent the Leaflet Draw toolbar from appearing
+                if (window.activeDrawHandler._map && window.activeDrawHandler._map._toolbars) {
+                    window.activeDrawHandler._map._toolbars = {};
+                }
+                
                 window.activeDrawHandler.enable();
             }
         });
@@ -140,8 +164,17 @@ function setupToolButtons() {
             // Enable rectangle drawing
             if (window.map) {
                 window.activeDrawHandler = new L.Draw.Rectangle(window.map, {
-                    showDrawingTools: false
+                    showDrawingTools: false,
+                    shapeOptions: {
+                        showAttribution: false
+                    }
                 });
+                
+                // Prevent the Leaflet Draw toolbar from appearing
+                if (window.activeDrawHandler._map && window.activeDrawHandler._map._toolbars) {
+                    window.activeDrawHandler._map._toolbars = {};
+                }
+                
                 window.activeDrawHandler.enable();
             }
         });
@@ -165,8 +198,19 @@ function setupToolButtons() {
             // Enable marker drawing
             if (window.map) {
                 window.activeDrawHandler = new L.Draw.Marker(window.map, {
-                    showDrawingTools: false
+                    showDrawingTools: false,
+                    icon: L.icon({
+                        iconUrl: window.markerIconUrl || 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41]
+                    })
                 });
+                
+                // Prevent the Leaflet Draw toolbar from appearing
+                if (window.activeDrawHandler._map && window.activeDrawHandler._map._toolbars) {
+                    window.activeDrawHandler._map._toolbars = {};
+                }
+                
                 window.activeDrawHandler.enable();
             }
         });
