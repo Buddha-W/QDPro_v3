@@ -62,6 +62,22 @@ function setupToolButtons() {
             // If edit control exists
             if (window.editControl) {
                 window.editControl.enable();
+            } else if (window.map && window.drawnItems) {
+                // Create edit control if it doesn't exist
+                const editOptions = {
+                    featureGroup: window.drawnItems,
+                    edit: {
+                        selectedPathOptions: {
+                            maintainColor: true,
+                            opacity: 0.8
+                        }
+                    }
+                };
+                
+                window.editControl = new L.EditToolbar.Edit(window.map, editOptions);
+                window.editControl.enable();
+            } else {
+                console.warn('Map or drawn items not initialized for edit operation');
             }
         });
     }
