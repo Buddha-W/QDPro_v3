@@ -247,16 +247,3 @@
 .btn-primary:hover {
   background-color: #34495e;
 }
-/* Location display styling */
-.location-display {
-    margin-left: auto; /* Push to the far right */
-    padding: 10px 15px;
-    color: white;
-    font-weight: bold;
-    font-size: 14px;
-}
-
-.menu-bar {
-    display: flex; /* Make the menu bar a flex container */
-    align-items: center;
-}

@@ -208,20 +208,3 @@ function showNotification(message, type = 'info') {
         notification.style.display = 'none';
     }, 3000);
 }
-// Function to update the location display
-function updateLocationDisplay(locationName) {
-    const displayElement = document.getElementById('current-location-display');
-    if (displayElement) {
-        displayElement.textContent = `Location: ${locationName || 'None'}`;
-    }
-}
-
-// Update location display when loading a location
-document.addEventListener('DOMContentLoaded', function() {
-    // This will be updated when a location is loaded
-    const urlParams = new URLSearchParams(window.location.search);
-    const locationName = urlParams.get('location_name');
-    if (locationName) {
-        updateLocationDisplay(locationName);
-    }
-});
