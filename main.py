@@ -514,6 +514,73 @@ async def get_locations():
             status_code=500
         )
 
+@app.get("/api/load_location/{location_id}")
+async def load_location(location_id: int):
+    """Load a location and its data by ID."""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        try:
+            # First, check if the location exists
+            cur.execute("SELECT location_name FROM locations WHERE id = %s", (location_id,))
+            location = cur.fetchone()
+            
+            if not location:
+                return JSONResponse(
+                    content={"error": "Location not found"},
+                    status_code=404
+                )
+            
+            # Get facilities for this location
+            cur.execute("""
+                SELECT r.id, r.info 
+                FROM records r 
+                WHERE r.location_id = %s
+            """, (location_id,))
+            
+            records = cur.fetchall()
+            
+            # Convert records to facilities, qdArcs, etc. based on your data model
+            # This is a simplified example - adjust according to your actual data structure
+            facilities = []
+            qdArcs = []
+            analysis = []
+            
+            for record_id, info in records:
+                try:
+                    data = json.loads(info) if info else {}
+                    if data.get("type") == "facility":
+                        facilities.append(data["geometry"])
+                    elif data.get("type") == "qdarc":
+                        qdArcs.append(data["geometry"])
+                    elif data.get("type") == "analysis":
+                        analysis.append(data["geometry"])
+                except (json.JSONDecodeError, KeyError) as e:
+                    print(f"Error parsing record {record_id}: {e}")
+            
+            return JSONResponse(content={
+                "location_id": location_id,
+                "location_name": location[0],
+                "facilities": facilities,
+                "qdArcs": qdArcs,
+                "analysis": analysis
+            })
+        except Exception as e:
+            print(f"Error loading location {location_id}: {e}")
+            return JSONResponse(
+                content={"error": f"Failed to load location: {str(e)}"},
+                status_code=500
+            )
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        print(f"Database connection error: {e}")
+        return JSONResponse(
+            content={"error": f"Failed to connect to database: {str(e)}"},
+            status_code=500
+        )
+
 @app.post("/api/create_location")
 async def create_location_api(request: Request):
     """Create location via API."""
