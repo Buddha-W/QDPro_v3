@@ -327,7 +327,6 @@ function setupToolButtons() {
         }
 
         activeTool = null;
-        removeLeafletDrawButtons();
     }
 
     function toggleDrawing(toolType) {
@@ -344,13 +343,11 @@ function setupToolButtons() {
             switch (toolType) {
                 case "polygon":
                     activeDrawHandler = new L.Draw.Polygon(window.map, {
-                        showLength: false,
                         shapeOptions: { color: "#662d91" },
                     });
                     break;
                 case "rectangle":
                     activeDrawHandler = new L.Draw.Rectangle(window.map, {
-                        showArea: false,
                         shapeOptions: { color: "#228B22" },
                     });
                     break;
@@ -360,44 +357,27 @@ function setupToolButtons() {
             }
 
             if (activeDrawHandler) {
-                window.activeDrawHandler = activeDrawHandler;
                 activeDrawHandler.enable();
-                
-                // Clean up any UI elements that might appear
-                removeLeafletDrawButtons();
-                setTimeout(removeLeafletDrawButtons, 50);
             }
         }
     }
 
     Object.keys(toolButtons).forEach((toolType) => {
         if (toolButtons[toolType]) {
-            toolButtons[toolType].addEventListener("click", function() {
+            toolButtons[toolType].addEventListener("click", function () {
                 toggleDrawing(toolType);
             });
         }
     });
 
     if (window.map) {
-        window.map.on("draw:created", function(e) {
+        window.map.on("draw:created", function (e) {
             disableAllTools();
             if (window.drawnItems) {
                 window.drawnItems.addLayer(e.layer);
-                if (window.updateLayersList) {
-                    window.updateLayersList();
-                }
             }
         });
-        
-        // Reset tools on various drawing events
-        const resetEvents = ['draw:drawstop', 'draw:canceled', 'draw:deleted'];
-        resetEvents.forEach(eventName => {
-            window.map.on(eventName, disableAllTools);
-        });
     }
-    
-    // Initial cleanup
-    removeLeafletDrawButtons();
 }
 
 // Update the layers list
