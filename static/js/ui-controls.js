@@ -3,11 +3,28 @@
 function updateLocationDisplay(locationName) {
     const displayElement = document.getElementById('current-location-display');
 
-// Ensure that Leaflet Draw toolbars don't appear
+// Function to remove all Leaflet Draw toolbar buttons
+function removeLeafletDrawButtons() {
+    // Remove all Leaflet Draw toolbar buttons
+    const drawButtons = document.querySelectorAll('.leaflet-draw-draw-polygon, .leaflet-draw-draw-rectangle, .leaflet-draw-draw-marker, .leaflet-draw-toolbar, .leaflet-draw-toolbar-top, .leaflet-draw-toolbar-button');
+    drawButtons.forEach(function(button) {
+        if (button && button.parentNode) {
+            button.parentNode.removeChild(button);
+        }
+    });
+}
+
+// Run this on page load and set an interval to continuously check for and remove draw buttons
 window.addEventListener('DOMContentLoaded', function() {
-    // Override Leaflet.Draw handlers to prevent additional toolbars/buttons
+    // Initial removal
+    removeLeafletDrawButtons();
+    
+    // Set interval to keep checking and removing any buttons that might appear
+    setInterval(removeLeafletDrawButtons, 100);
+    
+    // Override Leaflet.Draw handlers to prevent toolbars
     if (L && L.Draw) {
-        // Override the enable methods for all draw handlers to prevent buttons
+        // Override each draw handler's enable method
         const drawHandlers = ['Polygon', 'Rectangle', 'Marker', 'Circle', 'CircleMarker', 'Polyline'];
         
         drawHandlers.forEach(function(handlerType) {
@@ -20,26 +37,23 @@ window.addEventListener('DOMContentLoaded', function() {
                     // Call the original method
                     originalEnable.call(this);
                     
-                    // Remove any toolbar buttons that might have been added
-                    if (this._map && this._map._container) {
-                        const buttons = this._map._container.querySelectorAll('.leaflet-draw-draw-polygon, .leaflet-draw-draw-rectangle, .leaflet-draw-draw-marker');
-                        buttons.forEach(function(button) {
-                            if (button.parentNode) {
-                                button.parentNode.removeChild(button);
-                            }
-                        });
-                    }
+                    // Force remove any toolbar buttons immediately
+                    setTimeout(removeLeafletDrawButtons, 10);
+                    setTimeout(removeLeafletDrawButtons, 50);
+                    setTimeout(removeLeafletDrawButtons, 100);
                 };
             }
         });
         
-        // Prevent any toolbars from being added
+        // Completely disable the toolbar creation
         if (L.Draw.Control) {
-            const originalAddToolbar = L.Draw.Control.prototype._addToolbar;
-            L.Draw.Control.prototype._addToolbar = function() {
-                // Don't call the original method
-                return;
-            };
+            L.Draw.Control.prototype._addToolbar = function() { return; };
+            L.Draw.Control.prototype.addToolbar = function() { return; };
+        }
+        
+        // Prevent toolbar elements from being added to the map
+        if (L.DrawToolbar) {
+            L.DrawToolbar.prototype.addToolbar = function() { return; };
         }
     }
 });
@@ -169,6 +183,10 @@ function setupToolButtons() {
                 }
                 
                 window.activeDrawHandler.enable();
+                
+                // Force remove any Leaflet Draw buttons that might appear
+                setTimeout(removeLeafletDrawButtons, 10);
+                setTimeout(removeLeafletDrawButtons, 50);
             }
         });
     }
@@ -203,6 +221,10 @@ function setupToolButtons() {
                 }
                 
                 window.activeDrawHandler.enable();
+                
+                // Force remove any Leaflet Draw buttons that might appear
+                setTimeout(removeLeafletDrawButtons, 10);
+                setTimeout(removeLeafletDrawButtons, 50);
             }
         });
     }
@@ -239,6 +261,10 @@ function setupToolButtons() {
                 }
                 
                 window.activeDrawHandler.enable();
+                
+                // Force remove any Leaflet Draw buttons that might appear
+                setTimeout(removeLeafletDrawButtons, 10);
+                setTimeout(removeLeafletDrawButtons, 50);
             }
         });
     }
