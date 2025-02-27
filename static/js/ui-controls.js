@@ -284,29 +284,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupToolButtons() {
-    // Prevent Draw Control from being added to the map
-    L.Control.Draw.include({
-        addTo: function () {
-            return this;
-        }
-    });
-
-    // Ensure map doesn't automatically add draw control
-    L.Map.mergeOptions({
-        drawControl: false
-    });
-    
-    if (L && L.Draw) {
-        // Prevent any toolbars from appearing
-        L.Draw.Toolbar = L.Toolbar.extend({
-            initialize: function() { return this; },
-            addToolbar: function() { return this; }
-        });
-
-        // Override action bar creation to prevent "Finish" and "Cancel" buttons
-        L.Draw.Feature.prototype._showActionsToolbar = function() {
-            return;
-        };
+    if (!window.map) {
+        console.error("Map is not initialized.");
+        return;
     }
 
     const toolButtons = {
@@ -318,12 +298,10 @@ function setupToolButtons() {
     let activeDrawHandler = null;
     let activeTool = null;
 
-    // Layer group to store drawn items if not already created
-    if (!window.drawnItems) {
-        window.drawnItems = new L.FeatureGroup();
-        if (window.map) {
-            window.map.addLayer(window.drawnItems);
-        }
+    // Ensure the drawn items layer is added
+    window.drawnItems = window.drawnItems || new L.FeatureGroup();
+    if (!window.map.hasLayer(window.drawnItems)) {
+        window.map.addLayer(window.drawnItems);
     }
 
     function disableAllTools() {
@@ -338,45 +316,49 @@ function setupToolButtons() {
     }
 
     function toggleDrawing(toolType) {
+        if (!window.map) {
+            console.error("Map is not initialized.");
+            return;
+        }
+
         if (activeTool === toolType) {
             disableAllTools();
             return;
         }
 
         disableAllTools();
-        toolButtons[toolType].classList.add("active");
+        toolButtons[toolType]?.classList.add("active");
         activeTool = toolType;
 
-        if (window.map) {
-            switch (toolType) {
-                case "polygon":
-                    activeDrawHandler = new L.Draw.Polygon(window.map, {
-                        shapeOptions: { color: "#662d91" },
-                    });
-                    break;
-                case "rectangle":
-                    activeDrawHandler = new L.Draw.Rectangle(window.map, {
-                        shapeOptions: { color: "#228B22" },
-                    });
-                    break;
-                case "marker":
-                    activeDrawHandler = new L.Draw.Marker(window.map, {
-                        icon: L.icon({
-                            iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-                            iconSize: [25, 41],
-                            iconAnchor: [12, 41],
-                        }),
-                    });
-                    break;
-            }
+        switch (toolType) {
+            case "polygon":
+                activeDrawHandler = new L.Draw.Polygon(window.map, {
+                    shapeOptions: { color: "#662d91" },
+                });
+                break;
+            case "rectangle":
+                activeDrawHandler = new L.Draw.Rectangle(window.map, {
+                    shapeOptions: { color: "#228B22" },
+                });
+                break;
+            case "marker":
+                activeDrawHandler = new L.Draw.Marker(window.map, {
+                    icon: L.icon({
+                        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                    }),
+                });
+                break;
+        }
 
-            if (activeDrawHandler) {
-                activeDrawHandler.enable();
-            }
+        if (activeDrawHandler) {
+            console.log(`Activating tool: ${toolType}`);
+            activeDrawHandler.enable();
         }
     }
 
-    // Attach event listeners to each button
+    // Attach event listeners to buttons
     Object.keys(toolButtons).forEach((toolType) => {
         if (toolButtons[toolType]) {
             toolButtons[toolType].addEventListener("click", function () {
@@ -385,18 +367,16 @@ function setupToolButtons() {
         }
     });
 
-    // Ensure shapes are saved to the map when drawn
-    if (window.map) {
-        window.map.on("draw:created", function (e) {
-            disableAllTools(); // Reset UI after drawing
-            window.drawnItems.addLayer(e.layer);
-        });
+    // Ensure drawn shapes are added to the map
+    window.map.on("draw:created", function (e) {
+        disableAllTools();
+        window.drawnItems.addLayer(e.layer);
+    });
 
-        // Clicking on the map disables drawing tools
-        window.map.on("click", function () {
-            disableAllTools();
-        });
-    }
+    // Clicking on the map disables drawing tools
+    window.map.on("click", function () {
+        disableAllTools();
+    });
 }
 
 // Update the layers list
