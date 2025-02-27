@@ -69,23 +69,119 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function setupToolButtons() {
     const drawPolygonBtn = document.getElementById('draw-polygon-btn');
+    const drawRectangleBtn = document.getElementById('draw-rectangle-btn');
+    const drawMarkerBtn = document.getElementById('draw-marker-btn');
     const editLayersBtn = document.getElementById('edit-layers-btn');
     const deleteLayersBtn = document.getElementById('delete-layers-btn');
 
+    // Helper function to disable all active tools
+    function disableAllTools() {
+        // Deactivate all buttons
+        const toolButtons = document.querySelectorAll('.tool-button');
+        toolButtons.forEach(btn => btn.classList.remove('active'));
+
+        // Disable active draw handler if any
+        if (window.activeDrawHandler) {
+            window.activeDrawHandler.disable();
+            window.activeDrawHandler = null;
+        }
+
+        // Disable edit control if active
+        if (window.editControl && window.editControl.enabled()) {
+            window.editControl.disable();
+        }
+
+        // Disable delete handler if active
+        if (window.deleteHandler && window.deleteHandler.enabled()) {
+            window.deleteHandler.disable();
+        }
+    }
+
+    // Setup polygon drawing
     if (drawPolygonBtn) {
         drawPolygonBtn.addEventListener('click', function() {
-            // If map and draw controls are available
-            if (window.map && window.drawControl) {
-                // Activate polygon drawing
+            // If this button is already active, disable it
+            if (this.classList.contains('active')) {
+                disableAllTools();
+                return;
+            }
+
+            // Otherwise, disable other tools and enable this one
+            disableAllTools();
+
+            // Activate this button
+            this.classList.add('active');
+
+            // Enable polygon drawing
+            if (window.map) {
                 window.activeDrawHandler = new L.Draw.Polygon(window.map);
                 window.activeDrawHandler.enable();
             }
         });
     }
 
+    // Setup rectangle drawing
+    if (drawRectangleBtn) {
+        drawRectangleBtn.addEventListener('click', function() {
+            // If this button is already active, disable it
+            if (this.classList.contains('active')) {
+                disableAllTools();
+                return;
+            }
+
+            // Otherwise, disable other tools and enable this one
+            disableAllTools();
+
+            // Activate this button
+            this.classList.add('active');
+
+            // Enable rectangle drawing
+            if (window.map) {
+                window.activeDrawHandler = new L.Draw.Rectangle(window.map);
+                window.activeDrawHandler.enable();
+            }
+        });
+    }
+
+    // Setup marker drawing
+    if (drawMarkerBtn) {
+        drawMarkerBtn.addEventListener('click', function() {
+            // If this button is already active, disable it
+            if (this.classList.contains('active')) {
+                disableAllTools();
+                return;
+            }
+
+            // Otherwise, disable other tools and enable this one
+            disableAllTools();
+
+            // Activate this button
+            this.classList.add('active');
+
+            // Enable marker drawing
+            if (window.map) {
+                window.activeDrawHandler = new L.Draw.Marker(window.map);
+                window.activeDrawHandler.enable();
+            }
+        });
+    }
+
+    // Setup edit layers
     if (editLayersBtn) {
         editLayersBtn.addEventListener('click', function() {
-            // If edit control exists
+            // If this button is already active, disable it
+            if (this.classList.contains('active')) {
+                disableAllTools();
+                return;
+            }
+
+            // Otherwise, disable other tools and enable this one
+            disableAllTools();
+
+            // Activate this button
+            this.classList.add('active');
+
+            // Enable edit mode
             if (window.editControl) {
                 window.editControl.enable();
             } else if (window.map && window.drawnItems) {
@@ -108,24 +204,62 @@ function setupToolButtons() {
         });
     }
 
+    // Setup delete layers
     if (deleteLayersBtn) {
         deleteLayersBtn.addEventListener('click', function() {
-            // If delete control exists
+            // If this button is already active, disable it
+            if (this.classList.contains('active')) {
+                disableAllTools();
+                return;
+            }
+
+            // Otherwise, disable other tools and enable this one
+            disableAllTools();
+
+            // Activate this button
+            this.classList.add('active');
+
+            // Enable delete mode
             if (window.deleteControl) {
                 window.deleteControl.enable();
             } else if (window.map && window.drawnItems) {
-                // Alternative: remove selected items
-                const selectedLayers = [];
-                window.drawnItems.eachLayer(function(layer) {
-                    if (layer.selected) {
-                        selectedLayers.push(layer);
+                // Alternative: enable a custom delete handler
+                window.deleteHandler = {
+                    enabled: function() { return true; },
+                    disable: function() {
+                        // Custom cleanup if needed
+                        window.deleteHandler = null;
                     }
-                });
+                };
 
-                selectedLayers.forEach(function(layer) {
-                    window.drawnItems.removeLayer(layer);
+                // Set up map to select layers for deletion
+                window.map.once('click', function() {
+                    // This will handle deletion on next map click
+                    const selectedLayers = [];
+                    if (window.drawnItems) {
+                        window.drawnItems.eachLayer(function(layer) {
+                            if (layer.selected) {
+                                selectedLayers.push(layer);
+                            }
+                        });
+
+                        selectedLayers.forEach(function(layer) {
+                            window.drawnItems.removeLayer(layer);
+                        });
+                    }
+
+                    // Auto-disable after use
+                    disableAllTools();
                 });
             }
+        });
+    }
+
+    // Listen for map clicks to handle completed drawings
+    if (window.map) {
+        window.map.on('draw:created', function() {
+            // Automatically deactivate the drawing tool when a shape is created
+            disableAllTools();
         });
     }
 }
