@@ -5,15 +5,42 @@ function updateLocationDisplay(locationName) {
 
 // Ensure that Leaflet Draw toolbars don't appear
 window.addEventListener('DOMContentLoaded', function() {
-    // Override the Leaflet.Draw Control creation to prevent additional toolbars
-    if (L && L.Draw && L.Draw.Control) {
-        const originalAddToolbar = L.Draw.Control.prototype._addToolbar;
-        L.Draw.Control.prototype._addToolbar = function() {
-            // Only call the original method if explicitly allowed
-            if (this.options.showDrawToolbar !== false) {
-                originalAddToolbar.call(this);
+    // Override Leaflet.Draw handlers to prevent additional toolbars/buttons
+    if (L && L.Draw) {
+        // Override the enable methods for all draw handlers to prevent buttons
+        const drawHandlers = ['Polygon', 'Rectangle', 'Marker', 'Circle', 'CircleMarker', 'Polyline'];
+        
+        drawHandlers.forEach(function(handlerType) {
+            if (L.Draw[handlerType]) {
+                // Save the original enable method
+                const originalEnable = L.Draw[handlerType].prototype.enable;
+                
+                // Override the enable method
+                L.Draw[handlerType].prototype.enable = function() {
+                    // Call the original method
+                    originalEnable.call(this);
+                    
+                    // Remove any toolbar buttons that might have been added
+                    if (this._map && this._map._container) {
+                        const buttons = this._map._container.querySelectorAll('.leaflet-draw-draw-polygon, .leaflet-draw-draw-rectangle, .leaflet-draw-draw-marker');
+                        buttons.forEach(function(button) {
+                            if (button.parentNode) {
+                                button.parentNode.removeChild(button);
+                            }
+                        });
+                    }
+                };
             }
-        };
+        });
+        
+        // Prevent any toolbars from being added
+        if (L.Draw.Control) {
+            const originalAddToolbar = L.Draw.Control.prototype._addToolbar;
+            L.Draw.Control.prototype._addToolbar = function() {
+                // Don't call the original method
+                return;
+            };
+        }
     }
 });
 
