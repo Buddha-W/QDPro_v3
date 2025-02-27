@@ -246,6 +246,17 @@ function setupToolButtons() {
     let activeTool = null;
 
     function toggleDrawing(toolType) {
+        // Update UI state first
+        Object.keys(toolButtons).forEach(type => {
+            if (toolButtons[type]) {
+                if (type === toolType && activeTool !== toolType) {
+                    toolButtons[type].classList.add('active');
+                } else {
+                    toolButtons[type].classList.remove('active');
+                }
+            }
+        });
+
         if (activeTool === toolType) {
             // Disable current tool if it's already active
             if (window.activeDrawHandler) {
@@ -259,6 +270,7 @@ function setupToolButtons() {
         // Disable any existing active tool
         if (window.activeDrawHandler) {
             window.activeDrawHandler.disable();
+            window.activeDrawHandler = null;
         }
 
         // Set the new active tool
@@ -270,11 +282,13 @@ function setupToolButtons() {
             switch (toolType) {
                 case "polygon":
                     drawHandler = new L.Draw.Polygon(window.map, {
+                        showLength: false,
                         shapeOptions: { color: "#662d91" }
                     });
                     break;
                 case "rectangle":
                     drawHandler = new L.Draw.Rectangle(window.map, {
+                        showArea: false,
                         shapeOptions: { color: "#228B22" }
                     });
                     break;
@@ -284,8 +298,17 @@ function setupToolButtons() {
             }
 
             if (drawHandler) {
+                // Clean up any existing Leaflet Draw controls
+                removeLeafletDrawButtons();
+                
+                // Enable the drawing handler
                 window.activeDrawHandler = drawHandler;
                 window.activeDrawHandler.enable();
+                
+                // Set a timeout to remove any buttons that might appear
+                setTimeout(removeLeafletDrawButtons, 0);
+                setTimeout(removeLeafletDrawButtons, 50);
+                setTimeout(removeLeafletDrawButtons, 100);
             }
         }
     }
@@ -298,6 +321,23 @@ function setupToolButtons() {
             });
         }
     });
+    
+    // Listen for map drawing complete events to reset the active state
+    if (window.map) {
+        window.map.on('draw:created', function() {
+            // Reset active states after drawing is complete
+            Object.keys(toolButtons).forEach(type => {
+                if (toolButtons[type]) {
+                    toolButtons[type].classList.remove('active');
+                }
+            });
+            activeTool = null;
+            if (window.activeDrawHandler) {
+                window.activeDrawHandler.disable();
+                window.activeDrawHandler = null;
+            }
+        });
+    }
 }
 
 // Update the layers list
