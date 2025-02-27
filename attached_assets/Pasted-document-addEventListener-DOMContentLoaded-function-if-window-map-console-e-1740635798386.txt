@@ -1,0 +1,105 @@
+document.addEventListener("DOMContentLoaded", function () {
+    if (!window.map) {
+        console.error("Map is not initialized.");
+        return;
+    }
+
+    const toolButtons = {
+        polygon: document.getElementById("draw-polygon-btn"),
+        rectangle: document.getElementById("draw-rectangle-btn"),
+        marker: document.getElementById("draw-marker-btn"),
+    };
+
+    let activeDrawHandler = null;
+    let activeTool = null;
+
+    // Create a drawn items group if not already present
+    window.drawnItems = window.drawnItems || new L.FeatureGroup();
+    if (!window.map.hasLayer(window.drawnItems)) {
+        window.map.addLayer(window.drawnItems);
+    }
+
+    function disableAllTools() {
+        Object.values(toolButtons).forEach((btn) => btn.classList.remove("active"));
+
+        if (activeDrawHandler) {
+            activeDrawHandler.disable();
+            activeDrawHandler = null;
+        }
+
+        activeTool = null;
+
+        // Remove any lingering UI
+        setTimeout(() => {
+            document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
+        }, 10);
+    }
+
+    function toggleDrawing(toolType) {
+        if (!window.map) {
+            console.error("Map is not initialized.");
+            return;
+        }
+
+        if (activeTool === toolType) {
+            disableAllTools();
+            return;
+        }
+
+        disableAllTools();
+        toolButtons[toolType]?.classList.add("active");
+        activeTool = toolType;
+
+        switch (toolType) {
+            case "polygon":
+                activeDrawHandler = new L.Draw.Polygon(window.map, {
+                    shapeOptions: { color: "#662d91" },
+                });
+                break;
+            case "rectangle":
+                activeDrawHandler = new L.Draw.Rectangle(window.map, {
+                    shapeOptions: { color: "#228B22" },
+                });
+                break;
+            case "marker":
+                activeDrawHandler = new L.Draw.Marker(window.map, {
+                    icon: L.icon({
+                        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                    }),
+                });
+                break;
+        }
+
+        if (activeDrawHandler) {
+            console.log(`Activating tool: ${toolType}`);
+            activeDrawHandler.enable();
+        }
+    }
+
+    // Attach event listeners to buttons
+    Object.keys(toolButtons).forEach((toolType) => {
+        if (toolButtons[toolType]) {
+            toolButtons[toolType].addEventListener("click", function () {
+                toggleDrawing(toolType);
+            });
+        }
+    });
+
+    // Ensure drawn shapes are added to the map
+    window.map.on("draw:created", function (e) {
+        disableAllTools();
+        window.drawnItems.addLayer(e.layer);
+    });
+
+    // Clicking on the map disables drawing tools
+    window.map.on("click", function () {
+        disableAllTools();
+    });
+
+    // 🔥 Remove sub-buttons permanently
+    setTimeout(() => {
+        document.querySelectorAll(".leaflet-draw-toolbar, .leaflet-draw-actions, .leaflet-draw-tooltip").forEach(el => el.remove());
+    }, 500);
+});
