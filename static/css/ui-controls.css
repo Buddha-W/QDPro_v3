@@ -1,4 +1,3 @@
-
 /* Main UI Controls Styling */
 .ui-container {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -42,7 +41,7 @@
   display: block;
 }
 
-.dropdown-content a {
+.dropdown-item {
   color: #333;
   padding: 12px 16px;
   text-decoration: none;
@@ -50,7 +49,7 @@
   transition: background-color 0.2s;
 }
 
-.dropdown-content a:hover {
+.dropdown-item:hover {
   background-color: #f1f1f1;
 }
 
@@ -89,42 +88,36 @@
   margin-right: 5px;
 }
 
-/* Panels */
-.side-panel {
-  width: 280px;
+/* Layers Panel */
+.layers-panel {
+  width: 300px;
   background: #fff;
   border-right: 1px solid #ddd;
   padding: 15px;
+  z-index: 998;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
   overflow-y: auto;
-  height: calc(100vh - 90px);
+  position: absolute;
+  top: 95px;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
 }
 
-.panel-section {
-  margin-bottom: 20px;
+.layers-panel.visible {
+  transform: translateX(0);
 }
 
-.panel-header {
-  font-weight: 600;
-  margin-bottom: 10px;
-  padding-bottom: 5px;
-  border-bottom: 1px solid #eee;
-}
-
-.panel-content {
-  margin-bottom: 15px;
-}
-
-/* Status Bar */
-.status-bar {
-  background: #f8f9fa;
-  border-top: 1px solid #ddd;
-  padding: 5px 15px;
-  font-size: 13px;
+.layers-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ddd;
 }
 
-/* Layer Control */
 .layers-list {
   list-style: none;
   padding: 0;
@@ -132,47 +125,119 @@
 }
 
 .layer-item {
-  padding: 8px 10px;
-  margin-bottom: 5px;
-  background: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+  padding: 8px 5px;
+  border-bottom: 1px solid #eee;
+}
+
+.layer-item:last-child {
+  border-bottom: none;
+}
+
+.layer-checkbox {
+  margin-right: 10px;
+}
+
+.layer-name {
+  flex-grow: 1;
+}
+
+.layer-actions {
+  display: flex;
+}
+
+.layer-action-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  margin-left: 5px;
+  font-size: 14px;
+}
+
+.layer-action-btn:hover {
+  color: #333;
+}
+
+/* Map Container Adjustments */
+.map-container {
+  position: absolute;
+  top: 95px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f5f5f5;
+}
+
+/* Location Display */
+.location-display {
+  margin-left: auto;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-block;
+  padding-right: 15px;
+  text-align: center;
+}
+
+/* Make toolbar a flex container to position elements */
+.toolbar {
+  display: flex;
   align-items: center;
 }
 
-.layer-item:hover {
-  background: #f1f1f1;
-}
-
-.layer-item.selected {
-  background-color: #e6f2ff;
-  border-color: #99ccff;
-}
-
-.layer-controls {
+/* Status Bar */
+.status-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #f8f9fa;
+  padding: 5px 15px;
+  font-size: 12px;
+  border-top: 1px solid #ddd;
   display: flex;
+  justify-content: space-between;
 }
 
-.layer-control-btn {
-  background: none;
-  border: none;
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.6);
+  z-index: 1010;
+}
+
+.modal-content {
+  position: relative;
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  width: 60%;
+  max-width: 600px;
+  border-radius: 5px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.close-modal {
+  position: absolute;
+  right: 15px;
+  top: 10px;
+  font-size: 20px;
   cursor: pointer;
-  padding: 2px 5px;
-  color: #666;
 }
 
-.layer-control-btn:hover {
-  color: #000;
-}
-
-/* Forms */
+/* Form Controls */
 .form-group {
   margin-bottom: 15px;
 }
 
-.form-label {
+.form-group label {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
@@ -183,73 +248,35 @@
   padding: 8px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.btn {
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  border: 1px solid transparent;
+  font-size: 14px;
 }
 
 .btn-primary {
-  background-color: #4a69bd;
+  background-color: #2c3e50;
   color: white;
-}
-
-.btn-secondary {
-  background-color: #f8f9fa;
-  border-color: #ddd;
-}
-
-/* Modal */
-.modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  z-index: 1100;
-}
-
-.modal-content {
-  background-color: #fff;
-  margin: 10% auto;
-  padding: 20px;
-  border-radius: 8px;
-  width: 50%;
-  max-width: 600px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-}
-
-.modal-title {
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.modal-close {
-  background: none;
   border: none;
-  font-size: 20px;
+  padding: 8px 15px;
+  border-radius: 4px;
   cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: #34495e;
+}
+
+/* Remove default Leaflet draw control styles */
+.leaflet-draw.leaflet-control {
+    display: none !important;
+}
+
+/* Hide Leaflet's default toolbar */
+.leaflet-draw-toolbar {
+    display: none !important;
+}
+
+/* Ensure draw buttons don't show up */
+.leaflet-draw-toolbar a {
+    display: none !important;
 }
 
 /* Hide Leaflet's action buttons */
