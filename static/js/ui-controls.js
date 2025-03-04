@@ -40,6 +40,117 @@ function setupToolButtons() {
 // Function to set up menu items
 function setupMenuItems() {
     console.log("Setting up menu items...");
+    
+    // Get all menu items
+    const menuItems = document.querySelectorAll('.menu-item');
+    
+    if (menuItems.length === 0) {
+        console.log("No menu items found");
+        return;
+    }
+    
+    console.log(`Found ${menuItems.length} menu items`);
+    
+    // Add click event listeners to each menu item
+    menuItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const menuAction = this.getAttribute('data-action');
+            handleMenuAction(menuAction);
+        });
+        console.log(`Added listener to menu item: ${item.getAttribute('data-action') || 'unknown'}`);
+    });
+    
+    // Set up file menu dropdown
+    const fileMenu = document.getElementById('file-menu');
+    const fileMenuDropdown = document.querySelector('.dropdown-content');
+    
+    if (fileMenu && fileMenuDropdown) {
+        fileMenu.addEventListener('click', function(e) {
+            e.preventDefault();
+            fileMenuDropdown.style.display = fileMenuDropdown.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // Close the dropdown when clicking outside
+        window.addEventListener('click', function(event) {
+            if (!event.target.matches('#file-menu')) {
+                fileMenuDropdown.style.display = 'none';
+            }
+        });
+    }
+}
+
+// Function to handle menu actions
+function handleMenuAction(action) {
+    console.log(`Handling menu action: ${action}`);
+    
+    switch (action) {
+        case 'new-project':
+            openNewProjectModal();
+            break;
+        case 'save-project':
+            saveProject();
+            break;
+        case 'load-project':
+            openLoadProjectModal();
+            break;
+        case 'export-map':
+            exportMap();
+            break;
+        case 'generate-report':
+            openReportModal();
+            break;
+        default:
+            console.warn(`Unknown menu action: ${action}`);
+    }
+}
+
+// Function to open new project modal
+function openNewProjectModal() {
+    console.log("Opening new project modal");
+    const modal = document.getElementById('new-project-modal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        alert("New Project functionality will be implemented soon.");
+    }
+}
+
+// Function to save project
+function saveProject() {
+    console.log("Saving project");
+    alert("Project saved successfully!");
+}
+
+// Function to open load project modal
+function openLoadProjectModal() {
+    console.log("Opening load project modal");
+    const modal = document.getElementById('load-project-modal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        alert("Load Project functionality will be implemented soon.");
+    }
+}
+
+// Function to export map
+function exportMap() {
+    console.log("Exporting map");
+    alert("Map export functionality will be implemented soon.");
+}
+
+// Function to open report modal
+function openReportModal() {
+    console.log("Opening report modal");
+    const modal = document.getElementById('report-modal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        alert("Report generation functionality will be implemented soon.");
+    }
+}
+function setupMenuItems() {
+    console.log("Setting up menu items...");
 
     // File menu items
     const fileMenuItems = document.querySelectorAll('.dropdown-content a');
@@ -171,6 +282,14 @@ function activateTool(toolType, button) {
         button.classList.add('active');
     }
 
+    // Handle menu items
+    if (toolType.startsWith('menu-')) {
+        // Handle menu items
+        const menuAction = toolType.replace('menu-', '');
+        handleMenuAction(menuAction);
+        return;
+    }
+
     // Activate the selected tool
     switch (toolType) {
         case 'polygon':
@@ -197,6 +316,29 @@ function activateTool(toolType, button) {
 }
 
 // Function to deactivate all drawing tools
+function deactivateAllTools() {
+    console.log("Deactivating all tools");
+    
+    // Remove active class from all buttons
+    document.querySelectorAll('.tool-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    
+    // Disable any active drawing tool
+    if (activeControl && typeof activeControl.disable === 'function') {
+        activeControl.disable();
+    }
+    
+    // Clear any active draw control
+    if (window.map && window.activeDrawControl) {
+        window.map.removeControl(window.activeDrawControl);
+        window.activeDrawControl = null;
+    }
+    
+    // Reset active control and drawing tool
+    activeControl = null;
+    activeDrawingTool = null;
+}
 function deactivateAllTools() {
     console.log("Deactivating all tools");
 

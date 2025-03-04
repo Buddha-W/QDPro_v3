@@ -2,70 +2,53 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded, checking for map...");
 
-    // Try to find the map if it's initialized in site_plan.html
     if (typeof L !== 'undefined' && document.getElementById('map')) {
         console.log("Leaflet is loaded and map element exists");
-        // Check if map was already created in site_plan.html
-        if (!window.map && typeof L.map === 'function') {
-            console.log("Creating map fallback instance");
-            try {
+
+        try {
+            // Initialize map if not already initialized
+            if (!window.map) {
+                console.log("Creating map instance");
+
+                // Initialize map
                 window.map = L.map('map', {
-                    center: [39.8282, -98.5795],
-                    zoom: 4,
-                    zoomControl: false // Disable default zoom controls as we'll add custom ones
+                    center: [39.8283, -98.5795],
+                    zoom: 5
                 });
 
                 console.log("Map created:", window.map);
                 console.log("Map has hasLayer:", typeof window.map.hasLayer === 'function');
 
-                // Add a default base layer
+                // Add tile layer
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }).addTo(window.map);
 
                 // Initialize drawn items layer
-                window.drawnItems = new L.FeatureGroup();
-                window.map.addLayer(window.drawnItems);
-
-                console.log("Map initialization verified successfully");
-
-                // Create drawnItems if it doesn't exist
                 if (!window.drawnItems) {
                     window.drawnItems = new L.FeatureGroup();
-                    try {
-                        window.map.addLayer(window.drawnItems);
-                        console.log("Added drawnItems layer to map");
-                    } catch (err) {
-                        console.error("Error adding drawnItems layer:", err);
-                    }
+                    window.map.addLayer(window.drawnItems);
                 }
+
+                console.log("Map initialization verified successfully");
 
                 // Initialize UI after a short delay to ensure map is fully loaded
                 setTimeout(function() {
                     // Check if UI controls initialization function exists
                     if (typeof window.initializeUIControls === 'function') {
                         console.log("Found UI controls initialization function, calling it now");
-                        // Ensure map is globally available before initializing UI
-                        window.map = window.map;
-                        // Short delay to ensure map is fully initialized
-                        setTimeout(window.initializeUIControls, 100);
+                        window.initializeUIControls();
                         console.log("UI controls initialized via callback");
                     } else {
                         console.error("UI initialization function not found");
                     }
                 }, 500);
-            } catch (error) {
-                console.error("Error initializing map:", error);
             }
-        } else {
-            console.log("Map is already initialized, checking for UI initialization");
-            // If map exists but UI controls might not be initialized
-            if (window.map && typeof window.initializeUIControls === 'function') {
-                setTimeout(window.initializeUIControls, 100);
-            }
+        } catch (error) {
+            console.error("Error initializing map:", error);
         }
     } else {
-        console.error("Map is not initialized properly, cannot setup UI controls");
+        console.error("Leaflet not loaded or map element not found");
     }
 });
 
