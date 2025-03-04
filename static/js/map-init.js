@@ -83,13 +83,31 @@ document.addEventListener("DOMContentLoaded", function() {
                                 try {
                                     setupToolButtons();
                                     console.log("Tool buttons set up successfully");
+                                    
+                                    // Enable menu items explicitly
+                                    const menuItems = document.querySelectorAll('.menu-item, .dropdown-item');
+                                    menuItems.forEach(item => {
+                                        item.classList.remove('disabled');
+                                    });
+                                    
+                                    // Make sure the file menu works
+                                    const fileMenu = document.getElementById('file-menu');
+                                    if (fileMenu) {
+                                        fileMenu.onclick = function(e) {
+                                            const dropdown = this.querySelector('.dropdown-content');
+                                            if (dropdown) {
+                                                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                                                e.stopPropagation();
+                                            }
+                                        };
+                                    }
                                 } catch (e) {
                                     console.error("Error setting up tool buttons:", e);
                                 }
                             } else {
                                 console.error("setupToolButtons not found");
                             }
-                        }, 300); // Increased timeout for better reliability
+                        }, 500); // Increased timeout for better reliability
                     };
                     window.initializeUIControls();
                 }

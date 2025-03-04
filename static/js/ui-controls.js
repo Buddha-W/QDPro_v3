@@ -1,4 +1,14 @@
 // UI Control Functions
+// Close dropdown menus when clicking outside
+document.addEventListener('click', function(e) {
+    const dropdowns = document.querySelectorAll('.dropdown-content');
+    dropdowns.forEach(dropdown => {
+        if (dropdown.style.display === 'block') {
+            dropdown.style.display = 'none';
+        }
+    });
+});
+
 // Function to update location display
 function updateLocationDisplay(locationName) {
     const displayElement = document.getElementById('current-location-display');
@@ -98,13 +108,11 @@ window.initializeUIControls = function() {
     };
 
 function setupToolButtons() {
-    if (!window.map) {
-        console.log("Map is not initialized.");
-        return;
-    }
     console.log("Setting up tool buttons...");
     if (!window.map) {
         console.warn("Map is not initialized.");
+        return;
+    }
         return; // Exit if map isn't available yet
     }
 
@@ -359,6 +367,52 @@ function showNotification(message, type = 'info') {
 
 function setupAfterMapInit() {
     setupToolButtons();
+    
+    // Add top toolbar controls for map panning
+    if (window.map) {
+        // Create map control buttons in the top toolbar
+        const topToolbar = document.getElementById('top-toolbar');
+        if (topToolbar) {
+            // Create pan control
+            const panButton = document.createElement('button');
+            panButton.className = 'tool-button';
+            panButton.id = 'pan-tool';
+            panButton.innerHTML = '<i class="fas fa-hand-paper"></i> Pan';
+            panButton.title = "Pan the map";
+            panButton.onclick = function() {
+                // Disable any active drawing tools
+                if (window.activeDrawHandler) {
+                    window.activeDrawHandler.disable();
+                    window.activeDrawHandler = null;
+                }
+                // Set tool as active
+                document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+            };
+            topToolbar.appendChild(panButton);
+            
+            // Activate pan by default
+            panButton.click();
+        }
+    }
+
+    // Enable File menu options
+    const fileNewBtn = document.getElementById('file-new');
+    if (fileNewBtn) {
+        fileNewBtn.onclick = function() {
+            if (confirm("Create new location? Current work will be lost if unsaved.")) {
+                // Clear the current layers
+                if (window.drawnItems) {
+                    window.drawnItems.clearLayers();
+                }
+                // Reset any form or status displays
+                const locationDisplay = document.getElementById('current-location-display');
+                if (locationDisplay) {
+                    locationDisplay.textContent = 'Location: New (Unsaved)';
+                }
+            }
+        };
+    }
 
     // Add a map click handler to cancel drawing when clicking on the map with no tool active
     if (window.map && typeof window.map.on === 'function') {
