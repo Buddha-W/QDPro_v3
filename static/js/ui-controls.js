@@ -96,7 +96,6 @@ window.initializeUIControls = function() {
 
         console.log("UI Controls initialized");
     };
-});
 
 function setupToolButtons() {
     console.log("Setting up tool buttons...");

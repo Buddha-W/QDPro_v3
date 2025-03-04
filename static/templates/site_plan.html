@@ -186,16 +186,14 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <script src="/static/js/ui-controls.js"></script>
     <script>
-        // Ensure UI controls initialization function is defined before map-init.js loads
-        if (!window.initializeUIControls) {
-            console.warn("Defining fallback UI controls initialization function");
-            window.initializeUIControls = function() {
-                console.log("Fallback UI initialization running...");
-            };
-        }
+        // Define a global initializeUIControls function first
+        window.initializeUIControls = function() {
+            console.log("Fallback UI initialization running...");
+            // This will be overridden by the proper implementation in ui-controls.js
+        };
     </script>
+    <script src="/static/js/ui-controls.js"></script>
     <script src="/static/js/map-init.js"></script>
     <script>
         // Initialize map
