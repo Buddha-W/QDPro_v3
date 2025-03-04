@@ -80,11 +80,16 @@ document.addEventListener("DOMContentLoaded", function() {
                         console.log("Fallback UI initialization from map-init.js");
                         setTimeout(function() {
                             if (typeof setupToolButtons === 'function') {
-                                setupToolButtons();
+                                try {
+                                    setupToolButtons();
+                                    console.log("Tool buttons set up successfully");
+                                } catch (e) {
+                                    console.error("Error setting up tool buttons:", e);
+                                }
                             } else {
                                 console.error("setupToolButtons not found");
                             }
-                        }, 100);
+                        }, 300); // Increased timeout for better reliability
                     };
                     window.initializeUIControls();
                 }
