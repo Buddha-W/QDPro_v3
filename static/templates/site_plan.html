@@ -186,8 +186,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <script src="/static/js/map-init.js"></script>
     <script src="/static/js/ui-controls.js"></script>
+    <script src="/static/js/map-init.js"></script>
     <script>
         // Initialize map
         const map = L.map('map', {
@@ -693,7 +693,7 @@
                                     },
                                     body: JSON.stringify({ location_name: newName })
                                 });
-                                
+
                                 const data = await response.json();
                                 if (data.success) {
                                     loadLocations(); // Refresh the list
@@ -713,7 +713,7 @@
                                 const response = await fetch(`/api/delete_location/${locationId}`, {
                                     method: 'DELETE'
                                 });
-                                
+
                                 const data = await response.json();
                                 if (data.success) {
                                     alert("Location moved to recycle bin");
@@ -737,7 +737,7 @@
                         const modal = document.getElementById('edit-location-modal');
                         const form = document.getElementById('edit-location-form');
                         const nameInput = document.getElementById('edit-location-name');
-                        
+
                         form.dataset.locationId = locationId;
                         nameInput.value = locationName;
                         modal.style.display = 'block';
@@ -755,7 +755,7 @@
                                     method: 'DELETE'
                                 });
                                 const data = await response.json();
-                                
+
                                 if (data.success) {
                                     alert('Location deleted successfully');
                                     loadLocationsList(); // Refresh the list
@@ -779,7 +779,7 @@
                                 body: JSON.stringify({ location_name: newName })
                             });
                             const data = await response.json();
-                            
+
                             if (data.success) {
                                 alert('Location updated successfully');
                                 return true;

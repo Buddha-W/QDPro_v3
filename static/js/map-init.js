@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function() {
             clearInterval(initCheck);
         }
     }, 10000);
-});;
+});
 
 // Make the map globally accessible
 window.getMap = function() {
