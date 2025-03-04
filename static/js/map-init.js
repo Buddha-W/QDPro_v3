@@ -367,3 +367,16 @@ window.initMap = initMap;
 window.initBaseLayers = initBaseLayers;
 window.initDrawnItems = initDrawnItems;
 window.initUI = initUI;
+// Make sure activateTool is defined globally if not already
+if (typeof window.activateTool !== 'function') {
+    window.activateTool = function(toolName) {
+        console.log(`Global activateTool called for: ${toolName}`);
+        // If the real function exists in another scope, try to call it
+        if (typeof activateTool === 'function') {
+            return activateTool(toolName);
+        } else {
+            console.warn("activateTool function not found in expected scope");
+            return null;
+        }
+    };
+}

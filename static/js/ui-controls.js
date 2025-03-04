@@ -7,6 +7,36 @@ let isDeleteMode = false;
 let map = null;
 let drawnItems = null;
 
+// Internal database object
+let database = null;
+
+// Function to activate tool and manage internal database
+function activateTool(toolName) {
+    console.log(`Activating tool: ${toolName}`);
+
+    // Initialize database if it doesn't exist
+    if (!database) {
+        database = { records: [] };
+        console.log("Database opened.");
+    } else {
+        console.log("Database already open.");
+    }
+
+    // Deactivate all tools
+    const toolButtons = document.querySelectorAll('.tool-button');
+    toolButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Activate the selected tool
+    const selectedTool = document.querySelector(`.tool-button[data-tool="${toolName}"]`);
+    if (selectedTool) {
+        selectedTool.classList.add('active');
+    }
+
+    return database;
+}
+
 // Function to initialize UI controls
 function initializeUIControls() {
     console.log("UI Controls initialized");
@@ -181,39 +211,15 @@ function setupDirectButtonHandlers() {
 function setupMenuItems() {
     console.log("Setting up menu items...");
 
-    // Get all menu items
-    const menuItems = document.querySelectorAll('.menu-item');
+    // Get all dropdown items
+    const menuItems = document.querySelectorAll('.dropdown-item');
 
     if (menuItems.length === 0) {
-        console.error("No menu items found");
-        return;
-    }
-
-    console.log(`Found ${menuItems.length} menu items`);
-
-    // Handle menu item clicks
-    menuItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            // Toggle dropdown
-            const dropdown = this.querySelector('.dropdown-content');
-            if (dropdown) {
-                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-            }
-        });
-    });
-
-    // Handle dropdown item clicks
-    const dropdownItems = document.querySelectorAll('.dropdown-item');
-
-    if (dropdownItems.length === 0) {
         console.error("No dropdown items found");
     } else {
-        console.log(`Found ${dropdownItems.length} dropdown items`);
+        console.log(`Found ${menuItems.length} dropdown items`);
 
-        dropdownItems.forEach(item => {
+        menuItems.forEach(item => {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -239,17 +245,18 @@ function setupMenuItems() {
 }
 
 // Function to handle menu actions
-function handleMenuAction(action, item) {
+function handleMenuAction(action, element) {
     console.log(`Handling menu action: ${action}`);
 
     switch (action) {
         case 'new-project':
-            console.log("Creating new project...");
-            createNewProject();
+            alert("Creating new project...");
+            // Implement or call your new project function here
             break;
         case 'open-location':
-            console.log("Opening location...");
-            openLocationBrowser();
+            alert("Opening location...");
+            activateTool('database');
+            openLocalDatabase();
             break;
         case 'save-project':
             console.log("Saving project...");
@@ -512,6 +519,12 @@ function selectAll() {
     alert("Select all functionality is currently under development");
 }
 
+// Initialize the map if it doesn't exist yet
+if (!window.map) {
+    window.map = L.map('map').setView([40.505, -100.09], 5);
+}
+
+
 // Register the function to be called when the window is loaded
 window.addEventListener('load', function() {
     console.log("Window loaded, initializing UI controls");
@@ -529,6 +542,7 @@ window.activateDeleteMode = activateDeleteMode;
 window.deactivateAllTools = deactivateAllTools;
 window.clearMap = clearMap; // Added setupUI to global scope
 window.setupUI = setupUI; // Added setupUI to global scope
+window.activateTool = activateTool;
 
 
 // Function to open new project modal
@@ -774,4 +788,8 @@ function openLocationBrowser() {
 
 function saveCurrentProject() {
     alert("Save Current Project functionality will be implemented soon.");
+}
+
+function openLocalDatabase(){
+    alert("Opening Local Database");
 }
