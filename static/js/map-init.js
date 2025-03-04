@@ -59,6 +59,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log("Found UI controls initialization function, calling it now");
                 initializeUIControls();
                 console.log("UI controls initialized via callback");
+                
+                // Ensure Leaflet Draw is properly initialized
+                if (window.L && window.L.Control && window.L.Control.Draw && window.drawnItems) {
+                    console.log("Setting up Leaflet Draw controls");
+                    
+                    // Make sure we don't add duplicate draw controls
+                    const existingDrawControls = document.querySelectorAll('.leaflet-draw');
+                    if (existingDrawControls.length === 0) {
+                        const drawControl = new L.Control.Draw({
+                            draw: {
+                                polyline: true,
+                                polygon: true,
+                                rectangle: true,
+                                circle: true,
+                                marker: true
+                            },
+                            edit: {
+                                featureGroup: window.drawnItems
+                            }
+                        });
+                        window.map.addControl(drawControl);
+                    }
+                    
+                    // Make sure draw event handlers are set up
+                    if (!window.drawEventsInitialized) {
+                        window.map.on('draw:created', function(e) {
+                            const layer = e.layer;
+                            window.drawnItems.addLayer(layer);
+                            console.log("Shape created:", e.layerType);
+                        });
+                        
+                        window.map.on('draw:edited', function(e) {
+                            const layers = e.layers;
+                            console.log("Shapes edited");
+                        });
+                        
+                        window.map.on('draw:deleted', function(e) {
+                            const layers = e.layers;
+                            console.log("Shapes deleted");
+                        });
+                        
+                        window.drawEventsInitialized = true;
+                    }
+                }
             } else if (typeof setupToolButtons === 'function') {
                 console.log("Found setupToolButtons function, calling it directly");
                 setupToolButtons();

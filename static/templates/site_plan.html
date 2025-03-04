@@ -225,6 +225,48 @@
                         window.map.addLayer(window.drawnItems);
                     }
                     
+                    // Initialize Leaflet Draw controls
+                    if (L.Control.Draw) {
+                        // Setup draw controls
+                        const drawControl = new L.Control.Draw({
+                            draw: {
+                                polyline: true,
+                                polygon: true,
+                                rectangle: true,
+                                circle: true,
+                                marker: true,
+                                circlemarker: false
+                            },
+                            edit: {
+                                featureGroup: window.drawnItems,
+                                remove: true
+                            }
+                        });
+                        window.map.addControl(drawControl);
+                        
+                        // Setup event handlers for drawn items
+                        window.map.on('draw:created', function(e) {
+                            const layer = e.layer;
+                            window.drawnItems.addLayer(layer);
+                            console.log("Shape created and added to drawnItems");
+                        });
+                        
+                        window.map.on('draw:edited', function(e) {
+                            const layers = e.layers;
+                            console.log("Shapes edited:", layers);
+                        });
+                        
+                        window.map.on('draw:deleted', function(e) {
+                            const layers = e.layers;
+                            console.log("Shapes deleted:", layers);
+                        });
+                    } else {
+                        console.error("L.Control.Draw is not available");
+                    }
+                    
+                    // Setup menu item functionality
+                    setupMenuItems();
+                    
                     console.log("Map initialized from template");
                     
                     // Initialize UI after map is ready
@@ -236,6 +278,79 @@
                 }
             }
         });
+        
+        // Setup functionality for menu items
+        function setupMenuItems() {
+            // File menu
+            document.getElementById('new-project').addEventListener('click', function() {
+                alert("Creating new project");
+                window.drawnItems.clearLayers();
+            });
+            
+            document.getElementById('open-location').addEventListener('click', function() {
+                alert("Open location functionality");
+                // Here you would typically open a modal dialog to select a location
+            });
+            
+            document.getElementById('save-project').addEventListener('click', function() {
+                alert("Saving project");
+                // Here you would typically save the current state to the server
+            });
+            
+            document.getElementById('export-data').addEventListener('click', function() {
+                alert("Exporting data");
+                // Here you would typically export the data in a specific format
+            });
+            
+            // Edit menu
+            document.getElementById('undo').addEventListener('click', function() {
+                alert("Undo operation");
+            });
+            
+            document.getElementById('redo').addEventListener('click', function() {
+                alert("Redo operation");
+            });
+            
+            document.getElementById('delete-selected').addEventListener('click', function() {
+                alert("Delete selected items");
+            });
+            
+            document.getElementById('select-all').addEventListener('click', function() {
+                alert("Select all items");
+            });
+            
+            // View menu
+            document.getElementById('zoom-in').addEventListener('click', function() {
+                if (window.map) window.map.zoomIn();
+            });
+            
+            document.getElementById('zoom-out').addEventListener('click', function() {
+                if (window.map) window.map.zoomOut();
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', function() {
+                if (window.map) window.map.setView([39.8283, -98.5795], 4);
+            });
+            
+            // Find and setup other menu items in the Tools menu
+            const toolMenuItems = document.querySelectorAll('.dropdown-item');
+            toolMenuItems.forEach(item => {
+                if (!item.hasAttribute('listener-added')) {
+                    item.setAttribute('listener-added', 'true');
+                    item.addEventListener('click', function() {
+                        if (!this.id) return;
+                        
+                        if (this.id === 'measure-distance' || 
+                            this.id === 'calculate-qd' || 
+                            this.id === 'generate-report' || 
+                            this.id === 'user-guide' || 
+                            this.id === 'about') {
+                            alert(`${this.textContent.trim()} functionality`);
+                        }
+                    });
+                }
+            });
+        }
     </script>
     <script>
         // Initialize map

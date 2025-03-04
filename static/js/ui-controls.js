@@ -6,14 +6,6 @@ window.initializeUIControls = function() {
     console.log("UI Controls initialized");
 };
 
-
-
-// Global UI control initialization function
-window.initializeUIControls = function() {
-    console.log("UI Controls initialized");
-    setupToolButtons();
-};
-
 function setupToolButtons() {
     console.log("Setting up tool buttons...");
     if (!window.map || typeof window.map !== 'object') {
