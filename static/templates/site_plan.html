@@ -546,7 +546,7 @@
                     openLocationModal();
                 } else {
                     console.error("openLocationModal function not found");
-                    alert("Open location functionality is being set up.");
+                    alert("Open location functionality is being set up. Please refresh the page and try again.");
                 }
             });
         }
@@ -1255,3 +1255,107 @@
     </script>
 </body>
 </html>
+<!-- Open Location Modal -->
+<div id="open-location-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>Open Location</h2>
+        <div id="location-list" class="location-list">
+            <!-- Location items will be populated here -->
+        </div>
+    </div>
+</div>
+
+<!-- Add some basic styles for the modal if not already present -->
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+    }
+    
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 600px;
+        border-radius: 5px;
+    }
+    
+    .close-modal {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+    
+    .close-modal:hover,
+    .close-modal:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    
+    .location-list {
+        margin-top: 20px;
+    }
+    
+    .location-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .location-item:hover {
+        background-color: #f5f5f5;
+    }
+    
+    .location-name {
+        font-weight: bold;
+    }
+    
+    .location-date {
+        color: #777;
+        font-size: 0.8em;
+    }
+    
+    .location-actions {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .location-actions button {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+    }
+    
+    .location-edit {
+        background-color: #4CAF50;
+        color: white;
+    }
+    
+    .location-delete {
+        background-color: #f44336;
+        color: white;
+    }
+    
+    .no-locations {
+        padding: 20px;
+        text-align: center;
+        color: #777;
+    }
+</style>
