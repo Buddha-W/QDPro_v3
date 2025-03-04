@@ -78,13 +78,51 @@ document.addEventListener("DOMContentLoaded", function() {
                     // Define a simple fallback if needed
                     window.initializeUIControls = function() {
                         console.log("Fallback UI initialization from map-init.js");
+                        
+                        // Remove default zoom control first
+                        if (window.map) {
+                            window.map.removeControl(window.map.zoomControl);
+                        }
+                        
                         setTimeout(function() {
                             if (typeof setupToolButtons === 'function') {
                                 try {
                                     setupToolButtons();
                                     console.log("Tool buttons set up successfully");
                                     
-                                    // Enable menu items explicitly
+                                    // Add zoom control to toolbar
+                                    const toolbarContainer = document.getElementById('toolbar-container');
+                                    if (toolbarContainer) {
+                                        const zoomInButton = document.createElement('button');
+                                        zoomInButton.className = 'toolbar-button';
+                                        zoomInButton.title = 'Zoom In';
+                                        zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
+                                        zoomInButton.onclick = function() {
+                                            if (window.map) window.map.zoomIn();
+                                        };
+
+                                        const zoomOutButton = document.createElement('button');
+                                        zoomOutButton.className = 'toolbar-button';
+                                        zoomOutButton.title = 'Zoom Out';
+                                        zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
+                                        zoomOutButton.onclick = function() {
+                                            if (window.map) window.map.zoomOut();
+                                        };
+
+                                        const resetViewButton = document.createElement('button');
+                                        resetViewButton.className = 'toolbar-button';
+                                        resetViewButton.title = 'Reset View';
+                                        resetViewButton.innerHTML = '<i class="fas fa-globe"></i> Reset View';
+                                        resetViewButton.onclick = function() {
+                                            if (window.map) window.map.setView([39.8283, -98.5795], 4);
+                                        };
+
+                                        toolbarContainer.appendChild(zoomInButton);
+                                        toolbarContainer.appendChild(zoomOutButton);
+                                        toolbarContainer.appendChild(resetViewButton);
+                                    }
+                                    
+                                    // Enable menu items explicitlyy
                                     const menuItems = document.querySelectorAll('.menu-item, .dropdown-item');
                                     menuItems.forEach(item => {
                                         item.classList.remove('disabled');

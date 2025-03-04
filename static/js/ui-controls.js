@@ -4,11 +4,65 @@ document.addEventListener('click', function(e) {
     if (!e.target.matches('.menu-item') && !e.target.closest('.dropdown-content')) {
         const dropdowns = document.querySelectorAll('.dropdown-content');
         dropdowns.forEach(dropdown => {
-            if (dropdown.style.display === 'block') {
-                dropdown.style.display = 'none';
-            }
+            dropdown.style.display = 'none';
         });
     }
+});
+
+// Menu item click handler
+document.querySelectorAll('.menu-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dropdown = this.querySelector('.dropdown-content');
+        if (dropdown) {
+            // Close any other open dropdowns first
+            document.querySelectorAll('.dropdown-content').forEach(d => {
+                if (d !== dropdown) {
+                    d.style.display = 'none';
+                }
+            });
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+    });
+});
+
+// Setup all dropdown menu items
+document.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        // Handle specific menu actions
+        const id = this.id;
+        if (id === 'new-project') {
+            console.log('New project action triggered');
+            alert('New project action triggered');
+        } else if (id === 'open-location') {
+            console.log('Open location action triggered');
+            alert('Open location action triggered');
+        } else if (id === 'save-project') {
+            console.log('Save project action triggered');
+            alert('Save project action triggered');
+        } else if (id === 'export-data') {
+            console.log('Export data action triggered');
+            alert('Export data action triggered');
+        } else if (id === 'zoom-in' && window.map) {
+            window.map.zoomIn();
+        } else if (id === 'zoom-out' && window.map) {
+            window.map.zoomOut();
+        } else if (id === 'reset-view' && window.map) {
+            // Reset to default view
+            window.map.setView([39.8283, -98.5795], 4);
+        }
+        
+        // Get the parent dropdown to close it after action
+        const dropdown = this.closest('.dropdown-content');
+        if (dropdown) {
+            setTimeout(() => {
+                dropdown.style.display = 'none';
+            }, 100);
+        }
+    });
 });
 
 // Function to update location display
