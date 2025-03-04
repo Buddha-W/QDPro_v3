@@ -1,4 +1,3 @@
-
 // Define global variables
 let activeControl = null;
 let activeDrawingTool = null;
@@ -6,17 +5,24 @@ let activeDrawingTool = null;
 // Function to set up tool buttons
 function setupToolButtons() {
     console.log("Setting up tool buttons...");
-    
+
+    // Wait until map is fully initialized
+    if (!window.map) {
+        console.error("Map is not initialized.");
+        setTimeout(setupToolButtons, 500); // Try again in 500ms
+        return;
+    }
+
     // Get all tool buttons
     const toolButtons = document.querySelectorAll('.tool-button');
-    
+
     if (toolButtons.length === 0) {
         console.error("No tool buttons found");
         return;
     }
-    
+
     console.log(`Found ${toolButtons.length} tool buttons`);
-    
+
     // Add click event listeners to each button
     toolButtons.forEach(button => {
         button.addEventListener('click', function(e) {
@@ -26,7 +32,7 @@ function setupToolButtons() {
         });
         console.log(`Added listener to button: ${button.getAttribute('data-tool')}`);
     });
-    
+
     // Set up menu items
     setupMenuItems();
 }
@@ -34,15 +40,15 @@ function setupToolButtons() {
 // Function to set up menu items
 function setupMenuItems() {
     console.log("Setting up menu items...");
-    
+
     // File menu items
     const fileMenuItems = document.querySelectorAll('.dropdown-content a');
-    
+
     if (fileMenuItems.length === 0) {
         console.error("No file menu items found");
     } else {
         console.log(`Found ${fileMenuItems.length} file menu items`);
-        
+
         fileMenuItems.forEach(item => {
             item.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -52,14 +58,14 @@ function setupMenuItems() {
             console.log(`Added listener to menu item: ${item.getAttribute('data-action') || 'unknown'}`);
         });
     }
-    
+
     // Dropdown toggle
     const dropdowns = document.querySelectorAll('.dropdown');
-    
+
     dropdowns.forEach(dropdown => {
         const button = dropdown.querySelector('.dropbtn');
         const content = dropdown.querySelector('.dropdown-content');
-        
+
         if (button && content) {
             button.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -67,7 +73,7 @@ function setupMenuItems() {
             });
         }
     });
-    
+
     // Close dropdowns when clicking outside
     window.addEventListener('click', function(e) {
         if (!e.target.matches('.dropbtn')) {
@@ -84,7 +90,7 @@ function setupMenuItems() {
 // Function to handle menu actions
 function handleMenuAction(action) {
     console.log(`Menu action: ${action}`);
-    
+
     switch (action) {
         case 'new-project':
             createNewProject();
@@ -116,7 +122,7 @@ function createNewProject() {
         }
         // Reset any project-specific data
         document.getElementById('project-title').innerText = 'New Project';
-        
+
         // Show success message
         alert("New project created successfully");
     }
@@ -151,20 +157,20 @@ function exportToShapefile() {
 // Function to activate a drawing tool
 function activateTool(toolType, button) {
     console.log(`Activating tool: ${toolType}`);
-    
+
     // First, deactivate any active tool
     deactivateAllTools();
-    
+
     if (!window.map) {
         console.error("Map is not initialized");
         return;
     }
-    
+
     // Set the active button
     if (button) {
         button.classList.add('active');
     }
-    
+
     // Activate the selected tool
     switch (toolType) {
         case 'polygon':
@@ -193,13 +199,13 @@ function activateTool(toolType, button) {
 // Function to deactivate all drawing tools
 function deactivateAllTools() {
     console.log("Deactivating all tools");
-    
+
     // Remove active class from all tool buttons
     const toolButtons = document.querySelectorAll('.tool-button');
     toolButtons.forEach(button => {
         button.classList.remove('active');
     });
-    
+
     // Disable any active drawing control
     if (activeControl) {
         if (window.map && typeof window.map.removeControl === 'function') {
@@ -207,10 +213,10 @@ function deactivateAllTools() {
         }
         activeControl = null;
     }
-    
+
     // Reset active drawing tool
     activeDrawingTool = null;
-    
+
     // Disable draw event handlers
     if (window.map) {
         window.map.off('click');
@@ -223,19 +229,19 @@ function deactivateAllTools() {
 // Function to activate polygon drawing
 function activatePolygonDrawing() {
     console.log("Activating polygon drawing");
-    
+
     if (!window.map || !L) {
         console.error("Map or Leaflet not initialized");
         return;
     }
-    
+
     // Create a new polygon draw control
     activeControl = new L.Draw.Polygon(window.map);
     activeDrawingTool = 'polygon';
-    
+
     // Enable the drawing tool
     activeControl.enable();
-    
+
     // Set up the draw:created event handler
     window.map.on('draw:created', function(e) {
         const layer = e.layer;
@@ -250,19 +256,19 @@ function activatePolygonDrawing() {
 // Function to activate rectangle drawing
 function activateRectangleDrawing() {
     console.log("Activating rectangle drawing");
-    
+
     if (!window.map || !L) {
         console.error("Map or Leaflet not initialized");
         return;
     }
-    
+
     // Create a new rectangle draw control
     activeControl = new L.Draw.Rectangle(window.map);
     activeDrawingTool = 'rectangle';
-    
+
     // Enable the drawing tool
     activeControl.enable();
-    
+
     // Set up the draw:created event handler
     window.map.on('draw:created', function(e) {
         const layer = e.layer;
@@ -277,19 +283,19 @@ function activateRectangleDrawing() {
 // Function to activate circle drawing
 function activateCircleDrawing() {
     console.log("Activating circle drawing");
-    
+
     if (!window.map || !L) {
         console.error("Map or Leaflet not initialized");
         return;
     }
-    
+
     // Create a new circle draw control
     activeControl = new L.Draw.Circle(window.map);
     activeDrawingTool = 'circle';
-    
+
     // Enable the drawing tool
     activeControl.enable();
-    
+
     // Set up the draw:created event handler
     window.map.on('draw:created', function(e) {
         const layer = e.layer;
@@ -304,19 +310,19 @@ function activateCircleDrawing() {
 // Function to activate marker drawing
 function activateMarkerDrawing() {
     console.log("Activating marker drawing");
-    
+
     if (!window.map || !L) {
         console.error("Map or Leaflet not initialized");
         return;
     }
-    
+
     // Create a new marker draw control
     activeControl = new L.Draw.Marker(window.map);
     activeDrawingTool = 'marker';
-    
+
     // Enable the drawing tool
     activeControl.enable();
-    
+
     // Set up the draw:created event handler
     window.map.on('draw:created', function(e) {
         const layer = e.layer;
@@ -331,26 +337,26 @@ function activateMarkerDrawing() {
 // Function to activate edit mode
 function activateEditMode() {
     console.log("Activating edit mode");
-    
+
     if (!window.map || !L) {
         console.error("Map or Leaflet not initialized");
         return;
     }
-    
+
     if (!window.drawnItems) {
         console.error("Drawn items layer not initialized");
         return;
     }
-    
+
     // Create a new edit control
     activeControl = new L.EditToolbar.Edit(window.map, {
         featureGroup: window.drawnItems
     });
     activeDrawingTool = 'edit';
-    
+
     // Enable the edit tool
     activeControl.enable();
-    
+
     // Set up the draw:edited event handler
     window.map.on('draw:edited', function(e) {
         const layers = e.layers;
@@ -362,26 +368,26 @@ function activateEditMode() {
 // Function to activate delete mode
 function activateDeleteMode() {
     console.log("Activating delete mode");
-    
+
     if (!window.map || !L) {
         console.error("Map or Leaflet not initialized");
         return;
     }
-    
+
     if (!window.drawnItems) {
         console.error("Drawn items layer not initialized");
         return;
     }
-    
+
     // Create a new delete control
     activeControl = new L.EditToolbar.Delete(window.map, {
         featureGroup: window.drawnItems
     });
     activeDrawingTool = 'delete';
-    
+
     // Enable the delete tool
     activeControl.enable();
-    
+
     // Set up the draw:deleted event handler
     window.map.on('draw:deleted', function(e) {
         const layers = e.layers;
@@ -393,7 +399,7 @@ function activateDeleteMode() {
 // Function to open an edit popup for a given shape layer
 function openEditPopup(layer) {
     console.log("Opening edit popup for layer");
-    
+
     // Create popup content with a form
     const popupContent = `
         <div class="edit-popup">
@@ -422,37 +428,37 @@ function openEditPopup(layer) {
             </form>
         </div>
     `;
-    
+
     // Bind popup to the layer
     layer.bindPopup(popupContent).openPopup();
-    
+
     // Handle form submission
     layer.on('popupopen', function() {
         const form = document.getElementById('feature-form');
         const cancelBtn = document.getElementById('cancel-btn');
-        
+
         if (form) {
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                
+
                 // Get form values
                 const name = document.getElementById('name').value;
                 const type = document.getElementById('type').value;
                 const description = document.getElementById('description').value;
-                
+
                 // Save values to the layer
                 layer.name = name;
                 layer.type = type;
                 layer.description = description;
-                
+
                 // Update layer style based on type
                 updateLayerStyle(layer, type);
-                
+
                 // Close the popup
                 layer.closePopup();
             });
         }
-        
+
         if (cancelBtn) {
             cancelBtn.addEventListener('click', function() {
                 layer.closePopup();
@@ -484,7 +490,7 @@ function updateLayerStyle(layer, type) {
             fillOpacity: 0.2
         }
     };
-    
+
     // Apply the appropriate style
     if (styles[type]) {
         layer.setStyle(styles[type]);
@@ -501,7 +507,7 @@ window.initializeUIControls = function() {
 // When document is loaded, check if we need to initialize UI
 document.addEventListener('DOMContentLoaded', function() {
     console.log("Document loaded, checking for UI initialization");
-    
+
     // If map is already initialized, set up UI controls
     if (window.map) {
         console.log("Map is already initialized, setting up UI controls");
