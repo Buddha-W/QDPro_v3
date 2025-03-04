@@ -1,56 +1,244 @@
-// Define global variables
-let activeControl = null;
+// UI Controls for QDPro
+
+// Global variables
+let map = null;
+let drawnItems = null;
+let drawControl = null;
 let activeDrawingTool = null;
+
+// Function to initialize UI controls
+function initializeUIControls() {
+    console.log("UI Controls initialized");
+
+    // Initialize map if it exists in window object
+    if (window.map) {
+        map = window.map;
+        console.log("Map found in window object");
+    } else {
+        console.error("Map not found in window object");
+    }
+
+    // Initialize drawn items if it exists in window object
+    if (window.drawnItems) {
+        drawnItems = window.drawnItems;
+        console.log("Drawn items found in window object");
+    } else {
+        console.error("Drawn items not found in window object");
+    }
+
+    // Set up UI components
+    setupToolButtons();
+    setupMenuItems();
+
+    // Add event listeners for keyboard shortcuts
+    setupKeyboardShortcuts();
+}
 
 // Function to set up tool buttons
 function setupToolButtons() {
     console.log("Setting up tool buttons...");
 
-    // Wait until map is fully initialized
-    if (!window.map) {
+    const toolButtons = {
+        'polygon-tool': L.Draw.Polygon,
+        'rectangle-tool': L.Draw.Rectangle,
+        'circle-tool': L.Draw.Circle,
+        'marker-tool': L.Draw.Marker,
+        'line-tool': L.Draw.Polyline
+    };
+
+    if (!map) {
         console.error("Map is not initialized.");
-        setTimeout(setupToolButtons, 500); // Try again in 500ms
         return;
     }
 
-    // Get all tool buttons
-    const toolButtons = document.querySelectorAll('.tool-button');
-
-    if (toolButtons.length === 0) {
-        console.error("No tool buttons found");
-        return;
+    // Find all tool buttons
+    for (const [buttonId, DrawTool] of Object.entries(toolButtons)) {
+        const button = document.getElementById(buttonId);
+        if (button) {
+            console.log(`Found button: ${buttonId}`);
+            button.addEventListener('click', function() {
+                activateDrawingTool(buttonId, DrawTool);
+            });
+        } else {
+            console.warn(`Button not found: ${buttonId}`);
+        }
     }
 
-    console.log(`Found ${toolButtons.length} tool buttons`);
-
-    // Add click event listeners to each button
-    toolButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const toolType = this.getAttribute('data-tool');
-            activateTool(toolType, this);
+    // Setup edit and delete buttons
+    const editButton = document.getElementById('edit-tool');
+    if (editButton) {
+        editButton.addEventListener('click', function() {
+            activateEditMode();
         });
-        console.log(`Added listener to button: ${button.getAttribute('data-tool')}`);
+    }
+
+    const deleteButton = document.getElementById('delete-tool');
+    if (deleteButton) {
+        deleteButton.addEventListener('click', function() {
+            activateDeleteMode();
+        });
+    }
+}
+
+// Function to activate a drawing tool
+function activateDrawingTool(toolId, DrawTool) {
+    console.log(`Activating drawing tool: ${toolId}`);
+
+    // Deactivate any active tool
+    deactivateAllTools();
+
+    // Highlight the selected tool button
+    document.getElementById(toolId).classList.add('active');
+
+    // Create new drawing handler if needed
+    if (!drawControl) {
+        drawControl = new DrawTool(map);
+    } else {
+        // If the drawing control exists but is of different type, create a new one
+        if (!(drawControl instanceof DrawTool)) {
+            drawControl.disable();
+            drawControl = new DrawTool(map);
+        }
+    }
+
+    // Enable the drawing control
+    drawControl.enable();
+
+    // Set active drawing tool
+    activeDrawingTool = toolId;
+
+    // Update status message
+    updateStatusMessage(`Drawing tool activated: ${toolId}`);
+}
+
+// Function to deactivate all tools
+function deactivateAllTools() {
+    console.log("Deactivating all tools");
+
+    // Remove active class from all tool buttons
+    document.querySelectorAll('.tool-button').forEach(button => {
+        button.classList.remove('active');
     });
 
-    // Set up menu items
-    setupMenuItems();
+    // Disable drawing control if it exists
+    if (drawControl) {
+        drawControl.disable();
+    }
+
+    // Reset active drawing tool
+    activeDrawingTool = null;
+
+    // Disable edit mode
+    if (map && map.editTools) {
+        map.editTools.stopDrawing();
+    }
+
+    // Update status message
+    updateStatusMessage("No tool selected");
+}
+
+// Function to activate edit mode
+function activateEditMode() {
+    console.log("Activating edit mode");
+
+    // Deactivate all tools first
+    deactivateAllTools();
+
+    // Highlight the edit button
+    const editButton = document.getElementById('edit-tool');
+    if (editButton) {
+        editButton.classList.add('active');
+    }
+
+    // Enable edit mode for all layers
+    if (drawnItems) {
+        drawnItems.eachLayer(function(layer) {
+            if (layer.editing) {
+                layer.editing.enable();
+            }
+        });
+    }
+
+    // Update status message
+    updateStatusMessage("Edit mode activated");
+}
+
+// Function to activate delete mode
+function activateDeleteMode() {
+    console.log("Activating delete mode");
+
+    // Deactivate all tools first
+    deactivateAllTools();
+
+    // Highlight the delete button
+    const deleteButton = document.getElementById('delete-tool');
+    if (deleteButton) {
+        deleteButton.classList.add('active');
+    }
+
+    // Enable delete mode for all layers
+    if (map && drawnItems) {
+        map.on('click', function deleteLayer(e) {
+            drawnItems.eachLayer(function(layer) {
+                if (layer instanceof L.Path && layer.getBounds().contains(e.latlng)) {
+                    drawnItems.removeLayer(layer);
+                } else if (layer instanceof L.Marker && layer.getLatLng().equals(e.latlng)) {
+                    drawnItems.removeLayer(layer);
+                }
+            });
+        });
+
+        // Update status message
+        updateStatusMessage("Delete mode activated. Click on a shape to delete it.");
+    }
+}
+
+// Function to update status message
+function updateStatusMessage(message) {
+    console.log(`Status: ${message}`);
+
+    const statusElement = document.getElementById('status-message');
+    if (statusElement) {
+        statusElement.textContent = message;
+    }
+}
+
+// Function to set up keyboard shortcuts
+function setupKeyboardShortcuts() {
+    console.log("Setting up keyboard shortcuts...");
+
+    document.addEventListener('keydown', function(e) {
+        // Escape key deactivates all tools
+        if (e.key === 'Escape') {
+            deactivateAllTools();
+        }
+
+        // Ctrl+Z for undo
+        if (e.ctrlKey && e.key === 'z') {
+            handleMenuAction('undo');
+        }
+
+        // Ctrl+Y for redo
+        if (e.ctrlKey && e.key === 'y') {
+            handleMenuAction('redo');
+        }
+    });
 }
 
 // Function to set up menu items
 function setupMenuItems() {
     console.log("Setting up menu items...");
-    
+
     // Get all dropdown items
     const dropdownItems = document.querySelectorAll('.dropdown-item');
-    
+
     if (dropdownItems.length === 0) {
         console.error("No dropdown items found");
         return;
     }
-    
+
     console.log(`Found ${dropdownItems.length} dropdown items`);
-    
+
     // Add click event listeners to each dropdown item
     dropdownItems.forEach(item => {
         item.addEventListener('click', function(e) {
@@ -61,7 +249,7 @@ function setupMenuItems() {
             handleMenuAction(action, this);
         });
     });
-    
+
     // Set up dropdown toggle behavior
     const menuItems = document.querySelectorAll('.menu-item');
     menuItems.forEach(item => {
@@ -72,7 +260,7 @@ function setupMenuItems() {
             }
         });
     });
-    
+
     // Close dropdowns when clicking outside
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.menu-item')) {
@@ -82,125 +270,132 @@ function setupMenuItems() {
             });
         }
     });
-    
-    // Get all dropdown items
-    const menuItems = document.querySelectorAll('.dropdown-item');
-    
-    if (menuItems.length === 0) {
-        console.error("No menu items found");
-        return;
-    }
-    
-    console.log(`Found ${menuItems.length} menu items`);
-    
-    // Add click event listeners to each menu item
-    menuItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const action = this.getAttribute('data-action');
-            handleMenuAction(action, this);
+
+    // Setup specific menu buttons
+    setupFileMenuButtons();
+    setupEditMenuButtons();
+    setupViewMenuButtons();
+    setupToolsMenuButtons();
+    setupHelpMenuButtons();
+}
+
+// Function to set up file menu buttons
+function setupFileMenuButtons() {
+    const newBtn = document.getElementById('file-new');
+    if (newBtn) {
+        newBtn.addEventListener('click', function() {
+            handleMenuAction('new-project');
         });
-        console.log(`Added listener to menu item: ${item.getAttribute('data-action')}`);
-    });
+    }
+
+    const openBtn = document.getElementById('file-open');
+    if (openBtn) {
+        openBtn.addEventListener('click', function() {
+            handleMenuAction('open-location');
+        });
+    }
+
+    const saveBtn = document.getElementById('file-save');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            handleMenuAction('save-project');
+        });
+    }
+
+    const exportBtn = document.getElementById('file-export');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            handleMenuAction('export-data');
+        });
+    }
+}
+
+// Function to set up edit menu buttons
+function setupEditMenuButtons() {
+    const undoBtn = document.getElementById('edit-undo');
+    if (undoBtn) {
+        undoBtn.addEventListener('click', function() {
+            handleMenuAction('undo');
+        });
+    }
+
+    const redoBtn = document.getElementById('edit-redo');
+    if (redoBtn) {
+        redoBtn.addEventListener('click', function() {
+            handleMenuAction('redo');
+        });
+    }
+
+    const deleteBtn = document.getElementById('edit-delete');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function() {
+            handleMenuAction('delete-selected');
+        });
+    }
+
+    const selectAllBtn = document.getElementById('edit-select-all');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            handleMenuAction('select-all');
+        });
+    }
+}
+
+// Function to set up view menu buttons
+function setupViewMenuButtons() {
+    const zoomInBtn = document.getElementById('view-zoom-in');
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', function() {
+            handleMenuAction('zoom-in');
+        });
+    }
+
+    const zoomOutBtn = document.getElementById('view-zoom-out');
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', function() {
+            handleMenuAction('zoom-out');
+        });
+    }
+}
+
+// Function to set up tools menu buttons
+function setupToolsMenuButtons() {
+    const calcQDBtn = document.getElementById('tools-qd');
+    if (calcQDBtn) {
+        calcQDBtn.addEventListener('click', function() {
+            handleMenuAction('calculate-qd');
+        });
+    }
+
+    const measureBtn = document.getElementById('tools-measure');
+    if (measureBtn) {
+        measureBtn.addEventListener('click', function() {
+            handleMenuAction('measure-distance');
+        });
+    }
+}
+
+// Function to set up help menu buttons
+function setupHelpMenuButtons() {
+    const userGuideBtn = document.getElementById('help-guide');
+    if (userGuideBtn) {
+        userGuideBtn.addEventListener('click', function() {
+            handleMenuAction('user-guide');
+        });
+    }
+
+    const aboutBtn = document.getElementById('help-about');
+    if (aboutBtn) {
+        aboutBtn.addEventListener('click', function() {
+            handleMenuAction('about');
+        });
+    }
 }
 
 // Function to handle menu actions
 function handleMenuAction(action, element) {
-    console.log(`Menu action triggered: ${action}`);
-    
-    switch(action) {
-        case 'new-project':
-            alert("Creating new project...");
-            // Add new project functionality here
-            break;
-        case 'open-location':
-            alert("Opening location...");
-            // Add open location functionality here
-            break;
-        case 'save-project':
-            alert("Saving project...");
-            // Add save project functionality here
-            break;
-        case 'export-data':
-            alert("Exporting data...");
-            // Add export data functionality here
-            break;
-        case 'undo':
-            alert("Undo operation...");
-            // Add undo functionality here
-            break;
-        case 'redo':
-            alert("Redo operation...");
-            // Add redo functionality here
-            break;
-        case 'delete-selected':
-            alert("Deleting selected items...");
-            // Add delete selected functionality here
-            break;
-        case 'select-all':
-            alert("Selecting all items...");
-            // Add select all functionality here
-            break;
-        case 'zoom-in':
-            if (window.map) {
-                window.map.zoomIn();
-            }
-            break;
-        case 'zoom-out':
-            if (window.map) {
-                window.map.zoomOut();
-            }
-            break;
-        default:
-            console.log(`Unhandled action: ${action}`);
-    }
-}
-function setupMenuItems() {
-    console.log("Setting up menu items...");
-    
-    // Get all menu items
-    const menuItems = document.querySelectorAll('.menu-item');
-    
-    if (menuItems.length === 0) {
-        console.log("No menu items found");
-        return;
-    }
-    
-    console.log(`Found ${menuItems.length} menu items`);
-    
-    // Add click event listeners to each menu item
-    menuItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const menuAction = this.getAttribute('data-action');
-            handleMenuAction(menuAction);
-        });
-        console.log(`Added listener to menu item: ${item.getAttribute('data-action') || 'unknown'}`);
-    });
-    
-    // Set up file menu dropdown
-    const fileMenu = document.getElementById('file-menu');
-    const fileMenuDropdown = document.querySelector('.dropdown-content');
-    
-    if (fileMenu && fileMenuDropdown) {
-        fileMenu.addEventListener('click', function(e) {
-            e.preventDefault();
-            fileMenuDropdown.style.display = fileMenuDropdown.style.display === 'block' ? 'none' : 'block';
-        });
-        
-        // Close the dropdown when clicking outside
-        window.addEventListener('click', function(event) {
-            if (!event.target.matches('#file-menu')) {
-                fileMenuDropdown.style.display = 'none';
-            }
-        });
-    }
-}
-
-// Function to handle menu actions
-function handleMenuAction(action) {
     console.log(`Handling menu action: ${action}`);
-    
+
     switch (action) {
         case 'new-project':
             alert("Creating new project...");
@@ -244,10 +439,32 @@ function handleMenuAction(action) {
                 window.map.zoomOut();
             }
             break;
+        case 'calculate-qd':
+            alert("Calculating QD is currently under development");
+            break;
+        case 'measure-distance':
+            alert("Measuring distance is currently under development");
+            break;
+        case 'user-guide':
+            alert("User guide is currently under development");
+            break;
+        case 'about':
+            alert("QDPro - Explosive Safety Siting System\nVersion 1.0");
+            break;
         default:
             console.warn(`Unknown menu action: ${action}`);
+            alert(`Action '${action}' is not implemented yet.`);
     }
 }
+
+// Export functions to window object for global access
+window.initializeUIControls = initializeUIControls;
+window.handleMenuAction = handleMenuAction;
+window.activateDrawingTool = activateDrawingTool;
+window.deactivateAllTools = deactivateAllTools;
+window.activateEditMode = activateEditMode;
+window.activateDeleteMode = activateDeleteMode;
+
 
 // Function to open new project modal
 function openNewProjectModal() {
@@ -293,123 +510,8 @@ function openReportModal() {
         alert("Report generation functionality will be implemented soon.");
     }
 }
-function setupMenuItems() {
-    console.log("Setting up menu items...");
 
-    // File menu items
-    const fileMenuItems = document.querySelectorAll('.dropdown-content a');
-
-    if (fileMenuItems.length === 0) {
-        console.error("No file menu items found");
-    } else {
-        console.log(`Found ${fileMenuItems.length} file menu items`);
-
-        fileMenuItems.forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                const action = this.getAttribute('data-action');
-                handleMenuAction(action);
-            });
-            console.log(`Added listener to menu item: ${item.getAttribute('data-action') || 'unknown'}`);
-        });
-    }
-
-    // Dropdown toggle
-    const dropdowns = document.querySelectorAll('.dropdown');
-
-    dropdowns.forEach(dropdown => {
-        const button = dropdown.querySelector('.dropbtn');
-        const content = dropdown.querySelector('.dropdown-content');
-
-        if (button && content) {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                content.classList.toggle('show');
-            });
-        }
-    });
-
-    // Close dropdowns when clicking outside
-    window.addEventListener('click', function(e) {
-        if (!e.target.matches('.dropbtn')) {
-            const dropdowns = document.querySelectorAll('.dropdown-content');
-            dropdowns.forEach(dropdown => {
-                if (dropdown.classList.contains('show')) {
-                    dropdown.classList.remove('show');
-                }
-            });
-        }
-    });
-}
-
-// Function to handle menu actions
-function handleMenuAction(action) {
-    console.log(`Menu action: ${action}`);
-
-    switch (action) {
-        case 'new-project':
-            createNewProject();
-            break;
-        case 'open-project':
-            openProject();
-            break;
-        case 'save-project':
-            saveProject();
-            break;
-        case 'export-pdf':
-            exportToPDF();
-            break;
-        case 'export-shapefile':
-            exportToShapefile();
-            break;
-        default:
-            console.warn(`Unknown menu action: ${action}`);
-    }
-}
-
-// Function to create a new project
-function createNewProject() {
-    console.log("Creating new project");
-    if (window.confirm("Create a new project? All unsaved changes will be lost.")) {
-        // Clear the map
-        if (window.drawnItems) {
-            window.drawnItems.clearLayers();
-        }
-        // Reset any project-specific data
-        document.getElementById('project-title').innerText = 'New Project';
-
-        // Show success message
-        alert("New project created successfully");
-    }
-}
-
-// Function to open a project
-function openProject() {
-    console.log("Opening project");
-    // This would typically open a modal with a list of saved projects
-    alert("Open Project functionality will be implemented in a future update");
-}
-
-// Function to save the current project
-function saveProject() {
-    console.log("Saving project");
-    // This would typically save the current state to a database
-    alert("Project saved successfully");
-}
-
-// Function to export to PDF
-function exportToPDF() {
-    console.log("Exporting to PDF");
-    alert("Export to PDF functionality will be implemented in a future update");
-}
-
-// Function to export to Shapefile
-function exportToShapefile() {
-    console.log("Exporting to Shapefile");
-    alert("Export to Shapefile functionality will be implemented in a future update");
-}
-
-// Function to activate a drawing tool
+// Function to activate a drawing tool (original, kept for compatibility)
 function activateTool(toolType, button) {
     console.log(`Activating tool: ${toolType}`);
 
@@ -459,57 +561,29 @@ function activateTool(toolType, button) {
     }
 }
 
-// Function to deactivate all drawing tools
-function deactivateAllTools() {
+// Function to deactivate all drawing tools (original, kept for compatibility)
+function deactivateAllToolsOriginal() {
     console.log("Deactivating all tools");
-    
+
     // Remove active class from all buttons
     document.querySelectorAll('.tool-button').forEach(button => {
         button.classList.remove('active');
     });
-    
+
     // Disable any active drawing tool
     if (activeControl && typeof activeControl.disable === 'function') {
         activeControl.disable();
     }
-    
+
     // Clear any active draw control
     if (window.map && window.activeDrawControl) {
         window.map.removeControl(window.activeDrawControl);
         window.activeDrawControl = null;
     }
-    
+
     // Reset active control and drawing tool
     activeControl = null;
     activeDrawingTool = null;
-}
-function deactivateAllTools() {
-    console.log("Deactivating all tools");
-
-    // Remove active class from all tool buttons
-    const toolButtons = document.querySelectorAll('.tool-button');
-    toolButtons.forEach(button => {
-        button.classList.remove('active');
-    });
-
-    // Disable any active drawing control
-    if (activeControl) {
-        if (window.map && typeof window.map.removeControl === 'function') {
-            window.map.removeControl(activeControl);
-        }
-        activeControl = null;
-    }
-
-    // Reset active drawing tool
-    activeDrawingTool = null;
-
-    // Disable draw event handlers
-    if (window.map) {
-        window.map.off('click');
-        window.map.off('draw:created');
-        window.map.off('draw:edited');
-        window.map.off('draw:deleted');
-    }
 }
 
 // Function to activate polygon drawing
@@ -621,7 +695,7 @@ function activateMarkerDrawing() {
 }
 
 // Function to activate edit mode
-function activateEditMode() {
+function activateEditModeOriginal() {
     console.log("Activating edit mode");
 
     if (!window.map || !L) {
@@ -652,7 +726,7 @@ function activateEditMode() {
 }
 
 // Function to activate delete mode
-function activateDeleteMode() {
+function activateDeleteModeOriginal() {
     console.log("Activating delete mode");
 
     if (!window.map || !L) {
@@ -783,8 +857,8 @@ function updateLayerStyle(layer, type) {
     }
 }
 
-// Define global UI initialization function
-window.initializeUIControls = function() {
+// Define global UI initialization function (original, kept for compatibility)
+window.initializeUIControlsOriginal = function() {
     console.log("UI Controls initialization started...");
     setupToolButtons();
     console.log("UI Controls initialized");
@@ -802,3 +876,45 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Map not yet initialized, waiting for map init");
     }
 });
+
+// Function to create a new project
+function createNewProject() {
+    console.log("Creating new project");
+    if (window.confirm("Create a new project? All unsaved changes will be lost.")) {
+        // Clear the map
+        if (window.drawnItems) {
+            window.drawnItems.clearLayers();
+        }
+        // Reset any project-specific data
+        document.getElementById('project-title').innerText = 'New Project';
+
+        // Show success message
+        alert("New project created successfully");
+    }
+}
+
+// Function to open a project
+function openProject() {
+    console.log("Opening project");
+    // This would typically open a modal with a list of saved projects
+    alert("Open Project functionality will be implemented in a future update");
+}
+
+// Function to save the current project
+function saveProject() {
+    console.log("Saving project");
+    // This would typically save the current state to a database
+    alert("Project saved successfully");
+}
+
+// Function to export to PDF
+function exportToPDF() {
+    console.log("Exporting to PDF");
+    alert("Export to PDF functionality will be implemented in a future update");
+}
+
+// Function to export to Shapefile
+function exportToShapefile() {
+    console.log("Exporting to Shapefile");
+    alert("Export to Shapefile functionality will be implemented in a future update");
+}

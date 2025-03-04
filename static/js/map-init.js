@@ -1,72 +1,174 @@
-// Map initialization script
-document.addEventListener('DOMContentLoaded', function() {
+// Map initialization script for QDPro
+
+// Global variables
+let map = null;
+let drawnItems = null;
+
+// Function to initialize the map
+function initMap() {
     console.log("DOM loaded, checking for map...");
 
-    if (typeof L !== 'undefined' && document.getElementById('map')) {
-        console.log("Leaflet is loaded and map element exists");
-
-        try {
-            // Initialize map if not already initialized
-            if (!window.map) {
-                console.log("Creating map instance");
-
-                // Initialize map
-                window.map = L.map('map', {
-                    center: [39.8283, -98.5795],
-                    zoom: 5
-                });
-
-                console.log("Map created:", window.map);
-                console.log("Map has hasLayer:", typeof window.map.hasLayer === 'function');
-
-                // Add tile layer
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                }).addTo(window.map);
-
-                // Initialize drawn items layer
-                if (!window.drawnItems) {
-                    window.drawnItems = new L.FeatureGroup();
-                    window.map.addLayer(window.drawnItems);
-                }
-
-                console.log("Map initialization verified successfully");
-
-                // Initialize UI after a short delay to ensure map is fully loaded
-                setTimeout(function() {
-                    // Make sure map and drawnItems are properly initialized
-                    if (!window.drawnItems) {
-                        window.drawnItems = new L.FeatureGroup();
-                        window.map.addLayer(window.drawnItems);
-                    }
-                    
-                    // Make sure the map object has all needed functions
-                    if (!window.map.hasLayer) {
-                        console.warn("Map missing hasLayer function, adding compatibility");
-                        window.map.hasLayer = function(layer) {
-                            return this._layers && Object.values(this._layers).includes(layer);
-                        };
-                    }
-                    
-                    // Check if UI controls initialization function exists
-                    if (typeof window.initializeUIControls === 'function') {
-                        console.log("Found UI controls initialization function, calling it now");
-                        setTimeout(function() {
-                            window.initializeUIControls();
-                            console.log("UI controls initialized via callback");
-                        }, 500); // Small delay to ensure map is fully initialized
-                    } else {
-                        console.error("UI initialization function not found");
-                    }
-                }, 500);
-            }
-        } catch (error) {
-            console.error("Error initializing map:", error);
-        }
-    } else {
-        console.error("Leaflet not loaded or map element not found");
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+        console.error("Leaflet is not loaded!");
+        return;
     }
-});
+
+    // Check if map container exists
+    const mapElement = document.getElementById('map');
+    if (!mapElement) {
+        console.error("Map element does not exist!");
+        return;
+    }
+
+    console.log("Leaflet is loaded and map element exists");
+
+    try {
+        console.log("Creating map fallback instance");
+
+        // Create map instance
+        map = L.map('map', {
+            center: [39.8283, -98.5795], // Center of US
+            zoom: 4,
+            zoomControl: true,
+            attributionControl: true
+        });
+
+        console.log("Map created:", map);
+
+        // Check if map was created correctly
+        if (map.hasLayer) {
+            console.log("Map has hasLayer:", true);
+        } else {
+            console.error("Map initialization failed: missing hasLayer method");
+            return;
+        }
+
+        // Add base layers
+        initBaseLayers();
+
+        // Initialize drawn items layer
+        initDrawnItems();
+
+        console.log("Map initialization verified successfully");
+
+        // Make map available globally
+        window.map = map;
+
+        // Initialize UI controls
+        initUI();
+    } catch (error) {
+        console.error("Error initializing map:", error);
+    }
+}
+
+// Function to initialize base layers
+function initBaseLayers() {
+    console.log("Initializing base layers...");
+
+    // OpenStreetMap layer
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+    });
+
+    // ESRI World Imagery
+    const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 19,
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    });
+
+    // USGS Topo
+    const usgsTopo = L.tileLayer('https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 16,
+        attribution: 'Tiles courtesy of the <a href="https://usgs.gov/">U.S. Geological Survey</a>'
+    });
+
+    // Add default layer to map
+    osmLayer.addTo(map);
+
+    // Create base layers object for layer control
+    const baseLayers = {
+        'OpenStreetMap': osmLayer,
+        'ESRI Imagery': esriImagery,
+        'USGS Topo': usgsTopo
+    };
+
+    // Add layer control to map
+    L.control.layers(baseLayers, null, {
+        position: 'topright',
+        collapsed: true
+    }).addTo(map);
+}
+
+// Function to initialize drawn items layer
+function initDrawnItems() {
+    console.log("Initializing drawn items layer...");
+
+    // Create drawn items layer
+    drawnItems = new L.FeatureGroup();
+
+    // Add drawn items layer to map
+    map.addLayer(drawnItems);
+
+    // Make drawn items layer available globally
+    window.drawnItems = drawnItems;
+}
+
+// Function to initialize UI
+function initUI() {
+    console.log("Initializing UI...");
+
+    // Initialize UI controls after a short delay to ensure map is fully loaded
+    setTimeout(function() {
+        // Make sure map and drawnItems are properly initialized
+        if (!window.drawnItems) {
+            window.drawnItems = new L.FeatureGroup();
+            window.map.addLayer(window.drawnItems);
+        }
+
+        // Make sure the map object has all needed functions
+        if (!window.map.hasLayer) {
+            console.warn("Map missing hasLayer function, adding compatibility");
+            window.map.hasLayer = function(layer) {
+                return this._layers && Object.values(this._layers).includes(layer);
+            };
+        }
+
+        // Check if UI controls initialization function exists
+        if (typeof window.initializeUIControls === 'function') {
+            console.log("Found UI controls initialization function, calling it now");
+            setTimeout(function() {
+                window.initializeUIControls();
+                console.log("UI controls initialized via callback");
+            }, 500); // Small delay to ensure map is fully initialized
+        } else {
+            console.log("Fallback UI initialization running...");
+            // Basic fallback UI initialization
+            setupMapControls();
+        }
+    }, 1000);
+}
+
+// Function to set up map controls (fallback)
+function setupMapControls() {
+    console.log("Setting up map controls (fallback)...");
+
+    // Add zoom control to map
+    L.control.zoom({
+        position: 'topleft'
+    }).addTo(map);
+
+    // Add scale control to map
+    L.control.scale({
+        position: 'bottomleft',
+        imperial: true,
+        metric: true
+    }).addTo(map);
+}
+
+// Initialize map when DOM is loaded
+document.addEventListener('DOMContentLoaded', initMap);
 
 // Function to fetch facilities from the API
 window.fetchFacilities = async function() {
@@ -186,35 +288,13 @@ window.loadMapState = async function() {
     }
 };
 
-// Custom control to add a zoom control at the top-right corner
-L.Control.CustomZoom = L.Control.extend({
-    options: {
-        position: 'topright'
-    },
+// Placeholder for updateLayerStyle function (implementation needed elsewhere)
+function updateLayerStyle(layer, type) {
+    //Implementation needed
+}
 
-    onAdd: function(map) {
-        const container = L.DomUtil.create('div', 'leaflet-bar');
-        const zoomInButton = L.DomUtil.create('a', 'leaflet-control-zoom-in', container);
-        const zoomOutButton = L.DomUtil.create('a', 'leaflet-control-zoom-out', container);
-
-        zoomInButton.innerHTML = '+';
-        zoomInButton.href = '#';
-        zoomInButton.title = 'Zoom in';
-
-        zoomOutButton.innerHTML = '−';
-        zoomOutButton.href = '#';
-        zoomOutButton.title = 'Zoom out';
-
-        L.DomEvent.on(zoomInButton, 'click', L.DomEvent.stop)
-            .on(zoomInButton, 'click', function() {
-                map.zoomIn();
-            });
-
-        L.DomEvent.on(zoomOutButton, 'click', L.DomEvent.stop)
-            .on(zoomOutButton, 'click', function() {
-                map.zoomOut();
-            });
-
-        return container;
-    }
-});
+// Export functions to window object for global access
+window.initMap = initMap;
+window.initBaseLayers = initBaseLayers;
+window.initDrawnItems = initDrawnItems;
+window.initUI = initUI;
