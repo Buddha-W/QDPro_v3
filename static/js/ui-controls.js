@@ -1,10 +1,11 @@
 // UI Controls for QDPro
 
-// Global variables
+// Global variables to track active tools and states
+let activeDrawingTool = null;
+let isEditMode = false;
+let isDeleteMode = false;
 let map = null;
 let drawnItems = null;
-let drawControl = null;
-let activeDrawingTool = null;
 
 // Function to initialize UI controls
 function initializeUIControls() {
@@ -31,15 +32,392 @@ function initializeUIControls() {
         window.drawnItems = drawnItems;
     }
 
-    // Set up UI components
-    setupToolButtons();
-    setupMenuItems();
-    setupDropdowns();
-
-    // Add event listeners for keyboard shortcuts
-    setupKeyboardShortcuts();
+    setupUI();
 
     console.log("UI Controls setup complete");
+}
+
+
+// Main UI setup function
+function setupUI() {
+    console.log("Setting up UI with map:", map);
+    if (!map) {
+        console.error("Map is not initialized yet");
+        return;
+    }
+
+    setupToolButtons();
+    setupMenuItems();
+    setupSidePanelToggle();
+
+    // Log success
+    console.log("UI setup complete");
+}
+
+// Function to set up tool buttons
+function setupToolButtons() {
+    console.log("Setting up tool buttons...");
+
+    // Define drawing tool types
+    const toolButtons = {
+        'polygon-tool': 'polygon',
+        'rectangle-tool': 'rectangle',
+        'circle-tool': 'circle',
+        'marker-tool': 'marker',
+        'line-tool': 'polyline'
+    };
+
+    // Set up drawing tool buttons
+    for (const [buttonId, toolType] of Object.entries(toolButtons)) {
+        const button = document.getElementById(buttonId);
+        if (button) {
+            console.log(`Found button: ${buttonId}`);
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log(`Clicked ${buttonId}`);
+                activateTool(toolType, button);
+            });
+        }
+    }
+
+    // Set up edit and delete buttons
+    const editButton = document.getElementById('edit-tool');
+    if (editButton) {
+        editButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("Clicked edit tool");
+            activateTool('edit', editButton);
+        });
+    } else {
+        console.warn("Edit button not found");
+    }
+
+    const deleteButton = document.getElementById('delete-tool');
+    if (deleteButton) {
+        deleteButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("Clicked delete tool");
+            activateTool('delete', deleteButton);
+        });
+    } else {
+        console.warn("Delete button not found");
+    }
+}
+
+// Function to set up menu items
+function setupMenuItems() {
+    console.log("Setting up menu items...");
+
+    // Get all dropdown items
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+
+    if (dropdownItems.length === 0) {
+        console.error("No dropdown items found");
+    } else {
+        console.log(`Found ${dropdownItems.length} dropdown items`);
+    }
+
+    // Add click event listeners to each dropdown item
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const action = this.getAttribute('data-action');
+            console.log(`Clicked dropdown item: ${action}`);
+            handleMenuAction(action, this);
+        });
+    });
+
+    // Set up dropdown toggle behavior
+    const menuItems = document.querySelectorAll('.menu-item');
+    menuItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            const dropdownContent = this.querySelector('.dropdown-content');
+            if (dropdownContent) {
+                dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+            }
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.menu-item')) {
+            const dropdownContents = document.querySelectorAll('.dropdown-content');
+            dropdownContents.forEach(content => {
+                content.style.display = 'none';
+            });
+        }
+    });
+
+    // Direct button handlers for important functions
+    const fileNewBtn = document.getElementById('file-new');
+    if (fileNewBtn) {
+        fileNewBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("File > New clicked directly");
+            if (confirm("Create new location? Current work will be lost if unsaved.")) {
+                // Clear the current layers
+                clearMap();
+            }
+        });
+    }
+
+    const openLocationBtn = document.getElementById('open-location');
+    if (openLocationBtn) {
+        openLocationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Open Location clicked directly");
+            alert("Open location functionality is being set up.");
+        });
+    }
+
+    const saveProjectBtn = document.getElementById('save-project');
+    if (saveProjectBtn) {
+        saveProjectBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Save Project clicked directly");
+            alert("Save project functionality is being set up.");
+        });
+    }
+}
+
+// Handle menu actions
+function handleMenuAction(action, element) {
+    console.log(`Handling menu action: ${action}`);
+
+    switch (action) {
+        case 'new-project':
+            alert("Creating new project...");
+            clearMap();
+            break;
+        case 'open-location':
+            alert("Opening location...");
+            break;
+        case 'save-project':
+            alert("Saving project...");
+            break;
+        case 'export-data':
+            alert("Exporting data...");
+            break;
+        case 'undo':
+            alert("Undo operation...");
+            break;
+        case 'redo':
+            alert("Redo operation...");
+            break;
+        case 'delete-selected':
+            alert("Deleting selected items...");
+            break;
+        case 'select-all':
+            alert("Selecting all items...");
+            break;
+        case 'zoom-in':
+            if (map) {
+                map.zoomIn();
+            }
+            break;
+        case 'zoom-out':
+            if (map) {
+                map.zoomOut();
+            }
+            break;
+        default:
+            console.warn(`Unknown menu action: ${action}`);
+    }
+
+    // Close the dropdown after action
+    const dropdownContent = element.closest('.dropdown-content');
+    if (dropdownContent) {
+        dropdownContent.style.display = 'none';
+    }
+}
+
+// Function to set up side panel toggle
+function setupSidePanelToggle() {
+    const layersPanelToggle = document.getElementById('layers-panel-toggle');
+    const layersPanel = document.querySelector('.layers-panel');
+
+    if (layersPanelToggle && layersPanel) {
+        layersPanelToggle.addEventListener('click', function() {
+            layersPanel.classList.toggle('visible');
+        });
+    }
+}
+
+// Function to clear the map
+function clearMap() {
+    console.log("Clearing map...");
+    if (drawnItems) {
+        drawnItems.clearLayers();
+    } else if (map) {
+        // Fallback if drawnItems isn't available
+        map.eachLayer(function(layer) {
+            if (layer instanceof L.Path || layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+    }
+}
+
+// Function to activate a tool
+function activateTool(toolType, button) {
+    console.log(`Activating tool: ${toolType}`);
+
+    // First, deactivate any active tool
+    deactivateAllTools();
+
+    if (!map) {
+        console.error("Map is not initialized");
+        return;
+    }
+
+    // Set the active button
+    if (button) {
+        button.classList.add('active');
+    }
+
+    // Activate the selected tool
+    switch (toolType) {
+        case 'polygon':
+            activateDrawingTool(L.Draw.Polygon);
+            break;
+        case 'rectangle':
+            activateDrawingTool(L.Draw.Rectangle);
+            break;
+        case 'circle':
+            activateDrawingTool(L.Draw.Circle);
+            break;
+        case 'marker':
+            activateDrawingTool(L.Draw.Marker);
+            break;
+        case 'polyline':
+            activateDrawingTool(L.Draw.Polyline);
+            break;
+        case 'edit':
+            activateEditMode();
+            break;
+        case 'delete':
+            activateDeleteMode();
+            break;
+        default:
+            console.warn(`Unknown tool type: ${toolType}`);
+    }
+}
+
+// Function to activate a specific drawing tool
+function activateDrawingTool(DrawTool) {
+    console.log(`Activating drawing tool: ${DrawTool.name}`);
+
+    if (!map) {
+        console.error("Map is not initialized");
+        return;
+    }
+
+    // Create a new drawing handler
+    const drawingHandler = new DrawTool(map, {
+        shapeOptions: {
+            color: '#3388ff',
+            fillColor: '#3388ff',
+            fillOpacity: 0.2
+        }
+    });
+
+    // Enable drawing
+    drawingHandler.enable();
+
+    // Store the active drawing tool
+    activeDrawingTool = drawingHandler;
+}
+
+// Function to activate edit mode
+function activateEditMode() {
+    console.log("Activating edit mode");
+
+    if (!map || !drawnItems) {
+        console.error("Map or drawn items are not initialized");
+        return;
+    }
+
+    isEditMode = true;
+    isDeleteMode = false;
+
+    // Create edit control
+    if (typeof L.EditToolbar !== 'undefined' && typeof L.EditToolbar.Edit !== 'undefined') {
+        const editControl = new L.EditToolbar.Edit(map, {
+            featureGroup: drawnItems
+        });
+        editControl.enable();
+        activeDrawingTool = editControl;
+    } else {
+        console.error("L.EditToolbar.Edit is not defined");
+        alert("Edit functionality is being set up.");
+    }
+
+    updateButtonStates();
+}
+
+// Function to activate delete mode
+function activateDeleteMode() {
+    console.log("Activating delete mode");
+
+    if (!map || !drawnItems) {
+        console.error("Map or drawn items are not initialized");
+        return;
+    }
+
+    isDeleteMode = true;
+    isEditMode = false;
+
+    // Create delete control
+    if (typeof L.EditToolbar !== 'undefined' && typeof L.EditToolbar.Delete !== 'undefined') {
+        const deleteControl = new L.EditToolbar.Delete(map, {
+            featureGroup: drawnItems
+        });
+        deleteControl.enable();
+        activeDrawingTool = deleteControl;
+    } else {
+        console.error("L.EditToolbar.Delete is not defined");
+        alert("Delete functionality is being set up.");
+    }
+
+    updateButtonStates();
+}
+
+// Function to deactivate all drawing tools
+function deactivateAllTools() {
+    console.log("Deactivating all tools");
+
+    // Disable any active drawing tool
+    if (activeDrawingTool && typeof activeDrawingTool.disable === 'function') {
+        activeDrawingTool.disable();
+    }
+    activeDrawingTool = null;
+
+    // Reset mode flags
+    isEditMode = false;
+    isDeleteMode = false;
+
+    // Reset button states
+    updateButtonStates();
+}
+
+// Update the styles of toolbar buttons based on active states
+function updateButtonStates() {
+    const toolButtons = document.querySelectorAll('.toolbar .tool-button');
+    toolButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    if (isEditMode) {
+        const editButton = document.getElementById('edit-tool');
+        if (editButton) editButton.classList.add('active');
+    } else if (isDeleteMode) {
+        const deleteButton = document.getElementById('delete-tool');
+        if (deleteButton) deleteButton.classList.add('active');
+    }
 }
 
 // Function to set up dropdown menus
@@ -70,265 +448,6 @@ function setupDropdowns() {
             content.style.display = 'none';
         });
     });
-}
-
-// Function to set up tool buttons
-function setupToolButtons() {
-    console.log("Setting up tool buttons...");
-
-    const toolButtons = {
-        'polygon-tool': L.Draw.Polygon,
-        'rectangle-tool': L.Draw.Rectangle,
-        'circle-tool': L.Draw.Circle,
-        'marker-tool': L.Draw.Marker,
-        'line-tool': L.Draw.Polyline
-    };
-
-    if (!map) {
-        console.error("Map is not initialized.");
-        return;
-    }
-
-    // Find all tool buttons
-    for (const [buttonId, DrawTool] of Object.entries(toolButtons)) {
-        const button = document.getElementById(buttonId);
-        if (button) {
-            console.log(`Found button: ${buttonId}`);
-            button.addEventListener('click', function() {
-                activateDrawingTool(buttonId, DrawTool);
-            });
-        } else {
-            console.warn(`Button not found: ${buttonId}`);
-        }
-    }
-
-    // Setup edit and delete buttons
-    const editButton = document.getElementById('edit-tool');
-    if (editButton) {
-        editButton.addEventListener('click', function() {
-            activateEditMode();
-        });
-    }
-
-    const deleteButton = document.getElementById('delete-tool');
-    if (deleteButton) {
-        deleteButton.addEventListener('click', function() {
-            activateDeleteMode();
-        });
-    }
-}
-
-// Function to set up menu items
-function setupMenuItems() {
-    console.log("Setting up menu items...");
-
-    // Get all dropdown items
-    const dropdownItems = document.querySelectorAll('.dropdown-item');
-
-    if (dropdownItems.length === 0) {
-        console.error("No dropdown items found");
-        return;
-    }
-
-    console.log(`Found ${dropdownItems.length} dropdown items`);
-
-    // Add click event listeners to each dropdown item
-    dropdownItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const action = this.getAttribute('data-action');
-            console.log(`Clicked dropdown item: ${action}`);
-            handleMenuAction(action, this);
-        });
-    });
-}
-
-// Function to handle menu actions
-function handleMenuAction(action, element) {
-    console.log(`Handling menu action: ${action}`);
-
-    // Close any open dropdowns
-    document.querySelectorAll('.dropdown-content').forEach(content => {
-        content.style.display = 'none';
-    });
-
-    switch (action) {
-        case 'new-project':
-            alert("Creating new project...");
-            // Implement new project functionality
-            break;
-        case 'open-location':
-            alert("Opening location...");
-            // Implement open location functionality
-            break;
-        case 'save-project':
-            alert("Saving project...");
-            // Implement save project functionality
-            break;
-        case 'export-data':
-            alert("Exporting data...");
-            // Implement export data functionality
-            break;
-        case 'undo':
-            alert("Undo operation...");
-            // Implement undo functionality
-            break;
-        case 'redo':
-            alert("Redo operation...");
-            // Implement redo functionality
-            break;
-        case 'delete-selected':
-            alert("Deleting selected items...");
-            // Implement delete selected functionality
-            break;
-        case 'select-all':
-            alert("Selecting all items...");
-            // Implement select all functionality
-            break;
-        case 'zoom-in':
-            if (window.map) {
-                window.map.zoomIn();
-            }
-            break;
-        case 'zoom-out':
-            if (window.map) {
-                window.map.zoomOut();
-            }
-            break;
-        case 'draw-polygon':
-            activateDrawingTool('polygon-tool', L.Draw.Polygon);
-            break;
-        case 'draw-rectangle':
-            activateDrawingTool('rectangle-tool', L.Draw.Rectangle);
-            break;
-        case 'draw-circle':
-            activateDrawingTool('circle-tool', L.Draw.Circle);
-            break;
-        case 'draw-marker':
-            activateDrawingTool('marker-tool', L.Draw.Marker);
-            break;
-        case 'draw-line':
-            activateDrawingTool('line-tool', L.Draw.Polyline);
-            break;
-        default:
-            console.warn(`Unknown menu action: ${action}`);
-    }
-}
-
-// Function to activate a drawing tool
-function activateDrawingTool(toolId, DrawTool) {
-    console.log(`Activating drawing tool: ${toolId}`);
-
-    // First, deactivate any active tools
-    deactivateAllTools();
-
-    if (!map) {
-        console.error("Map is not initialized");
-        return;
-    }
-
-    // Set the active button
-    const button = document.getElementById(toolId);
-    if (button) {
-        button.classList.add('active');
-    }
-
-    // Create a new drawing handler
-    const drawingHandler = new DrawTool(map, {
-        shapeOptions: {
-            color: '#3388ff',
-            fillColor: '#3388ff',
-            fillOpacity: 0.2
-        }
-    });
-
-    // Enable drawing
-    drawingHandler.enable();
-
-    // Store the active drawing tool
-    activeDrawingTool = drawingHandler;
-}
-
-// Function to activate edit mode
-function activateEditMode() {
-    console.log("Activating edit mode");
-
-    // First, deactivate any active tools
-    deactivateAllTools();
-
-    if (!map || !drawnItems) {
-        console.error("Map or drawn items are not initialized");
-        return;
-    }
-
-    // Set the active button
-    const button = document.getElementById('edit-tool');
-    if (button) {
-        button.classList.add('active');
-    }
-
-    // Create edit control
-    const editControl = new L.EditToolbar.Edit(map, {
-        featureGroup: drawnItems,
-        poly: {
-            allowIntersection: false
-        }
-    });
-
-    // Enable editing
-    editControl.enable();
-
-    // Store the active drawing tool
-    activeDrawingTool = editControl;
-}
-
-// Function to activate delete mode
-function activateDeleteMode() {
-    console.log("Activating delete mode");
-
-    // First, deactivate any active tools
-    deactivateAllTools();
-
-    if (!map || !drawnItems) {
-        console.error("Map or drawn items are not initialized");
-        return;
-    }
-
-    // Set the active button
-    const button = document.getElementById('delete-tool');
-    if (button) {
-        button.classList.add('active');
-    }
-
-    // Create delete control
-    const deleteControl = new L.EditToolbar.Delete(map, {
-        featureGroup: drawnItems
-    });
-
-    // Enable deleting
-    deleteControl.enable();
-
-    // Store the active drawing tool
-    activeDrawingTool = deleteControl;
-}
-
-// Function to deactivate all drawing tools
-function deactivateAllTools() {
-    console.log("Deactivating all tools");
-
-    // Remove active class from all buttons
-    document.querySelectorAll('.tool-button').forEach(button => {
-        button.classList.remove('active');
-    });
-
-    // Disable any active drawing tool
-    if (activeDrawingTool) {
-        if (typeof activeDrawingTool.disable === 'function') {
-            activeDrawingTool.disable();
-        }
-        activeDrawingTool = null;
-    }
 }
 
 // Function to set up keyboard shortcuts
@@ -380,55 +499,6 @@ function setupKeyboardShortcuts() {
     });
 }
 
-// Function to activate a tool
-function activateTool(toolType, button) {
-    console.log(`Activating tool: ${toolType}`);
-
-    // First, deactivate any active tool
-    deactivateAllTools();
-
-    if (!window.map) {
-        console.error("Map is not initialized");
-        return;
-    }
-
-    // Set the active button
-    if (button) {
-        button.classList.add('active');
-    }
-
-    // Handle menu items
-    if (toolType.startsWith('menu-')) {
-        // Handle menu items
-        const menuAction = toolType.replace('menu-', '');
-        handleMenuAction(menuAction);
-        return;
-    }
-
-    // Activate the selected tool
-    switch (toolType) {
-        case 'polygon':
-            activateDrawingTool('polygon-tool', L.Draw.Polygon);
-            break;
-        case 'rectangle':
-            activateDrawingTool('rectangle-tool', L.Draw.Rectangle);
-            break;
-        case 'circle':
-            activateDrawingTool('circle-tool', L.Draw.Circle);
-            break;
-        case 'marker':
-            activateDrawingTool('marker-tool', L.Draw.Marker);
-            break;
-        case 'edit':
-            activateEditMode();
-            break;
-        case 'delete':
-            activateDeleteMode();
-            break;
-        default:
-            console.warn(`Unknown tool type: ${toolType}`);
-    }
-}
 
 // Make sure these functions are available globally
 window.activateTool = activateTool;
@@ -438,24 +508,29 @@ window.activateDrawingTool = activateDrawingTool;
 window.activateEditMode = activateEditMode;
 window.activateDeleteMode = activateDeleteMode;
 window.initializeUIControls = initializeUIControls;
+window.clearMap = clearMap; // Added clearMap to global scope
+window.setupUI = setupUI; // Added setupUI to global scope
 
 
-// Initialize UI controls when the document is loaded
+// Wait for document to fully load
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM fully loaded, checking if map is ready");
+    console.log("Document loaded, setting up UI controls...");
 
-    // Check if map is already initialized
-    if (window.map) {
-        console.log("Map already initialized, setting up UI controls");
-        initializeUIControls();
-    } else {
-        console.log("Map not yet initialized, setting up event listener");
-        // Set up event listener for map initialization
-        window.addEventListener('map_initialized', function() {
-            console.log("Map initialization event received, setting up UI controls");
-            initializeUIControls();
-        });
-    }
+    // Store references to map and drawn items when available
+    window.addEventListener('map_initialized', function() {
+        console.log("Map initialized event received");
+        map = window.map;
+        drawnItems = window.drawnItems;
+        setupUI();
+    });
+
+    // Initialize UI controls (this function will be called from map-init.js)
+    window.initializeUIControls = function() {
+        console.log("initializeUIControls called");
+        map = window.map;
+        drawnItems = window.drawnItems;
+        setupUI();
+    };
 });
 
 // Function to open new project modal
@@ -503,249 +578,46 @@ function openReportModal() {
     }
 }
 
-// Function to activate a drawing tool (original, kept for compatibility)
-function activateTool(toolType, button) {
-    console.log(`Activating tool: ${toolType}`);
-
-    // First, deactivate any active tool
-    deactivateAllTools();
-
-    if (!window.map) {
-        console.error("Map is not initialized");
-        return;
-    }
-
-    // Set the active button
-    if (button) {
-        button.classList.add('active');
-    }
-
-    // Handle menu items
-    if (toolType.startsWith('menu-')) {
-        // Handle menu items
-        const menuAction = toolType.replace('menu-', '');
-        handleMenuAction(menuAction);
-        return;
-    }
-
-    // Activate the selected tool
-    switch (toolType) {
-        case 'polygon':
-            activatePolygonDrawing();
-            break;
-        case 'rectangle':
-            activateRectangleDrawing();
-            break;
-        case 'circle':
-            activateCircleDrawing();
-            break;
-        case 'marker':
-            activateMarkerDrawing();
-            break;
-        case 'edit':
-            activateEditMode();
-            break;
-        case 'delete':
-            activateDeleteMode();
-            break;
-        default:
-            console.warn(`Unknown tool type: ${toolType}`);
-    }
-}
-
-// Function to deactivate all drawing tools (original, kept for compatibility)
-function deactivateAllToolsOriginal() {
-    console.log("Deactivating all tools");
-
-    // Remove active class from all buttons
-    document.querySelectorAll('.tool-button').forEach(button => {
-        button.classList.remove('active');
-    });
-
-    // Disable any active drawing tool
-    if (activeControl && typeof activeControl.disable === 'function') {
-        activeControl.disable();
-    }
-
-    // Clear any active draw control
-    if (window.map && window.activeDrawControl) {
-        window.map.removeControl(window.activeDrawControl);
-        window.activeDrawControl = null;
-    }
-
-    // Reset active control and drawing tool
-    activeControl = null;
-    activeDrawingTool = null;
-}
-
-// Function to activate polygon drawing
-function activatePolygonDrawing() {
-    console.log("Activating polygon drawing");
-
-    if (!window.map || !L) {
-        console.error("Map or Leaflet not initialized");
-        return;
-    }
-
-    // Create a new polygon draw control
-    activeControl = new L.Draw.Polygon(window.map);
-    activeDrawingTool = 'polygon';
-
-    // Enable the drawing tool
-    activeControl.enable();
-
-    // Set up the draw:created event handler
-    window.map.on('draw:created', function(e) {
-        const layer = e.layer;
+// Function to create a new project
+function createNewProject() {
+    console.log("Creating new project");
+    if (window.confirm("Create a new project? All unsaved changes will be lost.")) {
+        // Clear the map
         if (window.drawnItems) {
-            window.drawnItems.addLayer(layer);
+            window.drawnItems.clearLayers();
         }
-        // Open a popup to edit properties
-        openEditPopup(layer);
-    });
+        // Reset any project-specific data
+        document.getElementById('project-title').innerText = 'New Project';
+
+        // Show success message
+        alert("New project created successfully");
+    }
 }
 
-// Function to activate rectangle drawing
-function activateRectangleDrawing() {
-    console.log("Activating rectangle drawing");
-
-    if (!window.map || !L) {
-        console.error("Map or Leaflet not initialized");
-        return;
-    }
-
-    // Create a new rectangle draw control
-    activeControl = new L.Draw.Rectangle(window.map);
-    activeDrawingTool = 'rectangle';
-
-    // Enable the drawing tool
-    activeControl.enable();
-
-    // Set up the draw:created event handler
-    window.map.on('draw:created', function(e) {
-        const layer = e.layer;
-        if (window.drawnItems) {
-            window.drawnItems.addLayer(layer);
-        }
-        // Open a popup to edit properties
-        openEditPopup(layer);
-    });
+// Function to open a project
+function openProject() {
+    console.log("Opening project");
+    // This would typically open a modal with a list of saved projects
+    alert("Open Project functionality will be implemented in a future update");
 }
 
-// Function to activate circle drawing
-function activateCircleDrawing() {
-    console.log("Activating circle drawing");
-
-    if (!window.map || !L) {
-        console.error("Map or Leaflet not initialized");
-        return;
-    }
-
-    // Create a new circle draw control
-    activeControl = new L.Draw.Circle(window.map);
-    activeDrawingTool = 'circle';
-
-    // Enable the drawing tool
-    activeControl.enable();
-
-    // Set up the draw:created event handler
-    window.map.on('draw:created', function(e) {
-        const layer = e.layer;
-        if (window.drawnItems) {
-            window.drawnItems.addLayer(layer);
-        }
-        // Open a popup to edit properties
-        openEditPopup(layer);
-    });
+// Function to save the current project
+function saveProject() {
+    console.log("Saving project");
+    // This would typically save the current state to a database
+    alert("Project saved successfully");
 }
 
-// Function to activate marker drawing
-function activateMarkerDrawing() {
-    console.log("Activating marker drawing");
-
-    if (!window.map || !L) {
-        console.error("Map or Leaflet not initialized");
-        return;
-    }
-
-    // Create a new marker draw control
-    activeControl = new L.Draw.Marker(window.map);
-    activeDrawingTool = 'marker';
-
-    // Enable the drawing tool
-    activeControl.enable();
-
-    // Set up the draw:created event handler
-    window.map.on('draw:created', function(e) {
-        const layer = e.layer;
-        if (window.drawnItems) {
-            window.drawnItems.addLayer(layer);
-        }
-        // Open a popup to edit properties
-        openEditPopup(layer);
-    });
+// Function to export to PDF
+function exportToPDF() {
+    console.log("Exporting to PDF");
+    alert("Export to PDF functionality will be implemented in a future update");
 }
 
-// Function to activate edit mode
-function activateEditModeOriginal() {
-    console.log("Activating edit mode");
-
-    if (!window.map || !L) {
-        console.error("Map or Leaflet not initialized");
-        return;
-    }
-
-    if (!window.drawnItems) {
-        console.error("Drawn items layer not initialized");
-        return;
-    }
-
-    // Create a new edit control
-    activeControl = new L.EditToolbar.Edit(window.map, {
-        featureGroup: window.drawnItems
-    });
-    activeDrawingTool = 'edit';
-
-    // Enable the edit tool
-    activeControl.enable();
-
-    // Set up the draw:edited event handler
-    window.map.on('draw:edited', function(e) {
-        const layers = e.layers;
-        // Handle edited layers
-        console.log("Layers edited:", layers);
-    });
-}
-
-// Function to activate delete mode
-function activateDeleteModeOriginal() {
-    console.log("Activating delete mode");
-
-    if (!window.map || !L) {
-        console.error("Map or Leaflet not initialized");
-        return;
-    }
-
-    if (!window.drawnItems) {
-        console.error("Drawn items layer not initialized");
-        return;
-    }
-
-    // Create a new delete control
-    activeControl = new L.EditToolbar.Delete(window.map, {
-        featureGroup: window.drawnItems
-    });
-    activeDrawingTool = 'delete';
-
-    // Enable the delete tool
-    activeControl.enable();
-
-    // Set up the draw:deleted event handler
-    window.map.on('draw:deleted', function(e) {
-        const layers = e.layers;
-        // Handle deleted layers
-        console.log("Layers deleted:", layers);
-    });
+// Function to export to Shapefile
+function exportToShapefile() {
+    console.log("Exporting to Shapefile");
+    alert("Export to Shapefile functionality will be implemented in a future update");
 }
 
 // Function to open an edit popup for a given shape layer
@@ -847,66 +719,4 @@ function updateLayerStyle(layer, type) {
     if (styles[type]) {
         layer.setStyle(styles[type]);
     }
-}
-
-// Define global UI initialization function (original, kept for compatibility)
-window.initializeUIControlsOriginal = function() {
-    console.log("UI Controls initialization started...");
-    setupToolButtons();
-    console.log("UI Controls initialized");
-};
-
-// When document is loaded, check if we need to initialize UI
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("Document loaded, checking for UI initialization");
-
-    // If map is already initialized, set up UI controls
-    if (window.map) {
-        console.log("Map is already initialized, setting up UI controls");
-        window.initializeUIControls();
-    } else {
-        console.log("Map not yet initialized, waiting for map init");
-    }
-});
-
-// Function to create a new project
-function createNewProject() {
-    console.log("Creating new project");
-    if (window.confirm("Create a new project? All unsaved changes will be lost.")) {
-        // Clear the map
-        if (window.drawnItems) {
-            window.drawnItems.clearLayers();
-        }
-        // Reset any project-specific data
-        document.getElementById('project-title').innerText = 'New Project';
-
-        // Show success message
-        alert("New project created successfully");
-    }
-}
-
-// Function to open a project
-function openProject() {
-    console.log("Opening project");
-    // This would typically open a modal with a list of saved projects
-    alert("Open Project functionality will be implemented in a future update");
-}
-
-// Function to save the current project
-function saveProject() {
-    console.log("Saving project");
-    // This would typically save the current state to a database
-    alert("Project saved successfully");
-}
-
-// Function to export to PDF
-function exportToPDF() {
-    console.log("Exporting to PDF");
-    alert("Export to PDF functionality will be implemented in a future update");
-}
-
-// Function to export to Shapefile
-function exportToShapefile() {
-    console.log("Exporting to Shapefile");
-    alert("Export to Shapefile functionality will be implemented in a future update");
 }

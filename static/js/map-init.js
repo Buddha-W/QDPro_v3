@@ -4,63 +4,160 @@
 let map = null;
 let drawnItems = null;
 
+// Initialize the map when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Document loaded, initializing map...");
+    initMap();
+});
+
 // Function to initialize the map
 function initMap() {
-    console.log("DOM loaded, checking for map...");
-
-    // Check if Leaflet is loaded
-    if (typeof L === 'undefined') {
-        console.error("Leaflet is not loaded!");
-        return;
-    }
-
-    // Check if map container exists
-    const mapElement = document.getElementById('map');
-    if (!mapElement) {
-        console.error("Map element does not exist!");
-        return;
-    }
-
-    console.log("Leaflet is loaded and map element exists");
+    console.log("Initializing map...");
 
     try {
-        console.log("Creating map fallback instance");
-
-        // Create map instance
-        map = L.map('map', {
-            center: [39.8283, -98.5795], // Center of US
-            zoom: 4,
+        // Create a map instance
+        const mapOptions = {
+            center: [39.8283, -98.5795], // Center of the US
+            zoom: 5,
             zoomControl: true,
             attributionControl: true
-        });
+        };
 
-        console.log("Map created:", map);
+        // Initialize the map
+        window.map = L.map('map', mapOptions);
 
-        // Check if map was created correctly
-        if (map.hasLayer) {
-            console.log("Map has hasLayer:", true);
-        } else {
-            console.error("Map initialization failed: missing hasLayer method");
-            return;
+        // Initialize feature groups for different types of layers
+        window.drawnItems = new L.FeatureGroup();
+        window.map.addLayer(window.drawnItems);
+
+        window.featureGroups = {
+            facilities: new L.FeatureGroup(),
+            safetyArcs: new L.FeatureGroup(),
+            pesLocations: new L.FeatureGroup(),
+            esLocations: new L.FeatureGroup()
+        };
+
+        // Add feature groups to the map
+        for (const groupName in window.featureGroups) {
+            window.map.addLayer(window.featureGroups[groupName]);
+            window.drawnItems.addLayer(window.featureGroups[groupName]);
         }
 
         // Add base layers
-        initBaseLayers();
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        });
 
-        // Initialize drawn items layer
-        initDrawnItems();
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
+            maxZoom: 19
+        });
 
-        console.log("Map initialization verified successfully");
+        const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors',
+            maxZoom: 17
+        });
 
-        // Make map available globally
-        window.map = map;
+        // Add the OSM layer to the map by default
+        osmLayer.addTo(window.map);
 
-        // Initialize UI controls
+        // Create a layer control
+        const baseLayers = {
+            "Standard": osmLayer,
+            "Satellite": satelliteLayer,
+            "Topographic": topoLayer
+        };
+
+        L.control.layers(baseLayers, null, {
+            position: 'topright',
+            collapsed: true
+        }).addTo(window.map);
+
+        // Set up draw controls
+        const drawControls = new L.Control.Draw({
+            position: 'topleft',
+            draw: {
+                polyline: false,
+                polygon: false,
+                circle: false,
+                rectangle: false,
+                marker: false,
+                circlemarker: false
+            },
+            edit: {
+                featureGroup: window.drawnItems,
+                edit: false,
+                remove: false
+            }
+        });
+
+        window.map.addControl(drawControls);
+
+        // Initialize UI
         initUI();
+
+        console.log("Map initialized successfully");
+
     } catch (error) {
         console.error("Error initializing map:", error);
     }
 }
+
+// Initialize UI
+function initUI() {
+    console.log("Initializing UI...");
+
+    // Initialize UI controls after a short delay to ensure map is fully loaded
+    setTimeout(function() {
+        // Make sure map and drawnItems are properly initialized
+        if (!window.drawnItems) {
+            window.drawnItems = new L.FeatureGroup();
+            window.map.addLayer(window.drawnItems);
+        }
+
+        console.log("Map fully initialized, dispatching map_initialized event");
+
+        // Dispatch an event to signal that the map is initialized
+        const mapInitEvent = new Event('map_initialized');
+        window.dispatchEvent(mapInitEvent);
+
+        // Also directly call initializeUIControls if it exists
+        if (typeof window.initializeUIControls === 'function') {
+            console.log("Found UI controls initialization function, calling it now");
+            window.initializeUIControls();
+            console.log("UI controls initialized via direct call");
+        } else {
+            console.error("UI initialization function not found");
+        }
+    }, 1000);
+}
+
+// Add event handlers for map created items
+window.addEventListener('map_initialized', function() {
+    if (window.map) {
+        // Handle drawing created event
+        window.map.on('draw:created', function(e) {
+            const layer = e.layer;
+            window.drawnItems.addLayer(layer);
+            console.log("New layer created and added to drawn items");
+
+            // You can add custom handling here (e.g., opening a properties dialog)
+            if (typeof openFeaturePropertiesModal === 'function') {
+                openFeaturePropertiesModal(layer);
+            }
+        });
+
+        // Handle other drawing events
+        window.map.on('draw:edited', function(e) {
+            console.log("Layers edited:", e.layers);
+        });
+
+        window.map.on('draw:deleted', function(e) {
+            console.log("Layers deleted:", e.layers);
+        });
+    }
+});
+
 
 // Function to initialize base layers
 function initBaseLayers() {
@@ -115,43 +212,6 @@ function initDrawnItems() {
     window.drawnItems = drawnItems;
 }
 
-// Function to initialize UI
-function initUI() {
-    console.log("Initializing UI...");
-
-    // Initialize UI controls after a short delay to ensure map is fully loaded
-    setTimeout(function() {
-        // Make sure map and drawnItems are properly initialized
-        if (!window.drawnItems) {
-            window.drawnItems = new L.FeatureGroup();
-            window.map.addLayer(window.drawnItems);
-        }
-
-        // Make sure the map object has all needed functions
-        if (!window.map.hasLayer) {
-            console.warn("Map missing hasLayer function, adding compatibility");
-            window.map.hasLayer = function(layer) {
-                return this._layers && Object.values(this._layers).includes(layer);
-            };
-        }
-
-        console.log("Map fully initialized, dispatching map_initialized event");
-
-        // Dispatch an event to signal that the map is initialized
-        const mapInitEvent = new Event('map_initialized');
-        window.dispatchEvent(mapInitEvent);
-
-        // Also directly call initializeUIControls if it exists
-        if (typeof window.initializeUIControls === 'function') {
-            console.log("Found UI controls initialization function, calling it now");
-            window.initializeUIControls();
-            console.log("UI controls initialized via direct call");
-        } else {
-            console.error("UI initialization function not found");
-        }
-    }, 1000);
-}
-
 // Function to set up map controls (fallback)
 function setupMapControls() {
     console.log("Setting up map controls (fallback)...");
@@ -168,9 +228,6 @@ function setupMapControls() {
         metric: true
     }).addTo(map);
 }
-
-// Initialize map when DOM is loaded
-document.addEventListener('DOMContentLoaded', initMap);
 
 // Function to fetch facilities from the API
 window.fetchFacilities = async function() {
@@ -214,7 +271,7 @@ window.saveMapState = async function() {
                 if (layer.getLatLng && feature.geometry.type === 'Point') {
                     const coords = feature.geometry.coordinates;
                     const latlng = layer.getLatLng();
-                    return Math.abs(latlng.lng - coords[0]) < 0.0001 && 
+                    return Math.abs(latlng.lng - coords[0]) < 0.0001 &&
                            Math.abs(latlng.lat - coords[1]) < 0.0001;
                 }
                 return false;
