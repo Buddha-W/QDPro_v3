@@ -10,7 +10,7 @@
 <body>
     <div class="ui-container">
         <!-- Menu Bar -->
-        <div class="menu-bar" id="menu-bar">
+        <div class="menu-bar">
             <div class="menu-item">
                 File
                 <div class="dropdown-content">
@@ -36,9 +36,6 @@
                     <div class="dropdown-item" id="zoom-out">Zoom Out</div>
                     <div class="dropdown-item" id="reset-view">Reset View</div>
                 </div>
-            </div>
-            <div id="toolbar-container" class="toolbar">
-                <!-- Zoom controls will be added here by JavaScript -->
             </div>
             <div class="menu-item">
                 Tools
@@ -185,47 +182,10 @@
             </div>
         </div>
     </div>
-    
-    <!-- Save Dialog -->
-    <div id="save-dialog" class="dialog">
-        <div class="dialog-header">
-            <span class="dialog-title">Save Location</span>
-            <button class="close-dialog">&times;</button>
-        </div>
-        <div class="dialog-content">
-            <div class="form-group">
-                <label for="location-name">Location Name:</label>
-                <input type="text" id="location-name" class="form-control">
-            </div>
-        </div>
-        <div class="dialog-actions">
-            <button id="save-location-btn" class="dialog-button primary">Save</button>
-            <button class="dialog-button secondary close-dialog">Cancel</button>
-        </div>
-    </div>
-    
-    <!-- Open Dialog -->
-    <div id="open-dialog" class="dialog">
-        <div class="dialog-header">
-            <span class="dialog-title">Open Location</span>
-            <button class="close-dialog">&times;</button>
-        </div>
-        <div class="dialog-content">
-            <div id="locations-list">
-                <p>Loading locations...</p>
-            </div>
-        </div>
-        <div class="dialog-actions">
-            <button class="dialog-button secondary close-dialog">Cancel</button>
-        </div>
-    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="/static/css/map-styles.css">
     <script>
         // Define a global initializeUIControls function first
         window.initializeUIControls = function() {
@@ -235,59 +195,6 @@
     </script>
     <script src="/static/js/ui-controls.js"></script>
     <script src="/static/js/map-init.js"></script>
-    
-    <div id="app-container">
-        <!-- Top Bar with Menus -->
-        <div id="top-bar">
-            <div id="menu-bar">
-                <div id="file-menu" class="menu-item">
-                    <span>File</span>
-                    <div id="file-dropdown" class="dropdown-content">
-                        <a id="file-new" class="dropdown-item">New</a>
-                        <a id="file-open" class="dropdown-item">Open...</a>
-                        <a id="file-save" class="dropdown-item">Save...</a>
-                        <a id="file-export" class="dropdown-item">Export...</a>
-                    </div>
-                </div>
-                <div id="edit-menu" class="menu-item">
-                    <span>Edit</span>
-                </div>
-                <div id="view-menu" class="menu-item">
-                    <span>View</span>
-                </div>
-                <div id="tools-menu" class="menu-item">
-                    <span>Tools</span>
-                </div>
-                <div id="help-menu" class="menu-item">
-                    <span>Help</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Main Content Area -->
-        <div id="map-container">
-            <!-- Left Sidebar with Drawing Tools -->
-            <div class="sidebar">
-                <div class="toolbar">
-                    <!-- Toolbar buttons will be added by JavaScript -->
-                </div>
-            </div>
-            
-            <!-- Map -->
-            <div id="map"></div>
-            
-            <!-- Top Toolbar for Zoom Controls -->
-            <div id="top-toolbar">
-                <!-- Zoom controls will be added by JavaScript -->
-            </div>
-        </div>
-        
-        <!-- Status Bar -->
-        <div id="status-bar">
-            <div id="current-location-display">Location: None</div>
-            <div id="coordinates-display"></div>
-        </div>
-    </div>
     <script>
         // Initialize map
         const map = L.map('map', {

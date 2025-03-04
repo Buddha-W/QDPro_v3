@@ -78,51 +78,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     // Define a simple fallback if needed
                     window.initializeUIControls = function() {
                         console.log("Fallback UI initialization from map-init.js");
-                        
-                        // Remove default zoom control first
-                        if (window.map) {
-                            window.map.removeControl(window.map.zoomControl);
-                        }
-                        
                         setTimeout(function() {
                             if (typeof setupToolButtons === 'function') {
                                 try {
                                     setupToolButtons();
                                     console.log("Tool buttons set up successfully");
                                     
-                                    // Add zoom control to toolbar
-                                    const toolbarContainer = document.getElementById('toolbar-container');
-                                    if (toolbarContainer) {
-                                        const zoomInButton = document.createElement('button');
-                                        zoomInButton.className = 'toolbar-button';
-                                        zoomInButton.title = 'Zoom In';
-                                        zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
-                                        zoomInButton.onclick = function() {
-                                            if (window.map) window.map.zoomIn();
-                                        };
-
-                                        const zoomOutButton = document.createElement('button');
-                                        zoomOutButton.className = 'toolbar-button';
-                                        zoomOutButton.title = 'Zoom Out';
-                                        zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
-                                        zoomOutButton.onclick = function() {
-                                            if (window.map) window.map.zoomOut();
-                                        };
-
-                                        const resetViewButton = document.createElement('button');
-                                        resetViewButton.className = 'toolbar-button';
-                                        resetViewButton.title = 'Reset View';
-                                        resetViewButton.innerHTML = '<i class="fas fa-globe"></i> Reset View';
-                                        resetViewButton.onclick = function() {
-                                            if (window.map) window.map.setView([39.8283, -98.5795], 4);
-                                        };
-
-                                        toolbarContainer.appendChild(zoomInButton);
-                                        toolbarContainer.appendChild(zoomOutButton);
-                                        toolbarContainer.appendChild(resetViewButton);
-                                    }
-                                    
-                                    // Enable menu items explicitlyy
+                                    // Enable menu items explicitly
                                     const menuItems = document.querySelectorAll('.menu-item, .dropdown-item');
                                     menuItems.forEach(item => {
                                         item.classList.remove('disabled');
@@ -187,40 +149,4 @@ document.addEventListener("DOMContentLoaded", function() {
 // Make the map globally accessible
 window.getMap = function() {
     return window.map;
-}
-
-// Initialize UI controls when document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM loaded, initializing UI...");
-    
-    // Setup close buttons for all dialogs
-    const closeButtons = document.querySelectorAll('.close-dialog');
-    closeButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            const dialog = this.closest('.dialog');
-            if (dialog) {
-                dialog.style.display = 'none';
-            }
-        });
-    });
-    
-    // File menu dropdown toggle
-    const fileMenu = document.getElementById('file-menu');
-    if (fileMenu) {
-        fileMenu.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const dropdown = document.getElementById('file-dropdown');
-            if (dropdown) {
-                dropdown.classList.toggle('show');
-            }
-        });
-    }
-    
-    // Close all dropdowns when clicking outside
-    document.addEventListener('click', function() {
-        const dropdowns = document.querySelectorAll('.dropdown-content');
-        dropdowns.forEach(function(dropdown) {
-            dropdown.classList.remove('show');
-        });
-    });
-});;
+};
