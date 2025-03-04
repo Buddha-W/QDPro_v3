@@ -551,18 +551,15 @@ function setupAfterMapInit() {
                 document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
                 this.classList.add('active');
             };
-
-            // Insert at the beginning of the toolbar
-            toolbar.insertBefore(panButton, toolbar.firstChild);
-
-            // Add zoom controls to toolbar
+            
+            // Create zoom controls
             const zoomInButton = document.createElement('button');
             zoomInButton.className = 'tool-button';
             zoomInButton.id = 'zoom-in-tool';
             zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
             zoomInButton.title = "Zoom in";
             zoomInButton.onclick = function() {
-                window.map.zoomIn();
+                if (window.map) window.map.zoomIn();
             };
 
             const zoomOutButton = document.createElement('button');
@@ -571,12 +568,13 @@ function setupAfterMapInit() {
             zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
             zoomOutButton.title = "Zoom out";
             zoomOutButton.onclick = function() {
-                window.map.zoomOut();
+                if (window.map) window.map.zoomOut();
             };
 
-            // Insert after the pan button
-            toolbar.insertBefore(zoomOutButton, panButton.nextSibling);
-            toolbar.insertBefore(zoomInButton, panButton.nextSibling);
+            // Insert at the beginning of the toolbar
+            toolbar.insertBefore(panButton, toolbar.firstChild);
+            toolbar.insertBefore(zoomInButton, toolbar.firstChild);
+            toolbar.insertBefore(zoomOutButton, toolbar.firstChild);
 
             // Activate pan by default
             panButton.click();
