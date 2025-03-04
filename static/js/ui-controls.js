@@ -108,9 +108,28 @@ window.initializeUIControls = function() {
     // Check if map is available first
     if (!window.map) {
         console.error("Map not available for UI controls initialization");
-        // Retry after a short delay
-        setTimeout(window.initializeUIControls, 500);
-        return;
+        // Create a basic map if it doesn't exist
+        const mapContainer = document.getElementById('map-container');
+        if (mapContainer) {
+            window.map = L.map('map-container', {
+                center: [39.8283, -98.5795],
+                zoom: 5,
+                zoomControl: false
+            });
+            
+            // Add a default tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(window.map);
+            
+            // Initialize the feature group for drawn items
+            window.drawnItems = new L.FeatureGroup();
+            window.map.addLayer(window.drawnItems);
+        } else {
+            // Retry after a short delay if map container not found
+            setTimeout(window.initializeUIControls, 500);
+            return;
+        }
     }
 
     // Remove any existing Leaflet draw buttons
@@ -288,12 +307,45 @@ function setupAfterMapInit() {
     const fileMenu = document.getElementById('file-menu');
     if (fileMenu) {
         fileMenu.onclick = function(e) {
+            e.preventDefault();
             e.stopPropagation();
             const dropdown = document.getElementById('file-dropdown');
             if (dropdown) {
+                // Close any other open dropdowns first
+                document.querySelectorAll('.dropdown-content').forEach(d => {
+                    if (d !== dropdown && d.classList.contains('show')) {
+                        d.classList.remove('show');
+                    }
+                });
                 dropdown.classList.toggle('show');
             }
         };
+        
+        // Ensure dropdown items work
+        const dropdownItems = document.querySelectorAll('.dropdown-item');
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Hide dropdown after clicking an item
+                const dropdown = this.closest('.dropdown-content');
+                if (dropdown) {
+                    setTimeout(() => {
+                        dropdown.classList.remove('show');
+                    }, 100);
+                }
+            });
+        });
+        
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.matches('.menu-item, .dropdown-item')) {
+                document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                    if (dropdown.classList.contains('show')) {
+                        dropdown.classList.remove('show');
+                    }
+                });
+            }
+        });
     }
 
     // Setup New file option

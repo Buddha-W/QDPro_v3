@@ -80,12 +80,45 @@ document.addEventListener("DOMContentLoaded", function() {
                         console.log("Fallback UI initialization from map-init.js");
                         
                         // Remove default zoom control first
-                        if (window.map) {
+                        if (window.map && window.map.zoomControl) {
                             window.map.removeControl(window.map.zoomControl);
                         }
                         
                         setTimeout(function() {
                             if (typeof setupToolButtons === 'function') {
+                                try {
+                                    setupToolButtons();
+                                    
+                                    // Add zoom controls to toolbar
+                                    const toolbarContainer = document.getElementById('toolbar-container');
+                                    if (toolbarContainer) {
+                                        const zoomControls = document.createElement('div');
+                                        zoomControls.className = 'toolbar-group';
+                                        
+                                        const zoomInBtn = document.createElement('button');
+                                        zoomInBtn.className = 'toolbar-button';
+                                        zoomInBtn.innerHTML = '<i class="fas fa-search-plus"></i>';
+                                        zoomInBtn.title = 'Zoom In';
+                                        zoomInBtn.onclick = function() {
+                                            if (window.map) window.map.zoomIn();
+                                        };
+                                        
+                                        const zoomOutBtn = document.createElement('button');
+                                        zoomOutBtn.className = 'toolbar-button';
+                                        zoomOutBtn.innerHTML = '<i class="fas fa-search-minus"></i>';
+                                        zoomOutBtn.title = 'Zoom Out';
+                                        zoomOutBtn.onclick = function() {
+                                            if (window.map) window.map.zoomOut();
+                                        };
+                                        
+                                        zoomControls.appendChild(zoomInBtn);
+                                        zoomControls.appendChild(zoomOutBtn);
+                                        toolbarContainer.appendChild(zoomControls);
+                                    }
+                                } catch (e) {
+                                    console.error("Error setting up tool buttons:", e);
+                                }
+                            } {
                                 try {
                                     setupToolButtons();
                                     console.log("Tool buttons set up successfully");
