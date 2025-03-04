@@ -4,6 +4,30 @@
 <head>
     <title>Locations</title>
     <style>
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; }
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+        .tab-button { background: #f1f1f1; border: none; padding: 10px 20px; cursor: pointer; font-size: 16px; }
+        .tab-button.active { background: #fff; border: 1px solid #ddd; border-bottom: none; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .location-list { margin: 20px 0; }
+        .location-list ul { list-style: none; padding: 0; }
+        .location-list li { display: flex; justify-content: space-between; align-items: center; 
+                           padding: 10px; margin-bottom: 10px; background: #f9f9f9; border-radius: 4px; }
+        .location-actions { display: flex; gap: 10px; }
+        button { padding: 5px 10px; cursor: pointer; border: none; border-radius: 3px; }
+        .edit { background: #2196F3; color: white; }
+        .delete { background: #f44336; color: white; }
+        .restore { background: #4CAF50; color: white; }
+        .delete-perm { background: #ff0000; color: white; }
+        .empty-bin { background: #ff9800; color: white; margin-bottom: 15px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; 
+                overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; 
+                        border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 5px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+    </style>
+    <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
         .container { max-width: 800px; margin: 0 auto; padding: 20px; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         .location-list { margin-top: 20px; }
@@ -40,32 +64,234 @@
             </form>
         </div>
 
-        <div class="location-list">
-            <h2>Existing Locations</h2>
-            {% if locations %}
-                <ul>
-                {% for location in locations %}
-                    <li>
-                        <div class="location-info">
-                            <a href="/ui/open_location/{{ location.id }}">
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('active-locations')">Active Locations</button>
+            <button class="tab-button" onclick="showTab('recycle-bin')">Recycle Bin</button>
+        </div>
+
+        <div id="active-locations" class="tab-content active">
+            <div class="location-list">
+                <h2>Existing Locations</h2>
+                {% if locations %}
+                    <ul>
+                    {% for location in locations %}
+                        {% if not location.deleted %}
+                        <li>
+                            <div class="location-info">
+                                <a href="/ui/open_location/{{ location.id }}">
+                                    {{ location.name }}
+                                </a>
+                                (Created: {{ location.created_at.strftime('%Y-%m-%d %H:%M:%S') }})
+                            </div>
+                            <div class="location-actions">
+                                <button class="edit" onclick="openEditModal({{ location.id }}, '{{ location.name }}')">Edit</button>
+                                <button class="delete" onclick="moveToRecycleBin({{ location.id }})">Delete</button>
+                            </div>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No locations found.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="recycle-bin" class="tab-content">
+            <div class="location-list">
+                <h2>Recycle Bin</h2>
+                <button class="empty-bin" onclick="emptyRecycleBin()">Empty Recycle Bin</button>
+                
+                {% if locations %}
+                    <ul>
+                    {% for location in locations %}
+                        {% if location.deleted %}
+                        <li>
+                            <div class="location-info">
                                 {{ location.name }}
-                            </a>
-                            (Created: {{ location.created_at.strftime('%Y-%m-%d %H:%M:%S') }})
-                        </div>
-                        <div class="location-actions">
-                            <button class="edit" onclick="openEditModal({{ location.id }}, '{{ location.name }}')">Edit</button>
-                            <button class="delete" onclick="deleteLocation({{ location.id }})">Delete</button>
-                        </div>
-                    </li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <p>No locations found.</p>
-            {% endif %}
+                                (Deleted: {{ location.deleted_at }})
+                            </div>
+                            <div class="location-actions">
+                                <button class="restore" onclick="restoreLocation({{ location.id }})">Restore</button>
+                                <button class="delete-perm" onclick="deleteLocationPermanently({{ location.id }})">Delete Permanently</button>
+                            </div>
+                        </li>
+                        {% endif %}
+
+<script>
+    // Show/hide tabs
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.classList.remove('active');
+        });
+        document.getElementById(tabId).classList.add('active');
+        document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+    }
+
+    // Open edit modal
+    function openEditModal(locationId, locationName) {
+        const modal = document.getElementById('editLocationModal');
+        document.getElementById('locationId').value = locationId;
+        document.getElementById('locationName').value = locationName;
+        modal.style.display = 'block';
+    }
+
+    // Close modal
+    function closeModal() {
+        document.getElementById('editLocationModal').style.display = 'none';
+    }
+
+    // Save location name changes
+    async function saveLocationChanges() {
+        const locationId = document.getElementById('locationId').value;
+        const locationName = document.getElementById('locationName').value;
+        
+        try {
+            const response = await fetch(`/api/edit_location/${locationId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ location_name: locationName })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                closeModal();
+                window.location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    // Move location to recycle bin
+    async function moveToRecycleBin(locationId) {
+        if (!confirm('Are you sure you want to move this location to the recycle bin?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/delete_location/${locationId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                alert('Location moved to recycle bin');
+                window.location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    // Restore location from recycle bin
+    async function restoreLocation(locationId) {
+        try {
+            const response = await fetch(`/api/restore_location/${locationId}`, {
+                method: 'POST'
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                alert('Location restored');
+                window.location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    // Delete location permanently
+    async function deleteLocationPermanently(locationId) {
+        if (!confirm('Are you sure you want to permanently delete this location? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/delete_location/${locationId}?permanent=true`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                alert('Location permanently deleted');
+                window.location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    // Empty recycle bin
+    async function emptyRecycleBin() {
+        if (!confirm('Are you sure you want to empty the recycle bin? All deleted locations will be permanently removed.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/empty_recycle_bin', {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                alert(`Recycle bin emptied. ${data.deleted_count} locations permanently deleted.`);
+                window.location.reload();
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            alert(`Error: ${error.message}`);
+        }
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+        const modal = document.getElementById('editLocationModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+</script>
+
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No deleted locations found.</p>
+                {% endif %}
+            </div>
         </div>
     </div>
 
     <!-- Edit Location Modal -->
+    <div id="editLocationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Edit Location</h2>
+            <input type="hidden" id="locationId">
+            <div>
+                <label for="locationName">Location Name:</label>
+                <input type="text" id="locationName" style="width: 100%; padding: 8px; margin-top: 10px;">
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button onclick="closeModal()" style="background: #ccc;">Cancel</button>
+                <button onclick="saveLocationChanges()" style="background: #4CAF50; color: white; margin-left: 10px;">Save Changes</button>
+            </div>
+        </div>
+    </div>
     <div id="editLocationModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeEditModal()">&times;</span>

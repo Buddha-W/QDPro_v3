@@ -478,25 +478,29 @@ async def load_layers():
                             status_code=500)
 
 @app.get("/api/locations")
-async def get_locations():
+async def get_locations(include_deleted: bool = False):
     """Get list of locations as JSON."""
     try:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         try:
-            cur.execute("""
-                SELECT l.id, l.location_name, l.created_at, COUNT(r.id) as record_count 
+            deleted_clause = "" if include_deleted else "WHERE l.deleted = FALSE"
+            cur.execute(f"""
+                SELECT l.id, l.location_name, l.created_at, COUNT(r.id) as record_count, l.deleted, l.deleted_at
                 FROM locations l 
                 LEFT JOIN records r ON l.id = r.location_id 
-                GROUP BY l.id, l.location_name, l.created_at 
+                {deleted_clause}
+                GROUP BY l.id, l.location_name, l.created_at, l.deleted, l.deleted_at
                 ORDER BY l.created_at DESC
             """)
             locations = [{
                 "id": id,
                 "name": name,
                 "created_at": str(created_at),
-                "record_count": record_count
-            } for id, name, created_at, record_count in cur.fetchall()]
+                "record_count": record_count,
+                "deleted": deleted,
+                "deleted_at": str(deleted_at) if deleted_at else None
+            } for id, name, created_at, record_count, deleted, deleted_at in cur.fetchall()]
             return JSONResponse(content={"locations": locations})
         except Exception as e:
             print(f"Error fetching locations: {e}")
@@ -513,6 +517,11 @@ async def get_locations():
             content={"error": "Failed to connect to database"},
             status_code=500
         )
+
+@app.get("/api/recycle_bin")
+async def get_recycle_bin():
+    """Get list of deleted locations."""
+    return await get_locations(include_deleted=True)
 
 @app.get("/api/load_location/{location_id}")
 async def load_location(location_id: int):
@@ -645,29 +654,104 @@ async def edit_location(location_id: int, request: Request):
         )
 
 @app.delete("/api/delete_location/{location_id}")
-async def delete_location(location_id: int):
-    """Delete a location and all its associated records."""
+async def delete_location(location_id: int, permanent: bool = False):
+    """Move a location to recycle bin or permanently delete it."""
     try:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         try:
             # First check if location exists
-            cur.execute("SELECT id FROM locations WHERE id = %s", (location_id,))
-            if not cur.fetchone():
+            cur.execute("SELECT id, deleted FROM locations WHERE id = %s", (location_id,))
+            result = cur.fetchone()
+            if not result:
                 return JSONResponse(
                     content={"success": False, "error": "Location not found"},
                     status_code=404
                 )
             
-            # Delete the location (cascade will handle associated records)
-            cur.execute("DELETE FROM locations WHERE id = %s", (location_id,))
+            location_id, is_deleted = result
+            
+            if permanent:
+                # Permanently delete the location (cascade will handle associated records)
+                cur.execute("DELETE FROM locations WHERE id = %s", (location_id,))
+                message = "Location permanently deleted"
+            else:
+                # Move to recycle bin
+                cur.execute(
+                    "UPDATE locations SET deleted = TRUE, deleted_at = CURRENT_TIMESTAMP WHERE id = %s", 
+                    (location_id,)
+                )
+                message = "Location moved to recycle bin"
+                
             conn.commit()
-            return JSONResponse(content={"success": True})
+            return JSONResponse(content={"success": True, "message": message})
         finally:
             cur.close()
             conn.close()
     except Exception as e:
-        logger.error(f"Error deleting location: {str(e)}")
+        logger.error(f"Error handling location deletion: {str(e)}")
+        return JSONResponse(
+            content={"success": False, "error": str(e)},
+            status_code=500
+        )
+
+@app.post("/api/restore_location/{location_id}")
+async def restore_location(location_id: int):
+    """Restore a location from the recycle bin."""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        try:
+            # First check if location exists and is deleted
+            cur.execute("SELECT id, deleted FROM locations WHERE id = %s", (location_id,))
+            result = cur.fetchone()
+            if not result:
+                return JSONResponse(
+                    content={"success": False, "error": "Location not found"},
+                    status_code=404
+                )
+            
+            location_id, is_deleted = result
+            
+            if not is_deleted:
+                return JSONResponse(
+                    content={"success": False, "error": "Location is not in recycle bin"},
+                    status_code=400
+                )
+            
+            # Restore the location
+            cur.execute(
+                "UPDATE locations SET deleted = FALSE, deleted_at = NULL WHERE id = %s", 
+                (location_id,)
+            )
+            conn.commit()
+            return JSONResponse(content={"success": True, "message": "Location restored"})
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.error(f"Error restoring location: {str(e)}")
+        return JSONResponse(
+            content={"success": False, "error": str(e)},
+            status_code=500
+        )
+
+@app.delete("/api/empty_recycle_bin")
+async def empty_recycle_bin():
+    """Permanently delete all locations in the recycle bin."""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        try:
+            cur.execute("DELETE FROM locations WHERE deleted = TRUE")
+            count = cur.rowcount
+            conn.commit()
+            return JSONResponse(content={"success": True, "deleted_count": count})
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.error(f"Error emptying recycle bin: {str(e)}")
         return JSONResponse(
             content={"success": False, "error": str(e)},
             status_code=500
@@ -767,7 +851,9 @@ def init_db():
             CREATE TABLE IF NOT EXISTS locations (
                 id SERIAL PRIMARY KEY,
                 location_name VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                deleted BOOLEAN DEFAULT FALSE,
+                deleted_at TIMESTAMP WITH TIME ZONE NULL
             )
         """)
         cur.execute("""

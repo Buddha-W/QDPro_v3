@@ -638,7 +638,7 @@
                         .delete-btn {
                             background-color: #f44336;
                             color: white;
-                            border: none;
+                            border: none;;
                             padding: 5px 10px;
                             border-radius: 3px;
                             cursor: pointer;
@@ -675,6 +675,56 @@
                         link.addEventListener('click', function(e) {
                             e.preventDefault();
                             const locationId = this.getAttribute('data-id');
+                            switchToLocation(locationId);
+                        });
+                    });
+
+                    // Edit and delete functions for locations
+                    window.editLocation = async function(event, locationId, locationName) {
+                        event.stopPropagation();
+                        const newName = prompt("Edit location name:", locationName);
+                        if (newName && newName !== locationName) {
+                            try {
+                                const response = await fetch(`/api/edit_location/${locationId}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ location_name: newName })
+                                });
+                                
+                                const data = await response.json();
+                                if (data.success) {
+                                    loadLocations(); // Refresh the list
+                                } else {
+                                    alert(`Error: ${data.error}`);
+                                }
+                            } catch (error) {
+                                alert(`Error: ${error.message}`);
+                            }
+                        }
+                    };
+
+                    window.deleteLocation = async function(event, locationId) {
+                        event.stopPropagation();
+                        if (confirm("Are you sure you want to move this location to the recycle bin?")) {
+                            try {
+                                const response = await fetch(`/api/delete_location/${locationId}`, {
+                                    method: 'DELETE'
+                                });
+                                
+                                const data = await response.json();
+                                if (data.success) {
+                                    alert("Location moved to recycle bin");
+                                    loadLocations(); // Refresh the list
+                                } else {
+                                    alert(`Error: ${data.error}`);
+                                }
+                            } catch (error) {
+                                alert(`Error: ${error.message}`);
+                            }
+                        }
+                    };te('data-id');
                             loadLocation(locationId);
                             document.getElementById('open-location-modal').style.display = 'none';
                         });
