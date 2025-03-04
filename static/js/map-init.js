@@ -55,8 +55,87 @@ document.addEventListener("DOMContentLoaded", function() {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap contributors'
             }).addTo(window.map);
+
+            // Add the drawn items layer
+            window.drawnItems = new L.FeatureGroup();
+            window.map.addLayer(window.drawnItems);
+            console.log("Added drawn items layer during initialization check");
+        }
+
+        // Verify the map is properly initialized
+        if (window.map) {
+            console.log("Map initialization verified successfully");
+            window.mapInitialized = true;
+
+            // Check if UI Controls initialization function exists and call it
+            console.log("Checking UI controls initialization...");
+            if (typeof initializeUIControls === 'function') {
+                console.log("Found UI controls initialization function, calling it now");
+                initializeUIControls();
+            } else {
+                // Define a simple fallback if needed
+                window.initializeUIControls = function() {
+                    console.log("Fallback UI initialization running...");
+                    setTimeout(function() {
+                        if (typeof setupToolButtons === 'function') {
+                            try {
+                                setupToolButtons();
+                                console.log("Tool buttons set up successfully");
+
+                                // Enable menu items explicitly
+                                const menuItems = document.querySelectorAll('.menu-item, .dropdown-item');
+                                menuItems.forEach(item => {
+                                    item.classList.remove('disabled');
+                                });
+
+                                // Make sure the file menu works
+                                const fileMenu = document.getElementById('file-menu');
+                                if (fileMenu) {
+                                    fileMenu.onclick = function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const dropdown = this.querySelector('.dropdown-content');
+                                        if (dropdown) {
+                                            // Close any other open dropdowns first
+                                            document.querySelectorAll('.dropdown-content').forEach(d => {
+                                                if (d !== dropdown && d.style.display === 'block') {
+                                                    d.style.display = 'none';
+                                                }
+                                            });
+                                            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                                        }
+                                    };
+                                }
+
+                                // Setup all dropdown menu items
+                                const dropdownItems = document.querySelectorAll('.dropdown-item');
+                                dropdownItems.forEach(item => {
+                                    item.addEventListener('click', function(e) {
+                                        e.stopPropagation();
+                                        // Get the parent dropdown to close it after action
+                                        const dropdown = this.closest('.dropdown-content');
+                                        if (dropdown) {
+                                            setTimeout(() => {
+                                                dropdown.style.display = 'none';
+                                            }, 100);
+                                        }
+                                    });
+                                });
+                            } catch (e) {
+                                console.error("Error setting up tool buttons:", e);
+                            }
+                        } else {
+                            console.error("setupToolButtons not found");
+                        }
+                    }, 300); // Increased timeout for better reliability
+                };
+                window.initializeUIControls();
+            }
+        } else {
+            console.error("Leaflet not loaded or map element not found");
         }
     }
+
 
     // Try to verify map initialization
     const initCheck = setInterval(function() {
@@ -64,75 +143,6 @@ document.addEventListener("DOMContentLoaded", function() {
         if (window.map) {
             if (checkMapInitialization()) {
                 clearInterval(initCheck);
-                // Initialize UI controls after map is fully loaded
-                if (window.initializeUIControls && typeof window.initializeUIControls === 'function') {
-                    console.log("Found UI controls initialization function, calling it now");
-                    try {
-                        window.initializeUIControls();
-                        console.log("UI controls initialized via callback");
-                    } catch (e) {
-                        console.error("Error initializing UI controls:", e);
-                    }
-                } else {
-                    console.warn("UI controls initialization function not found");
-                    // Define a simple fallback if needed
-                    window.initializeUIControls = function() {
-                        console.log("Fallback UI initialization from map-init.js");
-                        setTimeout(function() {
-                            if (typeof setupToolButtons === 'function') {
-                                try {
-                                    setupToolButtons();
-                                    console.log("Tool buttons set up successfully");
-                                    
-                                    // Enable menu items explicitly
-                                    const menuItems = document.querySelectorAll('.menu-item, .dropdown-item');
-                                    menuItems.forEach(item => {
-                                        item.classList.remove('disabled');
-                                    });
-                                    
-                                    // Make sure the file menu works
-                                    const fileMenu = document.getElementById('file-menu');
-                                    if (fileMenu) {
-                                        fileMenu.onclick = function(e) {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            const dropdown = this.querySelector('.dropdown-content');
-                                            if (dropdown) {
-                                                // Close any other open dropdowns first
-                                                document.querySelectorAll('.dropdown-content').forEach(d => {
-                                                    if (d !== dropdown && d.style.display === 'block') {
-                                                        d.style.display = 'none';
-                                                    }
-                                                });
-                                                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-                                            }
-                                        };
-                                    }
-                                    
-                                    // Setup all dropdown menu items
-                                    const dropdownItems = document.querySelectorAll('.dropdown-item');
-                                    dropdownItems.forEach(item => {
-                                        item.addEventListener('click', function(e) {
-                                            e.stopPropagation();
-                                            // Get the parent dropdown to close it after action
-                                            const dropdown = this.closest('.dropdown-content');
-                                            if (dropdown) {
-                                                setTimeout(() => {
-                                                    dropdown.style.display = 'none';
-                                                }, 100);
-                                            }
-                                        });
-                                    });
-                                } catch (e) {
-                                    console.error("Error setting up tool buttons:", e);
-                                }
-                            } else {
-                                console.error("setupToolButtons not found");
-                            }
-                        }, 500); // Increased timeout for better reliability
-                    };
-                    window.initializeUIControls();
-                }
             }
         }
     }, 500);
@@ -149,12 +159,12 @@ document.addEventListener("DOMContentLoaded", function() {
 // Make the map globally accessible
 window.getMap = function() {
     return window.map;
-}
+};
 
 // Initialize UI controls when document is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded, initializing UI...");
-    
+
     // Setup close buttons for all dialogs
     const closeButtons = document.querySelectorAll('.close-dialog');
     closeButtons.forEach(function(button) {
@@ -165,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // File menu dropdown toggle
     const fileMenu = document.getElementById('file-menu');
     if (fileMenu) {
@@ -177,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Close all dropdowns when clicking outside
     document.addEventListener('click', function() {
         const dropdowns = document.querySelectorAll('.dropdown-content');
@@ -185,4 +195,4 @@ document.addEventListener('DOMContentLoaded', function() {
             dropdown.classList.remove('show');
         });
     });
-});;
+});
