@@ -1,0 +1,96 @@
+
+/* Top toolbar styles */
+.top-toolbar {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    padding: 5px;
+    display: flex;
+    gap: 5px;
+}
+
+/* Menu styles */
+.menu-bar {
+    display: flex;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.5rem;
+    z-index: 1000;
+}
+
+.menu-item {
+    position: relative;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    margin-right: 1rem;
+    user-select: none;
+}
+
+.menu-item:hover {
+    background-color: #e9ecef;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: white;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1100;
+    left: 0;
+    top: 100%;
+}
+
+.dropdown-item {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f1f1;
+}
+
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tool buttons */
+.tool-button {
+    padding: 6px 10px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tool-button:hover {
+    background-color: #f0f0f0;
+}
+
+.tool-button.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #0069d9;
+}
+
+.tools-container {
+    display: flex;
+    gap: 5px;
+    padding: 5px;
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    margin-bottom: 10px;
+}
