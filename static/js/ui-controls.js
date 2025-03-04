@@ -239,18 +239,18 @@ function setupToolButtons() {
 
     // Create a drawn items group if not already present
     window.drawnItems = window.drawnItems || new L.FeatureGroup();
-    
-    // Check if map has layer using a safer approach
+
+    // Check if layer is already added using a safer approach
     try {
-        // Add the layer if it's not already on the map
-        if (window.map.getLayers && !window.map.getLayers().includes(window.drawnItems)) {
-            window.map.addLayer(window.drawnItems);
-        } else if (!window.drawnItems._map) {
+        if (window.map && window.drawnItems && !window.drawnItems._map) {
             window.map.addLayer(window.drawnItems);
         }
     } catch (e) {
-        console.warn("Could not check if layer exists, adding anyway:", e);
-        window.map.addLayer(window.drawnItems);
+        console.warn("Error checking layer status:", e);
+        // Add layer anyway as fallback
+        if (window.map && typeof window.map.addLayer === 'function') {
+            window.map.addLayer(window.drawnItems);
+        }
     }
 
     function disableAllTools() {
