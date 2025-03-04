@@ -16,6 +16,13 @@ function checkMapInitialization() {
     
     window.mapInitialized = true;
     console.log("Map initialization verified");
+    
+    // Initialize drawn items layer if not already done
+    if (!window.drawnItems) {
+        window.drawnItems = new L.FeatureGroup();
+        window.map.addLayer(window.drawnItems);
+    }
+    
     return true;
 }
 
@@ -29,6 +36,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Initialize UI controls after map is fully loaded
                 if (window.initializeUIControls && typeof window.initializeUIControls === 'function') {
                     window.initializeUIControls();
+                } else {
+                    console.warn("UI controls initialization function not found");
                 }
             }
         }
@@ -43,3 +52,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }, 10000);
 });
 
+// Make the map globally accessible
+window.getMap = function() {
+    return window.map;
+};
