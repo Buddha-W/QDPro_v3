@@ -603,6 +603,76 @@ async def create_location_api(request: Request):
         cur.close()
         conn.close()
 
+@app.post("/api/edit_location/{location_id}")
+async def edit_location(location_id: int, request: Request):
+    """Edit a location name."""
+    try:
+        data = await request.json()
+        new_name = data.get("location_name")
+        
+        if not new_name:
+            return JSONResponse(
+                content={"success": False, "error": "Location name is required"},
+                status_code=400
+            )
+        
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        try:
+            # First check if location exists
+            cur.execute("SELECT id FROM locations WHERE id = %s", (location_id,))
+            if not cur.fetchone():
+                return JSONResponse(
+                    content={"success": False, "error": "Location not found"},
+                    status_code=404
+                )
+            
+            # Update the location name
+            cur.execute(
+                "UPDATE locations SET location_name = %s WHERE id = %s",
+                (new_name, location_id)
+            )
+            conn.commit()
+            return JSONResponse(content={"success": True, "id": location_id, "name": new_name})
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.error(f"Error editing location: {str(e)}")
+        return JSONResponse(
+            content={"success": False, "error": str(e)},
+            status_code=500
+        )
+
+@app.delete("/api/delete_location/{location_id}")
+async def delete_location(location_id: int):
+    """Delete a location and all its associated records."""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        try:
+            # First check if location exists
+            cur.execute("SELECT id FROM locations WHERE id = %s", (location_id,))
+            if not cur.fetchone():
+                return JSONResponse(
+                    content={"success": False, "error": "Location not found"},
+                    status_code=404
+                )
+            
+            # Delete the location (cascade will handle associated records)
+            cur.execute("DELETE FROM locations WHERE id = %s", (location_id,))
+            conn.commit()
+            return JSONResponse(content={"success": True})
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.error(f"Error deleting location: {str(e)}")
+        return JSONResponse(
+            content={"success": False, "error": str(e)},
+            status_code=500
+        )
+
 @app.get("/ui/create_location")
 async def show_create_location(request: Request):
     """Show the create location form."""

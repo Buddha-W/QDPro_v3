@@ -12,10 +12,20 @@
         input[type="text"] { padding: 8px; width: 70%; margin-right: 10px; border: 1px solid #ddd; border-radius: 4px; }
         button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background-color: #45a049; }
+        button.delete { background-color: #f44336; }
+        button.delete:hover { background-color: #d32f2f; }
+        button.edit { background-color: #2196F3; margin-right: 5px; }
+        button.edit:hover { background-color: #0b7dda; }
         ul { list-style-type: none; padding: 0; }
-        li { padding: 10px; margin-bottom: 10px; background-color: #f9f9f9; border-radius: 5px; }
+        li { padding: 10px; margin-bottom: 10px; background-color: #f9f9f9; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .location-info { flex-grow: 1; }
+        .location-actions { display: flex; }
         a { color: #0066cc; text-decoration: none; }
         a:hover { text-decoration: underline; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: white; margin: 15% auto; padding: 20px; border-radius: 5px; width: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: black; }
     </style>
 </head>
 <body>
@@ -36,10 +46,16 @@
                 <ul>
                 {% for location in locations %}
                     <li>
-                        <a href="/ui/open_location/{{ location.id }}">
-                            {{ location.name }}
-                        </a>
-                        (Created: {{ location.created_at.strftime('%Y-%m-%d %H:%M:%S') }})
+                        <div class="location-info">
+                            <a href="/ui/open_location/{{ location.id }}">
+                                {{ location.name }}
+                            </a>
+                            (Created: {{ location.created_at.strftime('%Y-%m-%d %H:%M:%S') }})
+                        </div>
+                        <div class="location-actions">
+                            <button class="edit" onclick="openEditModal({{ location.id }}, '{{ location.name }}')">Edit</button>
+                            <button class="delete" onclick="deleteLocation({{ location.id }})">Delete</button>
+                        </div>
                     </li>
                 {% endfor %}
                 </ul>
@@ -48,5 +64,58 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Edit Location Modal -->
+    <div id="editLocationModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>Edit Location</h2>
+            <form id="editLocationForm" method="POST">
+                <input type="text" id="editLocationName" name="location_name" required>
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Edit location functionality
+        function openEditModal(locationId, locationName) {
+            document.getElementById('editLocationModal').style.display = 'block';
+            document.getElementById('editLocationName').value = locationName;
+            document.getElementById('editLocationForm').action = `/api/edit_location/${locationId}`;
+        }
+
+        function closeEditModal() {
+            document.getElementById('editLocationModal').style.display = 'none';
+        }
+
+        // Delete location functionality
+        function deleteLocation(locationId) {
+            if (confirm('Are you sure you want to delete this location? This action cannot be undone.')) {
+                fetch(`/api/delete_location/${locationId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Location deleted successfully');
+                        window.location.reload();
+                    } else {
+                        alert('Error deleting location: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error);
+                });
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('editLocationModal')) {
+                closeEditModal();
+            }
+        }
+    </script>
 </body>
 </html>
