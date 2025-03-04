@@ -100,24 +100,26 @@ document.addEventListener("DOMContentLoaded", function() {
 function setupToolButtons() {
     console.log("Setting up tool buttons...");
 
+    // First, check if map is properly initialized
+    if (!window.map) {
+        console.error("Map not yet initialized when setting up tool buttons");
+        return; // Exit early, will try again later when map is ready
+    }
+
     // Create a drawn items group if not already present
     window.drawnItems = window.drawnItems || new L.FeatureGroup();
 
     // Safely add the layer to the map if it's not already there
     try {
-        if (window.map && typeof window.map.addLayer === 'function') {
-            // Check if layer is already on the map
-            let layerAlreadyAdded = false;
-            if (window.drawnItems._map && window.drawnItems._map === window.map) {
-                layerAlreadyAdded = true;
-            }
+        // Check if layer is already on the map - don't use hasLayer
+        let layerAlreadyAdded = false;
+        if (window.drawnItems._map && window.drawnItems._map === window.map) {
+            layerAlreadyAdded = true;
+        }
 
-            if (!layerAlreadyAdded) {
-                window.map.addLayer(window.drawnItems);
-                console.log("Added drawn items layer to map");
-            }
-        } else {
-            console.warn("Map or addLayer method not available");
+        if (!layerAlreadyAdded && typeof window.map.addLayer === 'function') {
+            window.map.addLayer(window.drawnItems);
+            console.log("Added drawn items layer to map");
         }
     } catch (e) {
         console.error("Error adding drawn items layer:", e);
