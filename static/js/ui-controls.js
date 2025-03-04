@@ -62,8 +62,6 @@ function setupToolButtons() {
                     console.error("Could not add drawnItems layer:", layerError);
                 }
             }
-                window.map.addLayer(window.drawnItems);
-            }
         } catch (e) {
             console.error("Error adding drawnItems layer:", e);
         }

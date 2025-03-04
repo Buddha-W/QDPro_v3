@@ -37,10 +37,23 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("Leaflet not loaded or map element not found");
     }
     
-    // Check if UI controls initialization function exists
-    if (typeof initializeUIControls === 'function') {
-        console.log("Found UI controls initialization function, calling it now");
-        initializeUIControls();
-        console.log("UI controls initialized via callback");
+    // Make sure map is actually initialized before calling UI functions
+    if (window.map) {
+        console.log("Map is initialized, now handling UI setup");
+        
+        // Create drawnItems if it doesn't exist
+        if (!window.drawnItems) {
+            window.drawnItems = new L.FeatureGroup();
+            window.map.addLayer(window.drawnItems);
+        }
+        
+        // Check if UI controls initialization function exists
+        if (typeof initializeUIControls === 'function') {
+            console.log("Found UI controls initialization function, calling it now");
+            initializeUIControls();
+            console.log("UI controls initialized via callback");
+        }
+    } else {
+        console.error("Map is not initialized properly, cannot setup UI controls");
     }
 });
