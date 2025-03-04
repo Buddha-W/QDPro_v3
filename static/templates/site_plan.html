@@ -189,6 +189,10 @@
     <!-- Use Font Awesome from cdnjs instead -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
     <script>
+        // Define global map variable
+        window.map = null;
+        window.drawnItems = null;
+        
         // Define a global initializeUIControls function first
         window.initializeUIControls = function() {
             console.log("Fallback UI initialization running...");
@@ -197,6 +201,42 @@
     </script>
     <script src="/static/js/ui-controls.js"></script>
     <script src="/static/js/map-init.js"></script>
+    
+    <!-- Ensure map is properly initialized -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Double check map initialization
+            if (!window.map && document.getElementById('map')) {
+                console.log("Initializing map from template");
+                try {
+                    window.map = L.map('map', {
+                        zoomControl: false
+                    }).setView([39.8283, -98.5795], 4);
+                    
+                    // Add base tile layer
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(window.map);
+                    
+                    // Initialize drawn items if it doesn't exist
+                    if (!window.drawnItems) {
+                        window.drawnItems = new L.FeatureGroup();
+                        window.map.addLayer(window.drawnItems);
+                    }
+                    
+                    console.log("Map initialized from template");
+                    
+                    // Initialize UI after map is ready
+                    if (typeof initializeUIControls === 'function') {
+                        setTimeout(initializeUIControls, 100);
+                    }
+                } catch (e) {
+                    console.error("Error initializing map from template:", e);
+                }
+            }
+        });
+    </script>
     <script>
         // Initialize map
         const map = L.map('map', {

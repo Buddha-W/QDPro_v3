@@ -1,4 +1,13 @@
 
+// Define global UI initialization function
+window.initializeUIControls = function() {
+    console.log("UI Controls initialization started...");
+    setupToolButtons();
+    console.log("UI Controls initialized");
+};
+
+
+
 // Global UI control initialization function
 window.initializeUIControls = function() {
     console.log("UI Controls initialized");
@@ -48,7 +57,13 @@ function setupToolButtons() {
     // Check if drawnItems layer is already added to the map
     if (window.drawnItems && window.map) {
         try {
-            // Safer check for hasLayer method
+            // Make sure drawnItems layer is added to the map
+            if (!window.map.hasLayer || typeof window.map.hasLayer !== 'function') {
+                console.log("Map doesn't have hasLayer method, adding drawnItems directly");
+                window.map.addLayer(window.drawnItems);
+            } else if (!window.map.hasLayer(window.drawnItems)) {
+                window.map.addLayer(window.drawnItems);
+            }
             if (window.map.hasLayer && typeof window.map.hasLayer === 'function') {
                 if (!window.map.hasLayer(window.drawnItems)) {
                     window.map.addLayer(window.drawnItems);

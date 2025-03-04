@@ -44,15 +44,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create drawnItems if it doesn't exist
         if (!window.drawnItems) {
             window.drawnItems = new L.FeatureGroup();
-            window.map.addLayer(window.drawnItems);
+            try {
+                window.map.addLayer(window.drawnItems);
+                console.log("Added drawnItems layer to map");
+            } catch (err) {
+                console.error("Error adding drawnItems layer:", err);
+            }
         }
         
-        // Check if UI controls initialization function exists
-        if (typeof initializeUIControls === 'function') {
-            console.log("Found UI controls initialization function, calling it now");
-            initializeUIControls();
-            console.log("UI controls initialized via callback");
-        }
+        // Initialize UI after a short delay to ensure map is fully loaded
+        setTimeout(function() {
+            // Check if UI controls initialization function exists
+            if (typeof initializeUIControls === 'function') {
+                console.log("Found UI controls initialization function, calling it now");
+                initializeUIControls();
+                console.log("UI controls initialized via callback");
+            } else if (typeof setupToolButtons === 'function') {
+                console.log("Found setupToolButtons function, calling it directly");
+                setupToolButtons();
+            } else {
+                console.error("No UI initialization function found");
+            }
+        }, 500);
     } else {
         console.error("Map is not initialized properly, cannot setup UI controls");
     }
