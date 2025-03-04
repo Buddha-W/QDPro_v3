@@ -559,7 +559,10 @@ function setupAfterMapInit() {
             zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
             zoomInButton.title = "Zoom in";
             zoomInButton.onclick = function() {
-                if (window.map) window.map.zoomIn();
+                if (window.map) {
+                    window.map.zoomIn();
+                    console.log("Zoom in clicked");
+                }
             };
 
             const zoomOutButton = document.createElement('button');
@@ -568,7 +571,10 @@ function setupAfterMapInit() {
             zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
             zoomOutButton.title = "Zoom out";
             zoomOutButton.onclick = function() {
-                if (window.map) window.map.zoomOut();
+                if (window.map) {
+                    window.map.zoomOut();
+                    console.log("Zoom out clicked");
+                }
             };
 
             // Insert at the beginning of the toolbar

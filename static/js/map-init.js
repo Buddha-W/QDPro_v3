@@ -51,7 +51,11 @@ document.addEventListener("DOMContentLoaded", function() {
         // Check if map was already created in site_plan.html
         if (!window.map && typeof L.map === 'function') {
             console.log("Creating map fallback instance");
-            window.map = L.map('map').setView([39.8283, -98.5795], 4);
+            window.map = L.map('map', {
+                center: [39.8282, -98.5795],
+                zoom: 4,
+                zoomControl: false // Disable default zoom controls
+            });
 
             // Add a default base layer
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
