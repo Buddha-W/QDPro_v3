@@ -1,0 +1,56 @@
+I’m still getting console errors that are breaking my code, specifically related to a map feature that isn’t loading. The latest errors are:
+
+    [Error] SyntaxError: Can't create duplicate variable: 'drawnItems'
+        This indicates I’ve declared let drawnItems or const drawnItems more than once in the same scope, likely in ui-controls.js or a related file.
+    [Error] SyntaxError: Unexpected token ')'
+        Location: (anonymous function) (fa4f7762-7ea0-4b1c-9dae-803dcd2b3e82-00-18krt1dggw9sn.spock.replit.dev:1009)
+        There’s a syntax error with an extra or misplaced closing parenthesis ) around line 1009.
+
+Context:
+
+    I’m trying to get a map working (possibly using Leaflet or a similar library), and drawnItems might be a layer group or variable tied to map features (e.g., drawn shapes or markers).
+    These errors persist despite previous attempts to fix similar issues (map duplicates and syntax errors), so I need a precise fix.
+
+What I need:
+
+    Eliminate the duplicate drawnItems declaration so it’s defined only once and works with my map.
+    Fix the syntax error at line 1009 so the code runs without crashing.
+    Ensure the map and related features (like drawing tools) load correctly after the fixes.
+
+Instructions:
+
+    Fix the duplicate 'drawnItems':
+        Search my project (likely ui-controls.js or the main JS file) for all instances of let drawnItems or const drawnItems.
+        If there are multiple declarations in the same scope, keep only the first one and remove the others. For example:
+            Wrong:
+            javascript
+
+let drawnItems = L.featureGroup();
+let drawnItems = somethingElse; // Duplicate
+Correct:
+javascript
+
+    let drawnItems = L.featureGroup(); // Single declaration
+    drawnItems = somethingElse; // Reassign without 'let'
+
+If drawnItems is part of a map library (e.g., Leaflet), ensure it’s initialized once and reused, like:
+javascript
+
+        let drawnItems;
+        function initMap() {
+          if (!drawnItems) {
+            drawnItems = L.featureGroup().addTo(map); // Assuming 'map' exists
+            console.log("drawnItems initialized.");
+          }
+        }
+    Fix the unexpected token ')'':
+        Go to line 1009 in the file causing the error (check ui-controls.js or related scripts if the file ID isn’t clear).
+        Look for a syntax error with parentheses, such as:
+            Wrong: someFunction()))
+            Correct: someFunction()
+        Check lines 1008–1010 for incomplete statements, extra ), or missing (. Fix the mismatch.
+    Test the map:
+        After resolving these, run the project and check if the map loads and any drawing features (tied to drawnItems) work.
+        Add a console.log("Map and drawnItems loaded."); after initialization to confirm it’s working.
+
+Please locate these exact issues in my code, apply the fixes, and test that the map loads without errors. Tell me exactly what you changed (file name, line numbers, and code snippets) so I can verify it. I’m frustrated because previous fixes haven’t worked, so please be thorough. Thanks!
