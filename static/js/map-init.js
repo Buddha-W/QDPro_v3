@@ -75,41 +75,52 @@ document.addEventListener("DOMContentLoaded", function() {
             } else {
                 // Define a simple fallback if needed
                 window.initializeUIControls = function() {
-                    console.log("Fallback UI initialization from map-init.js");
-
-                    // Remove default zoom control first
-                    if (window.map) {
-                        window.map.removeControl(window.map.zoomControl);
-                    }
-
+                    console.log("Fallback UI initialization running...");
                     setTimeout(function() {
                         if (typeof setupToolButtons === 'function') {
                             try {
                                 setupToolButtons();
                                 console.log("Tool buttons set up successfully");
 
-                                // Add zoom control to toolbar
-                                const toolbarContainer = document.getElementById('toolbar-container');
-                                if (toolbarContainer) {
-                                    const zoomInButton = document.createElement('button');
-                                    zoomInButton.className = 'toolbar-button';
-                                    zoomInButton.title = 'Zoom In';
-                                    zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i>';
-                                    zoomInButton.onclick = function() {
-                                        if (window.map) window.map.zoomIn();
-                                    };
+                                // Enable menu items explicitly
+                                const menuItems = document.querySelectorAll('.menu-item, .dropdown-item');
+                                menuItems.forEach(item => {
+                                    item.classList.remove('disabled');
+                                });
 
-                                    const zoomOutButton = document.createElement('button');
-                                    zoomOutButton.className = 'toolbar-button';
-                                    zoomOutButton.title = 'Zoom Out';
-                                    zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i>';
-                                    zoomOutButton.onclick = function() {
-                                        if (window.map) window.map.zoomOut();
+                                // Make sure the file menu works
+                                const fileMenu = document.getElementById('file-menu');
+                                if (fileMenu) {
+                                    fileMenu.onclick = function(e) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const dropdown = this.querySelector('.dropdown-content');
+                                        if (dropdown) {
+                                            // Close any other open dropdowns first
+                                            document.querySelectorAll('.dropdown-content').forEach(d => {
+                                                if (d !== dropdown && d.style.display === 'block') {
+                                                    d.style.display = 'none';
+                                                }
+                                            });
+                                            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                                        }
                                     };
-
-                                    toolbarContainer.appendChild(zoomInButton);
-                                    toolbarContainer.appendChild(zoomOutButton);
                                 }
+
+                                // Setup all dropdown menu items
+                                const dropdownItems = document.querySelectorAll('.dropdown-item');
+                                dropdownItems.forEach(item => {
+                                    item.addEventListener('click', function(e) {
+                                        e.stopPropagation();
+                                        // Get the parent dropdown to close it after action
+                                        const dropdown = this.closest('.dropdown-content');
+                                        if (dropdown) {
+                                            setTimeout(() => {
+                                                dropdown.style.display = 'none';
+                                            }, 100);
+                                        }
+                                    });
+                                });
                             } catch (e) {
                                 console.error("Error setting up tool buttons:", e);
                             }
