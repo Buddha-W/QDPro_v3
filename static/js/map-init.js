@@ -28,6 +28,9 @@ function checkMapInitialization() {
             window.drawnItems = new L.FeatureGroup();
             window.map.addLayer(window.drawnItems);
             console.log("Added drawn items layer during initialization check");
+
+            // Initialize selected layer variable
+            window.selectedLayer = null;
         } catch (e) {
             console.error("Error creating drawn items layer:", e);
         }
@@ -83,13 +86,13 @@ document.addEventListener("DOMContentLoaded", function() {
                                 try {
                                     setupToolButtons();
                                     console.log("Tool buttons set up successfully");
-                                    
+
                                     // Enable menu items explicitly
                                     const menuItems = document.querySelectorAll('.menu-item, .dropdown-item');
                                     menuItems.forEach(item => {
                                         item.classList.remove('disabled');
                                     });
-                                    
+
                                     // Make sure the file menu works
                                     const fileMenu = document.getElementById('file-menu');
                                     if (fileMenu) {
@@ -108,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                             }
                                         };
                                     }
-                                    
+
                                     // Setup all dropdown menu items
                                     const dropdownItems = document.querySelectorAll('.dropdown-item');
                                     dropdownItems.forEach(item => {

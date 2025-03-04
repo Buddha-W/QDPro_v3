@@ -347,7 +347,7 @@
                 }
             });
         }
-        
+
         // Add file-new functionality
         const fileNewBtn = document.getElementById('file-new');
         if (fileNewBtn) {
@@ -894,7 +894,7 @@
 
                     if (bounds.isValid()) {
                         map.fitBounds(bounds);
-                    }
+                                        }
                 })
                 .catch(error => {
                     console.error('Error loading location:', error);
@@ -947,6 +947,89 @@
             // Initialize layers list
             updateLayersList();
         }
+
+        // Add event listeners for toolbar buttons
+        document.getElementById('toggle-draw-polygon').addEventListener('click', function() {
+            toggleDrawControl('polygon');
+        });
+        document.getElementById('toggle-draw-rectangle').addEventListener('click', function() {
+            toggleDrawControl('rectangle');
+        });
+        document.getElementById('toggle-draw-marker').addEventListener('click', function() {
+            toggleDrawControl('marker');
+        });
+        document.getElementById('toggle-edit').addEventListener('click', function() {
+            toggleEditMode();
+        });
+        document.getElementById('toggle-delete').addEventListener('click', function() {
+            toggleDeleteMode();
+        });
+        document.getElementById('add-new-layer').addEventListener('click', function() {
+            // Placeholder for adding new layer functionality
+            alert("Adding new layers is currently under development");
+        });
+
+        // Add event listeners for menu items
+        document.getElementById('new-project').addEventListener('click', function() {
+            // Placeholder for new project functionality
+            alert("Creating new projects is currently under development");
+        });
+        document.getElementById('open-location').addEventListener('click', function() {
+            openLocationModal();
+        });
+        document.getElementById('save-project').addEventListener('click', function() {
+            saveProject();
+        });
+        document.getElementById('export-data').addEventListener('click', function() {
+            // Placeholder for exporting data functionality
+            alert("Exporting data is currently under development");
+        });
+        document.getElementById('undo').addEventListener('click', function() {
+            // Placeholder for undo functionality
+            alert("Undo functionality is currently under development");
+        });
+        document.getElementById('redo').addEventListener('click', function() {
+            // Placeholder for redo functionality
+            alert("Redo functionality is currently under development");
+        });
+        document.getElementById('delete-selected').addEventListener('click', function() {
+            // Placeholder for delete selected functionality
+            alert("Delete selected functionality is currently under development");
+        });
+        document.getElementById('select-all').addEventListener('click', function() {
+            // Placeholder for select all functionality
+            alert("Select all functionality is currently under development");
+        });
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            map.zoomIn();
+        });
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            map.zoomOut();
+        });
+        document.getElementById('reset-view').addEventListener('click', function() {
+            map.setView([39.8283, -98.5795], 4);
+        });
+        document.getElementById('measure-distance').addEventListener('click', function() {
+            // Placeholder for measure distance functionality
+            alert("Measuring distance is currently under development");
+        });
+        document.getElementById('calculate-qd').addEventListener('click', function() {
+            // Placeholder for calculate QD functionality
+            alert("Calculating QD is currently under development");
+        });
+        document.getElementById('generate-report').addEventListener('click', function() {
+            // Placeholder for generate report functionality
+            alert("Generating reports is currently under development");
+        });
+        document.getElementById('user-guide').addEventListener('click', function() {
+            // Placeholder for user guide functionality
+            alert("User guide is currently under development");
+        });
+        document.getElementById('about').addEventListener('click', function() {
+            // Placeholder for about functionality
+            alert("About section is currently under development");
+        });
+
 
         // Start the application
         initUI();

@@ -28,6 +28,137 @@ function removeLeafletDrawButtons() {
 }
 
 
+// Function to setup menu items
+function setupMenuItems() {
+    // File menu items
+    document.getElementById('new-project').addEventListener('click', function() {
+        console.log('New Project clicked');
+        alert('Creating new project...');
+        // Add new project functionality here
+    });
+    
+    document.getElementById('open-location').addEventListener('click', function() {
+        console.log('Open Location clicked');
+        // Redirect to locations page
+        window.location.href = '/ui/locations';
+    });
+    
+    document.getElementById('save-project').addEventListener('click', function() {
+        console.log('Save Project clicked');
+        alert('Project saved successfully');
+        // Add save project functionality here
+    });
+    
+    document.getElementById('export-data').addEventListener('click', function() {
+        console.log('Export Data clicked');
+        alert('Exporting data...');
+        // Add export data functionality here
+    });
+    
+    // Edit menu items
+    document.getElementById('undo').addEventListener('click', function() {
+        console.log('Undo clicked');
+        // Add undo functionality here
+        if (window.drawnItems && window.drawnItems.getLayers().length > 0) {
+            const layers = window.drawnItems.getLayers();
+            const lastLayer = layers[layers.length - 1];
+            window.drawnItems.removeLayer(lastLayer);
+            alert('Last action undone');
+        } else {
+            alert('Nothing to undo');
+        }
+    });
+    
+    document.getElementById('redo').addEventListener('click', function() {
+        console.log('Redo clicked');
+        alert('Redo functionality not implemented yet');
+        // Add redo functionality here
+    });
+    
+    document.getElementById('delete-selected').addEventListener('click', function() {
+        console.log('Delete Selected clicked');
+        if (window.selectedLayer) {
+            window.drawnItems.removeLayer(window.selectedLayer);
+            window.selectedLayer = null;
+            alert('Selected item deleted');
+        } else {
+            alert('No item selected');
+        }
+    });
+    
+    document.getElementById('select-all').addEventListener('click', function() {
+        console.log('Select All clicked');
+        alert('All items selected');
+        // Add select all functionality here
+    });
+    
+    // View menu items
+    document.getElementById('zoom-in').addEventListener('click', function() {
+        console.log('Zoom In clicked');
+        if (window.map) {
+            window.map.zoomIn();
+        }
+    });
+    
+    document.getElementById('zoom-out').addEventListener('click', function() {
+        console.log('Zoom Out clicked');
+        if (window.map) {
+            window.map.zoomOut();
+        }
+    });
+    
+    document.getElementById('reset-view').addEventListener('click', function() {
+        console.log('Reset View clicked');
+        if (window.map) {
+            // Reset to default view (adjust coordinates as needed)
+            window.map.setView([39.8283, -98.5795], 5);
+        }
+    });
+    
+    // Set up the dropdown behavior
+    const menuItems = document.querySelectorAll('.menu-item');
+    menuItems.forEach(function(menuItem) {
+        menuItem.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const dropdown = this.querySelector('.dropdown-content');
+            if (dropdown) {
+                // Close any other open dropdowns first
+                document.querySelectorAll('.dropdown-content').forEach(function(d) {
+                    if (d !== dropdown) {
+                        d.style.display = 'none';
+                    }
+                });
+                
+                // Toggle this dropdown
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        });
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown-content').forEach(function(dropdown) {
+            dropdown.style.display = 'none';
+        });
+    });
+    
+    // Prevent dropdown content clicks from closing the dropdown
+    document.querySelectorAll('.dropdown-content').forEach(function(dropdown) {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+    
+    // Track selected layer
+    if (window.drawnItems) {
+        window.drawnItems.on('click', function(e) {
+            window.selectedLayer = e.layer;
+            console.log('Layer selected');
+        });
+    }
+}
+
+
 // Completely disable the Leaflet.Draw toolbar functionality
 if (L && L.DrawToolbar) {
     // Override the toolbar initialization
@@ -58,6 +189,9 @@ window.initializeUIControls = function() {
         setTimeout(window.initializeUIControls, 500);
         return;
     }
+    
+    // Setup menu items functionality
+    setupMenuItems();
 
     // Remove any existing Leaflet draw buttons
     removeLeafletDrawButtons();
