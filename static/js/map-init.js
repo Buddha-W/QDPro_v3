@@ -37,6 +37,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Check if UI controls initialization function exists
                     if (typeof window.initializeUIControls === 'function') {
                         console.log("Found UI controls initialization function, calling it now");
+                        
+                        // Make sure drawnItems is initialized
+                        if (!window.drawnItems) {
+                            window.drawnItems = new L.FeatureGroup();
+                            window.map.addLayer(window.drawnItems);
+                        }
+                        
                         window.initializeUIControls();
                         console.log("UI controls initialized via callback");
                     } else {

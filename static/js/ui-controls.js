@@ -41,6 +41,81 @@ function setupToolButtons() {
 function setupMenuItems() {
     console.log("Setting up menu items...");
     
+    // Get all dropdown items
+    const menuItems = document.querySelectorAll('.dropdown-item');
+    
+    if (menuItems.length === 0) {
+        console.error("No menu items found");
+        return;
+    }
+    
+    console.log(`Found ${menuItems.length} menu items`);
+    
+    // Add click event listeners to each menu item
+    menuItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const action = this.getAttribute('data-action');
+            handleMenuAction(action, this);
+        });
+        console.log(`Added listener to menu item: ${item.getAttribute('data-action')}`);
+    });
+}
+
+// Function to handle menu actions
+function handleMenuAction(action, element) {
+    console.log(`Menu action triggered: ${action}`);
+    
+    switch(action) {
+        case 'new-project':
+            alert("Creating new project...");
+            // Add new project functionality here
+            break;
+        case 'open-location':
+            alert("Opening location...");
+            // Add open location functionality here
+            break;
+        case 'save-project':
+            alert("Saving project...");
+            // Add save project functionality here
+            break;
+        case 'export-data':
+            alert("Exporting data...");
+            // Add export data functionality here
+            break;
+        case 'undo':
+            alert("Undo operation...");
+            // Add undo functionality here
+            break;
+        case 'redo':
+            alert("Redo operation...");
+            // Add redo functionality here
+            break;
+        case 'delete-selected':
+            alert("Deleting selected items...");
+            // Add delete selected functionality here
+            break;
+        case 'select-all':
+            alert("Selecting all items...");
+            // Add select all functionality here
+            break;
+        case 'zoom-in':
+            if (window.map) {
+                window.map.zoomIn();
+            }
+            break;
+        case 'zoom-out':
+            if (window.map) {
+                window.map.zoomOut();
+            }
+            break;
+        default:
+            console.log(`Unhandled action: ${action}`);
+    }
+}
+function setupMenuItems() {
+    console.log("Setting up menu items...");
+    
     // Get all menu items
     const menuItems = document.querySelectorAll('.menu-item');
     
