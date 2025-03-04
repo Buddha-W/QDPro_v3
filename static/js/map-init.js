@@ -274,3 +274,199 @@ if (typeof window.activateTool !== 'function') {
         return null;
     };
 }
+// Map initialization script for QDPro
+console.log("Document loaded, initializing map...");
+
+let map;
+let drawnItems;
+let drawControl;
+
+// Initialize the map when the document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Initializing map...");
+  initializeMap();
+});
+
+// Main map initialization function
+function initializeMap() {
+  // Check if map is already initialized
+  if (window.map) {
+    console.log("Map already initialized, returning existing instance");
+    return window.map;
+  }
+  
+  // Create the map instance
+  map = L.map('map', {
+    center: [39.8282, -98.5795], // Center of USA
+    zoom: 5,
+    zoomControl: false,
+    attributionControl: true
+  });
+  
+  // Add zoom control to bottom right
+  L.control.zoom({
+    position: 'bottomright'
+  }).addTo(map);
+  
+  // Add base layers
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  });
+  
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+  });
+  
+  const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+  });
+  
+  // Add the OSM layer to the map by default
+  osmLayer.addTo(map);
+  
+  // Create a layer for drawn items
+  drawnItems = new L.FeatureGroup();
+  map.addLayer(drawnItems);
+  
+  // Initialize the draw control and add it to the map
+  drawControl = new L.Control.Draw({
+    position: 'topright',
+    draw: {
+      polyline: false,
+      polygon: {
+        allowIntersection: false,
+        drawError: {
+          color: '#e1e100',
+          message: '<strong>Drawing error!</strong> Polygons cannot intersect.'
+        },
+        shapeOptions: {
+          color: '#3388ff'
+        }
+      },
+      circle: {
+        shapeOptions: {
+          color: '#3388ff'
+        }
+      },
+      rectangle: {
+        shapeOptions: {
+          color: '#3388ff'
+        }
+      }
+    },
+    edit: {
+      featureGroup: drawnItems,
+      remove: true
+    }
+  });
+  
+  // Don't add the control directly to the map, we'll use our custom buttons instead
+  // map.addControl(drawControl);
+  
+  // Create base layers control
+  const baseLayers = {
+    "OpenStreetMap": osmLayer,
+    "Satellite": satelliteLayer,
+    "Topographic": topoLayer
+  };
+  
+  // Add layer control to the map (only for base layers)
+  L.control.layers(baseLayers, null, {
+    position: 'bottomleft',
+    collapsed: false
+  }).addTo(map);
+  
+  // Setup event handlers for draw events
+  map.on('draw:created', function(e) {
+    const layer = e.layer;
+    
+    // Create default feature properties
+    layer.feature = {
+      type: 'Feature',
+      properties: {
+        name: 'New Feature',
+        type: 'Other',
+        description: 'Feature description'
+      },
+      geometry: layer.toGeoJSON().geometry
+    };
+    
+    // Add the layer to the feature group
+    drawnItems.addLayer(layer);
+    
+    // Bind a popup to the layer
+    layer.bindPopup(createPopupContent(layer.feature.properties));
+    
+    // Open the edit popup for the newly created layer
+    openEditPopup(layer);
+  });
+  
+  // Event handlers for edited features
+  map.on('draw:edited', function(e) {
+    const layers = e.layers;
+    layers.eachLayer(function(layer) {
+      // Update geometry in the feature object
+      if (layer.feature && layer.feature.geometry) {
+        layer.feature.geometry = layer.toGeoJSON().geometry;
+      }
+    });
+  });
+  
+  // Save references to global window object for access by other scripts
+  window.map = map;
+  window.drawnItems = drawnItems;
+  window.drawControl = drawControl;
+  
+  console.log("Map initialized successfully");
+  
+  // Initialize UI controls after map is ready
+  initializeUI();
+  
+  return map;
+}
+
+// Initialize UI after map is ready
+function initializeUI() {
+  console.log("Initializing UI...");
+  
+  // If UI controls initialization function exists, call it
+  if (typeof initializeUIControls === 'function') {
+    console.log("Found UI controls initialization function, calling it now");
+    initializeUIControls();
+  } else {
+    console.log("Fallback UI initialization running...");
+    // Fallback implementation for basic UI functionality
+    document.querySelectorAll('.draw-tool').forEach(button => {
+      button.addEventListener('click', function() {
+        const toolType = this.getAttribute('data-tool');
+        activateDrawTool(toolType);
+      });
+    });
+  }
+}
+
+// Helper function for popup content if not defined elsewhere
+function createPopupContent(properties) {
+  if (typeof window.createPopupContent === 'function') {
+    return window.createPopupContent(properties);
+  }
+  
+  let content = '<div class="feature-popup">';
+  
+  if (properties.name) {
+    content += `<h4>${properties.name}</h4>`;
+  }
+  
+  if (properties.type) {
+    content += `<p><strong>Type:</strong> ${properties.type}</p>`;
+  }
+  
+  if (properties.description) {
+    content += `<p>${properties.description}</p>`;
+  }
+  
+  content += `<button class="popup-edit-btn">Edit</button>`;
+  content += '</div>';
+  
+  return content;
+}
