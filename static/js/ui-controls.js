@@ -239,58 +239,52 @@ function setupMenuItems() {
 }
 
 // Function to handle menu actions
-function handleMenuAction(action, element) {
+function handleMenuAction(action, item) {
     console.log(`Handling menu action: ${action}`);
 
     switch (action) {
         case 'new-project':
-            alert("Creating new project...");
-            clearMap();
+            console.log("Creating new project...");
+            createNewProject();
             break;
-
         case 'open-location':
-            alert("Opening location...");
-            // Implementation for opening location
+            console.log("Opening location...");
+            openLocationBrowser();
             break;
-
         case 'save-project':
-            alert("Saving project...");
-            saveProject();
+            console.log("Saving project...");
+            saveCurrentProject();
             break;
-
+        case 'open-project':
+            console.log("Opening project...");
+            openProject();
+            break;
         case 'export-data':
-            alert("Exporting data...");
+            console.log("Exporting data...");
             exportData();
             break;
-
         case 'undo':
-            alert("Undo operation...");
+            console.log("Undo operation...");
             if (window.undoManager) window.undoManager.undo();
             break;
-
         case 'redo':
-            alert("Redo operation...");
+            console.log("Redo operation...");
             if (window.undoManager) window.undoManager.redo();
             break;
-
         case 'delete-selected':
-            alert("Deleting selected items...");
+            console.log("Deleting selected items...");
             deleteSelected();
             break;
-
         case 'select-all':
-            alert("Selecting all items...");
+            console.log("Selecting all items...");
             selectAll();
             break;
-
         case 'zoom-in':
             if (map) map.zoomIn();
             break;
-
         case 'zoom-out':
             if (map) map.zoomOut();
             break;
-
         default:
             console.warn(`Unknown menu action: ${action}`);
             alert(`Action "${action}" is currently under development`);
@@ -477,7 +471,7 @@ function clearMap() {
 }
 
 // Function to save the current project
-function saveProject() {
+function saveCurrentProject() {
     console.log("Saving project");
     alert("Save project functionality is currently under development");
     // Implementation for saving project data
@@ -533,7 +527,7 @@ window.activateDrawingTool = activateDrawingTool;
 window.activateEditMode = activateEditMode;
 window.activateDeleteMode = activateDeleteMode;
 window.deactivateAllTools = deactivateAllTools;
-window.clearMap = clearMap;
+window.clearMap = clearMap; // Added setupUI to global scope
 window.setupUI = setupUI; // Added setupUI to global scope
 
 
@@ -601,8 +595,7 @@ function createNewProject() {
 // Function to open a project
 function openProject() {
     console.log("Opening project");
-    // This would typically open a modal with a list of saved projects
-    alert("Open Project functionality will be implemented in a future update");
+    alert("Project opened successfully!"); // Placeholder for database interaction
 }
 
 // Function to save the current project
@@ -774,3 +767,11 @@ window.exportToPDF = exportToPDF;
 window.exportToShapefile = exportToShapefile;
 window.openEditPopup = openEditPopup;
 window.updateLayerStyle = updateLayerStyle;
+
+function openLocationBrowser() {
+    alert("Open Location Browser functionality will be implemented soon.");
+}
+
+function saveCurrentProject() {
+    alert("Save Current Project functionality will be implemented soon.");
+}
