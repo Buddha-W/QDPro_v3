@@ -78,11 +78,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     // Define a simple fallback if needed
                     window.initializeUIControls = function() {
                         console.log("Fallback UI initialization from map-init.js");
-                        if (typeof setupToolButtons === 'function') {
-                            setupToolButtons();
-                        } else {
-                            console.error("setupToolButtons not found");
-                        }
+                        setTimeout(function() {
+                            if (typeof setupToolButtons === 'function') {
+                                setupToolButtons();
+                            } else {
+                                console.error("setupToolButtons not found");
+                            }
+                        }, 100);
                     };
                     window.initializeUIControls();
                 }

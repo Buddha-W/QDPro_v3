@@ -98,6 +98,10 @@ window.initializeUIControls = function() {
     };
 
 function setupToolButtons() {
+    if (!window.map) {
+        console.log("Map is not initialized.");
+        return;
+    }
     console.log("Setting up tool buttons...");
     if (!window.map) {
         console.warn("Map is not initialized.");
