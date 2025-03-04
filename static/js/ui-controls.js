@@ -4,7 +4,8 @@
 let activeDrawingTool = null;
 let isEditMode = false;
 let isDeleteMode = false;
-let map = null;
+// Don't redeclare map, just use the global one
+// let map = null;
 let drawnItems = null;
 
 // Internal database object
@@ -37,13 +38,15 @@ function activateTool(toolName) {
     return database;
 }
 
+// Make activateTool function globally available
+window.activateTool = activateTool;
+
 // Function to initialize UI controls
 function initializeUIControls() {
     console.log("UI Controls initialized");
 
-    // Initialize map if it exists in window object
+    // Use the global map directly
     if (window.map) {
-        map = window.map;
         console.log("Map found in window object");
     } else {
         console.error("Map not found in window object");
@@ -58,7 +61,7 @@ function initializeUIControls() {
         console.error("Drawn items not found in window object");
         // Create drawn items layer if it doesn't exist
         drawnItems = new L.FeatureGroup();
-        map.addLayer(drawnItems);
+        window.map.addLayer(drawnItems);
         window.drawnItems = drawnItems;
     }
 
@@ -739,7 +742,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Store references to map and drawn items when available
     window.addEventListener('map_initialized', function() {
         console.log("Map initialized event received");
-        map = window.map;
         drawnItems = window.drawnItems;
         setupUI();
     });
@@ -747,7 +749,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize UI controls (this function will be called from map-init.js)
     window.initializeUIControls = function() {
         console.log("initializeUIControls called");
-        map = window.map;
         drawnItems = window.drawnItems;
         setupUI();
     };

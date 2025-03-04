@@ -352,9 +352,13 @@
     <!-- Use Font Awesome from cdnjs instead -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
     <script>
-        // Define global map variable
-        window.map = null;
-        window.drawnItems = null;
+        // Only define map and drawnItems if they don't already exist
+        if (window.map === undefined) {
+            window.map = null;
+        }
+        if (window.drawnItems === undefined) {
+            window.drawnItems = null;
+        }
 
         // Define a global initializeUIControls function first
         window.initializeUIControls = function() {
