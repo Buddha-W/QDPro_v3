@@ -14,144 +14,44 @@ document.addEventListener('DOMContentLoaded', function() {
 function initMap() {
     console.log("Initializing map...");
 
-    try {
-        // Create a map instance
-        const mapOptions = {
-            center: [39.8283, -98.5795], // Center of the US
-            zoom: 5,
-            zoomControl: true,
-            attributionControl: true
-        };
-
-        // Initialize the map
-        window.map = L.map('map', mapOptions);
-
-        // Initialize feature groups for different types of layers
-        window.drawnItems = new L.FeatureGroup();
-        window.map.addLayer(window.drawnItems);
-
-        window.featureGroups = {
-            facilities: new L.FeatureGroup(),
-            safetyArcs: new L.FeatureGroup(),
-            pesLocations: new L.FeatureGroup(),
-            esLocations: new L.FeatureGroup()
-        };
-
-        // Add feature groups to the map
-        for (const groupName in window.featureGroups) {
-            window.map.addLayer(window.featureGroups[groupName]);
-            window.drawnItems.addLayer(window.featureGroups[groupName]);
-        }
-
-        // Add base layers
-        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        });
-
-        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: '&copy; <a href="https://www.esri.com/">Esri</a>',
-            maxZoom: 19
-        });
-
-        const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors',
-            maxZoom: 17
-        });
-
-        // Add the OSM layer to the map by default
-        osmLayer.addTo(window.map);
-
-        // Create a layer control
-        const baseLayers = {
-            "Standard": osmLayer,
-            "Satellite": satelliteLayer,
-            "Topographic": topoLayer
-        };
-
-        L.control.layers(baseLayers, null, {
-            position: 'topright',
-            collapsed: true
-        }).addTo(window.map);
-
-        // Set up draw controls
-        const drawControls = new L.Control.Draw({
-            position: 'topleft',
-            draw: {
-                polyline: false,
-                polygon: false,
-                circle: false,
-                rectangle: false,
-                marker: false,
-                circlemarker: false
-            },
-            edit: {
-                featureGroup: window.drawnItems,
-                edit: false,
-                remove: false
-            }
-        });
-
-        window.map.addControl(drawControls);
-
-        // Initialize UI
-        initUI();
-
-        console.log("Map initialized successfully");
-
-    } catch (error) {
-        console.error("Error initializing map:", error);
+    // Check if map has already been initialized
+    if (window.map) {
+        console.log("Map already initialized, returning existing instance");
+        return window.map;
     }
+
+    // Create map instance centered on a default location
+    const map = L.map('map', {
+        center: [33.7490, -84.3880], // Default to Atlanta
+        zoom: 13,
+        zoomControl: true,
+        doubleClickZoom: false
+    });
+
+    // Make the map accessible globally
+    window.map = map;
+
+    return map;
 }
 
-// Initialize UI
+// Initialize UI components
 function initUI() {
     console.log("Initializing UI...");
 
-    // Initialize UI after a short delay to ensure map is fully loaded
-    setTimeout(function() {
-        // Make sure map and drawnItems are properly initialized
-        if (!window.drawnItems) {
-            window.drawnItems = new L.FeatureGroup();
-            window.map.addLayer(window.drawnItems);
-        }
+    // Ensure map is initialized first
+    if (!window.map) {
+        console.log("Map not initialized, initializing now");
+        initMap();
+    }
 
-        // Add draw:created event listener to the map
-        window.map.on('draw:created', function(e) {
-            console.log("Layer created:", e.layerType);
-            window.drawnItems.addLayer(e.layer);
-        });
-
-        // Make sure the map object has all needed functions
-        if (!window.map.hasLayer) {
-            console.warn("Map missing hasLayer function, adding compatibility");
-            window.map.hasLayer = function(layer) {
-                return this._layers && Object.values(this._layers).includes(layer);
-            };
-        }
-
-        // Check if UI controls initialization function exists
-        if (typeof window.initializeUIControls === 'function') {
-            console.log("Found UI controls initialization function, calling it now");
-            try {
-                window.initializeUIControls();
-                console.log("UI controls initialized via direct call");
-            } catch (error) {
-                console.error("Error initializing UI controls:", error);
-            }
-        } else {
-            console.error("UI initialization function not found");
-            // Load UI controls script if it doesn't exist
-            const script = document.createElement('script');
-            script.src = '/static/js/ui-controls.js';
-            script.onload = function() {
-                console.log("UI controls script loaded dynamically");
-                if (typeof window.initializeUIControls === 'function') {
-                    window.initializeUIControls();
-                }
-            };
-            document.head.appendChild(script);
-        }
-    }, 1000);
+    // Call UI initialization function if available
+    if (typeof window.initializeUIControls === 'function') {
+        console.log("Found UI controls initialization function, calling it now");
+        window.initializeUIControls();
+    } else {
+        console.log("Fallback UI initialization running...");
+        // Fallback initialization if UI controls not loaded
+    }
 }
 
 // Add event handlers for map created items
