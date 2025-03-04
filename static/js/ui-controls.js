@@ -40,10 +40,12 @@ window.initializeUIControls = function() {
     console.log("Initializing UI controls...");
 
     // Check if map is available first
-        if (!window.map) {
-            console.error("Map not available for UI controls initialization");
-            return;
-        }
+    if (!window.map) {
+        console.error("Map not available for UI controls initialization");
+        // Retry after a short delay
+        setTimeout(window.initializeUIControls, 500);
+        return;
+    }
 
         // Remove any existing Leaflet draw buttons
         removeLeafletDrawButtons();
