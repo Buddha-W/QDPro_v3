@@ -305,17 +305,68 @@
         });
 
         // Menu item functionality
-        document.getElementById('new-project').addEventListener('click', function() {
-            document.getElementById('new-project-modal').style.display = 'block';
-        });
+        const newProjectBtn = document.getElementById('new-project');
+        if (newProjectBtn) {
+            newProjectBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const modal = document.getElementById('new-project-modal');
+                if (modal) {
+                    modal.style.display = 'block';
+                } else {
+                    console.error("New project modal not found");
+                    alert("Create new project functionality is being set up.");
+                }
+            });
+        }
 
-        document.getElementById('open-location').addEventListener('click', function() {
-            openLocationModal();
-        });
+        const openLocationBtn = document.getElementById('open-location');
+        if (openLocationBtn) {
+            openLocationBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof openLocationModal === 'function') {
+                    openLocationModal();
+                } else {
+                    console.error("openLocationModal function not found");
+                    alert("Open location functionality is being set up.");
+                }
+            });
+        }
 
-        document.getElementById('save-project').addEventListener('click', function() {
-            saveProject();
-        });
+        const saveProjectBtn = document.getElementById('save-project');
+        if (saveProjectBtn) {
+            saveProjectBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof saveProject === 'function') {
+                    saveProject();
+                } else {
+                    console.error("saveProject function not found");
+                    alert("Save project functionality is being set up.");
+                }
+            });
+        }
+        
+        // Add file-new functionality
+        const fileNewBtn = document.getElementById('file-new');
+        if (fileNewBtn) {
+            fileNewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (confirm("Create new location? Current work will be lost if unsaved.")) {
+                    // Clear the current layers
+                    if (window.drawnItems) {
+                        window.drawnItems.clearLayers();
+                    }
+                    // Reset any form or status displays
+                    const locationDisplay = document.getElementById('current-location-display');
+                    if (locationDisplay) {
+                        locationDisplay.textContent = 'Location: New (Unsaved)';
+                    }
+                }
+            });
+        }
 
         // Update coordinates in status bar
         map.on('mousemove', function(e) {

@@ -1,12 +1,14 @@
 // UI Control Functions
 // Close dropdown menus when clicking outside
 document.addEventListener('click', function(e) {
-    const dropdowns = document.querySelectorAll('.dropdown-content');
-    dropdowns.forEach(dropdown => {
-        if (dropdown.style.display === 'block') {
-            dropdown.style.display = 'none';
-        }
-    });
+    if (!e.target.matches('.menu-item') && !e.target.closest('.dropdown-content')) {
+        const dropdowns = document.querySelectorAll('.dropdown-content');
+        dropdowns.forEach(dropdown => {
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
 });
 
 // Function to update location display
@@ -368,12 +370,11 @@ function showNotification(message, type = 'info') {
 function setupAfterMapInit() {
     setupToolButtons();
     
-    // Add top toolbar controls for map panning
+    // Add pan control to the main toolbar
     if (window.map) {
-        // Create map control buttons in the top toolbar
-        const topToolbar = document.getElementById('top-toolbar');
-        if (topToolbar) {
-            // Create pan control
+        const toolbar = document.querySelector('.toolbar');
+        if (toolbar) {
+            // Create pan control at the beginning of the toolbar
             const panButton = document.createElement('button');
             panButton.className = 'tool-button';
             panButton.id = 'pan-tool';
@@ -389,7 +390,32 @@ function setupAfterMapInit() {
                 document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
                 this.classList.add('active');
             };
-            topToolbar.appendChild(panButton);
+            
+            // Insert at the beginning of the toolbar
+            toolbar.insertBefore(panButton, toolbar.firstChild);
+            
+            // Add zoom controls to toolbar
+            const zoomInButton = document.createElement('button');
+            zoomInButton.className = 'tool-button';
+            zoomInButton.id = 'zoom-in-tool';
+            zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
+            zoomInButton.title = "Zoom in";
+            zoomInButton.onclick = function() {
+                window.map.zoomIn();
+            };
+            
+            const zoomOutButton = document.createElement('button');
+            zoomOutButton.className = 'tool-button';
+            zoomOutButton.id = 'zoom-out-tool';
+            zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
+            zoomOutButton.title = "Zoom out";
+            zoomOutButton.onclick = function() {
+                window.map.zoomOut();
+            };
+            
+            // Insert after the pan button
+            toolbar.insertBefore(zoomOutButton, panButton.nextSibling);
+            toolbar.insertBefore(zoomInButton, panButton.nextSibling);
             
             // Activate pan by default
             panButton.click();
