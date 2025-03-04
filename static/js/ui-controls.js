@@ -229,6 +229,136 @@ function setupAfterMapInit() {
             window.drawnItems.addLayer(layer);
         });
     }
+
+    // Enable File menu options
+    const fileMenu = document.getElementById('file-menu');
+    if (fileMenu) {
+        fileMenu.onclick = function(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('file-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            }
+        };
+    }
+
+    // Setup New file option
+    const fileNewBtn = document.getElementById('file-new');
+    if (fileNewBtn) {
+        fileNewBtn.onclick = function(e) {
+            e.stopPropagation();
+            if (confirm("Create new location? Current work will be lost if unsaved.")) {
+                // Clear the current layers
+                if (window.drawnItems) {
+                    window.drawnItems.clearLayers();
+                }
+                // Reset any form or status displays
+                updateLocationDisplay('New (Unsaved)');
+            }
+        };
+    }
+
+    // Setup Save file option
+    const fileSaveBtn = document.getElementById('file-save');
+    if (fileSaveBtn) {
+        fileSaveBtn.onclick = function(e) {
+            e.stopPropagation();
+            // Open save dialog or handle save logic
+            const saveDialog = document.getElementById('save-dialog');
+            if (saveDialog) {
+                saveDialog.style.display = 'block';
+            }
+        };
+    }
+
+    // Setup Open file option
+    const fileOpenBtn = document.getElementById('file-open');
+    if (fileOpenBtn) {
+        fileOpenBtn.onclick = function(e) {
+            e.stopPropagation();
+            // Open load dialog or handle load logic
+            const openDialog = document.getElementById('open-dialog');
+            if (openDialog) {
+                openDialog.style.display = 'block';
+            }
+        };
+    }
+
+    // Add pan control to the main toolbar
+    if (window.map) {
+        const toolbar = document.querySelector('.toolbar');
+        if (toolbar) {
+            // Create pan control at the beginning of the toolbar
+            const panButton = document.createElement('button');
+            panButton.className = 'tool-button';
+            panButton.id = 'pan-tool';
+            panButton.innerHTML = '<i class="fas fa-hand-paper"></i> Pan';
+            panButton.title = "Pan the map";
+            panButton.onclick = function() {
+                // Disable any active drawing tools
+                if (window.activeDrawHandler) {
+                    window.activeDrawHandler.disable();
+                    window.activeDrawHandler = null;
+                }
+                // Set tool as active
+                document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+            };
+
+            // Insert at the beginning of the toolbar
+            toolbar.insertBefore(panButton, toolbar.firstChild);
+
+            // Add zoom controls to toolbar
+            const zoomInButton = document.createElement('button');
+            zoomInButton.className = 'tool-button';
+            zoomInButton.id = 'zoom-in-tool';
+            zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
+            zoomInButton.title = "Zoom in";
+            zoomInButton.onclick = function() {
+                window.map.zoomIn();
+            };
+
+            const zoomOutButton = document.createElement('button');
+            zoomOutButton.className = 'tool-button';
+            zoomOutButton.id = 'zoom-out-tool';
+            zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
+            zoomOutButton.title = "Zoom out";
+            zoomOutButton.onclick = function() {
+                window.map.zoomOut();
+            };
+
+            // Insert after the pan button
+            toolbar.insertBefore(zoomOutButton, panButton.nextSibling);
+            toolbar.insertBefore(zoomInButton, panButton.nextSibling);
+
+            // Activate pan by default
+            panButton.click();
+        }
+    }
+
+    // Add a map click handler to cancel drawing when clicking on the map with no tool active
+    if (window.map && typeof window.map.on === 'function') {
+        window.map.on('click', function(e) {
+            // This will only fire if the click wasn't handled by another handler
+            if (window.activeDrawHandler || 
+                (window.editControl && window.editControl.enabled()) || 
+                (window.deleteHandler && window.deleteHandler.enabled())) {
+                const toolButtons = document.querySelectorAll('.tool-button');
+                toolButtons.forEach(btn => btn.classList.remove('active'));
+
+                if (window.activeDrawHandler) {
+                    window.activeDrawHandler.disable();
+                    window.activeDrawHandler = null;
+                }
+                if (window.editControl && window.editControl.enabled()) {
+                    window.editControl.disable();
+                }
+                if (window.deleteHandler && window.deleteHandler.enabled()) {
+                    window.deleteHandler.disable();
+                }
+            }
+        });
+    }
 }
 
 // Update the layers list
@@ -365,102 +495,4 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.style.display = 'none';
     }, 3000);
-}
-
-function setupAfterMapInit() {
-    setupToolButtons();
-    
-    // Add pan control to the main toolbar
-    if (window.map) {
-        const toolbar = document.querySelector('.toolbar');
-        if (toolbar) {
-            // Create pan control at the beginning of the toolbar
-            const panButton = document.createElement('button');
-            panButton.className = 'tool-button';
-            panButton.id = 'pan-tool';
-            panButton.innerHTML = '<i class="fas fa-hand-paper"></i> Pan';
-            panButton.title = "Pan the map";
-            panButton.onclick = function() {
-                // Disable any active drawing tools
-                if (window.activeDrawHandler) {
-                    window.activeDrawHandler.disable();
-                    window.activeDrawHandler = null;
-                }
-                // Set tool as active
-                document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-            };
-            
-            // Insert at the beginning of the toolbar
-            toolbar.insertBefore(panButton, toolbar.firstChild);
-            
-            // Add zoom controls to toolbar
-            const zoomInButton = document.createElement('button');
-            zoomInButton.className = 'tool-button';
-            zoomInButton.id = 'zoom-in-tool';
-            zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
-            zoomInButton.title = "Zoom in";
-            zoomInButton.onclick = function() {
-                window.map.zoomIn();
-            };
-            
-            const zoomOutButton = document.createElement('button');
-            zoomOutButton.className = 'tool-button';
-            zoomOutButton.id = 'zoom-out-tool';
-            zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
-            zoomOutButton.title = "Zoom out";
-            zoomOutButton.onclick = function() {
-                window.map.zoomOut();
-            };
-            
-            // Insert after the pan button
-            toolbar.insertBefore(zoomOutButton, panButton.nextSibling);
-            toolbar.insertBefore(zoomInButton, panButton.nextSibling);
-            
-            // Activate pan by default
-            panButton.click();
-        }
-    }
-
-    // Enable File menu options
-    const fileNewBtn = document.getElementById('file-new');
-    if (fileNewBtn) {
-        fileNewBtn.onclick = function() {
-            if (confirm("Create new location? Current work will be lost if unsaved.")) {
-                // Clear the current layers
-                if (window.drawnItems) {
-                    window.drawnItems.clearLayers();
-                }
-                // Reset any form or status displays
-                const locationDisplay = document.getElementById('current-location-display');
-                if (locationDisplay) {
-                    locationDisplay.textContent = 'Location: New (Unsaved)';
-                }
-            }
-        };
-    }
-
-    // Add a map click handler to cancel drawing when clicking on the map with no tool active
-    if (window.map && typeof window.map.on === 'function') {
-        window.map.on('click', function(e) {
-            // This will only fire if the click wasn't handled by another handler
-            if (window.activeDrawHandler || 
-                (window.editControl && window.editControl.enabled()) || 
-                (window.deleteHandler && window.deleteHandler.enabled())) {
-                const toolButtons = document.querySelectorAll('.tool-button');
-                toolButtons.forEach(btn => btn.classList.remove('active'));
-
-                if (window.activeDrawHandler) {
-                    window.activeDrawHandler.disable();
-                    window.activeDrawHandler = null;
-                }
-                if (window.editControl && window.editControl.enabled()) {
-                    window.editControl.disable();
-                }
-                if (window.deleteHandler && window.deleteHandler.enabled()) {
-                    window.deleteHandler.disable();
-                }
-            }
-        });
-    }
 }

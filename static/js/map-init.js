@@ -149,4 +149,40 @@ document.addEventListener("DOMContentLoaded", function() {
 // Make the map globally accessible
 window.getMap = function() {
     return window.map;
-};
+}
+
+// Initialize UI controls when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded, initializing UI...");
+    
+    // Setup close buttons for all dialogs
+    const closeButtons = document.querySelectorAll('.close-dialog');
+    closeButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+            const dialog = this.closest('.dialog');
+            if (dialog) {
+                dialog.style.display = 'none';
+            }
+        });
+    });
+    
+    // File menu dropdown toggle
+    const fileMenu = document.getElementById('file-menu');
+    if (fileMenu) {
+        fileMenu.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('file-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            }
+        });
+    }
+    
+    // Close all dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        const dropdowns = document.querySelectorAll('.dropdown-content');
+        dropdowns.forEach(function(dropdown) {
+            dropdown.classList.remove('show');
+        });
+    });
+});;
