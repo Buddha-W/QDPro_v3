@@ -16,6 +16,7 @@ function initializeUIControls() {
         console.log("Map found in window object");
     } else {
         console.error("Map not found in window object");
+        return; // Exit if no map
     }
 
     // Initialize drawn items if it exists in window object
@@ -24,14 +25,51 @@ function initializeUIControls() {
         console.log("Drawn items found in window object");
     } else {
         console.error("Drawn items not found in window object");
+        // Create drawn items layer if it doesn't exist
+        drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        window.drawnItems = drawnItems;
     }
 
     // Set up UI components
     setupToolButtons();
     setupMenuItems();
+    setupDropdowns();
 
     // Add event listeners for keyboard shortcuts
     setupKeyboardShortcuts();
+
+    console.log("UI Controls setup complete");
+}
+
+// Function to set up dropdown menus
+function setupDropdowns() {
+    const dropdowns = document.querySelectorAll('.menu-item');
+
+    dropdowns.forEach(dropdown => {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const content = this.querySelector('.dropdown-content');
+            if (content) {
+                // Close all other dropdowns first
+                document.querySelectorAll('.dropdown-content').forEach(item => {
+                    if (item !== content) {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Toggle this dropdown
+                content.style.display = content.style.display === 'block' ? 'none' : 'block';
+            }
+        });
+    });
+
+    // Close all dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown-content').forEach(content => {
+            content.style.display = 'none';
+        });
+    });
 }
 
 // Function to set up tool buttons
@@ -80,151 +118,6 @@ function setupToolButtons() {
     }
 }
 
-// Function to activate a drawing tool
-function activateDrawingTool(toolId, DrawTool) {
-    console.log(`Activating drawing tool: ${toolId}`);
-
-    // Deactivate any active tool
-    deactivateAllTools();
-
-    // Highlight the selected tool button
-    document.getElementById(toolId).classList.add('active');
-
-    // Create new drawing handler if needed
-    if (!drawControl) {
-        drawControl = new DrawTool(map);
-    } else {
-        // If the drawing control exists but is of different type, create a new one
-        if (!(drawControl instanceof DrawTool)) {
-            drawControl.disable();
-            drawControl = new DrawTool(map);
-        }
-    }
-
-    // Enable the drawing control
-    drawControl.enable();
-
-    // Set active drawing tool
-    activeDrawingTool = toolId;
-
-    // Update status message
-    updateStatusMessage(`Drawing tool activated: ${toolId}`);
-}
-
-// Function to deactivate all tools
-function deactivateAllTools() {
-    console.log("Deactivating all tools");
-
-    // Remove active class from all tool buttons
-    document.querySelectorAll('.tool-button').forEach(button => {
-        button.classList.remove('active');
-    });
-
-    // Disable drawing control if it exists
-    if (drawControl) {
-        drawControl.disable();
-    }
-
-    // Reset active drawing tool
-    activeDrawingTool = null;
-
-    // Disable edit mode
-    if (map && map.editTools) {
-        map.editTools.stopDrawing();
-    }
-
-    // Update status message
-    updateStatusMessage("No tool selected");
-}
-
-// Function to activate edit mode
-function activateEditMode() {
-    console.log("Activating edit mode");
-
-    // Deactivate all tools first
-    deactivateAllTools();
-
-    // Highlight the edit button
-    const editButton = document.getElementById('edit-tool');
-    if (editButton) {
-        editButton.classList.add('active');
-    }
-
-    // Enable edit mode for all layers
-    if (drawnItems) {
-        drawnItems.eachLayer(function(layer) {
-            if (layer.editing) {
-                layer.editing.enable();
-            }
-        });
-    }
-
-    // Update status message
-    updateStatusMessage("Edit mode activated");
-}
-
-// Function to activate delete mode
-function activateDeleteMode() {
-    console.log("Activating delete mode");
-
-    // Deactivate all tools first
-    deactivateAllTools();
-
-    // Highlight the delete button
-    const deleteButton = document.getElementById('delete-tool');
-    if (deleteButton) {
-        deleteButton.classList.add('active');
-    }
-
-    // Enable delete mode for all layers
-    if (map && drawnItems) {
-        map.on('click', function deleteLayer(e) {
-            drawnItems.eachLayer(function(layer) {
-                if (layer instanceof L.Path && layer.getBounds().contains(e.latlng)) {
-                    drawnItems.removeLayer(layer);
-                } else if (layer instanceof L.Marker && layer.getLatLng().equals(e.latlng)) {
-                    drawnItems.removeLayer(layer);
-                }
-            });
-        });
-
-        // Update status message
-        updateStatusMessage("Delete mode activated. Click on a shape to delete it.");
-    }
-}
-
-// Function to update status message
-function updateStatusMessage(message) {
-    console.log(`Status: ${message}`);
-
-    const statusElement = document.getElementById('status-message');
-    if (statusElement) {
-        statusElement.textContent = message;
-    }
-}
-
-// Function to set up keyboard shortcuts
-function setupKeyboardShortcuts() {
-    console.log("Setting up keyboard shortcuts...");
-
-    document.addEventListener('keydown', function(e) {
-        // Escape key deactivates all tools
-        if (e.key === 'Escape') {
-            deactivateAllTools();
-        }
-
-        // Ctrl+Z for undo
-        if (e.ctrlKey && e.key === 'z') {
-            handleMenuAction('undo');
-        }
-
-        // Ctrl+Y for redo
-        if (e.ctrlKey && e.key === 'y') {
-            handleMenuAction('redo');
-        }
-    });
-}
-
 // Function to set up menu items
 function setupMenuItems() {
     console.log("Setting up menu items...");
@@ -249,185 +142,49 @@ function setupMenuItems() {
             handleMenuAction(action, this);
         });
     });
-
-    // Set up dropdown toggle behavior
-    const menuItems = document.querySelectorAll('.menu-item');
-    menuItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            const dropdownContent = this.querySelector('.dropdown-content');
-            if (dropdownContent) {
-                dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
-            }
-        });
-    });
-
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.menu-item')) {
-            const dropdownContents = document.querySelectorAll('.dropdown-content');
-            dropdownContents.forEach(content => {
-                content.style.display = 'none';
-            });
-        }
-    });
-
-    // Setup specific menu buttons
-    setupFileMenuButtons();
-    setupEditMenuButtons();
-    setupViewMenuButtons();
-    setupToolsMenuButtons();
-    setupHelpMenuButtons();
-}
-
-// Function to set up file menu buttons
-function setupFileMenuButtons() {
-    const newBtn = document.getElementById('file-new');
-    if (newBtn) {
-        newBtn.addEventListener('click', function() {
-            handleMenuAction('new-project');
-        });
-    }
-
-    const openBtn = document.getElementById('file-open');
-    if (openBtn) {
-        openBtn.addEventListener('click', function() {
-            handleMenuAction('open-location');
-        });
-    }
-
-    const saveBtn = document.getElementById('file-save');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-            handleMenuAction('save-project');
-        });
-    }
-
-    const exportBtn = document.getElementById('file-export');
-    if (exportBtn) {
-        exportBtn.addEventListener('click', function() {
-            handleMenuAction('export-data');
-        });
-    }
-}
-
-// Function to set up edit menu buttons
-function setupEditMenuButtons() {
-    const undoBtn = document.getElementById('edit-undo');
-    if (undoBtn) {
-        undoBtn.addEventListener('click', function() {
-            handleMenuAction('undo');
-        });
-    }
-
-    const redoBtn = document.getElementById('edit-redo');
-    if (redoBtn) {
-        redoBtn.addEventListener('click', function() {
-            handleMenuAction('redo');
-        });
-    }
-
-    const deleteBtn = document.getElementById('edit-delete');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function() {
-            handleMenuAction('delete-selected');
-        });
-    }
-
-    const selectAllBtn = document.getElementById('edit-select-all');
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function() {
-            handleMenuAction('select-all');
-        });
-    }
-}
-
-// Function to set up view menu buttons
-function setupViewMenuButtons() {
-    const zoomInBtn = document.getElementById('view-zoom-in');
-    if (zoomInBtn) {
-        zoomInBtn.addEventListener('click', function() {
-            handleMenuAction('zoom-in');
-        });
-    }
-
-    const zoomOutBtn = document.getElementById('view-zoom-out');
-    if (zoomOutBtn) {
-        zoomOutBtn.addEventListener('click', function() {
-            handleMenuAction('zoom-out');
-        });
-    }
-}
-
-// Function to set up tools menu buttons
-function setupToolsMenuButtons() {
-    const calcQDBtn = document.getElementById('tools-qd');
-    if (calcQDBtn) {
-        calcQDBtn.addEventListener('click', function() {
-            handleMenuAction('calculate-qd');
-        });
-    }
-
-    const measureBtn = document.getElementById('tools-measure');
-    if (measureBtn) {
-        measureBtn.addEventListener('click', function() {
-            handleMenuAction('measure-distance');
-        });
-    }
-}
-
-// Function to set up help menu buttons
-function setupHelpMenuButtons() {
-    const userGuideBtn = document.getElementById('help-guide');
-    if (userGuideBtn) {
-        userGuideBtn.addEventListener('click', function() {
-            handleMenuAction('user-guide');
-        });
-    }
-
-    const aboutBtn = document.getElementById('help-about');
-    if (aboutBtn) {
-        aboutBtn.addEventListener('click', function() {
-            handleMenuAction('about');
-        });
-    }
 }
 
 // Function to handle menu actions
 function handleMenuAction(action, element) {
     console.log(`Handling menu action: ${action}`);
 
+    // Close any open dropdowns
+    document.querySelectorAll('.dropdown-content').forEach(content => {
+        content.style.display = 'none';
+    });
+
     switch (action) {
         case 'new-project':
             alert("Creating new project...");
-            // Implement or call your new project function here
+            // Implement new project functionality
             break;
         case 'open-location':
             alert("Opening location...");
-            // Implement or call your open location function here
+            // Implement open location functionality
             break;
         case 'save-project':
             alert("Saving project...");
-            // Implement or call your save project function here
+            // Implement save project functionality
             break;
         case 'export-data':
             alert("Exporting data...");
-            // Implement or call your export data function here
+            // Implement export data functionality
             break;
         case 'undo':
             alert("Undo operation...");
-            // Implement undo functionality here
+            // Implement undo functionality
             break;
         case 'redo':
             alert("Redo operation...");
-            // Implement redo functionality here
+            // Implement redo functionality
             break;
         case 'delete-selected':
             alert("Deleting selected items...");
-            // Implement delete selected functionality here
+            // Implement delete selected functionality
             break;
         case 'select-all':
             alert("Selecting all items...");
-            // Implement select all functionality here
+            // Implement select all functionality
             break;
         case 'zoom-in':
             if (window.map) {
@@ -439,32 +196,267 @@ function handleMenuAction(action, element) {
                 window.map.zoomOut();
             }
             break;
-        case 'calculate-qd':
-            alert("Calculating QD is currently under development");
+        case 'draw-polygon':
+            activateDrawingTool('polygon-tool', L.Draw.Polygon);
             break;
-        case 'measure-distance':
-            alert("Measuring distance is currently under development");
+        case 'draw-rectangle':
+            activateDrawingTool('rectangle-tool', L.Draw.Rectangle);
             break;
-        case 'user-guide':
-            alert("User guide is currently under development");
+        case 'draw-circle':
+            activateDrawingTool('circle-tool', L.Draw.Circle);
             break;
-        case 'about':
-            alert("QDPro - Explosive Safety Siting System\nVersion 1.0");
+        case 'draw-marker':
+            activateDrawingTool('marker-tool', L.Draw.Marker);
+            break;
+        case 'draw-line':
+            activateDrawingTool('line-tool', L.Draw.Polyline);
             break;
         default:
             console.warn(`Unknown menu action: ${action}`);
-            alert(`Action '${action}' is not implemented yet.`);
     }
 }
 
-// Export functions to window object for global access
-window.initializeUIControls = initializeUIControls;
+// Function to activate a drawing tool
+function activateDrawingTool(toolId, DrawTool) {
+    console.log(`Activating drawing tool: ${toolId}`);
+
+    // First, deactivate any active tools
+    deactivateAllTools();
+
+    if (!map) {
+        console.error("Map is not initialized");
+        return;
+    }
+
+    // Set the active button
+    const button = document.getElementById(toolId);
+    if (button) {
+        button.classList.add('active');
+    }
+
+    // Create a new drawing handler
+    const drawingHandler = new DrawTool(map, {
+        shapeOptions: {
+            color: '#3388ff',
+            fillColor: '#3388ff',
+            fillOpacity: 0.2
+        }
+    });
+
+    // Enable drawing
+    drawingHandler.enable();
+
+    // Store the active drawing tool
+    activeDrawingTool = drawingHandler;
+}
+
+// Function to activate edit mode
+function activateEditMode() {
+    console.log("Activating edit mode");
+
+    // First, deactivate any active tools
+    deactivateAllTools();
+
+    if (!map || !drawnItems) {
+        console.error("Map or drawn items are not initialized");
+        return;
+    }
+
+    // Set the active button
+    const button = document.getElementById('edit-tool');
+    if (button) {
+        button.classList.add('active');
+    }
+
+    // Create edit control
+    const editControl = new L.EditToolbar.Edit(map, {
+        featureGroup: drawnItems,
+        poly: {
+            allowIntersection: false
+        }
+    });
+
+    // Enable editing
+    editControl.enable();
+
+    // Store the active drawing tool
+    activeDrawingTool = editControl;
+}
+
+// Function to activate delete mode
+function activateDeleteMode() {
+    console.log("Activating delete mode");
+
+    // First, deactivate any active tools
+    deactivateAllTools();
+
+    if (!map || !drawnItems) {
+        console.error("Map or drawn items are not initialized");
+        return;
+    }
+
+    // Set the active button
+    const button = document.getElementById('delete-tool');
+    if (button) {
+        button.classList.add('active');
+    }
+
+    // Create delete control
+    const deleteControl = new L.EditToolbar.Delete(map, {
+        featureGroup: drawnItems
+    });
+
+    // Enable deleting
+    deleteControl.enable();
+
+    // Store the active drawing tool
+    activeDrawingTool = deleteControl;
+}
+
+// Function to deactivate all drawing tools
+function deactivateAllTools() {
+    console.log("Deactivating all tools");
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.tool-button').forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Disable any active drawing tool
+    if (activeDrawingTool) {
+        if (typeof activeDrawingTool.disable === 'function') {
+            activeDrawingTool.disable();
+        }
+        activeDrawingTool = null;
+    }
+}
+
+// Function to set up keyboard shortcuts
+function setupKeyboardShortcuts() {
+    console.log("Setting up keyboard shortcuts");
+
+    document.addEventListener('keydown', function(e) {
+        // Check if Control key is pressed
+        if (e.ctrlKey) {
+            switch (e.key) {
+                case 's':
+                    e.preventDefault();
+                    handleMenuAction('save-project');
+                    break;
+                case 'o':
+                    e.preventDefault();
+                    handleMenuAction('open-location');
+                    break;
+                case 'n':
+                    e.preventDefault();
+                    handleMenuAction('new-project');
+                    break;
+                case 'z':
+                    e.preventDefault();
+                    handleMenuAction('undo');
+                    break;
+                case 'y':
+                    e.preventDefault();
+                    handleMenuAction('redo');
+                    break;
+                case 'a':
+                    e.preventDefault();
+                    handleMenuAction('select-all');
+                    break;
+            }
+        } else {
+            switch (e.key) {
+                case 'Delete':
+                    handleMenuAction('delete-selected');
+                    break;
+                case '+':
+                    handleMenuAction('zoom-in');
+                    break;
+                case '-':
+                    handleMenuAction('zoom-out');
+                    break;
+            }
+        }
+    });
+}
+
+// Function to activate a tool
+function activateTool(toolType, button) {
+    console.log(`Activating tool: ${toolType}`);
+
+    // First, deactivate any active tool
+    deactivateAllTools();
+
+    if (!window.map) {
+        console.error("Map is not initialized");
+        return;
+    }
+
+    // Set the active button
+    if (button) {
+        button.classList.add('active');
+    }
+
+    // Handle menu items
+    if (toolType.startsWith('menu-')) {
+        // Handle menu items
+        const menuAction = toolType.replace('menu-', '');
+        handleMenuAction(menuAction);
+        return;
+    }
+
+    // Activate the selected tool
+    switch (toolType) {
+        case 'polygon':
+            activateDrawingTool('polygon-tool', L.Draw.Polygon);
+            break;
+        case 'rectangle':
+            activateDrawingTool('rectangle-tool', L.Draw.Rectangle);
+            break;
+        case 'circle':
+            activateDrawingTool('circle-tool', L.Draw.Circle);
+            break;
+        case 'marker':
+            activateDrawingTool('marker-tool', L.Draw.Marker);
+            break;
+        case 'edit':
+            activateEditMode();
+            break;
+        case 'delete':
+            activateDeleteMode();
+            break;
+        default:
+            console.warn(`Unknown tool type: ${toolType}`);
+    }
+}
+
+// Make sure these functions are available globally
+window.activateTool = activateTool;
 window.handleMenuAction = handleMenuAction;
-window.activateDrawingTool = activateDrawingTool;
 window.deactivateAllTools = deactivateAllTools;
+window.activateDrawingTool = activateDrawingTool;
 window.activateEditMode = activateEditMode;
 window.activateDeleteMode = activateDeleteMode;
+window.initializeUIControls = initializeUIControls;
 
+
+// Initialize UI controls when the document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded, checking if map is ready");
+
+    // Check if map is already initialized
+    if (window.map) {
+        console.log("Map already initialized, setting up UI controls");
+        initializeUIControls();
+    } else {
+        console.log("Map not yet initialized, setting up event listener");
+        // Set up event listener for map initialization
+        window.addEventListener('map_initialized', function() {
+            console.log("Map initialization event received, setting up UI controls");
+            initializeUIControls();
+        });
+    }
+});
 
 // Function to open new project modal
 function openNewProjectModal() {

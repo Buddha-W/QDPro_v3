@@ -135,17 +135,19 @@ function initUI() {
             };
         }
 
-        // Check if UI controls initialization function exists
+        console.log("Map fully initialized, dispatching map_initialized event");
+
+        // Dispatch an event to signal that the map is initialized
+        const mapInitEvent = new Event('map_initialized');
+        window.dispatchEvent(mapInitEvent);
+
+        // Also directly call initializeUIControls if it exists
         if (typeof window.initializeUIControls === 'function') {
             console.log("Found UI controls initialization function, calling it now");
-            setTimeout(function() {
-                window.initializeUIControls();
-                console.log("UI controls initialized via callback");
-            }, 500); // Small delay to ensure map is fully initialized
+            window.initializeUIControls();
+            console.log("UI controls initialized via direct call");
         } else {
-            console.log("Fallback UI initialization running...");
-            // Basic fallback UI initialization
-            setupMapControls();
+            console.error("UI initialization function not found");
         }
     }, 1000);
 }
