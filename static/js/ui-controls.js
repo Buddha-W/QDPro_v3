@@ -50,16 +50,16 @@ window.initializeUIControls = function() {
     // Remove any existing Leaflet draw buttons
     removeLeafletDrawButtons();
 
-        // Override _updateFinishHandler to avoid additional UI
-        if (L.Draw.Feature && L.Draw.Feature.prototype._updateFinishHandler) {
-            L.Draw.Feature.prototype._updateFinishHandler = function() {
-                // Call the original _fireCreatedEvent method if not already done
-                if (this._shape && !this._shape._eventFired) {
-                    this._fireCreatedEvent();
-                    this._shape._eventFired = true;
-                }
-            };
-        }
+    // Override _updateFinishHandler to avoid additional UI
+    if (L.Draw.Feature && L.Draw.Feature.prototype._updateFinishHandler) {
+        L.Draw.Feature.prototype._updateFinishHandler = function() {
+            // Call the original _fireCreatedEvent method if not already done
+            if (this._shape && !this._shape._eventFired) {
+                this._fireCreatedEvent();
+                this._shape._eventFired = true;
+            }
+        };
+    }
 
         // Override each handler to suppress UI
         ['Polygon', 'Rectangle', 'Marker', 'Circle', 'CircleMarker'].forEach(function(type) {

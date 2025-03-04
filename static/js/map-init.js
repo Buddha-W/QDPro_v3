@@ -67,16 +67,22 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Initialize UI controls after map is fully loaded
                 if (window.initializeUIControls && typeof window.initializeUIControls === 'function') {
                     console.log("Found UI controls initialization function, calling it now");
-                    window.initializeUIControls();
-                    console.log("UI controls initialized via callback");
+                    try {
+                        window.initializeUIControls();
+                        console.log("UI controls initialized via callback");
+                    } catch (e) {
+                        console.error("Error initializing UI controls:", e);
+                    }
                 } else {
                     console.warn("UI controls initialization function not found");
                     // Define a simple fallback if needed
                     window.initializeUIControls = function() {
                         console.log("Fallback UI initialization from map-init.js");
-                        setupToolButtons && typeof setupToolButtons === 'function' 
-                          ? setupToolButtons() 
-                          : console.error("setupToolButtons not found");
+                        if (typeof setupToolButtons === 'function') {
+                            setupToolButtons();
+                        } else {
+                            console.error("setupToolButtons not found");
+                        }
                     };
                     window.initializeUIControls();
                 }
