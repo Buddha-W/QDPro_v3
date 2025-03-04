@@ -14,64 +14,64 @@
             <div class="menu-item">
                 File
                 <div class="dropdown-content">
-                    <div class="dropdown-item" id="new-project">New Project</div>
-                    <div class="dropdown-item" id="open-location">Open Location</div>
-                    <div class="dropdown-item" id="save-project">Save Project</div>
-                    <div class="dropdown-item" id="export-data">Export Data</div>
+                    <div class="dropdown-item" data-action="new-project" id="new-project">New Project</div>
+                    <div class="dropdown-item" data-action="open-location" id="open-location">Open Location</div>
+                    <div class="dropdown-item" data-action="save-project" id="save-project">Save Project</div>
+                    <div class="dropdown-item" data-action="export-data" id="export-data">Export Data</div>
                 </div>
             </div>
             <div class="menu-item">
                 Edit
                 <div class="dropdown-content">
-                    <div class="dropdown-item" id="undo">Undo</div>
-                    <div class="dropdown-item" id="redo">Redo</div>
-                    <div class="dropdown-item" id="delete-selected">Delete Selected</div>
-                    <div class="dropdown-item" id="select-all">Select All</div>
+                    <div class="dropdown-item" data-action="undo" id="undo">Undo</div>
+                    <div class="dropdown-item" data-action="redo" id="redo">Redo</div>
+                    <div class="dropdown-item" data-action="delete-selected" id="delete-selected">Delete Selected</div>
+                    <div class="dropdown-item" data-action="select-all" id="select-all">Select All</div>
                 </div>
             </div>
             <div class="menu-item">
                 View
                 <div class="dropdown-content">
-                    <div class="dropdown-item" id="zoom-in">Zoom In</div>
-                    <div class="dropdown-item" id="zoom-out">Zoom Out</div>
-                    <div class="dropdown-item" id="reset-view">Reset View</div>
+                    <div class="dropdown-item" data-action="zoom-in" id="zoom-in">Zoom In</div>
+                    <div class="dropdown-item" data-action="zoom-out" id="zoom-out">Zoom Out</div>
+                    <div class="dropdown-item" data-action="reset-view" id="reset-view">Reset View</div>
                 </div>
             </div>
             <div class="menu-item">
                 Tools
                 <div class="dropdown-content">
-                    <div class="dropdown-item" id="measure-distance">Measure Distance</div>
-                    <div class="dropdown-item" id="calculate-qd">Calculate QD</div>
-                    <div class="dropdown-item" id="generate-report">Generate Report</div>
+                    <div class="dropdown-item" data-action="measure-distance" id="measure-distance">Measure Distance</div>
+                    <div class="dropdown-item" data-action="calculate-qd" id="calculate-qd">Calculate QD</div>
+                    <div class="dropdown-item" data-action="generate-report" id="generate-report">Generate Report</div>
                 </div>
             </div>
             <div class="menu-item">
                 Help
                 <div class="dropdown-content">
-                    <div class="dropdown-item" id="user-guide">User Guide</div>
-                    <div class="dropdown-item" id="about">About</div>
+                    <div class="dropdown-item" data-action="user-guide" id="user-guide">User Guide</div>
+                    <div class="dropdown-item" data-action="about" id="about">About</div>
                 </div>
             </div>
         </div>
 
         <!-- Toolbar -->
         <div class="toolbar">
-            <button class="tool-button" id="toggle-draw-polygon" title="Draw Polygon">
+            <button class="tool-button" data-tool="polygon" id="toggle-draw-polygon" title="Draw Polygon">
                 <i class="fas fa-draw-polygon"></i> Polygon
             </button>
-            <button class="tool-button" id="toggle-draw-rectangle" title="Draw Rectangle">
+            <button class="tool-button" data-tool="rectangle" id="toggle-draw-rectangle" title="Draw Rectangle">
                 <i class="fas fa-square"></i> Rectangle
             </button>
-            <button class="tool-button" id="toggle-draw-marker" title="Place Marker">
+            <button class="tool-button" data-tool="marker" id="toggle-draw-marker" title="Place Marker">
                 <i class="fas fa-map-marker-alt"></i> Marker
             </button>
-            <button class="tool-button" id="toggle-edit" title="Edit Features">
+            <button class="tool-button" data-tool="edit" id="toggle-edit" title="Edit Features">
                 <i class="fas fa-edit"></i> Edit
             </button>
-            <button class="tool-button" id="toggle-delete" title="Delete Features">
+            <button class="tool-button" data-tool="delete" id="toggle-delete" title="Delete Features">
                 <i class="fas fa-trash"></i> Delete
             </button>
-            <button class="tool-button" id="toggle-layers" title="Toggle Layers Panel">
+            <button class="tool-button" data-tool="layers" id="toggle-layers" title="Toggle Layers Panel">
                 <i class="fas fa-layer-group"></i> Layers
             </button>
             <span class="location-display" id="current-location-display">Location: None</span>
@@ -192,7 +192,7 @@
         // Define global map variable
         window.map = null;
         window.drawnItems = null;
-        
+
         // Define a global initializeUIControls function first
         window.initializeUIControls = function() {
             console.log("Fallback UI initialization running...");
@@ -201,7 +201,7 @@
     </script>
     <script src="/static/js/ui-controls.js"></script>
     <script src="/static/js/map-init.js"></script>
-    
+
     <!-- Ensure map is properly initialized -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -212,21 +212,21 @@
                     window.map = L.map('map', {
                         zoomControl: false
                     }).setView([39.8283, -98.5795], 4);
-                    
+
                     // Add base tile layer
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,
                         attribution: '© OpenStreetMap contributors'
                     }).addTo(window.map);
-                    
+
                     // Initialize drawn items if it doesn't exist
                     if (!window.drawnItems) {
                         window.drawnItems = new L.FeatureGroup();
                         window.map.addLayer(window.drawnItems);
                     }
-                    
+
                     console.log("Map initialized from template");
-                    
+
                     // Initialize UI after map is ready
                     if (typeof initializeUIControls === 'function') {
                         setTimeout(initializeUIControls, 100);
@@ -862,7 +862,7 @@
                                 } else {
                                     alert('Error: ' + data.error);
                                 }
-                            } catch (error) {
+                            } catch(error) {
                                 console.error('Error deleting location:', error);
                                 alert('Failed to delete location');
                             }
@@ -936,7 +936,7 @@
 
                     if (bounds.isValid()) {
                         map.fitBounds(bounds);
-                                        }
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading location:', error);
