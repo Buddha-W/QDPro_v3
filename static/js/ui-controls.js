@@ -47,8 +47,8 @@ window.initializeUIControls = function() {
         return;
     }
 
-        // Remove any existing Leaflet draw buttons
-        removeLeafletDrawButtons();
+    // Remove any existing Leaflet draw buttons
+    removeLeafletDrawButtons();
 
         // Override _updateFinishHandler to avoid additional UI
         if (L.Draw.Feature && L.Draw.Feature.prototype._updateFinishHandler) {
@@ -99,6 +99,10 @@ window.initializeUIControls = function() {
 
 function setupToolButtons() {
     console.log("Setting up tool buttons...");
+    if (!window.map) {
+        console.warn("Map is not initialized.");
+        return; // Exit if map isn't available yet
+    }
 
     // First, check if map is properly initialized
     if (!window.map) {
