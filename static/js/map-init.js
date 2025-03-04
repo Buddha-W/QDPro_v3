@@ -7,6 +7,13 @@ function checkMapInitialization() {
         console.warn("Map not initialized yet!");
         return false;
     }
+    
+    // Make sure map has all necessary methods
+    if (typeof window.map.addLayer !== 'function') {
+        console.warn("Map initialized but missing methods!");
+        return false;
+    }
+    
     window.mapInitialized = true;
     console.log("Map initialization verified");
     return true;
@@ -17,8 +24,13 @@ document.addEventListener("DOMContentLoaded", function() {
     // Try to verify map initialization
     const initCheck = setInterval(function() {
         if (window.map) {
-            checkMapInitialization();
-            clearInterval(initCheck);
+            if (checkMapInitialization()) {
+                clearInterval(initCheck);
+                // Initialize UI controls after map is fully loaded
+                if (window.initializeUIControls && typeof window.initializeUIControls === 'function') {
+                    window.initializeUIControls();
+                }
+            }
         }
     }, 500);
     
