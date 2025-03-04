@@ -42,6 +42,48 @@ function setupMenuItems() {
     console.log("Setting up menu items...");
     
     // Get all dropdown items
+    const dropdownItems = document.querySelectorAll('.dropdown-item');
+    
+    if (dropdownItems.length === 0) {
+        console.error("No dropdown items found");
+        return;
+    }
+    
+    console.log(`Found ${dropdownItems.length} dropdown items`);
+    
+    // Add click event listeners to each dropdown item
+    dropdownItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const action = this.getAttribute('data-action');
+            console.log(`Clicked dropdown item: ${action}`);
+            handleMenuAction(action, this);
+        });
+    });
+    
+    // Set up dropdown toggle behavior
+    const menuItems = document.querySelectorAll('.menu-item');
+    menuItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            const dropdownContent = this.querySelector('.dropdown-content');
+            if (dropdownContent) {
+                dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+            }
+        });
+    });
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.menu-item')) {
+            const dropdownContents = document.querySelectorAll('.dropdown-content');
+            dropdownContents.forEach(content => {
+                content.style.display = 'none';
+            });
+        }
+    });
+    
+    // Get all dropdown items
     const menuItems = document.querySelectorAll('.dropdown-item');
     
     if (menuItems.length === 0) {
@@ -161,19 +203,46 @@ function handleMenuAction(action) {
     
     switch (action) {
         case 'new-project':
-            openNewProjectModal();
+            alert("Creating new project...");
+            // Implement or call your new project function here
+            break;
+        case 'open-location':
+            alert("Opening location...");
+            // Implement or call your open location function here
             break;
         case 'save-project':
-            saveProject();
+            alert("Saving project...");
+            // Implement or call your save project function here
             break;
-        case 'load-project':
-            openLoadProjectModal();
+        case 'export-data':
+            alert("Exporting data...");
+            // Implement or call your export data function here
             break;
-        case 'export-map':
-            exportMap();
+        case 'undo':
+            alert("Undo operation...");
+            // Implement undo functionality here
             break;
-        case 'generate-report':
-            openReportModal();
+        case 'redo':
+            alert("Redo operation...");
+            // Implement redo functionality here
+            break;
+        case 'delete-selected':
+            alert("Deleting selected items...");
+            // Implement delete selected functionality here
+            break;
+        case 'select-all':
+            alert("Selecting all items...");
+            // Implement select all functionality here
+            break;
+        case 'zoom-in':
+            if (window.map) {
+                window.map.zoomIn();
+            }
+            break;
+        case 'zoom-out':
+            if (window.map) {
+                window.map.zoomOut();
+            }
             break;
         default:
             console.warn(`Unknown menu action: ${action}`);

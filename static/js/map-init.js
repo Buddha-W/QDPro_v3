@@ -34,18 +34,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Initialize UI after a short delay to ensure map is fully loaded
                 setTimeout(function() {
+                    // Make sure map and drawnItems are properly initialized
+                    if (!window.drawnItems) {
+                        window.drawnItems = new L.FeatureGroup();
+                        window.map.addLayer(window.drawnItems);
+                    }
+                    
+                    // Make sure the map object has all needed functions
+                    if (!window.map.hasLayer) {
+                        console.warn("Map missing hasLayer function, adding compatibility");
+                        window.map.hasLayer = function(layer) {
+                            return this._layers && Object.values(this._layers).includes(layer);
+                        };
+                    }
+                    
                     // Check if UI controls initialization function exists
                     if (typeof window.initializeUIControls === 'function') {
                         console.log("Found UI controls initialization function, calling it now");
-                        
-                        // Make sure drawnItems is initialized
-                        if (!window.drawnItems) {
-                            window.drawnItems = new L.FeatureGroup();
-                            window.map.addLayer(window.drawnItems);
-                        }
-                        
-                        window.initializeUIControls();
-                        console.log("UI controls initialized via callback");
+                        setTimeout(function() {
+                            window.initializeUIControls();
+                            console.log("UI controls initialized via callback");
+                        }, 500); // Small delay to ensure map is fully initialized
                     } else {
                         console.error("UI initialization function not found");
                     }
