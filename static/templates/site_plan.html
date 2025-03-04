@@ -198,6 +198,14 @@
             console.log("Fallback UI initialization running...");
             // This will be overridden by the proper implementation in ui-controls.js
         };
+        
+        // Add DOMContentLoaded event listener to ensure DOM is ready before initializing UI
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DOM content loaded, preparing to initialize UI");
+            
+            // The map-init.js will initialize the map
+            // After map is initialized, it will call initializeUIControls
+        });
     </script>
     <script src="/static/js/ui-controls.js"></script>
     <script src="/static/js/map-init.js"></script>

@@ -107,7 +107,7 @@ function initMap() {
 function initUI() {
     console.log("Initializing UI...");
 
-    // Initialize UI controls after a short delay to ensure map is fully loaded
+    // Initialize UI after a short delay to ensure map is fully loaded
     setTimeout(function() {
         // Make sure map and drawnItems are properly initialized
         if (!window.drawnItems) {
@@ -115,19 +115,41 @@ function initUI() {
             window.map.addLayer(window.drawnItems);
         }
 
-        console.log("Map fully initialized, dispatching map_initialized event");
+        // Add draw:created event listener to the map
+        window.map.on('draw:created', function(e) {
+            console.log("Layer created:", e.layerType);
+            window.drawnItems.addLayer(e.layer);
+        });
 
-        // Dispatch an event to signal that the map is initialized
-        const mapInitEvent = new Event('map_initialized');
-        window.dispatchEvent(mapInitEvent);
+        // Make sure the map object has all needed functions
+        if (!window.map.hasLayer) {
+            console.warn("Map missing hasLayer function, adding compatibility");
+            window.map.hasLayer = function(layer) {
+                return this._layers && Object.values(this._layers).includes(layer);
+            };
+        }
 
-        // Also directly call initializeUIControls if it exists
+        // Check if UI controls initialization function exists
         if (typeof window.initializeUIControls === 'function') {
             console.log("Found UI controls initialization function, calling it now");
-            window.initializeUIControls();
-            console.log("UI controls initialized via direct call");
+            try {
+                window.initializeUIControls();
+                console.log("UI controls initialized via direct call");
+            } catch (error) {
+                console.error("Error initializing UI controls:", error);
+            }
         } else {
             console.error("UI initialization function not found");
+            // Load UI controls script if it doesn't exist
+            const script = document.createElement('script');
+            script.src = '/static/js/ui-controls.js';
+            script.onload = function() {
+                console.log("UI controls script loaded dynamically");
+                if (typeof window.initializeUIControls === 'function') {
+                    window.initializeUIControls();
+                }
+            };
+            document.head.appendChild(script);
         }
     }, 1000);
 }
@@ -136,18 +158,6 @@ function initUI() {
 window.addEventListener('map_initialized', function() {
     if (window.map) {
         // Handle drawing created event
-        window.map.on('draw:created', function(e) {
-            const layer = e.layer;
-            window.drawnItems.addLayer(layer);
-            console.log("New layer created and added to drawn items");
-
-            // You can add custom handling here (e.g., opening a properties dialog)
-            if (typeof openFeaturePropertiesModal === 'function') {
-                openFeaturePropertiesModal(layer);
-            }
-        });
-
-        // Handle other drawing events
         window.map.on('draw:edited', function(e) {
             console.log("Layers edited:", e.layers);
         });
