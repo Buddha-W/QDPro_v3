@@ -325,8 +325,9 @@ function initializeMap() {
   osmLayer.addTo(map);
   
   // Create a layer for drawn items
-  drawnItems = new L.FeatureGroup();
-  map.addLayer(drawnItems);
+  // Use the existing drawnItems if available, or create a new one
+window.drawnItems = window.drawnItems || new L.FeatureGroup();
+  map.addLayer(window.drawnItems);
   
   // Initialize the draw control and add it to the map
   drawControl = new L.Control.Draw({
@@ -389,7 +390,7 @@ function initializeMap() {
         description: 'Feature description'
       },
       geometry: layer.toGeoJSON().geometry
-    };
+    }
     
     // Add the layer to the feature group
     drawnItems.addLayer(layer);
@@ -414,7 +415,6 @@ function initializeMap() {
   
   // Save references to global window object for access by other scripts
   window.map = map;
-  window.drawnItems = drawnItems;
   window.drawControl = drawControl;
   
   console.log("Map initialized successfully");
