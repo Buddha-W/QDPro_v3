@@ -36,25 +36,25 @@ function setupMenuItems() {
         alert('Creating new project...');
         // Add new project functionality here
     });
-    
+
     document.getElementById('open-location').addEventListener('click', function() {
         console.log('Open Location clicked');
         // Redirect to locations page
         window.location.href = '/ui/locations';
     });
-    
+
     document.getElementById('save-project').addEventListener('click', function() {
         console.log('Save Project clicked');
         alert('Project saved successfully');
         // Add save project functionality here
     });
-    
+
     document.getElementById('export-data').addEventListener('click', function() {
         console.log('Export Data clicked');
         alert('Exporting data...');
         // Add export data functionality here
     });
-    
+
     // Edit menu items
     document.getElementById('undo').addEventListener('click', function() {
         console.log('Undo clicked');
@@ -68,13 +68,13 @@ function setupMenuItems() {
             alert('Nothing to undo');
         }
     });
-    
+
     document.getElementById('redo').addEventListener('click', function() {
         console.log('Redo clicked');
         alert('Redo functionality not implemented yet');
         // Add redo functionality here
     });
-    
+
     document.getElementById('delete-selected').addEventListener('click', function() {
         console.log('Delete Selected clicked');
         if (window.selectedLayer) {
@@ -85,13 +85,13 @@ function setupMenuItems() {
             alert('No item selected');
         }
     });
-    
+
     document.getElementById('select-all').addEventListener('click', function() {
         console.log('Select All clicked');
         alert('All items selected');
         // Add select all functionality here
     });
-    
+
     // View menu items
     document.getElementById('zoom-in').addEventListener('click', function() {
         console.log('Zoom In clicked');
@@ -99,14 +99,14 @@ function setupMenuItems() {
             window.map.zoomIn();
         }
     });
-    
+
     document.getElementById('zoom-out').addEventListener('click', function() {
         console.log('Zoom Out clicked');
         if (window.map) {
             window.map.zoomOut();
         }
     });
-    
+
     document.getElementById('reset-view').addEventListener('click', function() {
         console.log('Reset View clicked');
         if (window.map) {
@@ -114,7 +114,7 @@ function setupMenuItems() {
             window.map.setView([39.8283, -98.5795], 5);
         }
     });
-    
+
     // Set up the dropdown behavior
     const menuItems = document.querySelectorAll('.menu-item');
     menuItems.forEach(function(menuItem) {
@@ -128,27 +128,27 @@ function setupMenuItems() {
                         d.style.display = 'none';
                     }
                 });
-                
+
                 // Toggle this dropdown
                 dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
             }
         });
     });
-    
+
     // Close dropdowns when clicking outside
     document.addEventListener('click', function() {
         document.querySelectorAll('.dropdown-content').forEach(function(dropdown) {
             dropdown.style.display = 'none';
         });
     });
-    
+
     // Prevent dropdown content clicks from closing the dropdown
     document.querySelectorAll('.dropdown-content').forEach(function(dropdown) {
         dropdown.addEventListener('click', function(e) {
             e.stopPropagation();
         });
     });
-    
+
     // Track selected layer
     if (window.drawnItems) {
         window.drawnItems.on('click', function(e) {
@@ -189,7 +189,7 @@ window.initializeUIControls = function() {
         setTimeout(window.initializeUIControls, 500);
         return;
     }
-    
+
     // Setup menu items functionality
     setupMenuItems();
 
@@ -244,13 +244,11 @@ window.initializeUIControls = function() {
     };
 
 function setupToolButtons() {
-    console.log("Setting up tool buttons...");
     if (!window.map) {
         console.warn("Map is not initialized.");
         return;
     }
-        return; // Exit if map isn't available yet
-    }
+    console.log("Setting up tool buttons...");
 
     // First, check if map is properly initialized
     if (!window.map) {
@@ -438,6 +436,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial UI adjustment
     adjustUILayout();
+
+    // Make UI controls initialization available globally
+    window.initializeUIControls = function() {
+        console.log("Fallback UI initialization running...");
+
+        // Wait a short time to ensure map is fully loaded
+        setTimeout(function() {
+            if (window.map) {
+                // Set up UI buttons and functionality
+                setupToolButtons();
+
+                // Add event listeners to menu items
+                setupMenuListeners();
+            } else {
+                console.error("Map still not available for UI initialization");
+            }
+        }, 500);
+    };
+
+    function setupMenuListeners() {
+        // File menu items
+        const fileNewBtn = document.getElementById("fileNewButton");
+        const fileOpenBtn = document.getElementById("fileOpenButton");
+        const fileSaveBtn = document.getElementById("fileSaveButton");
+
+        if (fileNewBtn) fileNewBtn.addEventListener("click", createNewLocation);
+        if (fileOpenBtn) fileOpenBtn.addEventListener("click", openLocation);
+        if (fileSaveBtn) fileSaveBtn.addEventListener("click", saveLocation);
+    }
 });
 
 /**
@@ -503,8 +530,8 @@ function showNotification(message, type = 'info') {
 
 function setupAfterMapInit() {
     setupToolButtons();
-    
-    // Add pan control to the main toolbar
+
+    // Add a pan control to the main toolbar
     if (window.map) {
         const toolbar = document.querySelector('.toolbar');
         if (toolbar) {
@@ -524,10 +551,10 @@ function setupAfterMapInit() {
                 document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
                 this.classList.add('active');
             };
-            
+
             // Insert at the beginning of the toolbar
             toolbar.insertBefore(panButton, toolbar.firstChild);
-            
+
             // Add zoom controls to toolbar
             const zoomInButton = document.createElement('button');
             zoomInButton.className = 'tool-button';
@@ -537,7 +564,7 @@ function setupAfterMapInit() {
             zoomInButton.onclick = function() {
                 window.map.zoomIn();
             };
-            
+
             const zoomOutButton = document.createElement('button');
             zoomOutButton.className = 'tool-button';
             zoomOutButton.id = 'zoom-out-tool';
@@ -546,11 +573,11 @@ function setupAfterMapInit() {
             zoomOutButton.onclick = function() {
                 window.map.zoomOut();
             };
-            
+
             // Insert after the pan button
             toolbar.insertBefore(zoomOutButton, panButton.nextSibling);
             toolbar.insertBefore(zoomInButton, panButton.nextSibling);
-            
+
             // Activate pan by default
             panButton.click();
         }
@@ -597,4 +624,17 @@ function setupAfterMapInit() {
             }
         });
     }
+}
+
+// Placeholder functions - replace with actual implementations
+function createNewLocation() {
+    console.log("Create New Location clicked");
+}
+
+function openLocation() {
+    console.log("Open Location clicked");
+}
+
+function saveLocation() {
+    console.log("Save Location clicked");
 }
