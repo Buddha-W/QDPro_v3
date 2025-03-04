@@ -1,12 +1,14 @@
 // UI Control Functions
 // Close dropdown menus when clicking outside
 document.addEventListener('click', function(e) {
-    const dropdowns = document.querySelectorAll('.dropdown-content');
-    dropdowns.forEach(dropdown => {
-        if (!e.target.closest('.menu-item') && dropdown.style.display === 'block') {
-            dropdown.style.display = 'none';
-        }
-    });
+    if (!e.target.matches('.menu-item') && !e.target.closest('.dropdown-content')) {
+        const dropdowns = document.querySelectorAll('.dropdown-content');
+        dropdowns.forEach(dropdown => {
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
 });
 
 // Function to update location display
@@ -17,62 +19,7 @@ function updateLocationDisplay(locationName) {
     }
 }
 
-// Function to toggle dropdown menus
-function toggleDropdown(menuId) {
-    const dropdown = document.querySelector(`#${menuId} .dropdown-content`);
-    if (dropdown) {
-        // Close all other dropdowns first
-        document.querySelectorAll('.dropdown-content').forEach(d => {
-            if (d !== dropdown && d.style.display === 'block') {
-                d.style.display = 'none';
-            }
-        });
-        // Toggle this dropdown
-        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        return false; // Prevent default action
-    }
-    return true;
-}
-
-// Setup menu functionality
-function setupMenus() {
-    // File menu
-    const fileMenu = document.getElementById('file-menu');
-    if (fileMenu) {
-        fileMenu.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            return toggleDropdown('file-menu');
-        };
-    }
-
-    // File > New
-    const fileNewBtn = document.getElementById('file-new');
-    if (fileNewBtn) {
-        fileNewBtn.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (confirm("Create new location? Current work will be lost if unsaved.")) {
-                // Clear the current layers
-                if (window.drawnItems) {
-                    window.drawnItems.clearLayers();
-                }
-                // Reset any form or status displays
-                updateLocationDisplay('New (Unsaved)');
-                // Close dropdown
-                const dropdown = document.querySelector('#file-menu .dropdown-content');
-                if (dropdown) dropdown.style.display = 'none';
-            }
-        };
-    }
-
-    // Other menu items
-    const menuItems = document.querySelectorAll('.menu-item');
-    menuItems.forEach(item => {
-        item.classList.remove('disabled');
-    });
-}
-
+// Function to remove all Leaflet Draw toolbar buttons and elements
 function removeLeafletDrawButtons() {
     const leafletBar = document.querySelector('.leaflet-draw.leaflet-control');
     if (leafletBar) {
@@ -80,214 +27,23 @@ function removeLeafletDrawButtons() {
     }
 }
 
-function setupToolButtons() {
-    console.log("Setting up tool buttons...");
-    if (!window.map) {
-        console.warn("Map is not initialized.");
-        return;
-    }
 
-    // First clean any existing buttons
-    document.querySelectorAll('.tool-button').forEach(btn => {
-        btn.onclick = null;
-    });
+// Completely disable the Leaflet.Draw toolbar functionality
+if (L && L.DrawToolbar) {
+    // Override the toolbar initialization
+    L.DrawToolbar.prototype.initialize = function() {
+        // Do nothing
+    };
 
-    // Get the tools container
-    const toolsContainer = document.querySelector('.tools-container');
-    if (!toolsContainer) {
-        console.error("Tools container not found");
-        return;
-    }
+    // Override the addToolbar method
+    L.DrawToolbar.prototype.addToolbar = function() {
+        return this;
+    };
 
-    // Setup polygon tool
-    const polygonBtn = document.getElementById('polygon-tool');
-    if (polygonBtn) {
-        polygonBtn.onclick = function() {
-            activateDrawingTool('polygon');
-            setActiveButton(this);
-        };
-    }
-
-    // Setup rectangle tool
-    const rectangleBtn = document.getElementById('rectangle-tool');
-    if (rectangleBtn) {
-        rectangleBtn.onclick = function() {
-            activateDrawingTool('rectangle');
-            setActiveButton(this);
-        };
-    }
-
-    // Setup marker tool
-    const markerBtn = document.getElementById('marker-tool');
-    if (markerBtn) {
-        markerBtn.onclick = function() {
-            activateDrawingTool('marker');
-            setActiveButton(this);
-        };
-    }
-
-    // Setup edit tool
-    const editBtn = document.getElementById('edit-tool');
-    if (editBtn) {
-        editBtn.onclick = function() {
-            activateEditTool();
-            setActiveButton(this);
-        };
-    }
-
-    // Setup delete tool
-    const deleteBtn = document.getElementById('delete-tool');
-    if (deleteBtn) {
-        deleteBtn.onclick = function() {
-            activateDeleteTool();
-            setActiveButton(this);
-        };
-    }
-
-    console.log("Tool buttons setup completed");
-}
-
-// Helper function to set active button
-function setActiveButton(button) {
-    document.querySelectorAll('.tool-button').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    button.classList.add('active');
-}
-
-// Function to activate drawing tools
-function activateDrawingTool(toolType) {
-    console.log(`Activating ${toolType} tool`);
-    // Disable any active tools first
-    if (window.activeDrawHandler) {
-        window.activeDrawHandler.disable();
-        window.activeDrawHandler = null;
-    }
-
-    // Create new draw handler based on tool type
-    if (toolType === 'polygon') {
-        window.activeDrawHandler = new L.Draw.Polygon(window.map);
-    } else if (toolType === 'rectangle') {
-        window.activeDrawHandler = new L.Draw.Rectangle(window.map);
-    } else if (toolType === 'marker') {
-        window.activeDrawHandler = new L.Draw.Marker(window.map);
-    }
-
-    // Enable the new handler
-    if (window.activeDrawHandler) {
-        window.activeDrawHandler.enable();
-    }
-}
-
-// Function to activate edit tool
-function activateEditTool() {
-    console.log("Activating edit tool");
-    // Disable any active drawing tools
-    if (window.activeDrawHandler) {
-        window.activeDrawHandler.disable();
-        window.activeDrawHandler = null;
-    }
-
-    // Enable edit control
-    if (window.editControl) {
-        window.editControl.enable();
-    }
-}
-
-// Function to activate delete tool
-function activateDeleteTool() {
-    console.log("Activating delete tool");
-    // Disable any active drawing tools
-    if (window.activeDrawHandler) {
-        window.activeDrawHandler.disable();
-        window.activeDrawHandler = null;
-    }
-
-    // Enable delete handler
-    if (window.deleteHandler) {
-        window.deleteHandler.enable();
-    }
-}
-
-function setupAfterMapInit() {
-    setupToolButtons();
-    setupMenus();
-
-    // Add top toolbar map controls
-    if (window.map) {
-        // Get or create top toolbar
-        let topToolbar = document.getElementById('top-toolbar');
-        if (!topToolbar) {
-            topToolbar = document.createElement('div');
-            topToolbar.id = 'top-toolbar';
-            topToolbar.className = 'toolbar top-toolbar';
-            document.querySelector('.map-container').insertBefore(topToolbar, document.querySelector('.map-container').firstChild);
-        }
-
-        // Clear existing buttons
-        topToolbar.innerHTML = '';
-
-        // Create pan control
-        const panButton = document.createElement('button');
-        panButton.className = 'tool-button';
-        panButton.id = 'pan-tool';
-        panButton.innerHTML = '<i class="fas fa-hand-paper"></i> Pan';
-        panButton.title = "Pan the map";
-        panButton.onclick = function() {
-            // Disable any active drawing tools
-            if (window.activeDrawHandler) {
-                window.activeDrawHandler.disable();
-                window.activeDrawHandler = null;
-            }
-            // Disable edit/delete tools
-            if (window.editControl && window.editControl.enabled()) {
-                window.editControl.disable();
-            }
-            if (window.deleteHandler && window.deleteHandler.enabled()) {
-                window.deleteHandler.disable();
-            }
-            // Set tool as active
-            setActiveButton(this);
-        };
-        topToolbar.appendChild(panButton);
-
-        // Create zoom in control
-        const zoomInButton = document.createElement('button');
-        zoomInButton.className = 'tool-button';
-        zoomInButton.id = 'zoom-in-tool';
-        zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
-        zoomInButton.title = "Zoom in";
-        zoomInButton.onclick = function() {
-            window.map.zoomIn();
-        };
-        topToolbar.appendChild(zoomInButton);
-
-        // Create zoom out control
-        const zoomOutButton = document.createElement('button');
-        zoomOutButton.className = 'tool-button';
-        zoomOutButton.id = 'zoom-out-tool';
-        zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
-        zoomOutButton.title = "Zoom out";
-        zoomOutButton.onclick = function() {
-            window.map.zoomOut();
-        };
-        topToolbar.appendChild(zoomOutButton);
-
-        // Activate pan by default
-        panButton.click();
-    }
-
-    // Add a map click handler to cancel drawing when clicking on the map with no tool active
-    if (window.map && typeof window.map.on === 'function') {
-        window.map.on('click', function(e) {
-            // Only handle clicks if no tool is active
-            if (!window.activeDrawHandler && 
-                !(window.editControl && window.editControl.enabled()) && 
-                !(window.deleteHandler && window.deleteHandler.enabled())) {
-                console.log("Map click - no active tool");
-            }
-        });
-    }
+    // Ensure no buttons are added
+    L.DrawToolbar.prototype._createButton = function() {
+        return null;
+    };
 }
 
 // UI Controls for QDPro
@@ -301,24 +57,6 @@ window.initializeUIControls = function() {
         // Retry after a short delay
         setTimeout(window.initializeUIControls, 500);
         return;
-    }
-
-    // Override Leaflet.Draw UI
-    if (L && L.DrawToolbar) {
-        // Override the toolbar initialization
-        L.DrawToolbar.prototype.initialize = function() {
-            // Do nothing
-        };
-
-        // Override the addToolbar method
-        L.DrawToolbar.prototype.addToolbar = function() {
-            return this;
-        };
-
-        // Ensure no buttons are added
-        L.DrawToolbar.prototype._createButton = function() {
-            return null;
-        };
     }
 
     // Remove any existing Leaflet draw buttons
@@ -335,56 +73,165 @@ window.initializeUIControls = function() {
         };
     }
 
-    // Override each handler to suppress UI
-    ['Polygon', 'Rectangle', 'Marker', 'Circle', 'CircleMarker'].forEach(function(type) {
-        if (L.Draw[type]) {
-            const originalEnable = L.Draw[type].prototype.enable;
-            L.Draw[type].prototype.enable = function() {
-                // Remove any UI before enabling
-                removeLeafletDrawButtons();
-                if (originalEnable) originalEnable.call(this);
-                // Remove any UI after enabling
-                removeLeafletDrawButtons();
+        // Override each handler to suppress UI
+        ['Polygon', 'Rectangle', 'Marker', 'Circle', 'CircleMarker'].forEach(function(type) {
+            if (L.Draw[type]) {
+                const originalEnable = L.Draw[type].prototype.enable;
+                L.Draw[type].prototype.enable = function() {
+                    // Remove any UI before enabling
+                    removeLeafletDrawButtons();
+                    if (originalEnable) originalEnable.call(this);
+                    // Remove any UI after enabling
+                    removeLeafletDrawButtons();
 
-                // Prevent any additional UI creation
-                if (this._map && this._map._toolbars) {
-                    this._map._toolbars = {};
+                    // Prevent any additional UI creation
+                    if (this._map && this._map._toolbars) {
+                        this._map._toolbars = {};
+                    }
+                };
+            }
+        });
+
+        // Completely disable the toolbar creation
+        if (L.Draw.Control) {
+            L.Draw.Control.prototype._addToolbar = function() { return; };
+            L.Draw.Control.prototype.addToolbar = function() { return; };
+        }
+
+        // Prevent toolbar elements from being added to the map
+        if (L.DrawToolbar) {
+            L.DrawToolbar.prototype.addToolbar = function() { return; };
+        }
+
+        // Setup tool buttons after the map is initialized
+        setupAfterMapInit();
+
+        console.log("UI Controls initialized");
+    };
+
+function setupToolButtons() {
+    console.log("Setting up tool buttons...");
+    if (!window.map) {
+        console.warn("Map is not initialized.");
+        return;
+    }
+        return; // Exit if map isn't available yet
+    }
+
+    // First, check if map is properly initialized
+    if (!window.map) {
+        console.error("Map not yet initialized when setting up tool buttons");
+        return; // Exit early, will try again later when map is ready
+    }
+
+    // Create a drawn items group if not already present
+    window.drawnItems = window.drawnItems || new L.FeatureGroup();
+
+    // Safely add the layer to the map if it's not already there
+    try {
+        // Check if layer is already on the map - don't use hasLayer
+        let layerAlreadyAdded = false;
+        if (window.drawnItems._map && window.drawnItems._map === window.map) {
+            layerAlreadyAdded = true;
+        }
+
+        if (!layerAlreadyAdded && typeof window.map.addLayer === 'function') {
+            window.map.addLayer(window.drawnItems);
+            console.log("Added drawn items layer to map");
+        }
+    } catch (e) {
+        console.error("Error adding drawn items layer:", e);
+    }
+
+    const toolButtons = {
+        polygon: document.getElementById("draw-polygon-btn"),
+        rectangle: document.getElementById("draw-rectangle-btn"),
+        marker: document.getElementById("draw-marker-btn"),
+    };
+
+    let activeDrawHandler = null;
+    let activeTool = null;
+
+    function disableAllTools() {
+        Object.values(toolButtons).forEach((btn) => {
+            if (btn) btn.classList.remove("active");
+        });
+
+        if (activeDrawHandler) {
+            activeDrawHandler.disable();
+            activeDrawHandler = null;
+        }
+    }
+
+    // Attach event listeners to buttons
+    Object.keys(toolButtons).forEach((toolType) => {
+        if (toolButtons[toolType]) {
+            toolButtons[toolType].addEventListener("click", function() {
+                if (activeTool === toolType) {
+                    // Clicking the active tool should disable it
+                    disableAllTools();
+                    activeTool = null;
+                } else {
+                    // Disable any active tool first
+                    disableAllTools();
+
+                    // Set the new active tool
+                    activeTool = toolType;
+                    this.classList.add("active");
+
+                    // Create and enable the appropriate draw handler
+                    switch (toolType) {
+                        case "polygon":
+                            activeDrawHandler = new L.Draw.Polygon(window.map);
+                            break;
+                        case "rectangle":
+                            activeDrawHandler = new L.Draw.Rectangle(window.map);
+                            break;
+                        case "marker":
+                            activeDrawHandler = new L.Draw.Marker(window.map);
+                            break;
+                    }
+
+                    if (activeDrawHandler) {
+                        activeDrawHandler.enable();
+                    }
                 }
-            };
+            });
         }
     });
 
-    // Completely disable the toolbar creation
-    if (L.Draw.Control) {
-        L.Draw.Control.prototype._addToolbar = function() { return; };
-        L.Draw.Control.prototype.addToolbar = function() { return; };
+    console.log("Tool buttons setup complete");
+}
+
+function setupAfterMapInit() {
+    console.log("Setting up after map initialization...");
+
+    // Setup tool buttons
+    setupToolButtons();
+
+    // Add a map click handler to cancel drawing when clicking on the map with no tool active
+    if (window.map && typeof window.map.on === 'function') {
+        window.map.on('click', function(e) {
+            // This will only fire if the click wasn't handled by another handler
+            console.log("Map clicked, checking for active tools to cancel");
+        });
+    } else {
+        console.warn("Cannot add map click handler - map or on method not available");
     }
 
-    // Prevent toolbar elements from being added to the map
-    if (L.DrawToolbar) {
-        L.DrawToolbar.prototype.addToolbar = function() { return; };
-    }
-
-    // Setup tool buttons after the map is initialized
-    setupAfterMapInit();
-
-    console.log("UI Controls initialized");
-};
-
-// Add an additional DOMContentLoaded event to ensure UI is set up
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM Content Loaded - setting up UI");
-
-    // Initialize menus without waiting for the map
-    setupMenus();
-
-    // If map is already loaded, setup the rest
+    // Listen for draw:created events to handle new shapes
     if (window.map) {
-        setupAfterMapInit();
+        window.map.on('draw:created', function(e) {
+            const layer = e.layer;
+            console.log("Shape created:", e.layerType);
+
+            // Add the layer to the feature group
+            window.drawnItems.addLayer(layer);
+        });
     }
-});
+}
 
-
+// Update the layers list
 function updateLayersList() {
     const layersList = document.getElementById('layers-list');
     if (!layersList || !window.drawnItems) return;
@@ -518,4 +365,102 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.style.display = 'none';
     }, 3000);
+}
+
+function setupAfterMapInit() {
+    setupToolButtons();
+    
+    // Add pan control to the main toolbar
+    if (window.map) {
+        const toolbar = document.querySelector('.toolbar');
+        if (toolbar) {
+            // Create pan control at the beginning of the toolbar
+            const panButton = document.createElement('button');
+            panButton.className = 'tool-button';
+            panButton.id = 'pan-tool';
+            panButton.innerHTML = '<i class="fas fa-hand-paper"></i> Pan';
+            panButton.title = "Pan the map";
+            panButton.onclick = function() {
+                // Disable any active drawing tools
+                if (window.activeDrawHandler) {
+                    window.activeDrawHandler.disable();
+                    window.activeDrawHandler = null;
+                }
+                // Set tool as active
+                document.querySelectorAll('.tool-button').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+            };
+            
+            // Insert at the beginning of the toolbar
+            toolbar.insertBefore(panButton, toolbar.firstChild);
+            
+            // Add zoom controls to toolbar
+            const zoomInButton = document.createElement('button');
+            zoomInButton.className = 'tool-button';
+            zoomInButton.id = 'zoom-in-tool';
+            zoomInButton.innerHTML = '<i class="fas fa-search-plus"></i> Zoom In';
+            zoomInButton.title = "Zoom in";
+            zoomInButton.onclick = function() {
+                window.map.zoomIn();
+            };
+            
+            const zoomOutButton = document.createElement('button');
+            zoomOutButton.className = 'tool-button';
+            zoomOutButton.id = 'zoom-out-tool';
+            zoomOutButton.innerHTML = '<i class="fas fa-search-minus"></i> Zoom Out';
+            zoomOutButton.title = "Zoom out";
+            zoomOutButton.onclick = function() {
+                window.map.zoomOut();
+            };
+            
+            // Insert after the pan button
+            toolbar.insertBefore(zoomOutButton, panButton.nextSibling);
+            toolbar.insertBefore(zoomInButton, panButton.nextSibling);
+            
+            // Activate pan by default
+            panButton.click();
+        }
+    }
+
+    // Enable File menu options
+    const fileNewBtn = document.getElementById('file-new');
+    if (fileNewBtn) {
+        fileNewBtn.onclick = function() {
+            if (confirm("Create new location? Current work will be lost if unsaved.")) {
+                // Clear the current layers
+                if (window.drawnItems) {
+                    window.drawnItems.clearLayers();
+                }
+                // Reset any form or status displays
+                const locationDisplay = document.getElementById('current-location-display');
+                if (locationDisplay) {
+                    locationDisplay.textContent = 'Location: New (Unsaved)';
+                }
+            }
+        };
+    }
+
+    // Add a map click handler to cancel drawing when clicking on the map with no tool active
+    if (window.map && typeof window.map.on === 'function') {
+        window.map.on('click', function(e) {
+            // This will only fire if the click wasn't handled by another handler
+            if (window.activeDrawHandler || 
+                (window.editControl && window.editControl.enabled()) || 
+                (window.deleteHandler && window.deleteHandler.enabled())) {
+                const toolButtons = document.querySelectorAll('.tool-button');
+                toolButtons.forEach(btn => btn.classList.remove('active'));
+
+                if (window.activeDrawHandler) {
+                    window.activeDrawHandler.disable();
+                    window.activeDrawHandler = null;
+                }
+                if (window.editControl && window.editControl.enabled()) {
+                    window.editControl.disable();
+                }
+                if (window.deleteHandler && window.deleteHandler.enabled()) {
+                    window.deleteHandler.disable();
+                }
+            }
+        });
+    }
 }

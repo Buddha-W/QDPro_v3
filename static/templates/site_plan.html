@@ -11,20 +11,13 @@
     <div class="ui-container">
         <!-- Menu Bar -->
         <div class="menu-bar">
-            <div class="menu-item" id="file-menu">
+            <div class="menu-item">
                 File
                 <div class="dropdown-content">
-                    <a class="dropdown-item" id="file-new" href="#">New</a>
-                    <a class="dropdown-item" id="file-open" href="#">Open</a>
-                    <a class="dropdown-item" id="file-save" href="#">Save</a>
-                    <a class="dropdown-item" id="file-export" href="#">Export</a>
-                </div>
-            </div>
-            <div class="menu-item" id="location-menu">
-                Location
-                <div class="dropdown-content">
-                    <a class="dropdown-item" id="location-new" href="#">New Location</a>
-                    <a class="dropdown-item" id="location-manage" href="#">Manage Locations</a>
+                    <div class="dropdown-item" id="new-project">New Project</div>
+                    <div class="dropdown-item" id="open-location">Open Location</div>
+                    <div class="dropdown-item" id="save-project">Save Project</div>
+                    <div class="dropdown-item" id="export-data">Export Data</div>
                 </div>
             </div>
             <div class="menu-item">
@@ -312,7 +305,7 @@
         });
 
         // Menu item functionality
-        const newProjectBtn = document.getElementById('file-new');
+        const newProjectBtn = document.getElementById('new-project');
         if (newProjectBtn) {
             newProjectBtn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -327,7 +320,7 @@
             });
         }
 
-        const openLocationBtn = document.getElementById('file-open');
+        const openLocationBtn = document.getElementById('open-location');
         if (openLocationBtn) {
             openLocationBtn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -341,7 +334,7 @@
             });
         }
 
-        const saveProjectBtn = document.getElementById('file-save');
+        const saveProjectBtn = document.getElementById('save-project');
         if (saveProjectBtn) {
             saveProjectBtn.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -354,7 +347,7 @@
                 }
             });
         }
-
+        
         // Add file-new functionality
         const fileNewBtn = document.getElementById('file-new');
         if (fileNewBtn) {
@@ -888,7 +881,7 @@
 
                     // Similar for other layer types...
 
-                                        // Update layer list in UI
+                    // Update layer list in UI
                     updateLayersList();
 
                     // Zoom to fit all features

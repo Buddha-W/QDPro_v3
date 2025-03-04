@@ -70,51 +70,6 @@ document.addEventListener("DOMContentLoaded", function() {
                     try {
                         window.initializeUIControls();
                         console.log("UI controls initialized via callback");
-                        
-                        // Explicitly enable file menu after initialization
-                        const fileMenu = document.getElementById('file-menu');
-                        if (fileMenu) {
-                            fileMenu.classList.remove('disabled');
-                            fileMenu.onclick = function(e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                const dropdown = this.querySelector('.dropdown-content');
-                                if (dropdown) {
-                                    // Close any other open dropdowns first
-                                    document.querySelectorAll('.dropdown-content').forEach(d => {
-                                        if (d !== dropdown && d.style.display === 'block') {
-                                            d.style.display = 'none';
-                                        }
-                                    });
-                                    dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-                                }
-                                return false;
-                            };
-                        }
-                        
-                        // Enable file menu options
-                        const fileNewBtn = document.getElementById('file-new');
-                        if (fileNewBtn) {
-                            fileNewBtn.onclick = function(e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                if (confirm("Create new location? Current work will be lost if unsaved.")) {
-                                    // Clear the current layers
-                                    if (window.drawnItems) {
-                                        window.drawnItems.clearLayers();
-                                    }
-                                    // Reset any form or status displays
-                                    const locationDisplay = document.getElementById('current-location-display');
-                                    if (locationDisplay) {
-                                        locationDisplay.textContent = 'Location: New (Unsaved)';
-                                    }
-                                    // Close dropdown
-                                    const dropdown = document.querySelector('#file-menu .dropdown-content');
-                                    if (dropdown) dropdown.style.display = 'none';
-                                }
-                            };
-                        }
-                        
                     } catch (e) {
                         console.error("Error initializing UI controls:", e);
                     }
@@ -129,7 +84,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                     setupToolButtons();
                                     console.log("Tool buttons set up successfully");
                                     
-                                    // Enable menu items explicitlyy
+                                    // Enable menu items explicitly
                                     const menuItems = document.querySelectorAll('.menu-item, .dropdown-item');
                                     menuItems.forEach(item => {
                                         item.classList.remove('disabled');
