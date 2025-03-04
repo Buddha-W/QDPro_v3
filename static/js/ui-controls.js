@@ -35,9 +35,8 @@ if (L && L.DrawToolbar) {
 }
 
 // UI Controls for QDPro
-document.addEventListener("DOMContentLoaded", function() {
-    // Initialize UI controls when DOM is loaded
-    window.initializeUIControls = function() {
+// Define the initializeUIControls function globally
+window.initializeUIControls = function() {
         console.log("Initializing UI controls...");
 
         // Check if map is available first
