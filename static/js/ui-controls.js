@@ -46,9 +46,22 @@ function setupToolButtons() {
     toolbar.appendChild(zoomOutButton);
     
     // Check if drawnItems layer is already added to the map
-    if (window.drawnItems) {
+    if (window.drawnItems && window.map) {
         try {
-            if (typeof window.map.hasLayer === 'function' && !window.map.hasLayer(window.drawnItems)) {
+            // Safer check for hasLayer method
+            if (window.map.hasLayer && typeof window.map.hasLayer === 'function') {
+                if (!window.map.hasLayer(window.drawnItems)) {
+                    window.map.addLayer(window.drawnItems);
+                }
+            } else {
+                // Fallback if hasLayer is not available
+                console.log("hasLayer function not available, trying direct addLayer");
+                try {
+                    window.map.addLayer(window.drawnItems);
+                } catch (layerError) {
+                    console.error("Could not add drawnItems layer:", layerError);
+                }
+            }
                 window.map.addLayer(window.drawnItems);
             }
         } catch (e) {

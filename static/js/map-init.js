@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Try to find the map if it's initialized in site_plan.html
     if (typeof L !== 'undefined' && document.getElementById('map')) {
+        console.log("Leaflet is loaded and map element exists");
         // Check if map was already created in site_plan.html
         if (!window.map && typeof L.map === 'function') {
             console.log("Creating map fallback instance");
@@ -13,6 +14,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     zoom: 4,
                     zoomControl: false // Disable default zoom controls as we'll add custom ones
                 });
+                
+                console.log("Map created:", window.map);
+                console.log("Map has hasLayer:", typeof window.map.hasLayer === 'function');
                 
                 // Add a default base layer
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
