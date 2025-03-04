@@ -484,23 +484,50 @@ async def get_locations(include_deleted: bool = False):
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         try:
-            deleted_clause = "" if include_deleted else "WHERE l.deleted = FALSE"
-            cur.execute(f"""
-                SELECT l.id, l.location_name, l.created_at, COUNT(r.id) as record_count, l.deleted, l.deleted_at
-                FROM locations l 
-                LEFT JOIN records r ON l.id = r.location_id 
-                {deleted_clause}
-                GROUP BY l.id, l.location_name, l.created_at, l.deleted, l.deleted_at
-                ORDER BY l.created_at DESC
+            # Check if deleted column exists in locations table
+            cur.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'locations' AND column_name = 'deleted'
             """)
-            locations = [{
-                "id": id,
-                "name": name,
-                "created_at": str(created_at),
-                "record_count": record_count,
-                "deleted": deleted,
-                "deleted_at": str(deleted_at) if deleted_at else None
-            } for id, name, created_at, record_count, deleted, deleted_at in cur.fetchall()]
+            deleted_column_exists = cur.fetchone() is not None
+            
+            if deleted_column_exists:
+                deleted_clause = "" if include_deleted else "WHERE l.deleted = FALSE"
+                cur.execute(f"""
+                    SELECT l.id, l.location_name, l.created_at, COUNT(r.id) as record_count, 
+                           l.deleted, l.deleted_at
+                    FROM locations l 
+                    LEFT JOIN records r ON l.id = r.location_id 
+                    {deleted_clause}
+                    GROUP BY l.id, l.location_name, l.created_at, l.deleted, l.deleted_at
+                    ORDER BY l.created_at DESC
+                """)
+                locations = [{
+                    "id": id,
+                    "name": name,
+                    "created_at": str(created_at),
+                    "record_count": record_count,
+                    "deleted": deleted,
+                    "deleted_at": str(deleted_at) if deleted_at else None
+                } for id, name, created_at, record_count, deleted, deleted_at in cur.fetchall()]
+            else:
+                # Fallback when deleted column doesn't exist
+                cur.execute("""
+                    SELECT l.id, l.location_name, l.created_at, COUNT(r.id) as record_count
+                    FROM locations l 
+                    LEFT JOIN records r ON l.id = r.location_id 
+                    GROUP BY l.id, l.location_name, l.created_at
+                    ORDER BY l.created_at DESC
+                """)
+                locations = [{
+                    "id": id,
+                    "name": name,
+                    "created_at": str(created_at),
+                    "record_count": record_count,
+                    "deleted": False,
+                    "deleted_at": None
+                } for id, name, created_at, record_count in cur.fetchall()]
+            
             return JSONResponse(content={"locations": locations})
         except Exception as e:
             print(f"Error fetching locations: {e}")
@@ -521,7 +548,30 @@ async def get_locations(include_deleted: bool = False):
 @app.get("/api/recycle_bin")
 async def get_recycle_bin():
     """Get list of deleted locations."""
-    return await get_locations(include_deleted=True)
+    try:
+        # Check if deleted column exists before accessing recycle bin
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        try:
+            cur.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'locations' AND column_name = 'deleted'
+            """)
+            deleted_column_exists = cur.fetchone() is not None
+            
+            if not deleted_column_exists:
+                return JSONResponse(content={"locations": [], "message": "Recycle bin feature not available"})
+            
+            return await get_locations(include_deleted=True)
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        logger.error(f"Error accessing recycle bin: {str(e)}")
+        return JSONResponse(
+            content={"error": f"Failed to access recycle bin: {str(e)}"},
+            status_code=500
+        )
 
 @app.get("/api/load_location/{location_id}")
 async def load_location(location_id: int):
@@ -847,15 +897,37 @@ def init_db():
         print("Initializing database...")
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
+        
+        # First create the basic locations table if it doesn't exist
         cur.execute("""
             CREATE TABLE IF NOT EXISTS locations (
                 id SERIAL PRIMARY KEY,
                 location_name VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                deleted BOOLEAN DEFAULT FALSE,
-                deleted_at TIMESTAMP WITH TIME ZONE NULL
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        
+        # Check if deleted column already exists
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'locations' AND column_name = 'deleted'
+        """)
+        deleted_column_exists = cur.fetchone() is not None
+        
+        # Add the deleted columns if they don't exist
+        if not deleted_column_exists:
+            print("Adding deleted and deleted_at columns to locations table...")
+            try:
+                cur.execute("""
+                    ALTER TABLE locations 
+                    ADD COLUMN deleted BOOLEAN DEFAULT FALSE,
+                    ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE NULL
+                """)
+                conn.commit()
+                print("Successfully added deleted columns")
+            except Exception as e:
+                print(f"Error adding deleted columns: {e}")
+                conn.rollback()
         cur.execute("""
             CREATE TABLE IF NOT EXISTS records (
                 id SERIAL PRIMARY KEY,
