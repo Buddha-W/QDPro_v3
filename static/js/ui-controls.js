@@ -2,6 +2,10 @@
 // Function to update location display
 function updateLocationDisplay(locationName) {
     const displayElement = document.getElementById('current-location-display');
+    if (displayElement) {
+        displayElement.textContent = `Location: ${locationName || 'None'}`;
+    }
+}
 
 // Function to remove all Leaflet Draw toolbar buttons and elements
 function removeLeafletDrawButtons() {
@@ -36,17 +40,17 @@ function removeLeafletDrawButtons() {
         // Match any element with leaflet-draw in its class
         '[class*="leaflet-draw"]'
     ];
-    
+
     // Combined selector for efficiency
     const allLeafletDrawElements = document.querySelectorAll(selectors.join(', '));
-    
+
     // Remove all elements
     allLeafletDrawElements.forEach(function(element) {
         if (element && element.parentNode) {
             element.parentNode.removeChild(element);
         }
     });
-    
+
     // Also clean up any draw controls from the map container
     const mapContainers = document.querySelectorAll('.leaflet-container');
     mapContainers.forEach(function(container) {
@@ -57,7 +61,7 @@ function removeLeafletDrawButtons() {
             }
         });
     });
-    
+
     // Remove any dynamically added draw styles
     const drawStyles = document.querySelectorAll('style[class*="leaflet-draw"]');
     drawStyles.forEach(function(style) {
@@ -100,7 +104,7 @@ window.addEventListener('DOMContentLoaded', function() {
         if (L.DrawToolbar) {
             L.DrawToolbar.prototype._createActions = function() { return null; };
         }
-        
+
         // Override _showActionsToolbar to prevent toolbar display
         if (L.Draw.Feature && L.Draw.Feature.prototype._showActionsToolbar) {
             L.Draw.Feature.prototype._showActionsToolbar = function() {
@@ -108,7 +112,7 @@ window.addEventListener('DOMContentLoaded', function() {
                 return;
             };
         }
-        
+
         // Override _updateFinishHandler to avoid additional UI
         if (L.Draw.Feature && L.Draw.Feature.prototype._updateFinishHandler) {
             L.Draw.Feature.prototype._updateFinishHandler = function() {
@@ -130,13 +134,13 @@ window.addEventListener('DOMContentLoaded', function() {
                     if (originalEnable) originalEnable.call(this);
                     // Remove any UI after enabling
                     removeLeafletDrawButtons();
-                    
+
                     // Prevent any additional UI creation
                     if (this._map && this._map._toolbars) {
                         this._map._toolbars = {};
                     }
                 };
-                
+
                 // Override addHooks to prevent UI creation
                 const originalAddHooks = L.Draw[type].prototype.addHooks;
                 if (originalAddHooks) {
@@ -215,71 +219,6 @@ window.addEventListener('DOMContentLoaded', function() {
         if (L.DrawToolbar) {
             L.DrawToolbar.prototype.addToolbar = function() { return; };
         }
-    }
-});
-
-    if (displayElement) {
-        displayElement.textContent = `Location: ${locationName || 'None'}`;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Update location from URL if available
-    const urlParams = new URLSearchParams(window.location.search);
-    const locationParam = urlParams.get('location');
-    if (locationParam) {
-        updateLocationDisplay(locationParam);
-    }
-
-    // Toggle layers panel
-    const toggleLayersBtn = document.getElementById('toggle-layers-btn');
-    const layersPanel = document.getElementById('layers-panel');
-
-    if (toggleLayersBtn && layersPanel) {
-        toggleLayersBtn.addEventListener('click', function() {
-            layersPanel.classList.toggle('visible');
-        });
-    }
-
-    // Handle dropdown z-index issues
-    const dropdowns = document.querySelectorAll('.dropdown');
-    dropdowns.forEach(dropdown => {
-        dropdown.addEventListener('mouseenter', function() {
-            // Ensure dropdown content appears above all other elements
-            const content = this.querySelector('.dropdown-content');
-            if (content) {
-                content.style.zIndex = '1050';
-            }
-        });
-    });
-
-    // Initialize tool buttons functionality
-    setupToolButtons();
-
-    // Add a map click handler to cancel drawing when clicking on the map with no tool active
-    if (window.map) {
-        window.map.on('click', function(e) {
-            // This will only fire if the click wasn't handled by another handler
-            // (like drawing tools), effectively cancelling drawing mode on map click
-            if (window.activeDrawHandler || 
-                (window.editControl && window.editControl.enabled()) || 
-                (window.deleteHandler && window.deleteHandler.enabled())) {
-                // Cancel active tools on map click
-                const toolButtons = document.querySelectorAll('.tool-button');
-                toolButtons.forEach(btn => btn.classList.remove('active'));
-
-                if (window.activeDrawHandler) {
-                    window.activeDrawHandler.disable();
-                    window.activeDrawHandler = null;
-                }
-                if (window.editControl && window.editControl.enabled()) {
-                    window.editControl.disable();
-                }
-                if (window.deleteHandler && window.deleteHandler.enabled()) {
-                    window.deleteHandler.disable();
-                }
-            }
-        });
     }
 });
 
@@ -523,4 +462,38 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.style.display = 'none';
     }, 3000);
+}
+
+function setupAfterMapInit() {
+    // Setup drawing controls (assuming this function exists elsewhere)
+    setupDrawingControls();
+
+    // Setup tool buttons
+    setupToolButtons();
+
+    // Add a map click handler to cancel drawing when clicking on the map with no tool active
+    if (window.map && typeof window.map.on === 'function') {
+        window.map.on('click', function(e) {
+            // This will only fire if the click wasn't handled by another handler
+            // (like drawing tools), effectively cancelling drawing mode on map click
+            if (window.activeDrawHandler || 
+                (window.editControl && window.editControl.enabled()) || 
+                (window.deleteHandler && window.deleteHandler.enabled())) {
+                // Cancel active tools on map click
+                const toolButtons = document.querySelectorAll('.tool-button');
+                toolButtons.forEach(btn => btn.classList.remove('active'));
+
+                if (window.activeDrawHandler) {
+                    window.activeDrawHandler.disable();
+                    window.activeDrawHandler = null;
+                }
+                if (window.editControl && window.editControl.enabled()) {
+                    window.editControl.disable();
+                }
+                if (window.deleteHandler && window.deleteHandler.enabled()) {
+                    window.deleteHandler.disable();
+                }
+            }
+        });
+    }
 }
