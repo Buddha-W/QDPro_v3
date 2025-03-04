@@ -223,35 +223,32 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupToolButtons() {
-    if (!window.map) {
-        console.error("Map is not initialized.");
-        return;
-    }
+    // Create a drawn items group if not already present
+    window.drawnItems = window.drawnItems || new L.FeatureGroup();
 
-    const toolButtons = {
-        polygon: document.getElementById("draw-polygon-btn"),
-        rectangle: document.getElementById("draw-rectangle-btn"),
-        marker: document.getElementById("draw-marker-btn"),
-    };
+    // Safely add the layer to the map if it's not already there
+    try {
+        if (window.map && typeof window.map.addLayer === 'function') {
+            // Check if layer is already on the map
+            let layerAlreadyAdded = false;
+            if (window.drawnItems._map && window.drawnItems._map === window.map) {
+                layerAlreadyAdded = true;
+            }
+
+            if (!layerAlreadyAdded) {
+                window.map.addLayer(window.drawnItems);
+                console.log("Added drawn items layer to map");
+            }
+        } else {
+            console.warn("Map or addLayer method not available");
+        }
+    } catch (e) {
+        console.error("Error adding drawn items layer:", e);
+    }
 
     let activeDrawHandler = null;
     let activeTool = null;
 
-    // Create a drawn items group if not already present
-    window.drawnItems = window.drawnItems || new L.FeatureGroup();
-
-    // Check if layer is already added using a safer approach
-    try {
-        if (window.map && window.drawnItems && !window.drawnItems._map) {
-            window.map.addLayer(window.drawnItems);
-        }
-    } catch (e) {
-        console.warn("Error checking layer status:", e);
-        // Add layer anyway as fallback
-        if (window.map && typeof window.map.addLayer === 'function') {
-            window.map.addLayer(window.drawnItems);
-        }
-    }
 
     function disableAllTools() {
         Object.values(toolButtons).forEach((btn) => btn.classList.remove("active"));
@@ -311,6 +308,12 @@ function setupToolButtons() {
             activeDrawHandler.enable();
         }
     }
+
+    const toolButtons = {
+        polygon: document.getElementById("draw-polygon-btn"),
+        rectangle: document.getElementById("draw-rectangle-btn"),
+        marker: document.getElementById("draw-marker-btn"),
+    };
 
     // Attach event listeners to buttons
     Object.keys(toolButtons).forEach((toolType) => {
