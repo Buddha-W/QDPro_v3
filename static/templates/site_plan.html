@@ -6,67 +6,217 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="/static/css/ui-controls.css" />
-    <link rel="stylesheet" href="/static/css/map-styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>QDPro Site Plan</h1>
-            <div class="menu-bar">
-                <div class="dropdown">
-                    <button id="file-menu-btn" class="menu-button">File</button>
-                    <div id="file-menu-dropdown" class="dropdown-content">
-                        <a href="#" id="new-site-plan">New</a>
-                        <a href="#" id="open-site-plan">Open</a>
-                        <a href="#" id="save-site-plan">Save</a>
-                        <a href="#" id="export-site-plan">Export</a>
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <button id="edit-menu-btn" class="menu-button">Edit</button>
-                    <div id="edit-menu-dropdown" class="dropdown-content">
-                        <a href="#" id="undo">Undo</a>
-                        <a href="#" id="redo">Redo</a>
-                        <a href="#" id="delete-selected">Delete Selected</a>
-                        <a href="#" id="select-all">Select All</a>
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <button id="view-menu-btn" class="menu-button">View</button>
-                    <div id="view-menu-dropdown" class="dropdown-content">
-                        <a href="#" id="zoom-in">Zoom In</a>
-                        <a href="#" id="zoom-out">Zoom Out</a>
-                        <a href="#" id="reset-view">Reset View</a>
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <button id="tools-menu-btn" class="menu-button">Tools</button>
-                    <div id="tools-menu-dropdown" class="dropdown-content">
-                        <a href="#" id="measure-distance">Measure Distance</a>
-                        <a href="#" id="calculate-qd">Calculate QD</a>
-                        <a href="#" id="generate-report">Generate Report</a>
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <button id="help-menu-btn" class="menu-button">Help</button>
-                    <div id="help-menu-dropdown" class="dropdown-content">
-                        <a href="#" id="user-guide">User Guide</a>
-                        <a href="#" id="about">About</a>
-                    </div>
+    <div class="ui-container">
+        <!-- Menu Bar -->
+        <div class="menu-bar" id="menu-bar">
+            <div class="menu-item">
+                File
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="new-project">New Project</div>
+                    <div class="dropdown-item" id="open-location">Open Location</div>
+                    <div class="dropdown-item" id="save-project">Save Project</div>
+                    <div class="dropdown-item" id="export-data">Export Data</div>
                 </div>
             </div>
-        </header>
-
-        <div class="toolbar" id="toolbar-container">
-            <!-- Tool buttons will be added here by JavaScript -->
+            <div class="menu-item">
+                Edit
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="undo">Undo</div>
+                    <div class="dropdown-item" id="redo">Redo</div>
+                    <div class="dropdown-item" id="delete-selected">Delete Selected</div>
+                    <div class="dropdown-item" id="select-all">Select All</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                View
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="zoom-in">Zoom In</div>
+                    <div class="dropdown-item" id="zoom-out">Zoom Out</div>
+                    <div class="dropdown-item" id="reset-view">Reset View</div>
+                </div>
+            </div>
+            <div id="toolbar-container" class="toolbar">
+                <!-- Zoom controls will be added here by JavaScript -->
+            </div>
+            <div class="menu-item">
+                Tools
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="measure-distance">Measure Distance</div>
+                    <div class="dropdown-item" id="calculate-qd">Calculate QD</div>
+                    <div class="dropdown-item" id="generate-report">Generate Report</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                Help
+                <div class="dropdown-content">
+                    <div class="dropdown-item" id="user-guide">User Guide</div>
+                    <div class="dropdown-item" id="about">About</div>
+                </div>
+            </div>
         </div>
 
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="tool-button" id="toggle-draw-polygon" title="Draw Polygon">
+                <i class="fas fa-draw-polygon"></i> Polygon
+            </button>
+            <button class="tool-button" id="toggle-draw-rectangle" title="Draw Rectangle">
+                <i class="fas fa-square"></i> Rectangle
+            </button>
+            <button class="tool-button" id="toggle-draw-marker" title="Place Marker">
+                <i class="fas fa-map-marker-alt"></i> Marker
+            </button>
+            <button class="tool-button" id="toggle-edit" title="Edit Features">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="tool-button" id="toggle-delete" title="Delete Features">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+            <button class="tool-button" id="toggle-layers" title="Toggle Layers Panel">
+                <i class="fas fa-layer-group"></i> Layers
+            </button>
+            <span class="location-display" id="current-location-display">Location: None</span>
+        </div>
+
+        <!-- Layers Panel -->
+        <div class="layers-panel">
+            <div class="layers-header">
+                <h3>Layers</h3>
+                <button id="add-new-layer" class="tool-button">
+                    <i class="fas fa-plus"></i> Add Layer
+                </button>
+            </div>
+            <ul class="layers-list">
+                <!-- Layers will be added here dynamically -->
+            </ul>
+        </div>
+
+        <!-- Map Container -->
         <div class="map-container">
             <div id="map" style="width: 100%; height: 100%;"></div>
         </div>
+
+        <!-- Status Bar -->
         <div class="status-bar">
             <div id="coordinates">Coordinates: --</div>
             <div id="scale">Scale: --</div>
+        </div>
+    </div>
+
+    <!-- New Project Modal -->
+    <div id="new-project-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Create New Project</h2>
+            <form id="new-project-form">
+                <div class="form-group">
+                    <label for="project-name">Project Name</label>
+                    <input type="text" id="project-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="project-description">Description</label>
+                    <textarea id="project-description" class="form-control" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">Create Project</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Layer Properties Modal -->
+    <div id="layer-properties-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Layer Properties</h2>
+            <form id="layer-properties-form">
+                <div class="form-group">
+                    <label for="layer-name">Layer Name</label>
+                    <input type="text" id="layer-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="layer-type">Layer Type</label>
+                    <select id="layer-type" class="form-control">
+                        <option value="facility">Facility</option>
+                        <option value="safety_arc">Safety Arc</option>
+                        <option value="pes">Potential Explosion Site</option>
+                        <option value="es">Exposed Site</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="layer-color">Layer Color</label>
+                    <input type="color" id="layer-color" class="form-control" value="#3388ff">
+                </div>
+                <button type="submit" class="btn-primary">Save Layer</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feature Properties Modal -->
+    <div id="feature-properties-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Feature Properties</h2>
+            <form id="feature-properties-form">
+                <div class="form-group">
+                    <label for="feature-name">Name</label>
+                    <input type="text" id="feature-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="feature-description">Description</label>
+                    <textarea id="feature-description" class="form-control" rows="3"></textarea>
+                </div>
+                <div id="feature-specific-properties">
+                    <!-- Dynamic properties based on feature type will be added here -->
+                </div>
+                <button type="submit" class="btn-primary">Save Feature</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Open Location Modal -->
+    <div id="open-location-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Open Location</h2>
+            <div id="location-list">
+                <!-- Location list will be populated here -->
+                <p>Loading locations...</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Save Dialog -->
+    <div id="save-dialog" class="dialog">
+        <div class="dialog-header">
+            <span class="dialog-title">Save Location</span>
+            <button class="close-dialog">&times;</button>
+        </div>
+        <div class="dialog-content">
+            <div class="form-group">
+                <label for="location-name">Location Name:</label>
+                <input type="text" id="location-name" class="form-control">
+            </div>
+        </div>
+        <div class="dialog-actions">
+            <button id="save-location-btn" class="dialog-button primary">Save</button>
+            <button class="dialog-button secondary close-dialog">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Open Dialog -->
+    <div id="open-dialog" class="dialog">
+        <div class="dialog-header">
+            <span class="dialog-title">Open Location</span>
+            <button class="close-dialog">&times;</button>
+        </div>
+        <div class="dialog-content">
+            <div id="locations-list">
+                <p>Loading locations...</p>
+            </div>
+        </div>
+        <div class="dialog-actions">
+            <button class="dialog-button secondary close-dialog">Cancel</button>
         </div>
     </div>
 
@@ -75,20 +225,824 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/map-styles.css">
+    <script>
+        // Define a global initializeUIControls function first
+        window.initializeUIControls = function() {
+            console.log("Fallback UI initialization running...");
+            // This will be overridden by the proper implementation in ui-controls.js
+        };
+    </script>
     <script src="/static/js/ui-controls.js"></script>
     <script src="/static/js/map-init.js"></script>
-
+    
+    <div id="app-container">
+        <!-- Top Bar with Menus -->
+        <div id="top-bar">
+            <div id="menu-bar">
+                <div id="file-menu" class="menu-item">
+                    <span>File</span>
+                    <div id="file-dropdown" class="dropdown-content">
+                        <a id="file-new" class="dropdown-item">New</a>
+                        <a id="file-open" class="dropdown-item">Open...</a>
+                        <a id="file-save" class="dropdown-item">Save...</a>
+                        <a id="file-export" class="dropdown-item">Export...</a>
+                    </div>
+                </div>
+                <div id="edit-menu" class="menu-item">
+                    <span>Edit</span>
+                </div>
+                <div id="view-menu" class="menu-item">
+                    <span>View</span>
+                </div>
+                <div id="tools-menu" class="menu-item">
+                    <span>Tools</span>
+                </div>
+                <div id="help-menu" class="menu-item">
+                    <span>Help</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div id="map-container">
+            <!-- Left Sidebar with Drawing Tools -->
+            <div class="sidebar">
+                <div class="toolbar">
+                    <!-- Toolbar buttons will be added by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Map -->
+            <div id="map"></div>
+            
+            <!-- Top Toolbar for Zoom Controls -->
+            <div id="top-toolbar">
+                <!-- Zoom controls will be added by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Status Bar -->
+        <div id="status-bar">
+            <div id="current-location-display">Location: None</div>
+            <div id="coordinates-display"></div>
+        </div>
+    </div>
     <script>
-        // Map initialization and other JavaScript code from the original file would go here...  (This is a placeholder, the original JS should be included)
+        // Initialize map
+        const map = L.map('map', {
+            zoomControl: false  // We'll add this in a custom position
+        }).setView([39.8283, -98.5795], 4);
 
-        // Add event listeners for menu items and toolbar buttons (Example)
-        document.getElementById('new-site-plan').addEventListener('click', function() {
-            // Handle new site plan creation
-            alert('New Site Plan');
+        // Add zoom control in a better position
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
+
+        // Add base layers
+        const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
         });
 
-        //Add the rest of the javascript functionality here (This is a placeholder for the original JS code)
-        // ...rest of the javascript code from the original file goes here.
+        const baseMaps = {
+            "OpenStreetMap": osm,
+            "Satellite": satellite
+        };
+
+        L.control.layers(baseMaps, null, { position: 'bottomright' }).addTo(map);
+
+        // Initialize feature groups for different layers
+        const featureGroups = {
+            facilities: new L.FeatureGroup().addTo(map),
+            safetyArcs: new L.FeatureGroup().addTo(map),
+            pesLocations: new L.FeatureGroup().addTo(map),
+            esLocations: new L.FeatureGroup().addTo(map)
+        };
+
+        // Initialize Leaflet Draw
+        const drawControl = new L.Control.Draw({
+            position: 'topleft',
+            draw: {
+                polyline: false,
+                polygon: true,
+                circle: true,
+                rectangle: true,
+                marker: true,
+                circlemarker: false
+            },
+            edit: {
+                featureGroup: new L.FeatureGroup([
+                    featureGroups.facilities,
+                    featureGroups.safetyArcs,
+                    featureGroups.pesLocations,
+                    featureGroups.esLocations
+                ]),
+                remove: true
+            }
+        });
+
+        // Variables to track current state
+        let currentEditingLayer = null;
+        let activeDrawControl = null;
+        let isEditMode = false;
+        let isDeleteMode = false;
+
+        // Toggle the layers panel
+        document.getElementById('toggle-layers').addEventListener('click', function() {
+            const layersPanel = document.querySelector('.layers-panel');
+            layersPanel.classList.toggle('visible');
+            this.classList.toggle('active');
+        });
+
+        // Close modals when clicking on X
+        document.querySelectorAll('.close-modal').forEach(function(closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                this.closest('.modal').style.display = 'none';
+            });
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener('click', function(event) {
+            document.querySelectorAll('.modal').forEach(function(modal) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        // Tool buttons functionality
+        document.getElementById('toggle-draw-polygon').addEventListener('click', function() {
+            toggleDrawControl('polygon');
+        });
+
+        document.getElementById('toggle-draw-rectangle').addEventListener('click', function() {
+            toggleDrawControl('rectangle');
+        });
+
+        document.getElementById('toggle-draw-marker').addEventListener('click', function() {
+            toggleDrawControl('marker');
+        });
+
+        document.getElementById('toggle-edit').addEventListener('click', function() {
+            toggleEditMode();
+        });
+
+        document.getElementById('toggle-delete').addEventListener('click', function() {
+            toggleDeleteMode();
+        });
+
+        // Menu item functionality
+        const newProjectBtn = document.getElementById('new-project');
+        if (newProjectBtn) {
+            newProjectBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const modal = document.getElementById('new-project-modal');
+                if (modal) {
+                    modal.style.display = 'block';
+                } else {
+                    console.error("New project modal not found");
+                    alert("Create new project functionality is being set up.");
+                }
+            });
+        }
+
+        const openLocationBtn = document.getElementById('open-location');
+        if (openLocationBtn) {
+            openLocationBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof openLocationModal === 'function') {
+                    openLocationModal();
+                } else {
+                    console.error("openLocationModal function not found");
+                    alert("Open location functionality is being set up.");
+                }
+            });
+        }
+
+        const saveProjectBtn = document.getElementById('save-project');
+        if (saveProjectBtn) {
+            saveProjectBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof saveProject === 'function') {
+                    saveProject();
+                } else {
+                    console.error("saveProject function not found");
+                    alert("Save project functionality is being set up.");
+                }
+            });
+        }
+        
+        // Add file-new functionality
+        const fileNewBtn = document.getElementById('file-new');
+        if (fileNewBtn) {
+            fileNewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (confirm("Create new location? Current work will be lost if unsaved.")) {
+                    // Clear the current layers
+                    if (window.drawnItems) {
+                        window.drawnItems.clearLayers();
+                    }
+                    // Reset any form or status displays
+                    const locationDisplay = document.getElementById('current-location-display');
+                    if (locationDisplay) {
+                        locationDisplay.textContent = 'Location: New (Unsaved)';
+                    }
+                }
+            });
+        }
+
+        // Update coordinates in status bar
+        map.on('mousemove', function(e) {
+            document.getElementById('coordinates').textContent = 
+                `Coordinates: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+        });
+
+        // Update scale in status bar
+        map.on('zoomend', function() {
+            const scale = Math.round(map.getZoom() * map.getZoom() * 10) / 10;
+            document.getElementById('scale').textContent = `Scale: ~1:${scale}k`;
+        });
+
+        // Function to toggle drawing tools
+        function toggleDrawControl(drawType) {
+            // Remove any existing draw control
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+            }
+
+            // Disable edit and delete modes
+            isEditMode = false;
+            isDeleteMode = false;
+            updateButtonStates();
+
+            // Create new draw control with only the selected type
+            const drawOptions = {
+                position: 'topleft',
+                draw: {
+                    polyline: false,
+                    polygon: false,
+                    circle: false,
+                    rectangle: false,
+                    marker: false,
+                    circlemarker: false
+                }
+            };
+
+            // Enable only the selected drawing type
+            drawOptions.draw[drawType] = true;
+
+            // Create and add the new control
+            activeDrawControl = new L.Control.Draw(drawOptions);
+            map.addControl(activeDrawControl);
+
+            // Set the active button
+            document.querySelectorAll('.toolbar .tool-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`toggle-draw-${drawType}`).classList.add('active');
+        }
+
+        // Function to toggle edit mode
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            isDeleteMode = false;
+
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+                activeDrawControl = null;
+            }
+
+            if (isEditMode) {
+                const editOptions = {
+                    position: 'topleft',
+                    draw: false,
+                    edit: {
+                        featureGroup: new L.FeatureGroup([
+                            featureGroups.facilities,
+                            featureGroups.safetyArcs,
+                            featureGroups.pesLocations,
+                            featureGroups.esLocations
+                        ]),
+                        remove: false
+                    }
+                };
+                activeDrawControl = new L.Control.Draw(editOptions);
+                map.addControl(activeDrawControl);
+            }
+
+            updateButtonStates();
+        }
+
+        // Function to toggle delete mode
+        function toggleDeleteMode() {
+            isDeleteMode = !isDeleteMode;
+            isEditMode = false;
+
+            if (activeDrawControl) {
+                map.removeControl(activeDrawControl);
+                activeDrawControl = null;
+            }
+
+            if (isDeleteMode) {
+                const deleteOptions = {
+                    position: 'topleft',
+                    draw: false,
+                    edit: {
+                        featureGroup: new L.FeatureGroup([
+                            featureGroups.facilities,
+                            featureGroups.safetyArcs,
+                            featureGroups.pesLocations,
+                            featureGroups.esLocations
+                        ]),
+                        edit: false,
+                        remove: true
+                    }
+                };
+                activeDrawControl = new L.Control.Draw(deleteOptions);
+                map.addControl(activeDrawControl);
+            }
+
+            updateButtonStates();
+        }
+
+        // Update the styles of toolbar buttons based on active states
+        function updateButtonStates() {
+            document.querySelectorAll('.toolbar .tool-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            if (isEditMode) {
+                document.getElementById('toggle-edit').classList.add('active');
+            } else if (isDeleteMode) {
+                document.getElementById('toggle-delete').classList.add('active');
+            }
+        }
+
+        // Handle drawing created event
+        map.on('draw:created', function(e) {
+            const layer = e.layer;
+            openFeaturePropertiesModal(layer);
+        });
+
+        // Function to open feature properties modal
+        function openFeaturePropertiesModal(layer) {
+            document.getElementById('feature-properties-modal').style.display = 'block';
+            document.getElementById('feature-properties-form').onsubmit = function(e) {
+                e.preventDefault();
+                const name = document.getElementById('feature-name').value;
+                const description = document.getElementById('feature-description').value;
+
+                layer.feature = {
+                    type: 'Feature',
+                    properties: {
+                        name: name,
+                        description: description
+                    }
+                };
+
+                // Add the layer to the appropriate feature group
+                featureGroups.facilities.addLayer(layer);
+
+                // Add the layer to the layers list in UI
+                updateLayersList();
+
+                document.getElementById('feature-properties-modal').style.display = 'none';
+            };
+        }
+
+        // Function to update the layers list in the UI
+        function updateLayersList() {
+            const layersList = document.querySelector('.layers-list');
+            layersList.innerHTML = '';
+
+            // Add facilities layer
+            const facilitiesItem = document.createElement('li');
+            facilitiesItem.className = 'layer-item';
+            facilitiesItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">Facilities</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(facilitiesItem);
+
+            // Add safety arcs layer
+            const safetyArcsItem = document.createElement('li');
+            safetyArcsItem.className = 'layer-item';
+            safetyArcsItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">Safety Arcs</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(safetyArcsItem);
+
+            // Add PES locations layer
+            const pesItem = document.createElement('li');
+            pesItem.className = 'layer-item';
+            pesItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">PES Locations</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(pesItem);
+
+            // Add ES locations layer
+            const esItem = document.createElement('li');
+            esItem.className = 'layer-item';
+            esItem.innerHTML = `
+                <input type="checkbox" class="layer-checkbox" checked>
+                <span class="layer-name">ES Locations</span>
+                <div class="layer-actions">
+                    <button class="layer-action-btn layer-visibility" title="Toggle Visibility"><i class="fas fa-eye"></i></button>
+                    <button class="layer-action-btn layer-edit" title="Edit Layer"><i class="fas fa-cog"></i></button>
+                </div>
+            `;
+            layersList.appendChild(esItem);
+
+            // Add event listeners for layer visibility and edit actions
+            document.querySelectorAll('.layer-checkbox').forEach(function(checkbox, index) {
+                checkbox.addEventListener('change', function() {
+                    const featureGroupKeys = Object.keys(featureGroups);
+                    const featureGroup = featureGroups[featureGroupKeys[index]];
+
+                    if (this.checked) {
+                        map.addLayer(featureGroup);
+                    } else {
+                        map.removeLayer(featureGroup);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.layer-edit').forEach(function(button, index) {
+                button.addEventListener('click', function() {
+                    const featureGroupKeys = Object.keys(featureGroups);
+                    currentEditingLayer = featureGroupKeys[index];
+                    openLayerPropertiesModal(currentEditingLayer);
+                });
+            });
+        }
+
+        // Function to open layer properties modal
+        function openLayerPropertiesModal(layerKey) {
+            document.getElementById('layer-properties-modal').style.display = 'block';
+            document.getElementById('layer-name').value = layerKey;
+
+            document.getElementById('layer-properties-form').onsubmit = function(e) {
+                e.preventDefault();
+                // Update layer properties
+                // (In a real app, you'd update the layer styling, name, etc.)
+                document.getElementById('layer-properties-modal').style.display = 'none';
+                updateLayersList();
+            };
+        }
+
+        // Function to open location modal
+        function openLocationModal() {
+            document.getElementById('open-location-modal').style.display = 'block';
+
+            // Fetch locations from the server
+            fetch('/api/locations')
+                .then(response => response.json())
+                .then(data => {
+                    const locationList = document.getElementById('location-list');
+                    const locations = data.locations || [];
+
+                    if (!locations || locations.length === 0) {
+                        locationList.innerHTML = '<p>No locations found.</p>';
+                        return;
+                    }
+
+                    // Create edit location modal
+                    const editLocationModal = document.createElement('div');
+                    editLocationModal.id = 'edit-location-modal';
+                    editLocationModal.className = 'edit-location-modal';
+                    editLocationModal.innerHTML = `
+                        <div class="edit-location-content">
+                            <span class="close-edit" onclick="closeEditLocationModal()">&times;</span>
+                            <h2>Edit Location</h2>
+                            <form id="edit-location-form">
+                                <input type="text" id="edit-location-name" placeholder="Location Name" required>
+                                <button type="submit">Save Changes</button>
+                            </form>
+                        </div>
+                    `;
+                    document.body.appendChild(editLocationModal);
+
+                    // Add event listener for the edit form
+                    document.getElementById('edit-location-form').addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        const locationId = this.dataset.locationId;
+                        const newName = document.getElementById('edit-location-name').value;
+                        await updateLocationName(locationId, newName);
+                        closeEditLocationModal();
+                        loadLocationsList(); // Refresh the list
+                    });
+
+                    let html = '<ul class="location-list">';
+                    locations.forEach(location => {
+                        html += `<li>
+                            <a href="#" data-id="${location.id}">${location.name}</a>
+                            <div class="location-actions">
+                                <button class="edit-btn" onclick="editLocation(event, ${location.id}, '${location.name}')">Edit</button>
+                                <button class="delete-btn" onclick="deleteLocation(event, ${location.id})">Delete</button>
+                            </div>
+                        </li>`;
+                    });
+                    html += '</ul>';
+
+                    // Add styles for the buttons
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        #location-list ul.location-list li {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 8px 0;
+                        }
+                        .location-actions {
+                            display: flex;
+                            gap: 5px;
+                        }
+                        .edit-btn {
+                            background-color: #2196F3;
+                            color: white;
+                            border: none;
+                            padding: 5px 10px;
+                            border-radius: 3px;
+                            cursor: pointer;
+                        }
+                        .delete-btn {
+                            background-color: #f44336;
+                            color: white;
+                            border: none;;
+                            padding: 5px 10px;
+                            border-radius: 3px;
+                            cursor: pointer;
+                        }
+                        .edit-location-modal {
+                            display: none;
+                            position: fixed;
+                            z-index: 10001;
+                            left: 0;
+                            top: 0;
+                            width: 100%;
+                            height: 100%;
+                            background-color: rgba(0,0,0,0.5);
+                        }
+                        .edit-location-content {
+                            background-color: white;
+                            margin: 15% auto;
+                            padding: 20px;
+                            width: 50%;
+                            border-radius: 5px;
+                        }
+                        .close-edit {
+                            float: right;
+                            cursor: pointer;
+                            font-size: 24px;
+                        }
+                    `;
+                    document.head.appendChild(style);
+
+                    locationList.innerHTML = html;
+
+                    // Add click event listeners to location links
+                    locationList.querySelectorAll('a').forEach(link => {
+                        link.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            const locationId = this.getAttribute('data-id');
+                            switchToLocation(locationId);
+                        });
+                    });
+
+                    // Edit and delete functions for locations
+                    window.editLocation = async function(event, locationId, locationName) {
+                        event.stopPropagation();
+                        const newName = prompt("Edit location name:", locationName);
+                        if (newName && newName !== locationName) {
+                            try {
+                                const response = await fetch(`/api/edit_location/${locationId}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ location_name: newName })
+                                });
+
+                                const data = await response.json();
+                                if (data.success) {
+                                    loadLocations(); // Refresh the list
+                                } else {
+                                    alert(`Error: ${data.error}`);
+                                }
+                            } catch (error) {
+                                alert(`Error: ${error.message}`);
+                            }
+                        }
+                    };
+
+                    window.deleteLocation = async function(event, locationId) {
+                        event.stopPropagation();
+                        if (confirm("Are you sure you want to move this location to the recycle bin?")) {
+                            try {
+                                const response = await fetch(`/api/delete_location/${locationId}`, {
+                                    method: 'DELETE'
+                                });
+
+                                const data = await response.json();
+                                if (data.success) {
+                                    alert("Location moved to recycle bin");
+                                    loadLocations(); // Refresh the list
+                                } else {
+                                    alert(`Error: ${data.error}`);
+                                }
+                            } catch (error) {
+                                alert(`Error: ${error.message}`);
+                            }
+                        }
+                    };te('data-id');
+                            loadLocation(locationId);
+                            document.getElementById('open-location-modal').style.display = 'none';
+                        });
+                    });
+
+                    // Functions for handling location editing and deletion
+                    window.editLocation = function(event, locationId, locationName) {
+                        event.stopPropagation();
+                        const modal = document.getElementById('edit-location-modal');
+                        const form = document.getElementById('edit-location-form');
+                        const nameInput = document.getElementById('edit-location-name');
+
+                        form.dataset.locationId = locationId;
+                        nameInput.value = locationName;
+                        modal.style.display = 'block';
+                    };
+
+                    window.closeEditLocationModal = function() {
+                        document.getElementById('edit-location-modal').style.display = 'none';
+                    };
+
+                    window.deleteLocation = async function(event, locationId) {
+                        event.stopPropagation();
+                        if (confirm('Are you sure you want to delete this location? This action cannot be undone.')) {
+                            try {
+                                const response = await fetch(`/api/delete_location/${locationId}`, {
+                                    method: 'DELETE'
+                                });
+                                const data = await response.json();
+
+                                if (data.success) {
+                                    alert('Location deleted successfully');
+                                    loadLocationsList(); // Refresh the list
+                                } else {
+                                    alert('Error: ' + data.error);
+                                }
+                            } catch (error) {
+                                console.error('Error deleting location:', error);
+                                alert('Failed to delete location');
+                            }
+                        }
+                    };
+
+                    window.updateLocationName = async function(locationId, newName) {
+                        try {
+                            const response = await fetch(`/api/edit_location/${locationId}`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ location_name: newName })
+                            });
+                            const data = await response.json();
+
+                            if (data.success) {
+                                alert('Location updated successfully');
+                                return true;
+                            } else {
+                                alert('Error: ' + data.error);
+                                return false;
+                            }
+                        } catch (error) {
+                            console.error('Error updating location:', error);
+                            alert('Failed to update location');
+                            return false;
+                        }
+                    };
+                })
+                .catch(error => {
+                    console.error('Error fetching locations:', error);
+                    document.getElementById('location-list').innerHTML = 
+                        '<p>Error loading locations. Please try again later.</p>';
+                });
+        }
+
+        // Function to load a location
+        function loadLocation(locationId) {
+            fetch(`/api/load_location/${locationId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Clear existing layers
+                    Object.values(featureGroups).forEach(group => group.clearLayers());
+
+                    // Load data into appropriate layers
+                    if (data.facilities) {
+                        data.facilities.forEach(facility => {
+                            const layer = L.geoJSON(facility, {
+                                onEachFeature: function(feature, layer) {
+                                    layer.feature = feature;
+                                }
+                            });
+                            featureGroups.facilities.addLayer(layer);
+                        });
+                    }
+
+                    // Similar for other layer types...
+
+                    // Update layer list in UI
+                    updateLayersList();
+
+                    // Zoom to fit all features
+                    const bounds = new L.LatLngBounds();
+                    Object.values(featureGroups).forEach(group => {
+                        if (group.getBounds().isValid()) {
+                            bounds.extend(group.getBounds());
+                        }
+                    });
+
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading location:', error);
+                    alert('Error loading location. Please try again.');
+                });
+        }
+
+        // Function to save the current project
+        function saveProject() {
+            const projectData = {
+                facilities: [],
+                safetyArcs: [],
+                pesLocations: [],
+                esLocations: []
+            };
+
+            // Collect data from each feature group
+            featureGroups.facilities.eachLayer(layer => {
+                if (layer.toGeoJSON) {
+                    projectData.facilities.push(layer.toGeoJSON());
+                }
+            });
+
+            // Similar for other feature groups...
+
+            // Send data to server
+            fetch('/api/save_project', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(projectData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Project saved successfully!');
+                } else {
+                    alert('Error saving project: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving project:', error);
+                alert('Error saving project. Please try again.');
+            });
+        }
+
+        // Initialize the UI
+        function initUI() {
+            // Initialize layers list
+            updateLayersList();
+        }
+
+        // Start the application
+        initUI();
     </script>
 </body>
 </html>
