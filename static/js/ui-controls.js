@@ -41,13 +41,8 @@ window.initializeUIControls = function() {
         return;
     }
 
-    // Add zoom control to toolbar instead of default corner
-    const zoomControl = L.control.zoom({
-        position: 'topright',
-        zoomInTitle: 'Zoom In',
-        zoomOutTitle: 'Zoom Out'
-    });
-    window.map.addControl(zoomControl);
+    // Remove default zoom controls (we'll add them to the toolbar)
+    window.map.removeControl(window.map.zoomControl);
 
     // Setup toolbar with drawing tools
     setupToolbar();
