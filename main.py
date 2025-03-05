@@ -120,7 +120,32 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
         layer_name = data.get("layer_name", "Default")
         layer_config = {"type": "FeatureCollection", "features": data.get("features", [])}
         
-        # Simplified approach that avoids ON CONFLICT issues
+        # First check if the proper constraint exists
+        try:
+            # Check if the map_layers_name_key constraint exists
+            cur.execute("""
+                SELECT constraint_name FROM information_schema.table_constraints
+                WHERE table_name = 'map_layers' AND constraint_name = 'map_layers_name_key'
+            """)
+            
+            if cur.fetchone():
+                # Drop the simple name constraint and add composite constraint
+                cur.execute("ALTER TABLE map_layers DROP CONSTRAINT map_layers_name_key")
+                try:
+                    cur.execute("""
+                        ALTER TABLE map_layers ADD CONSTRAINT map_layers_name_location_key 
+                        UNIQUE (name, location_id)
+                    """)
+                    conn.commit()
+                except psycopg2.Error as e:
+                    # Constraint might already exist or other issue
+                    conn.rollback()
+                    logger.warning(f"Couldn't add composite constraint: {str(e)}")
+        except psycopg2.Error as e:
+            conn.rollback()
+            logger.warning(f"Error checking constraints: {str(e)}")
+        
+        # Save layer logic
         if location_id:
             # First, check if a layer with this name and location_id exists
             cur.execute("""
@@ -148,6 +173,12 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
                 layer_id = cur.fetchone()[0]
         else:
             # Without location_id, just insert a new layer
+            # For layers without location_id, add a random suffix to ensure uniqueness
+            if location_id is None:
+                import random
+                unique_name = f"{layer_name}_{random.randint(1000, 9999)}"
+                layer_name = unique_name
+                
             cur.execute("""
                 INSERT INTO map_layers (name, layer_config, is_active)
                 VALUES (%s, %s, TRUE)
@@ -356,23 +387,38 @@ def init_db():
                 test_id = cur.fetchone()[0]
                 cur.execute("DELETE FROM map_layers WHERE id = %s", (test_id,))
                 
+                # Check for and drop the single-column name constraint if it exists
+                cur.execute("""
+                    SELECT constraint_name FROM information_schema.table_constraints
+                    WHERE table_name = 'map_layers' AND constraint_name = 'map_layers_name_key'
+                """)
+                
+                if cur.fetchone():
+                    try:
+                        cur.execute("ALTER TABLE map_layers DROP CONSTRAINT map_layers_name_key")
+                        print("Dropped simple name constraint")
+                    except psycopg2.Error as e:
+                        print(f"Error dropping constraint: {e}")
+                        conn.rollback()
+                
                 # Check if there's a unique constraint for (name, location_id)
                 cur.execute("""
                     SELECT COUNT(*) FROM pg_constraint 
-                    WHERE conname = 'map_layers_name_location_id_key'
+                    WHERE conname = 'map_layers_name_location_key'
                 """)
                 has_constraint = cur.fetchone()[0] > 0
                 
                 if not has_constraint:
                     try:
-                        # Add a unique constraint if it doesn't exist
+                        # Add a composite unique constraint if it doesn't exist
                         cur.execute("""
                             ALTER TABLE map_layers 
-                            ADD CONSTRAINT map_layers_name_location_id_key 
+                            ADD CONSTRAINT map_layers_name_location_key 
                             UNIQUE (name, location_id)
                         """)
                         print("Added unique constraint for name and location_id")
                     except psycopg2.Error as constraint_error:
+                        conn.rollback()
                         print(f"Could not add constraint: {constraint_error}")
                         
                 print("Map layers table structure is valid")
