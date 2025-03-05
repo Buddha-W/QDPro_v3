@@ -69,24 +69,49 @@ async def root(request: Request):
 @app.post("/api/save")
 async def save_project(data: dict):
     try:
+        # Ensure data directory exists
+        os.makedirs("data", exist_ok=True)
+        
+        # Save with pretty formatting for readability
         with open("data/layer_data.json", "w") as f:
-            json.dump(data, f)
-        return {"status": "success"}
+            json.dump(data, f, indent=2)
+        
+        logger.info(f"Project saved successfully at {datetime.now().isoformat()}")
+        return {"status": "success", "message": "Data saved successfully"}
     except Exception as e:
+        logger.error(f"Error saving project: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/api/load")
 async def load_project():
     try:
+        # Ensure data directory exists
+        os.makedirs("data", exist_ok=True)
+        
+        # Try to load the file
         with open("data/layer_data.json", "r") as f:
-            return json.load(f)
+            data = json.load(f)
+        
+        logger.info(f"Project loaded successfully at {datetime.now().isoformat()}")
+        return data
     except FileNotFoundError:
+        logger.warning("No data file found, returning default structure")
         # Return some default structure if no file found
-        return {
-            "facilities": {"type": "FeatureCollection", "features": []},
-            "qdArcs": {"type": "FeatureCollection", "features": []},
-            "analysis": {"type": "FeatureCollection", "features": []}
+        default_data = {
+            "features": []
         }
+        
+        # Create the default file for future use
+        with open("data/layer_data.json", "w") as f:
+            json.dump(default_data, f, indent=2)
+            
+        return default_data
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in data file")
+        return JSONResponse(status_code=500, content={"error": "Data file contains invalid JSON"})
+    except Exception as e:
+        logger.error(f"Error loading project: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 # -----------------------------------------------------------
