@@ -107,22 +107,28 @@ function closePopup() {
 
 // Store reference to active layer being edited
 function setActiveEditLayer(layer) {
+  if (!layer) return;
+  
   window.activeEditLayer = layer;
   
   // Get properties from the layer
   const properties = layer.feature ? (layer.feature.properties || {}) : {};
   
-  // Set values for each field
-  if (properties.name && document.getElementById('name')) 
-    document.getElementById('name').value = properties.name;
-  if (document.getElementById('is_facility')) 
-    document.getElementById('is_facility').checked = !!properties.is_facility;
-  if (document.getElementById('has_explosive')) 
-    document.getElementById('has_explosive').checked = !!properties.has_explosive;
-  if (properties.net_explosive_weight && document.getElementById('net_explosive_weight')) 
-    document.getElementById('net_explosive_weight').value = properties.net_explosive_weight;
-  if (properties.type && document.getElementById('facilityType')) 
-    document.getElementById('facilityType').value = properties.type;
-  if (properties.description && document.getElementById('description')) 
-    document.getElementById('description').value = properties.description;
+  // Set values for each field - using try/catch to prevent errors if elements don't exist
+  try {
+    if (properties.name && document.getElementById('name')) 
+      document.getElementById('name').value = properties.name;
+    if (document.getElementById('is_facility')) 
+      document.getElementById('is_facility').checked = !!properties.is_facility;
+    if (document.getElementById('has_explosive')) 
+      document.getElementById('has_explosive').checked = !!properties.has_explosive;
+    if (properties.net_explosive_weight && document.getElementById('net_explosive_weight')) 
+      document.getElementById('net_explosive_weight').value = properties.net_explosive_weight;
+    if (properties.type && document.getElementById('facilityType')) 
+      document.getElementById('facilityType').value = properties.type;
+    if (properties.description && document.getElementById('description')) 
+      document.getElementById('description').value = properties.description;
+  } catch (error) {
+    console.error("Error setting form values:", error);
+  }
 }
