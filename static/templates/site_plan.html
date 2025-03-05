@@ -45,6 +45,57 @@
     .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; }
     .facility-icon { text-align: center; }
     .violation-icon { text-align: center; }
+
+    .facility-icon div, .violation-icon div {
+      background-color: #fff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #333;
+    }
+
+    .facility-icon div {
+      background-color: #ffcc00;
+      border-color: #cc9900;
+    }
+
+    .violation-icon div {
+      background-color: #ff3300;
+      border-color: #cc0000;
+    }
+
+    .analysis-summary-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      max-width: 300px;
+    }
+
+    .analysis-popup, .qd-ring-popup, .violation-popup {
+      max-width: 250px;
+    }
+
+    .close-btn {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .close-btn:hover {
+      background: #d32f2f;
+    }
   </style>
 </head>
 <body>
@@ -156,7 +207,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Feature Properties Modal -->
   <div id="featurePropertiesModal" class="modal" style="display: none;">
     <div class="modal-content">
@@ -591,7 +642,8 @@
 
           return true;
         } catch (error) {
-          console.error("Error in saveProject:", error);
+          console.error("Error in saveProject```html
+:)
           alert("Error saving project: " + error.message);
           return false;
         }
@@ -750,13 +802,13 @@
       },
       openFeaturePropertiesModal: function(layer) {
         const properties = layer.feature ? layer.feature.properties : {};
-        
+
         // Create modal for editing properties
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.id = 'featurePropertiesModal';
         modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
-        
+
         let modalContent = `
           <div id="featurePropertiesModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
             <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
@@ -816,13 +868,13 @@
             </form>
           </div>
         `;
-        
+
         modal.innerHTML = modalContent;
         document.body.appendChild(modal);
-        
+
         // Store reference to the layer
         const self = this;
-        
+
         // Add event listeners
         document.getElementById('savePropertiesBtn').addEventListener('click', function() {
           // Get values from form
@@ -830,7 +882,7 @@
           const isNew = document.getElementById('newExplosiveFacility').checked;
           const type = document.getElementById('facilityType').value;
           const netExplosiveWeight = document.getElementById('netExplosiveWeight').value;
-          
+
           // Ensure layer.feature and properties exist
           if (!layer.feature) {
             layer.feature = { properties: {} };
@@ -838,16 +890,16 @@
           if (!layer.feature.properties) {
             layer.feature.properties = {};
           }
-          
+
           // Update properties
           layer.feature.properties.displayName = displayName;
           layer.feature.properties.new = isNew;
           layer.feature.properties.type = type;
           layer.feature.properties.net_explosive_weight = netExplosiveWeight ? parseFloat(netExplosiveWeight) : null;
-          
+
           // Close modal
           document.body.removeChild(modal);
-          
+
           // Update popup if one exists
           if (layer.getPopup()) {
             const popupContent = `
@@ -859,7 +911,7 @@
               </div>
             `;
             layer.setPopupContent(popupContent);
-            
+
             // Add click handler to the edit button in popup
             setTimeout(() => {
               const editBtn = document.querySelector('.edit-properties-btn');
@@ -871,12 +923,12 @@
             }, 100);
           }
         });
-        
+
         document.getElementById('cancelPropertiesBtn').addEventListener('click', function() {
           document.body.removeChild(modal);
         });
       },
-      
+
       addLayerClickHandlers: function(layer) {
         // Add popup with properties
         const properties = layer.feature ? layer.feature.properties : {};
@@ -888,9 +940,9 @@
             <button class="edit-properties-btn">Edit Properties</button>
           </div>
         `;
-        
+
         layer.bindPopup(popupContent);
-        
+
         // Add click handler
         layer.on('popupopen', function() {
           setTimeout(() => {
@@ -902,7 +954,7 @@
             }
           }, 100);
         });
-        
+
         layer.on({
           click: (e) => {
             console.log('Layer clicked:', e.latlng);
@@ -1116,18 +1168,18 @@
           const selectedCheckboxes = Array.from(
             document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]:checked')
           );
-          
+
           console.log("Selected checkboxes:", selectedCheckboxes.length);
-          
+
           // Get the feature IDs from the checkboxes
           const selectedFeatureIds = selectedCheckboxes.map(cb => cb.getAttribute('data-feature-id'));
           console.log("Selected feature IDs:", selectedFeatureIds);
-          
+
           // Convert all IDs to strings for consistent comparison
           const selectedFeatures = allFeatures.filter(f => 
             selectedFeatureIds.includes(String(f.properties.featureId))
           );
-          
+
           console.log("Selected features after filtering:", selectedFeatures.length);
           console.log("All features available:", allFeatures.length);
 
@@ -1190,94 +1242,164 @@
               iconSize: [16, 16],
               iconAnchor: [8, 8]
             })
-          }).bindPopup(`<b>${facility.facility_name}</b><br>
-                        NEW: ${facility.net_explosive_weight} lbs<br>
-                        Type: ${facility.facility_type || 'Bunker'}<br>
-                        Safety Distance: ${facility.safe_distance} ft`)
+          }).bindPopup(`<div class="analysis-popup">
+  <h3>${facility.facility_name}</h3>
+  <p><strong>NEW:</strong> ${facility.net_explosive_weight_display} ${facility.unit_display}</p>
+  <p><strong>Safe Distance:</strong> ${facility.safe_distance} ft</p>
+  <p><strong>Analysis Status:</strong> ${facility.violations ? facility.violations.length + ' violations found' : 'No violations'}</p>
+  <p><strong>Standard:</strong> ${facility.k_factor_type} (K=${facility.k_factor_value})</p>
+</div>`)
             .addTo(this.analysisLayer);
 
-          // Add QD rings
+          // Add QD rings if available
           if (facility.qd_rings && facility.qd_rings.length > 0) {
             facility.qd_rings.forEach(ring => {
-              const color = ring.properties.k_factor === 1.0 ? 'red' : 
-                           ring.properties.k_factor === 1.25 ? 'orange' : 'yellow';
+              // Create a style based on the QD type
+              let style = {
+                fillColor: '#ff3300',
+                color: '#ff0000',
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0.2
+              };
 
-              L.geoJSON(ring, {
-                style: {
-                  color: color,
-                  weight: 2,
-                  opacity: 0.7,
-                  fillOpacity: 0.2
+              // Different colors for different QD types
+              if (ring.properties && ring.properties.qd_type) {
+                switch(ring.properties.qd_type) {
+                  case 'IBD':
+                    style.fillColor = '#ff3300';
+                    style.color = '#ff0000';
+                    break;
+                  case 'PTRD':
+                    style.fillColor = '#ff9900';
+                    style.color = '#cc7700';
+                    break;
+                  case 'ILD':
+                    style.fillColor = '#ffcc00';
+                    style.color = '#cc9900';
+                    break;
+                  case 'IMD':
+                    style.fillColor = '#33cc33';
+                    style.color = '#009900';
+                    break;
+                  case 'FRAG':
+                    style.fillColor = '#9900cc';
+                    style.color = '#660099';
+                    break;
                 }
-              }).bindPopup(`<b>${facility.facility_name}</b><br>
-                            Safety Distance: ${facility.safe_distance} ft<br>
-                            K-Factor: ${ring.properties.k_factor}<br>
-                            NEW: ${facility.net_explosive_weight} lbs`)
-                .addTo(this.analysisLayer);
+              }
+
+              // Create the GeoJSON layer
+              const ringLayer = L.geoJSON(ring, {
+                style: style
+              }).addTo(this.analysisLayer);
+
+              // Add a popup with information
+              if (ring.properties) {
+                ringLayer.bindPopup(`
+                  <div class="qd-ring-popup">
+                    <h4>${ring.properties.label || 'QD Ring'}</h4>
+                    <p>${ring.properties.description || ''}</p>
+                    ${ring.properties.standard ? `<p><small>${ring.properties.standard}</small></p>` : ''}
+                  </div>
+                `);
+              }
             });
           }
 
-          // Highlight violations if any
+          // Add violations if any
           if (facility.violations && facility.violations.length > 0) {
-            // Create violation markers and lines
             facility.violations.forEach(violation => {
-              if (violation.feature_coordinates) {
-                // Draw a line between facility and violation
-                const violationLine = L.polyline([
-                  [facility.facility_latitude || 0, facility.facility_longitude || 0],
-                  violation.feature_coordinates
-                ], {
-                  color: 'red',
-                  weight: 2,
-                  dashArray: '5, 5',
-                  opacity: 0.8
-                }).addTo(this.analysisLayer);
+              // Highlight the violated feature
+              this.layers.eachLayer(layer => {
+                if (layer.feature && layer.feature.id === violation.feature_id) {
+                  // Highlight the violated feature
+                  layer.setStyle({
+                    color: '#ff0000',
+                    weight: 3,
+                    fillColor: '#ff9999',
+                    fillOpacity: 0.5
+                  });
 
-                // Add a marker for the violation
-                const violationMarker = L.marker(violation.feature_coordinates, {
-                  icon: L.divIcon({
+                  // Add a popup with violation details
+                  layer.bindPopup(`
+                    <div class="violation-popup">
+                      <h4>QD Violation</h4>
+                      <p><strong>Feature:</strong> ${violation.feature_name}</p>
+                      <p><strong>Current Distance:</strong> ${violation.distance} ft</p>
+                      <p><strong>Required Distance:</strong> ${violation.required} ft</p>
+                      <p><strong>Deficiency:</strong> ${violation.deficiency} ft (${violation.percent_deficient}%)</p>
+                      <p><small>${violation.standard_reference}</small></p>
+                    </div>
+                  `);
+
+                  // Add a violation marker
+                  const violationIcon = L.divIcon({
                     className: 'violation-icon',
-                    html: `<div style="background-color: yellow; color: black; border-radius: 50%; width: 20px; height: 20px; 
-                           border: 2px solid red; display: flex; align-items: center; justify-content: center; font-weight: bold;">!</div>`,
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
-                  })
-                }).bindPopup(`<b>Violation: ${violation.feature_name}</b><br>
-                              Current Distance: ${Math.round(violation.distance)} ft<br>
-                              Required Distance: ${Math.round(violation.required_distance)} ft<br>
-                              <span style="color: red; font-weight: bold;">
-                                Shortfall: ${Math.round(violation.required_distance - violation.distance)} ft
-                              </span>`)
-                  .addTo(this.analysisLayer);
-              }
+                    html: '<div><i class="fas fa-exclamation-triangle"></i></div>',
+                    iconSize: [24, 24]
+                  });
+
+                  // Get the centroid of the violated feature
+                  let violationPoint;
+                  if (layer.getLatLng) {
+                    violationPoint = layer.getLatLng();
+                  } else if (layer.getBounds) {
+                    violationPoint = layer.getBounds().getCenter();
+                  } else {
+                    return;
+                  }
+
+                  const violationMarker = L.marker(violationPoint, {
+                    icon: violationIcon
+                  }).addTo(this.analysisLayer);
+
+                  violationMarker.bindPopup(`
+                    <div class="violation-popup">
+                      <h4>QD Violation</h4>
+                      <p><strong>Feature:</strong> ${violation.feature_name}</p>
+                      <p><strong>Required Distance:</strong> ${violation.required} ft</p>
+                      <p><strong>Current Distance:</strong> ${violation.distance} ft</p>
+                      <p><strong>Deficiency:</strong> ${violation.deficiency} ft (${violation.percent_deficient}%)</p>
+                    </div>
+                  `);
+                }
+              });
             });
-
-            // Create a popup with violation details
-            const violationsHtml = facility.violations.map(v => 
-              `<li>${v.feature_name}: ${Math.round(v.distance)} ft (required: ${Math.round(v.required_distance)} ft)</li>`
-            ).join('');
-
-            const popup = L.popup()
-              .setLatLng(L.latLng(facility.facility_latitude || 0, facility.facility_longitude || 0))
-              .setContent(`<h3>Safety Violations for ${facility.facility_name}</h3>
-                           <p>Net Explosive Weight: ${facility.net_explosive_weight} lbs</p>
-                           <p>Required Safety Distance: ${facility.safe_distance} ft</p>
-                           <h4>Violations:</h4>
-                           <ul>${violationsHtml}</ul>`);
-
-            popup.addTo(this.analysisLayer);
           }
         });
 
-        // Fit the map to show all analysis results
-        if (this.analysisLayer.getLayers().length > 0) {
-          this.map.fitBounds(this.analysisLayer.getBounds(), {padding: [50, 50]});
+        // Create a summary panel for the analysis
+        const summaryPanel = document.createElement('div');
+        summaryPanel.className = 'analysis-summary-panel';
+        summaryPanel.innerHTML = `
+          <h3>Analysis Results</h3>
+          <p><strong>Total Facilities:</strong> ${analysis.total_facilities}</p>
+          <p><strong>Total Violations:</strong> ${analysis.total_violations}</p>
+          <p><strong>Analysis Timestamp:</strong> ${new Date(analysis.timestamp).toLocaleString()}</p>
+          <button id="closeAnalysisBtn" class="close-btn">Close Analysis</button>
+        `;
+
+        document.body.appendChild(summaryPanel);
+
+        // Zoom to fit all analysis features
+        if (this.analysisLayer.getBounds) {
+          try {
+            this.map.fitBounds(this.analysisLayer.getBounds());
+          } catch (e) {
+            console.error("Could not fit bounds:", e);
+          }
         }
 
-        // Show detailed analysis report in a modal
-        this.showAnalysisReportModal(analysis);
+        // Handle close button
+        document.getElementById('closeAnalysisBtn').addEventListener('click', () => {
+          if (this.analysisLayer) {
+            this.map.removeLayer(this.analysisLayer);
+            this.analysisLayer = null;
+          }
+          document.body.removeChild(summaryPanel);
+        });
       },
-
       showAnalysisReportModal: function(analysis) {
         // Create a modal for the analysis report
         const modal = document.createElement('div');
@@ -1517,223 +1639,3 @@
 <file_path>static/templates/site_plan.html</file_path>
 <change_summary>Complete the displayAnalysisResults function</change_summary>
 <line_number>812</line_number>
-tml: `
-              <div><i class="fas fa-radiation"></i></div>
-            }),
-            title: facility.facility_name
-          }).addTo(this.analysisLayer);
-          
-          facilityMarker.bindPopup(`
-            <div class="analysis-popup">
-              <h3>${facility.facility_name}</h3>
-              <p><strong>NEW:</strong> ${facility.net_explosive_weight_display} ${facility.unit_display}</p>
-              <p><strong>Safe Distance:</strong> ${facility.safe_distance} ft</p>
-              <p><strong>Violations:</strong> ${facility.violations.length}</p>
-            </div>
-          `);
-          
-          // Add QD rings if available
-          if (facility.qd_rings && facility.qd_rings.length > 0) {
-            facility.qd_rings.forEach(ring => {
-              // Create a style based on the QD type
-              let style = {
-                fillColor: '#ff3300',
-                color: '#ff0000',
-                weight: 2,
-                opacity: 0.8,
-                fillOpacity: 0.2
-              };
-              
-              // Different colors for different QD types
-              if (ring.properties && ring.properties.qd_type) {
-                switch(ring.properties.qd_type) {
-                  case 'IBD':
-                    style.fillColor = '#ff3300';
-                    style.color = '#ff0000';
-                    break;
-                  case 'PTRD':
-                    style.fillColor = '#ff9900';
-                    style.color = '#cc7700';
-                    break;
-                  case 'ILD':
-                    style.fillColor = '#ffcc00';
-                    style.color = '#cc9900';
-                    break;
-                  case 'IMD':
-                    style.fillColor = '#33cc33';
-                    style.color = '#009900';
-                    break;
-                  case 'FRAG':
-                    style.fillColor = '#9900cc';
-                    style.color = '#660099';
-                    break;
-                }
-              }
-              
-              // Create the GeoJSON layer
-              const ringLayer = L.geoJSON(ring, {
-                style: style
-              }).addTo(this.analysisLayer);
-              
-              // Add a popup with information
-              if (ring.properties) {
-                ringLayer.bindPopup(`
-                  <div class="qd-ring-popup">
-                    <h4>${ring.properties.label || 'QD Ring'}</h4>
-                    <p>${ring.properties.description || ''}</p>
-                    ${ring.properties.standard ? `<p><small>${ring.properties.standard}</small></p>` : ''}
-                  </div>
-                `);
-              }
-            });
-          }
-          
-          // Add violations if any
-          if (facility.violations && facility.violations.length > 0) {
-            facility.violations.forEach(violation => {
-              // Highlight the violated feature
-              this.layers.eachLayer(layer => {
-                if (layer.feature && layer.feature.id === violation.feature_id) {
-                  // Highlight the violated feature
-                  layer.setStyle({
-                    color: '#ff0000',
-                    weight: 3,
-                    fillColor: '#ff9999',
-                    fillOpacity: 0.5
-                  });
-                  
-                  // Add a popup with violation details
-                  layer.bindPopup(`
-                    <div class="violation-popup">
-                      <h4>QD Violation</h4>
-                      <p><strong>Feature:</strong> ${violation.feature_name}</p>
-                      <p><strong>Current Distance:</strong> ${violation.distance} ft</p>
-                      <p><strong>Required Distance:</strong> ${violation.required} ft</p>
-                      <p><strong>Deficiency:</strong> ${violation.deficiency} ft (${violation.percent_deficient}%)</p>
-                      <p><small>${violation.standard_reference}</small></p>
-                    </div>
-                  `);
-                  
-                  // Add a violation marker
-                  const violationIcon = L.divIcon({
-                    className: 'violation-icon',
-                    html: '<div><i class="fas fa-exclamation-triangle"></i></div>',
-                    iconSize: [24, 24]
-                  });
-                  
-                  // Get the centroid of the violated feature
-                  let violationPoint;
-                  if (layer.getLatLng) {
-                    violationPoint = layer.getLatLng();
-                  } else if (layer.getBounds) {
-                    violationPoint = layer.getBounds().getCenter();
-                  } else {
-                    return;
-                  }
-                  
-                  const violationMarker = L.marker(violationPoint, {
-                    icon: violationIcon
-                  }).addTo(this.analysisLayer);
-                  
-                  violationMarker.bindPopup(`
-                    <div class="violation-popup">
-                      <h4>QD Violation</h4>
-                      <p><strong>Feature:</strong> ${violation.feature_name}</p>
-                      <p><strong>Required Distance:</strong> ${violation.required} ft</p>
-                      <p><strong>Current Distance:</strong> ${violation.distance} ft</p>
-                      <p><strong>Deficiency:</strong> ${violation.deficiency} ft (${violation.percent_deficient}%)</p>
-                    </div>
-                  `);
-                }
-              });
-            });
-          }
-        });
-        
-        // Create a summary panel for the analysis
-        const summaryPanel = document.createElement('div');
-        summaryPanel.className = 'analysis-summary-panel';
-        summaryPanel.innerHTML = `
-          <h3>Analysis Results</h3>
-          <p><strong>Total Facilities:</strong> ${analysis.total_facilities}</p>
-          <p><strong>Total Violations:</strong> ${analysis.total_violations}</p>
-          <p><strong>Analysis Timestamp:</strong> ${new Date(analysis.timestamp).toLocaleString()}</p>
-          <button id="closeAnalysisBtn" class="close-btn">Close Analysis</button>
-        `;
-        
-        document.body.appendChild(summaryPanel);
-        
-        // Zoom to fit all analysis features
-        if (this.analysisLayer.getBounds) {
-          try {
-            this.map.fitBounds(this.analysisLayer.getBounds());
-          } catch (e) {
-            console.error("Could not fit bounds:", e);
-          }
-        }
-        
-        // Handle close button
-        document.getElementById('closeAnalysisBtn').addEventListener('click', () => {
-          if (this.analysisLayer) {
-            this.map.removeLayer(this.analysisLayer);
-            this.analysisLayer = null;
-          }
-          document.body.removeChild(summaryPanel);
-        });
-      },
-<file_path>static/templates/site_plan.html</file_path>
-<change_summary>Add CSS for analysis visualization</change_summary>
-<line_number>33</line_number>
-    .facility-icon { text-align: center; }
-    .violation-icon { text-align: center; }
-    
-    .facility-icon div, .violation-icon div {
-      background-color: #fff;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid #333;
-    }
-    
-    .facility-icon div {
-      background-color: #ffcc00;
-      border-color: #cc9900;
-    }
-    
-    .violation-icon div {
-      background-color: #ff3300;
-      border-color: #cc0000;
-    }
-    
-    .analysis-summary-panel {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1000;
-      background: white;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      max-width: 300px;
-    }
-    
-    .analysis-popup, .qd-ring-popup, .violation-popup {
-      max-width: 250px;
-    }
-    
-    .close-btn {
-      background: #f44336;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    
-    .close-btn:hover {
-      background: #d32f2f;
-    }

@@ -120,16 +120,16 @@ async def unit_conversion(request: Request):
         from_unit = data.get("from_unit", "lbs")
         to_unit = data.get("to_unit", "kg")
         site_type = data.get("site_type", "DOD")
-        
+
         # Initialize QD engine
         qd_engine = get_engine(site_type)
-        
+
         # Convert to pounds first if not already
         quantity_lbs = qd_engine.convert_to_pounds(quantity, from_unit)
-        
+
         # Then convert to target unit
         result = qd_engine.convert_from_pounds(quantity_lbs, to_unit)
-        
+
         return {
             "original_value": quantity,
             "original_unit": from_unit,
@@ -171,26 +171,26 @@ async def update_feature(request: Request):
         data = await request.json()
         feature_id = data.get("feature_id")
         properties = data.get("properties", {})
-        
+
         # Load the current data
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
-        
+
         # Find which layer contains this feature
         cur.execute("SELECT id, layer_config FROM map_layers WHERE is_active = TRUE")
         layers = cur.fetchall()
-        
+
         updated = False
         for layer_id, layer_config in layers:
             if not layer_config or "features" not in layer_config:
                 continue
-                
+
             # Search for feature with matching ID
             for i, feature in enumerate(layer_config["features"]):
                 if feature.get("id") == feature_id:
                     # Update the properties
                     layer_config["features"][i]["properties"] = properties
-                    
+
                     # Save the updated layer back to DB
                     cur.execute(
                         "UPDATE map_layers SET layer_config = %s WHERE id = %s",
@@ -199,10 +199,10 @@ async def update_feature(request: Request):
                     conn.commit()
                     updated = True
                     break
-            
+
             if updated:
                 break
-        
+
         if updated:
             return {"status": "success", "message": "Feature properties updated"}
         else:
@@ -210,7 +210,7 @@ async def update_feature(request: Request):
                 status_code=404, 
                 content={"status": "error", "message": f"Feature with ID {feature_id} not found"}
             )
-            
+
     except Exception as e:
         logger.error(f"Error updating feature: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -228,7 +228,7 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
         cur = conn.cursor()
         layer_name = data.get("layer_name", "Default")
         layer_config = {"type": "FeatureCollection", "features": data.get("features", [])}
-        
+
         # First check if the proper constraint exists
         try:
             # Check if the map_layers_name_key constraint exists
@@ -236,7 +236,7 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
                 SELECT constraint_name FROM information_schema.table_constraints
                 WHERE table_name = 'map_layers' AND constraint_name = 'map_layers_name_key'
             """)
-            
+
             if cur.fetchone():
                 # Drop the simple name constraint and add composite constraint
                 cur.execute("ALTER TABLE map_layers DROP CONSTRAINT map_layers_name_key")
@@ -253,7 +253,7 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
         except psycopg2.Error as e:
             conn.rollback()
             logger.warning(f"Error checking constraints: {str(e)}")
-        
+
         # Save layer logic
         if location_id:
             # First, check if a layer with this name and location_id exists
@@ -261,9 +261,9 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
                 SELECT id FROM map_layers 
                 WHERE name = %s AND location_id = %s AND is_active = TRUE
             """, (layer_name, location_id))
-            
+
             existing = cur.fetchone()
-            
+
             if existing:
                 # Update existing layer
                 cur.execute("""
@@ -287,17 +287,17 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
                 import random
                 unique_name = f"{layer_name}_{random.randint(1000, 9999)}"
                 layer_name = unique_name
-                
+
             cur.execute("""
                 INSERT INTO map_layers (name, layer_config, is_active)
                 VALUES (%s, %s, TRUE)
                 RETURNING id
             """, (layer_name, json.dumps(layer_config)))
             layer_id = cur.fetchone()[0]
-            
+
         conn.commit()
         return {"status": "success", "message": f"Layer '{layer_name}' saved to DB with ID {layer_id}"}
-            
+
     except Exception as e:
         if conn:
             conn.rollback()  # Explicitly rollback on error
@@ -315,7 +315,7 @@ async def get_locations(include_deleted: bool = False):
     try:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
-        
+
         # Simplified approach - always get all locations
         try:
             # First attempt to query with deleted filter if appropriate
@@ -323,12 +323,12 @@ async def get_locations(include_deleted: bool = False):
                 cur.execute("SELECT id, location_name, created_at FROM locations WHERE deleted = FALSE")
             else:
                 cur.execute("SELECT id, location_name, created_at FROM locations")
-                
+
         except psycopg2.Error as e:
             # If error occurs (likely missing deleted column), fallback to simpler query
             logger.warning(f"Initial locations query failed: {str(e)}, falling back to simpler query")
             cur.execute("SELECT id, location_name, created_at FROM locations")
-            
+
         rows = cur.fetchall()
         locations = [{"id": r[0], "name": r[1], "created_at": str(r[2])} for r in rows]
         return {"locations": locations}
@@ -365,32 +365,32 @@ async def load_location(location_id: int):
     try:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
-        
+
         # First check if location exists, with more relaxed constraints
         cur.execute("SELECT id, location_name FROM locations WHERE id = %s", (location_id,))
         row = cur.fetchone()
-        
+
         if not row:
             logger.warning(f"Location {location_id} not found")
             return JSONResponse(status_code=404, content={"error": "Location not found"})
-            
+
         location_name = row[1]
         logger.info(f"Loading location: {location_id} - {location_name}")
-        
+
         # Get all layers associated with this location
         cur.execute("SELECT layer_config FROM map_layers WHERE location_id = %s AND is_active = TRUE", (location_id,))
         layers_data = cur.fetchall()
-        
+
         # Process the layers
         features = []
         for layer_row in layers_data:
             if layer_row[0] and 'features' in layer_row[0]:
                 features.extend(layer_row[0]['features'])
-        
+
         facilities = []
         qdArcs = []
         analysis = []
-        
+
         # Return with the location data
         return {
             "location_id": location_id, 
@@ -411,21 +411,6 @@ async def load_location(location_id: int):
         if 'conn' in locals(): conn.close()
 
 # QD Calculation Endpoint (unchanged for now)
-class QDCalculationRequest(BaseModel):
-    quantity: float
-    lat: float
-    lng: float
-    k_factor: float = 40
-    site_type: str = "DOD"
-    material_type: str = "General Explosive"
-    sensitivity: float = 0.5
-    det_velocity: float = 6000
-    tnt_equiv: float = 1.0
-    temperature: float = 298
-    pressure: float = 101.325
-    humidity: float = 50
-    confinement_factor: float = 0.0
-
 class QDCalculationRequest(BaseModel):
     quantity: float
     lat: float
@@ -462,7 +447,7 @@ async def calculate_qd(request: QDCalculationRequest):
             humidity=request.humidity,
             confinement_factor=request.confinement_factor
         )
-        
+
         # Create parameters for calculations
         params = QDParameters(
             quantity=request.quantity,
@@ -474,7 +459,7 @@ async def calculate_qd(request: QDCalculationRequest):
             env_conditions=env_conditions,
             risk_based=request.risk_based
         )
-        
+
         # Calculate safe distance with detailed info
         qd_result = qd_engine.calculate_safe_distance(
             quantity=request.quantity,
@@ -485,15 +470,15 @@ async def calculate_qd(request: QDCalculationRequest):
             env_conditions=env_conditions,
             risk_based=request.risk_based
         )
-        
+
         safe_distance = qd_result["distance_ft"]
-        
+
         # Generate buffer zones
         buffer_zones = qd_engine.generate_k_factor_rings(
             center=[request.lng, request.lat],
             parameters=params
         )
-        
+
         # Add fragment analysis if requested
         fragment_data = None
         if request.include_fragments:
@@ -502,7 +487,7 @@ async def calculate_qd(request: QDCalculationRequest):
                 unit_type=request.unit_type,
                 material_type=request.material_type
             )
-            
+
             # Add fragment distance ring to the buffer zones
             if fragment_data and "hazard_distance" in fragment_data:
                 frag_distance = fragment_data["hazard_distance"]
@@ -516,7 +501,7 @@ async def calculate_qd(request: QDCalculationRequest):
                     hazard_division=request.hazard_division
                 )
                 buffer_zones.append(frag_ring)
-        
+
         # Prepare response
         response = {
             "safe_distance": safe_distance,
@@ -532,15 +517,15 @@ async def calculate_qd(request: QDCalculationRequest):
                 "features": buffer_zones
             }
         }
-        
+
         # Add fragment data if available
         if fragment_data:
             response["fragment_analysis"] = fragment_data
-            
+
         # Add risk analysis if available
         if request.risk_based and qd_result.get("risk_analysis"):
             response["risk_analysis"] = qd_result["risk_analysis"]
-            
+
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -555,10 +540,10 @@ async def calculate_fragments(request: Request):
         material_type = data.get("material_type", "Steel")
         casing_thickness = data.get("casing_thickness", 0.5)
         site_type = data.get("site_type", "DOD")
-        
+
         # Initialize QD engine
         qd_engine = get_engine(site_type)
-        
+
         # Calculate fragment distance
         result = qd_engine.calculate_fragment_distance(
             quantity=quantity,
@@ -566,7 +551,7 @@ async def calculate_fragments(request: Request):
             material_type=material_type,
             casing_thickness=casing_thickness
         )
-        
+
         return result
     except Exception as e:
         logger.error(f"Fragment calculation error: {str(e)}")
@@ -581,21 +566,21 @@ async def analyze_location(request: Request):
         features = data.get("features", [])
         site_type = data.get("site_type", "DOD")
         analysis_options = data.get("analysis_options", {})
-        
+
         # Get analysis parameters
         use_risk_based = analysis_options.get("risk_based", False)
         include_fragments = analysis_options.get("include_fragments", False)
         k_factor_type = analysis_options.get("k_factor_type", "IBD")
         display_unit = analysis_options.get("display_unit", "lbs")
         include_standards = analysis_options.get("include_standards", True)
-        
+
         # Initialize QD engine with specified site type
         qd_engine = get_engine(site_type)
-        
+
         # Separate explosive facilities from other features
         facilities = []
         other_features = []
-        
+
         for feature in features:
             properties = feature.get("properties", {})
             # Consider any feature with explosive weight as a facility
@@ -603,12 +588,14 @@ async def analyze_location(request: Request):
                 facilities.append(feature)
             else:
                 other_features.append(feature)
-        
-        # Run analysis for each facility
+
+        # Run analysis for each facility with improved logging
+        logger.info(f"Starting QD analysis for {len(facilities)} facilities and {len(other_features)} other features")
         results = []
         for facility in facilities:
+            logger.info(f"Analyzing facility ID: {facility.get('id')}")
             properties = facility.get("properties", {})
-            
+
             # Get explosive weight and unit
             try:
                 new_value = float(properties.get("net_explosive_weight", 0))
@@ -617,11 +604,11 @@ async def analyze_location(request: Request):
             except (ValueError, TypeError) as e:
                 logger.error(f"Invalid facility properties: {str(e)}")
                 continue
-            
+
             # Skip if NEW is 0
             if new_value <= 0:
                 continue
-                
+
             # Create parameters object for QD calculations
             params = QDParameters(
                 quantity=new_value,
@@ -631,7 +618,7 @@ async def analyze_location(request: Request):
                 hazard_division=hazard_division,
                 risk_based=use_risk_based
             )
-            
+
             # Calculate safe distance with detailed information
             try:
                 safe_distance_result = qd_engine.calculate_safe_distance(
@@ -640,18 +627,18 @@ async def analyze_location(request: Request):
                     unit_type=unit_type,
                     risk_based=use_risk_based
                 )
-                
+
                 safe_distance = safe_distance_result["distance_ft"]
             except Exception as calc_error:
                 logger.error(f"Safe distance calculation error: {str(calc_error)}")
                 continue
-            
+
             # Extract facility data and get centroid for QD rings
             try:
                 # Use the new extract_facility_data method
                 facility_data = qd_engine.extract_facility_data(facility)
                 facility_centroid = facility_data["centroid"]
-                
+
                 # Generate QD rings from the centroid
                 qd_rings = qd_engine.generate_k_factor_rings(
                     center=facility_centroid,
@@ -662,7 +649,7 @@ async def analyze_location(request: Request):
                 logger.error(f"Error generating QD rings: {str(e)}\n{traceback.format_exc()}")
                 qd_rings = []
                 facility_centroid = [0, 0]
-            
+
             # Calculate fragment distance if requested
             fragment_data = None
             if include_fragments:
@@ -671,7 +658,7 @@ async def analyze_location(request: Request):
                         quantity=new_value,
                         unit_type=unit_type
                     )
-                    
+
                     # Add a fragment distance ring
                     if fragment_data and "hazard_distance" in fragment_data:
                         frag_distance = fragment_data["hazard_distance"]
@@ -688,7 +675,7 @@ async def analyze_location(request: Request):
                 except Exception as frag_error:
                     logger.error(f"Error calculating fragmentation: {str(frag_error)}")
                     fragment_data = {"error": str(frag_error)}
-            
+
             # Check for violations using enhanced analysis
             try:
                 facility_analysis = qd_engine.analyze_facility(
@@ -700,7 +687,7 @@ async def analyze_location(request: Request):
             except Exception as analysis_error:
                 logger.error(f"Facility analysis error: {str(analysis_error)}")
                 facility_analysis = {"violations": [], "error": str(analysis_error)}
-            
+
             # Get unit-converted values for display
             try:
                 new_value_display = new_value
@@ -712,7 +699,7 @@ async def analyze_location(request: Request):
             except Exception as e:
                 logger.error(f"Unit conversion error: {str(e)}")
                 new_value_display = new_value
-            
+
             # Add to results with enhanced information
             facility_result = {
                 "facility_id": facility.get("id", "unknown"),
@@ -732,20 +719,20 @@ async def analyze_location(request: Request):
                 "calculation_details": safe_distance_result["calculation_steps"] if include_standards else None,
                 "standard_reference": safe_distance_result["standard_reference"] if include_standards else None
             }
-            
+
             # Add fragment data if available
             if fragment_data:
                 facility_result["fragment_analysis"] = fragment_data
-                
+
             # Add risk analysis if available
             if use_risk_based and safe_distance_result.get("risk_analysis"):
                 facility_result["risk_analysis"] = safe_distance_result["risk_analysis"]
-                
+
             results.append(facility_result)
-        
+
         # Generate a timestamp for the analysis
         timestamp = datetime.now().isoformat()
-        
+
         # Compile the final analysis with standards information
         analysis_result = {
             "timestamp": timestamp,
@@ -759,7 +746,7 @@ async def analyze_location(request: Request):
             "analysis_options": analysis_options,
             "features_analyzed": len(features)
         }
-        
+
         # Add standards information if requested
         if include_standards:
             # Import the Standards class
@@ -772,7 +759,7 @@ async def analyze_location(request: Request):
                 }
             except ImportError:
                 logger.warning("Standards database not available")
-                
+
         # Add multiple units support information
         analysis_result["supported_units"] = {
             "g": "Grams",
@@ -780,7 +767,7 @@ async def analyze_location(request: Request):
             "lbs": "Pounds",
             "NEQ": "NATO Net Explosive Quantity"
         }
-        
+
         return analysis_result
     except Exception as e:
         logger.error(f"QD Analysis error: {str(e)}\n{traceback.format_exc()}")
@@ -796,32 +783,32 @@ async def generate_report(request: Request):
         data = await request.json()
         report_data = data.get("report")
         map_snapshot = data.get("map_snapshot")
-        
+
         # Import Report and generate_pdf_report
         from reports import Report, generate_pdf_report
         from datetime import datetime
-        
+
         # Create a Report object
         report = Report(
             title=report_data.get("title", "QD Analysis Report"),
             generated_at=datetime.fromisoformat(report_data.get("generated_at")),
             data=report_data.get("data", {})
         )
-        
+
         # Ensure reports directory exists
         os.makedirs("data/reports", exist_ok=True)
-        
+
         # Generate filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"data/reports/qd_analysis_{timestamp}.pdf"
-        
+
         # Generate the PDF
         result = await generate_pdf_report(report, filename, map_snapshot)
-        
+
         # Setup a static route for the reports directory if it doesn't exist
         if not any(route.path == "/reports" for route in app.routes):
             app.mount("/reports", StaticFiles(directory="data/reports"), name="reports")
-        
+
         return result
     except Exception as e:
         logger.error(f"Report generation error: {str(e)}\n{traceback.format_exc()}")
@@ -830,16 +817,16 @@ async def generate_report(request: Request):
 # Database Initialization
 def init_db():
     db_url = os.environ.get('DATABASE_URL', "postgresql://postgres:postgres@localhost:5432/postgres")
-    print(f"Using DB: {db_url}")
+print(f"Using DB: {db_url}")
     try:
         conn = psycopg2.connect(db_url)
         conn.autocommit = True  # Ensure autocommit is on
         cur = conn.cursor()
-        
+
         # Check if locations table exists
         cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'locations')")
         locations_exists = cur.fetchone()[0]
-        
+
         if not locations_exists:
             # Create locations table if it doesn't exist
             cur.execute("""
@@ -860,11 +847,11 @@ def init_db():
                 cur.execute("ALTER TABLE locations ADD COLUMN deleted BOOLEAN DEFAULT FALSE")
                 cur.execute("ALTER TABLE locations ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE")
                 print("Added deleted columns to locations table")
-        
+
         # Check if map_layers table exists
         cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'map_layers')")
         map_layers_exists = cur.fetchone()[0]
-        
+
         if not map_layers_exists:
             # Create map_layers table if it doesn't exist
             cur.execute("""
@@ -884,7 +871,7 @@ def init_db():
             if not location_id_exists:
                 cur.execute("ALTER TABLE map_layers ADD COLUMN location_id INTEGER")
                 print("Added location_id column to map_layers table")
-        
+
         # Force run db init now - drop and recreate tables if needed
         if map_layers_exists:
             try:
@@ -892,13 +879,13 @@ def init_db():
                 cur.execute("INSERT INTO map_layers (name, layer_config, location_id, is_active) VALUES ('test', '{}'::jsonb, 1, TRUE) RETURNING id")
                 test_id = cur.fetchone()[0]
                 cur.execute("DELETE FROM map_layers WHERE id = %s", (test_id,))
-                
+
                 # Check for and drop the single-column name constraint if it exists
                 cur.execute("""
                     SELECT constraint_name FROM information_schema.table_constraints
                     WHERE table_name = 'map_layers' AND constraint_name = 'map_layers_name_key'
                 """)
-                
+
                 if cur.fetchone():
                     try:
                         cur.execute("ALTER TABLE map_layers DROP CONSTRAINT map_layers_name_key")
@@ -906,14 +893,14 @@ def init_db():
                     except psycopg2.Error as e:
                         print(f"Error dropping constraint: {e}")
                         conn.rollback()
-                
+
                 # Check if there's a unique constraint for (name, location_id)
                 cur.execute("""
                     SELECT COUNT(*) FROM pg_constraint 
                     WHERE conname = 'map_layers_name_location_key'
                 """)
                 has_constraint = cur.fetchone()[0] > 0
-                
+
                 if not has_constraint:
                     try:
                         # Add a composite unique constraint if it doesn't exist
@@ -926,7 +913,7 @@ def init_db():
                     except psycopg2.Error as constraint_error:
                         conn.rollback()
                         print(f"Could not add constraint: {constraint_error}")
-                        
+
                 print("Map layers table structure is valid")
             except psycopg2.Error as e:
                 print(f"Map layers table structure issue detected: {e}")
@@ -944,7 +931,7 @@ def init_db():
                     )
                 """)
                 print("Recreated map_layers table with correct structure")
-        
+
         conn.commit()
         print("Database initialized successfully")
     except Exception as e:

@@ -112,3 +112,9 @@ function setupQDDebugging() {
     }
   };
 }
+
+function runAnalysis() {
+  console.log("Starting QD analysis...");
+  const selectedFeatures = getSelectedFeatures();
+  console.log("Selected features for analysis:", selectedFeatures);
+}

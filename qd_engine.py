@@ -461,6 +461,8 @@ QD engine calculation steps:
                         k_factor_type: str = KFactorType.IBD.value,
                         unit_type: UnitType = UnitType.POUNDS) -> Dict:
         """Analyze a facility against surrounding features with enhanced information"""
+        # Log analysis for debugging
+        logger.info(f"Starting analysis for facility {facility.get('id')} with {len(surrounding_features)} surrounding features")
         
         # Extract facility data with proper error handling
         facility_data = self.extract_facility_data(facility)

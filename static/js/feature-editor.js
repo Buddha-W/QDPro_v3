@@ -1,6 +1,7 @@
 // Feature editing functionality for QDPro
 
 // Store reference to the layer being edited
+let editingLayer = null; // Added global variable to store the editing layer
 window.activeEditLayer = null;
 
 // Initialize feature editor functionality
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function openFeatureEditor(layer) {
   // Store reference to active layer being edited
   window.activeEditLayer = layer;
+  editingLayer = layer; // Update the editingLayer variable
 
   // Get properties from the layer
   const properties = layer.feature ? layer.feature.properties || {} : {};
@@ -132,13 +134,17 @@ function handleFeatureFormSubmit(e) {
 
   // Clear active edit layer
   window.activeEditLayer = null;
+  editingLayer = null; //Clear editingLayer
 }
 
 // Save feature properties to server
 async function saveFeatureProperties(featureId, properties) {
-  if (!featureId) {
-    console.warn("Feature has no ID, creating temporary local ID for analysis");
-    return;
+  if (!featureId && editingLayer && editingLayer._leaflet_id) {
+    // Use Leaflet's internal ID if no feature ID is available
+    featureId = editingLayer._leaflet_id;
+  } else if (!featureId) {
+    console.error("Cannot save feature without ID");
+    return false;
   }
 
   // For temporary IDs (starting with 'temp_'), just log and return success

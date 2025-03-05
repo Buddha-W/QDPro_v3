@@ -405,3 +405,17 @@ function openPropertyPopup(layer) {
     map.closePopup();
   });
 }
+
+function openFeaturePropertiesPopup(layer) {
+  // Log popup opening for debugging
+  console.log("Opening properties popup for layer:", layer);
+
+  // Get properties from layer
+  const properties = layer.feature ? layer.feature.properties : {};
+
+  // Ensure layer has a proper ID
+  if (!properties.id && layer._leaflet_id) {
+    if (!layer.feature) layer.feature = { properties: {} };
+    layer.feature.properties.id = layer._leaflet_id;
+  }
+}
