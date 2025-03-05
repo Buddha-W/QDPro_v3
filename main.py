@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 # For QD calculations (placeholders if qd_engine is not fully implemented)
 try:
