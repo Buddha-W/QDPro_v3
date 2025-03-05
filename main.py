@@ -111,6 +111,8 @@ async def load_layers(location_id: Optional[int] = None):
 
 @app.post("/api/save-layers")
 async def save_layers(request: Request, location_id: Optional[int] = None):
+    conn = None
+    cur = None
     try:
         data = await request.json()
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
@@ -118,68 +120,54 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
         layer_name = data.get("layer_name", "Default")
         layer_config = {"type": "FeatureCollection", "features": data.get("features", [])}
         
-        # Simplified save logic - just handle the most common case
-        try:
-            # Try with location_id first if provided
-            if location_id:
+        # Simplified approach that avoids ON CONFLICT issues
+        if location_id:
+            # First, check if a layer with this name and location_id exists
+            cur.execute("""
+                SELECT id FROM map_layers 
+                WHERE name = %s AND location_id = %s AND is_active = TRUE
+            """, (layer_name, location_id))
+            
+            existing = cur.fetchone()
+            
+            if existing:
+                # Update existing layer
+                cur.execute("""
+                    UPDATE map_layers SET layer_config = %s
+                    WHERE id = %s
+                    RETURNING id
+                """, (json.dumps(layer_config), existing[0]))
+                layer_id = existing[0]
+            else:
+                # Insert new layer
                 cur.execute("""
                     INSERT INTO map_layers (name, layer_config, location_id, is_active)
                     VALUES (%s, %s, %s, TRUE)
-                    ON CONFLICT (name, location_id) 
-                    DO UPDATE SET layer_config = %s, is_active = TRUE
                     RETURNING id
-                """, (layer_name, json.dumps(layer_config), location_id, json.dumps(layer_config)))
-            else:
-                # If no location_id, just use name (may create duplicate entries)
-                cur.execute("""
-                    INSERT INTO map_layers (name, layer_config, is_active)
-                    VALUES (%s, %s, TRUE)
-                    RETURNING id
-                """, (layer_name, json.dumps(layer_config)))
-                
+                """, (layer_name, json.dumps(layer_config), location_id))
+                layer_id = cur.fetchone()[0]
+        else:
+            # Without location_id, just insert a new layer
+            cur.execute("""
+                INSERT INTO map_layers (name, layer_config, is_active)
+                VALUES (%s, %s, TRUE)
+                RETURNING id
+            """, (layer_name, json.dumps(layer_config)))
             layer_id = cur.fetchone()[0]
-            conn.commit()
-            return {"status": "success", "message": f"Layer '{layer_name}' saved to DB with ID {layer_id}"}
             
-        except psycopg2.Error as e:
-            # If first attempt fails, try alternative approach
-            logger.warning(f"Initial save attempt failed: {str(e)}")
-            
-            # On conflict clause might fail if there's no unique constraint
-            # Try a simpler insertion without ON CONFLICT
-            if location_id:
-                # First try to update
-                cur.execute("""
-                    UPDATE map_layers SET layer_config = %s, is_active = TRUE
-                    WHERE name = %s AND location_id = %s
-                    RETURNING id
-                """, (json.dumps(layer_config), layer_name, location_id))
-                
-                if cur.rowcount == 0:
-                    # If no rows updated, try insert
-                    cur.execute("""
-                        INSERT INTO map_layers (name, layer_config, location_id, is_active)
-                        VALUES (%s, %s, %s, TRUE)
-                        RETURNING id
-                    """, (layer_name, json.dumps(layer_config), location_id))
-            else:
-                # Without location_id, just insert
-                cur.execute("""
-                    INSERT INTO map_layers (name, layer_config, is_active)
-                    VALUES (%s, %s, TRUE)
-                    RETURNING id
-                """, (layer_name, json.dumps(layer_config)))
-                
-            layer_id = cur.fetchone()[0]
-            conn.commit()
-            return {"status": "success", "message": f"Layer '{layer_name}' saved to DB with ID {layer_id} (fallback method)"}
+        conn.commit()
+        return {"status": "success", "message": f"Layer '{layer_name}' saved to DB with ID {layer_id}"}
             
     except Exception as e:
+        if conn:
+            conn.rollback()  # Explicitly rollback on error
         logger.error(f"Error saving layers: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
+        if cur: 
+            cur.close()
+        if conn: 
+            conn.close()
 
 # Location Endpoints
 @app.get("/api/locations")
@@ -367,6 +355,26 @@ def init_db():
                 cur.execute("INSERT INTO map_layers (name, layer_config, location_id, is_active) VALUES ('test', '{}'::jsonb, 1, TRUE) RETURNING id")
                 test_id = cur.fetchone()[0]
                 cur.execute("DELETE FROM map_layers WHERE id = %s", (test_id,))
+                
+                # Check if there's a unique constraint for (name, location_id)
+                cur.execute("""
+                    SELECT COUNT(*) FROM pg_constraint 
+                    WHERE conname = 'map_layers_name_location_id_key'
+                """)
+                has_constraint = cur.fetchone()[0] > 0
+                
+                if not has_constraint:
+                    try:
+                        # Add a unique constraint if it doesn't exist
+                        cur.execute("""
+                            ALTER TABLE map_layers 
+                            ADD CONSTRAINT map_layers_name_location_id_key 
+                            UNIQUE (name, location_id)
+                        """)
+                        print("Added unique constraint for name and location_id")
+                    except psycopg2.Error as constraint_error:
+                        print(f"Could not add constraint: {constraint_error}")
+                        
                 print("Map layers table structure is valid")
             except psycopg2.Error as e:
                 print(f"Map layers table structure issue detected: {e}")
@@ -379,7 +387,8 @@ def init_db():
                         name VARCHAR(255) NOT NULL,
                         layer_config JSONB,
                         location_id INTEGER,
-                        is_active BOOLEAN DEFAULT TRUE
+                        is_active BOOLEAN DEFAULT TRUE,
+                        UNIQUE (name, location_id)
                     )
                 """)
                 print("Recreated map_layers table with correct structure")
