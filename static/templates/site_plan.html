@@ -407,7 +407,7 @@
           const data = await response.json();
           this.currentLocationId = data.id;
           this.currentLocationName = data.name;
-          document.getElementById("dbStatus").textContent = `Location: ${data.name}`;
+          updateLocationDisplay(data.name);
           for (let key in this.layers) this.map.removeLayer(this.layers[key]);
           this.layers = {};
           this.activeLayer = L.featureGroup().addTo(this.map);
@@ -443,12 +443,9 @@
         }
       },
       closeSwitchLocationModal: function() { document.getElementById("switchLocationModal").classList.remove("visible"); },
-      switchToLocation: async function(locId) {
+      switchToLocation: async function(locationId) {
         try {
-          console.log("Switching to location ID:", locId);
-          setStatusMessage("Loading location...", "info");
-
-          const response = await fetch(`/api/load-layers?location_id=${locId}`);
+          const response = await fetch(`/api/load-layers?location_id=${locationId}`);
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(`Error loading location: ${errorData.error || response.statusText}`);
@@ -461,17 +458,19 @@
           this.clearLayers();
 
           // Set current location
-          this.currentLocationId = locId;
+          this.currentLocationId = locationId;
           this.currentLocationName = data.name || "Unknown";
-          document.getElementById('dbStatus').textContent = `Location: ${this.currentLocationName}`;
+
+          // Update the status display
+          updateLocationDisplay(data.name);
 
           // Load all layers for this location
           await this.loadProject();
 
           // Save as last used location in localStorage
-          localStorage.setItem('lastLocationId', locId);
+          localStorage.setItem('lastLocationId', locationId);
+          localStorage.setItem('lastLocationName', data.name);
 
-          setStatusMessage(`Loaded location: ${data.name}`, "success");
         } catch (error) {
           console.error("Error switching location:", error);
           setStatusMessage(`Error loading location: ${error.message}`, 'error');
@@ -603,7 +602,7 @@
 
           if (projectData.currentLocationName) {
             this.currentLocationName = projectData.currentLocationName;
-            document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationName}`;
+            updateLocationDisplay(projectData.currentLocationName);
           }
 
           if (projectData.currentLocationId) {
@@ -686,8 +685,7 @@
             if (key.startsWith('base_')) {
               baseLayersCopy[key] = this.layers[key];
               baseColorssCopy[key] = this.layerColors[key];
-                        }
-          });
+                        }          });
 
           this.layers = baseLayersCopy;
           this.layerColors = baseColorssCopy;
@@ -759,7 +757,7 @@
           const data = await response.json();
           if (data.name) {
             this.currentLocationName = data.name;
-            document.getElementById("dbStatus").textContent = `Location: ${data.name}`;
+            updateLocationDisplay(data.name);
             this.currentLocationId = locationId;
           }
 
@@ -833,18 +831,18 @@
     // Add database connection status check
     async function checkDatabaseConnection() {
       try {
-        const response = await fetch('/api/locations');
+        const response = await fetch('/api/db_status');
         if (response.ok) {
-          setStatusMessage("Database connection successful", "success");
-          return true;
+          // Only update if no location is currently displayed
+          const currentStatus = document.getElementById('dbStatus').textContent;
+          if (!currentStatus.includes("Location:")) {
+            document.getElementById('dbStatus').textContent = "Database connection successful";
+          }
         } else {
-          setStatusMessage("Database connection issue", "error");
-          return false;
+          document.getElementById('dbStatus').textContent = "Database connection failed";
         }
-      } catch (error) {
-        console.error("Database connection error:", error);
-        setStatusMessage("Database connection error", "error");
-        return false;
+      } catch (e) {
+        document.getElementById('dbStatus').textContent = "Database connection error";
       }
     }
 
@@ -852,6 +850,11 @@
     document.addEventListener('DOMContentLoaded', function() {
       setTimeout(checkDatabaseConnection, 1000);
     });
+
+    //Helper function to update location display
+    function updateLocationDisplay(locationName) {
+      document.getElementById('dbStatus').textContent = `Location: ${locationName}`;
+    }
 
     document.addEventListener("DOMContentLoaded", () => QDPro.init());
   </script>
