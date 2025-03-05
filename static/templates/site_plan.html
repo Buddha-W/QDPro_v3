@@ -214,7 +214,8 @@
         // Initialize status display
         document.getElementById("dbStatus").textContent = "No location selected";
 
-        this.loadProject();
+        // Load the last location on initialization
+        this.loadLastLocation();
       },
       setupDrawTools: function() {
         const drawOptions = { shapeOptions: { color: "#3388ff" } };
@@ -438,6 +439,8 @@
           // Store both location ID and name
           this.currentLocationId = locObj.id;
           this.currentLocationName = locObj.name;
+          localStorage.setItem('lastLocationId', this.currentLocationId);
+          localStorage.setItem('lastLocationName', this.currentLocationName);
 
           this.clearLayers();
           this.activeLayer = L.featureGroup().addTo(this.map);
@@ -594,6 +597,26 @@
           }
         }
         return null;
+      },
+      loadLastLocation: async function() {
+        const lastLocationId = localStorage.getItem('lastLocationId');
+        const lastLocationName = localStorage.getItem('lastLocationName');
+
+        if (lastLocationId && lastLocationName) {
+          console.log("Loading last used location:", lastLocationName);
+          try {
+            this.currentLocationId = lastLocationId;
+            this.currentLocationName = lastLocationName;
+            document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationName}`;
+            this.clearLayers();
+            this.activeLayer = L.featureGroup().addTo(this.map);
+            this.layers["Default"] = this.activeLayer;
+            this.updateDrawToLayerSelect();
+            await this.loadProject();
+          } catch (error) {
+            console.error("Error loading last location:", error);
+          }
+        }
       }
     };
 
