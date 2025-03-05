@@ -4,6 +4,7 @@ import traceback
 import logging
 import json
 from typing import List, Dict, Optional, Any
+from datetime import datetime
 
 from fastapi import FastAPI, Request, Depends, HTTPException, status, BackgroundTasks, Form
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, Response
@@ -11,28 +12,31 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
-# For QD calculations (some placeholders if you don't actually have qd_engine)
-from qd_engine import get_engine, QDParameters, MaterialProperties, EnvironmentalConditions
+# For QD calculations (placeholders if qd_engine is not fully implemented)
+try:
+    from qd_engine import get_engine, QDParameters, MaterialProperties, EnvironmentalConditions
+except ImportError:
+    # Mock qd_engine for now if not available
+    class MockQDEngine:
+        def calculate_esqd(self, quantity, material_props, env_conditions, k_factor):
+            return quantity * k_factor  # Dummy calculation
+        def generate_k_factor_rings(self, center_lat, center_lon, safe_distance):
+            return [{"type": "Feature", "geometry": {"type": "Point", "coordinates": [center_lon, center_lat]}}]
+    def get_engine(site_type): return MockQDEngine()
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# -------------------------
-# MIDDLEWARE & SETUP
-# -------------------------
+# Middleware & Setup
 @app.middleware("http")
 async def error_handling_middleware(request: Request, call_next):
     try:
         return await call_next(request)
     except Exception as e:
         logger.error(f"Unhandled error: {str(e)}\n{traceback.format_exc()}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Internal server error", "detail": str(e)}
-        )
+        return JSONResponse(status_code=500, content={"error": "Internal server error", "detail": str(e)})
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -41,41 +45,23 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
 )
 
-# Ensure data directory
 DATA_DIR = os.path.join(os.path.expanduser('~'), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
-# Serve static files (CSS, JS, images) from /static
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Setup Jinja2 templates in static/templates
 templates = Jinja2Templates(directory="static/templates")
 
-
-# -------------------------
-# ROOT: RENDER site_plan.html
-# -------------------------
+# Root Endpoint
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    """
-    Render the main map page from site_plan.html using Jinja2.
-    """
     return templates.TemplateResponse("site_plan.html", {"request": request})
 
-
-# -------------------------
-# SAVE / LOAD JSON Project
-# -------------------------
+# Save/Load Project
 @app.post("/api/save")
 async def save_project(data: dict):
     try:
-        # Ensure data directory exists
-        os.makedirs("data", exist_ok=True)
-        
-        # Save with pretty formatting for readability
         with open("data/layer_data.json", "w") as f:
             json.dump(data, f, indent=2)
-        
         logger.info(f"Project saved successfully at {datetime.now().isoformat()}")
         return {"status": "success", "message": "Data saved successfully"}
     except Exception as e:
@@ -85,50 +71,135 @@ async def save_project(data: dict):
 @app.get("/api/load")
 async def load_project():
     try:
-        # Ensure data directory exists
-        os.makedirs("data", exist_ok=True)
-        
-        # Try to load the file
         with open("data/layer_data.json", "r") as f:
             data = json.load(f)
-        
         logger.info(f"Project loaded successfully at {datetime.now().isoformat()}")
         return data
     except FileNotFoundError:
-        logger.warning("No data file found, returning default structure")
-        # Return some default structure if no file found
-        default_data = {
-            "features": []
-        }
-        
-        # Create the default file for future use
+        default_data = {"features": []}
         with open("data/layer_data.json", "w") as f:
             json.dump(default_data, f, indent=2)
-            
         return default_data
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON in data file")
-        return JSONResponse(status_code=500, content={"error": "Data file contains invalid JSON"})
     except Exception as e:
         logger.error(f"Error loading project: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+# Layer Persistence Endpoints
+@app.get("/api/load-layers")
+async def load_layers(location_id: Optional[int] = None):
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        if location_id:
+            cur.execute("SELECT layer_config FROM map_layers WHERE location_id = %s AND is_active = TRUE", (location_id,))
+        else:
+            cur.execute("SELECT layer_config FROM map_layers WHERE is_active = TRUE")
+        rows = cur.fetchall()
+        features = []
+        for row in rows:
+            layer_config = row[0]
+            if layer_config and "features" in layer_config:
+                features.extend(layer_config["features"])
+        return {"layers": {"type": "FeatureCollection", "features": features}}
+    except Exception as e:
+        logger.error(f"Error loading layers: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
 
-# -----------------------------------------------------------
-# EXAMPLE: QDCalculationRequest, sensor-data, generate-report
-# -----------------------------------------------------------
-# (These remain from your original code. Adapt as needed.)
+@app.post("/api/save-layers")
+async def save_layers(request: Request, location_id: Optional[int] = None):
+    try:
+        data = await request.json()
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        layer_name = data.get("layer_name", "Default")
+        layer_config = {"type": "FeatureCollection", "features": data.get("features", [])}
+        if location_id:
+            cur.execute("""
+                INSERT INTO map_layers (name, layer_config, location_id, is_active)
+                VALUES (%s, %s, %s, TRUE)
+                ON CONFLICT (name) DO UPDATE SET layer_config = EXCLUDED.layer_config, is_active = TRUE
+            """, (layer_name, json.dumps(layer_config), location_id))
+        else:
+            cur.execute("""
+                INSERT INTO map_layers (name, layer_config, is_active)
+                VALUES (%s, %s, TRUE)
+                ON CONFLICT (name) DO UPDATE SET layer_config = EXCLUDED.layer_config, is_active = TRUE
+            """, (layer_name, json.dumps(layer_config)))
+        conn.commit()
+        return {"status": "success", "message": f"Layer '{layer_name}' saved to DB"}
+    except Exception as e:
+        logger.error(f"Error saving layers: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
 
-from pydantic import BaseModel
-from datetime import datetime
-import pdfkit
+# Location Endpoints
+@app.get("/api/locations")
+async def get_locations(include_deleted: bool = False):
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        query = "SELECT id, location_name, created_at FROM locations WHERE deleted = FALSE" if not include_deleted else "SELECT id, location_name, created_at FROM locations"
+        cur.execute(query)
+        rows = cur.fetchall()
+        locations = [{"id": r[0], "name": r[1], "created_at": str(r[2])} for r in rows]
+        return {"locations": locations}
+    except Exception as e:
+        logger.error(f"Database error in /api/locations: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": "Failed to fetch locations"})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
 
+@app.post("/api/create_location")
+async def create_location_api(request: Request):
+    data = await request.json()
+    location_name = data.get("location_name", "Untitled")
+    conn = psycopg2.connect(os.environ['DATABASE_URL'])
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO locations (location_name) VALUES (%s) RETURNING id, location_name",
+            (location_name,)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return {"id": row[0], "name": row[1]}
+    except Exception as e:
+        logger.error(f"Error creating location: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        cur.close()
+        conn.close()
+
+@app.get("/api/load_location/{location_id}")
+async def load_location(location_id: int):
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        cur.execute("SELECT location_name FROM locations WHERE id = %s AND deleted = FALSE", (location_id,))
+        row = cur.fetchone()
+        if not row:
+            return JSONResponse(status_code=404, content={"error": "Location not found"})
+        return {"location_id": location_id, "name": row[0], "facilities": [], "qdArcs": [], "analysis": []}
+    except Exception as e:
+        logger.error(f"Error loading location: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
+# QD Calculation Endpoint (unchanged for now)
 class QDCalculationRequest(BaseModel):
     quantity: float
     lat: float
     lng: float
     k_factor: float = 40
-    site_type: str = "DOD"  # Either "DOD" or "DOE"
+    site_type: str = "DOD"
     material_type: str = "General Explosive"
     sensitivity: float = 0.5
     det_velocity: float = 6000
@@ -138,53 +209,10 @@ class QDCalculationRequest(BaseModel):
     humidity: float = 50
     confinement_factor: float = 0.0
 
-@app.post("/api/sensor-data")
-async def update_sensor_data(data: Dict[str, float]):
-    """Update real-time sensor data and recalculate risk"""
-    site_type = "DOD"  # or from session
-    qd_engine = get_engine(site_type)
-    await qd_engine.update_sensor_data(data)
-    risk_assessment = await qd_engine._update_risk_assessment()
-    return {
-        "status": "updated",
-        "timestamp": datetime.now().isoformat(),
-        "risk_level": risk_assessment["risk_level"],
-        "warnings": risk_assessment.get("warning")
-    }
-
-@app.get("/api/generate-report/{site_id}")
-async def generate_report(site_id: str, format: str = "html"):
-    """Generate site safety report"""
-    report_data = {
-        "site_id": site_id,
-        "timestamp": datetime.now().isoformat(),
-        "risk_assessment": "Normal",
-        "sensor_readings": {"temperature": 25.0, "humidity": 60.0}
-    }
-    html_content = f"""
-    <h1>Site Safety Report</h1>
-    <p>Site ID: {report_data['site_id']}</p>
-    <p>Generated: {report_data['timestamp']}</p>
-    <h2>Risk Assessment</h2>
-    <p>{report_data['risk_assessment']}</p>
-    """
-    if format == "pdf":
-        pdf = pdfkit.from_string(html_content, False)
-        return Response(pdf, media_type="application/pdf")
-    return HTMLResponse(content=html_content)
-
 @app.post("/api/calculate-qd", response_model=Dict[str, Any])
 async def calculate_qd(request: QDCalculationRequest):
-    """Calculate QD parameters with PG integration (sample logic)."""
     try:
-        # Connect to DB if needed
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
-        cur = conn.cursor()
-        # (You might fetch facility data here if you want.)
-        # For now, just do a basic QD calculation from your qd_engine:
         qd_engine = get_engine(request.site_type)
-
-        # Create objects from request
         material_props = MaterialProperties(
             sensitivity=request.sensitivity,
             det_velocity=request.det_velocity,
@@ -218,152 +246,14 @@ async def calculate_qd(request: QDCalculationRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
 
-
-# -------------------------
-# Additional DB / location endpoints
-# -------------------------
-@app.get("/reports/facilities")
-async def return_facilities_report():
-    """Provide report on facilities. Example usage in your front-end JS."""
-    facilities = [
-        {"id": 1, "name": "Facility A", "lat": 40.7128, "lng": -74.0060},
-        {"id": 2, "name": "Facility B", "lat": 34.0522, "lng": -118.2437}
-    ]
-    return JSONResponse(content=facilities, headers={"Content-Type": "application/json"})
-
-
-# This route returns an object with "locations": [...]
-@app.get("/api/locations")
-async def get_locations(include_deleted: bool = False):
-    """Get list of locations as JSON with a 'locations' key."""
-    try:
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
-        cur = conn.cursor()
-        # (Simplified query for demonstration)
-        cur.execute("SELECT id, location_name, created_at FROM locations")
-        rows = cur.fetchall()
-        locations = []
-        for row in rows:
-            loc_id, loc_name, created_at = row
-            locations.append({
-                "id": loc_id,
-                "name": loc_name,
-                "created_at": str(created_at)
-            })
-        return JSONResponse(content={"locations": locations})
-    except Exception as e:
-        print(f"Database error in /api/locations: {e}")
-        return JSONResponse(content={"error": "Failed to fetch locations"}, status_code=500)
-    finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
-
-
-@app.get("/api/recycle_bin")
-async def get_recycle_bin():
-    """Get list of deleted locations (example)."""
-    # Implementation omitted for brevity
-    return {"locations": [], "message": "Recycle bin not implemented fully."}
-
-
-@app.get("/api/load_location/{location_id}")
-async def load_location(location_id: int):
-    """Load a location and its data by ID."""
-    # Example. Adjust for your data model.
-    return {"location_id": location_id, "facilities": [], "qdArcs": [], "analysis": []}
-
-
-@app.post("/api/create_location")
-async def create_location_api(request: Request):
-    """Create location via API."""
-    data = await request.json()
-    location_name = data.get("location_name", "Untitled")
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor()
-    try:
-        cur.execute(
-            "INSERT INTO locations (location_name) VALUES (%s) RETURNING id, location_name",
-            (location_name,)
-        )
-        row = cur.fetchone()
-        conn.commit()
-        return JSONResponse(content={"id": row[0], "name": row[1]})
-    finally:
-        cur.close()
-        conn.close()
-
-@app.post("/api/edit_location/{location_id}")
-async def edit_location(location_id: int, request: Request):
-    """Edit a location name."""
-    # Example logic
-    data = await request.json()
-    new_name = data.get("location_name", "Untitled")
-    conn = psycopg2.connect(os.environ['DATABASE_URL'])
-    cur = conn.cursor()
-    try:
-        cur.execute("UPDATE locations SET location_name = %s WHERE id = %s",
-                    (new_name, location_id))
-        conn.commit()
-        return {"success": True, "id": location_id, "name": new_name}
-    finally:
-        cur.close()
-        conn.close()
-
-@app.delete("/api/delete_location/{location_id}")
-async def delete_location(location_id: int, permanent: bool = False):
-    """Delete or recycle bin a location."""
-    # Example logic
-    return {"success": True, "message": "Location deleted or moved to recycle bin."}
-
-@app.post("/api/restore_location/{location_id}")
-async def restore_location(location_id: int):
-    """Restore location from recycle bin."""
-    return {"success": True, "message": "Location restored."}
-
-@app.delete("/api/empty_recycle_bin")
-async def empty_recycle_bin():
-    """Empty recycle bin."""
-    return {"success": True, "deleted_count": 0}
-
-# Example: load-layers, save-layers
-@app.get("/api/load-layers")
-async def load_layers():
-    # Return a minimal FeatureCollection for demonstration
-    data = {"type": "FeatureCollection", "features": []}
-    return JSONResponse(content={"layers": data})
-
-@app.post("/api/save-layers")
-async def save_layers(request: Request):
-    # Example: read some JSON, store in DB
-    return {"status": "success", "message": "Data saved to DB (example)"}
-
-# Example polygon saving
-class PolygonData(BaseModel):
-    location: str
-    geometry: Dict[str, Any]
-    properties: Dict[str, Any] = {}
-
-@app.post("/api/save_polygon")
-async def save_polygon(data: PolygonData):
-    # Example stub
-    return {"status": "success", "location": data.location}
-
-
-# -------------------------
-# DB INITIALIZATION
-# -------------------------
+# Database Initialization
 def init_db():
-    """Initializes the database tables if they don't exist."""
-    db_url = os.environ.get('DATABASE_URL') or "postgresql://postgres:postgres@localhost:5432/postgres"
+    db_url = os.environ.get('DATABASE_URL', "postgresql://postgres:postgres@localhost:5432/postgres")
     print(f"Using DB: {db_url}")
     try:
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
-        # Basic example: create 'locations' table
         cur.execute("""
             CREATE TABLE IF NOT EXISTS locations (
                 id SERIAL PRIMARY KEY,
@@ -374,26 +264,12 @@ def init_db():
             )
         """)
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS records (
-                id SERIAL PRIMARY KEY,
-                location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
-                info TEXT,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cur.execute("""
             CREATE TABLE IF NOT EXISTS map_layers (
-                name VARCHAR(255) PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
                 layer_config JSONB,
-                is_active BOOLEAN DEFAULT TRUE
-            )
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS analysis_results (
-                id SERIAL PRIMARY KEY,
-                analysis_type VARCHAR(255) REFERENCES map_layers(name) ON DELETE CASCADE,
-                result_geometry GEOGRAPHY(Geometry,4326),
-                result_data JSONB
+                location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
+                is_active BOOLEAN DEFAULT TRUE,
+                PRIMARY KEY (name, location_id)
             )
         """)
         conn.commit()
