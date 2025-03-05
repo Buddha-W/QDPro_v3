@@ -1,106 +1,624 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>QDPro Site Plan</title>
-  <meta charset="utf-8">
-  <!-- Leaflet CSS/JS -->
+  <meta charset="UTF-8" />
+  <title>QDPro - ESS Style with Layers Pane</title>
+
+  <!-- Leaflet Core -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+
+  <!-- Leaflet Draw -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
   <style>
-    #map {
-      width: 100%;
-      height: 600px;
+    html, body {
+      margin:0; padding:0;
+      width:100%; height:100%;
+      font-family: Arial, sans-serif;
     }
-    table, th, td {
+
+    /* =========== TOP MENU =========== */
+    .menu-bar {
+      display: flex;
+      background: #2c3e50;
+      color: #fff;
+      height: 40px;
+      align-items: center;
+      position: relative;
+      z-index: 1000;
+    }
+    .menu-item {
+      position: relative;
+      padding: 0 15px;
+      cursor: pointer;
+      line-height: 40px;
+    }
+    .menu-item:hover {
+      background: #34495e;
+    }
+    .menu-dropdown {
+      display: none;
+      position: absolute;
+      top: 40px;
+      left: 0;
+      background: #fff;
+      color: #333;
+      min-width: 160px;
+      z-index: 9999;
+    }
+    .menu-item:hover .menu-dropdown {
+      display: block;
+    }
+    .dropdown-item {
+      display: block;
+      padding: 8px 12px;
+      text-decoration: none;
+      color: #333;
+    }
+    .dropdown-item:hover {
+      background: #eee;
+    }
+
+    /* =========== SECOND TOOLBAR =========== */
+    .toolbar {
+      display: flex;
+      background: #ecf0f1;
+      border-bottom: 1px solid #ccc;
+      padding: 5px;
+      position: relative;
+      z-index: 500;
+    }
+    .tool-button {
+      background: #fff;
       border: 1px solid #ccc;
-      border-collapse: collapse;
-      padding: 8px;
+      padding: 5px 10px;
+      margin-right: 5px;
+      cursor: pointer;
+    }
+    .tool-button:hover {
+      background: #eee;
+    }
+    /* Dropdown in toolbar to pick target layer */
+    .layer-select {
+      margin-left: 20px;
+      padding: 4px;
+    }
+
+    /* =========== LAYERS PANE (SIDE PANEL) =========== */
+    .layers-pane {
+      position: absolute;
+      top: 80px; /* below the menu + toolbar */
+      left: 0;
+      width: 300px;
+      bottom: 0;
+      background: #fafafa;
+      border-right: 1px solid #ccc;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+      padding: 10px;
+      display: none; /* hidden by default */
+      z-index: 900;
+      overflow-y: auto;
+    }
+    .layers-pane.visible {
+      display: block;
+    }
+    .layers-pane h3 {
+      margin-top: 0;
+    }
+    .base-layer-list, .user-layer-list {
+      list-style: none;
+      padding: 0; margin: 0;
+      margin-bottom: 10px;
+    }
+    .base-layer-list li, .user-layer-list li {
+      margin: 6px 0;
+    }
+
+    /* =========== MAP AREA =========== */
+    #map {
+      position: absolute;
+      top: 80px;
+      left: 0; right: 0; bottom: 0;
+      z-index: 1;
+    }
+
+    /* =========== MODALS =========== */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width:100%; height:100%;
+      background: rgba(0,0,0,0.5);
+      z-index:2000;
+      justify-content:center;
+      align-items:center;
+    }
+    .modal-backdrop.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 20px;
+      width: 400px;
+      border-radius: 5px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .modal-header { font-weight: bold; margin-bottom:10px; }
+    .close-modal {
+      position: absolute; top: 10px; right: 15px; cursor: pointer; font-size:16px;
+    }
+    .form-group { margin-bottom:10px; }
+    label { display:block; margin-bottom:4px; }
+    input, select, textarea {
+      width: 100%;
+      box-sizing:border-box;
+      padding:5px;
     }
   </style>
 </head>
 <body>
-  <h1>QDPro Site Plan</h1>
+
+  <!-- =========== TOP MENU =========== -->
+  <div class="menu-bar">
+    <div class="menu-item">
+      File
+      <div class="menu-dropdown">
+        <a class="dropdown-item" href="#" id="file-save-map">Save Map</a>
+        <a class="dropdown-item" href="#" id="file-load-map">Load Map</a>
+      </div>
+    </div>
+    <div class="menu-item">
+      Tools
+      <div class="menu-dropdown">
+        <a class="dropdown-item" href="#" id="tool-qd-analysis">Run QD Analysis</a>
+      </div>
+    </div>
+    <div class="menu-item" id="menu-layers">
+      Layers
+      <div class="menu-dropdown">
+        <a class="dropdown-item" href="#" id="open-layers-pane">Show Layers Pane</a>
+      </div>
+    </div>
+    <div style="margin-left:auto; padding-right:15px;">
+      QDPro
+    </div>
+  </div>
+
+  <!-- =========== SECOND TOOLBAR =========== -->
+  <div class="toolbar">
+    <button class="tool-button" id="zoom-in-btn">+</button>
+    <button class="tool-button" id="zoom-out-btn">-</button>
+
+    <!-- Draw Tools -->
+    <button class="tool-button draw-tool" data-tool="polygon">Polygon</button>
+    <button class="tool-button draw-tool" data-tool="rectangle">Rectangle</button>
+    <button class="tool-button draw-tool" data-tool="circle">Circle</button>
+    <button class="tool-button draw-tool" data-tool="marker">Marker</button>
+    <button class="tool-button draw-tool" data-tool="edit">Edit</button>
+    <button class="tool-button draw-tool" data-tool="delete">Delete</button>
+
+    <!-- Target Layer Dropdown -->
+    <label for="target-layer" style="margin-left:20px;">Target Layer:</label>
+    <select id="target-layer" class="layer-select">
+      <!-- Options filled dynamically -->
+    </select>
+  </div>
+
+  <!-- =========== LAYERS PANE (SIDE) =========== -->
+  <div class="layers-pane" id="layers-pane">
+    <h3>Base Maps</h3>
+    <ul class="base-layer-list" id="base-layer-list">
+      <!-- Populated dynamically -->
+    </ul>
+
+    <h3>User Layers</h3>
+    <ul class="user-layer-list" id="user-layer-list">
+      <!-- Populated dynamically -->
+    </ul>
+    <button id="add-user-layer-btn">Add New User Layer</button>
+  </div>
+
+  <!-- =========== MAP CONTAINER =========== -->
   <div id="map"></div>
 
-  <h2>Locations</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Created At</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody id="locations-tbody"></tbody>
-  </table>
+  <!-- =========== MODALS =========== -->
+  <!-- QD Analysis Modal -->
+  <div class="modal-backdrop" id="qd-analysis-modal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeQDAnalysisModal()">×</span>
+      <div class="modal-header">QD Analysis</div>
+      <p id="qd-results">Placeholder for QD analysis results.</p>
+      <button onclick="runQDAnalysis()">Run Analysis</button>
+    </div>
+  </div>
+
+  <!-- Layer Edit Modal -->
+  <div class="modal-backdrop" id="layer-edit-modal">
+    <div class="modal-content">
+      <span class="close-modal" onclick="closeLayerEditModal()">×</span>
+      <div class="modal-header" id="layer-edit-title">Edit Layer</div>
+      <div class="form-group">
+        <label>Layer Name:</label>
+        <input type="text" id="layer-name-input"/>
+      </div>
+      <div class="form-group">
+        <label>Layer Type:</label>
+        <select id="layer-type-input">
+          <option value="QD">QD</option>
+          <option value="Non-QD">Non-QD</option>
+        </select>
+      </div>
+      <button id="save-layer-btn">Save Layer</button>
+    </div>
+  </div>
 
   <script>
-    // -------------- Initialize Leaflet Map --------------
-    const map = L.map('map').setView([39.8282, -98.5795], 5); // center on USA
+  let map;
+  let baseLayers = {};       // Base maps (OSM, Satellite, etc.)
+  let userLayers = {};       // User-defined layers
+  let currentBaseLayer = null;
+  let drawControl, drawnItems;
+  let activeLayer = null;    // For editing user-layers
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
+  document.addEventListener('DOMContentLoaded', () => {
+    initMap();
+    initBaseLayers();
+    initUserLayers();
+    setupUI();
+  });
+
+  function initMap(){
+    map = L.map('map', {
+      center: [39.8282, -98.5795],
+      zoom: 5,
+      zoomControl: false
+    });
+  }
+
+  // =========== BASE LAYERS ===========
+  function initBaseLayers(){
+    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    });
+    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri'
+    });
+    const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)'
+    });
 
-    // -------------- Fetch Locations --------------
-    async function fetchLocations() {
-      try {
-        const response = await fetch("/api/locations"); 
-        if (!response.ok) {
-          throw new Error("Failed to fetch locations: " + response.status);
-        }
-        // The route returns { "locations": [...] }
-        const data = await response.json();
-        const locations = data.locations; // must be data.locations, not data.forEach
+    baseLayers = {
+      "OSM": osm,
+      "Satellite": satellite,
+      "Topographic": topo
+    };
 
-        if (!Array.isArray(locations)) {
-          throw new Error("locations is not an array");
-        }
+    currentBaseLayer = osm;
+    currentBaseLayer.addTo(map);
+  }
 
-        // Add them to a table & map
-        const tbody = document.getElementById("locations-tbody");
-        tbody.innerHTML = ""; // clear existing rows
-
-        locations.forEach(loc => {
-          // Table row
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${loc.name}</td>
-            <td>${new Date(loc.created_at).toLocaleString()}</td>
-            <td>
-              <button class="load-location-btn" data-id="${loc.id}">Load</button>
-            </td>
-          `;
-          tbody.appendChild(row);
-
-          // Marker on map
-          // If you have lat,lng in the DB, make sure they're floats
-          // Example: loc.lat=40.7128, loc.lng=-74.0060
-          if (loc.lat && loc.lng) {
-            const marker = L.marker([loc.lat, loc.lng]).addTo(map);
-            marker.bindPopup(`
-              <b>${loc.name}</b><br>
-              Created: ${loc.created_at}
-            `);
-          }
-        });
-      } catch (err) {
-        console.error("Error fetching locations:", err);
-      }
+  function populateBaseLayerList(){
+    const ul = document.getElementById('base-layer-list');
+    ul.innerHTML = "";
+    for (const layerName in baseLayers) {
+      const li = document.createElement('li');
+      li.innerHTML = `<input type="radio" name="baseLayer" value="${layerName}" /> ${layerName}`;
+      ul.appendChild(li);
     }
+    ul.querySelectorAll('input').forEach(radio => {
+      if (radio.value === "OSM") radio.checked = true;
+      radio.addEventListener('change', () => {
+        switchBaseLayer(radio.value);
+      });
+    });
+  }
 
-    fetchLocations();
+  function switchBaseLayer(layerName){
+    if (currentBaseLayer) map.removeLayer(currentBaseLayer);
+    currentBaseLayer = baseLayers[layerName];
+    map.addLayer(currentBaseLayer);
+  }
 
-    // -------------- Listen for "Load" button click --------------
-    document.addEventListener("click", e => {
-      if (e.target && e.target.classList.contains("load-location-btn")) {
-        const locId = e.target.getAttribute("data-id");
-        console.log("Load location ID:", locId);
-        // you could call /api/load_location/{locId} to get more details, etc.
-        alert("Load location: " + locId);
+  // =========== USER LAYERS ===========
+  function initUserLayers(){
+    // Add default layers
+    addUserLayer("QD Facilities", "QD");
+    addUserLayer("Non-QD Structures", "Non-QD");
+    // Set default target layer
+    document.getElementById('target-layer').value = "QD Facilities";
+  }
+
+  function addUserLayer(layerName, layerType){
+    if(userLayers[layerName]){
+      alert("Layer with that name already exists!");
+      return;
+    }
+    const fg = L.featureGroup().addTo(map);
+    userLayers[layerName] = {
+      name: layerName,
+      type: layerType,
+      featureGroup: fg,
+      visible: true
+    };
+    updateUserLayersUI();
+    updateLayerSelectDropdown();
+  }
+
+  function updateUserLayersUI(){
+    const ul = document.getElementById('user-layer-list');
+    ul.innerHTML = "";
+    for (const layerName in userLayers) {
+      const layerObj = userLayers[layerName];
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <input type="checkbox" class="user-layer-toggle" data-name="${layerName}" ${layerObj.visible ? "checked" : ""}/>
+        ${layerName} [${layerObj.type}]
+        <button class="edit-user-layer-btn" data-name="${layerName}">Edit</button>
+      `;
+      ul.appendChild(li);
+    }
+    ul.querySelectorAll('.user-layer-toggle').forEach(chk => {
+      chk.addEventListener('change', function(){
+        const nm = this.getAttribute('data-name');
+        toggleUserLayer(nm, this.checked);
+      });
+    });
+    ul.querySelectorAll('.edit-user-layer-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openLayerEditModal(btn.getAttribute('data-name'));
+      });
+    });
+  }
+
+  function toggleUserLayer(layerName, visible){
+    const layerObj = userLayers[layerName];
+    if (!layerObj) return;
+    layerObj.visible = visible;
+    visible ? map.addLayer(layerObj.featureGroup) : map.removeLayer(layerObj.featureGroup);
+  }
+
+  function updateLayerSelectDropdown(){
+    const sel = document.getElementById('target-layer');
+    sel.innerHTML = "";
+    for (const layerName in userLayers) {
+      const opt = document.createElement('option');
+      opt.value = layerName;
+      opt.textContent = layerName;
+      sel.appendChild(opt);
+    }
+  }
+
+  // =========== TOOLBAR & DRAWING ===========
+  function setupUI(){
+    populateBaseLayerList();
+    document.getElementById('zoom-in-btn').addEventListener('click', () => map.zoomIn());
+    document.getElementById('zoom-out-btn').addEventListener('click', () => map.zoomOut());
+
+    initDrawControl();
+    document.querySelectorAll('.draw-tool').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tool = btn.getAttribute('data-tool');
+        activateDrawTool(tool);
+      });
+    });
+
+    document.getElementById('file-save-map').addEventListener('click', saveMap);
+    document.getElementById('file-load-map').addEventListener('click', loadMap);
+    document.getElementById('tool-qd-analysis').addEventListener('click', () => {
+      document.getElementById('qd-analysis-modal').classList.add('active');
+    });
+    document.getElementById('open-layers-pane').addEventListener('click', () => {
+      document.getElementById('layers-pane').classList.toggle('visible');
+    });
+    document.getElementById('add-user-layer-btn').addEventListener('click', () => {
+      openLayerEditModal(null); // new layer
+    });
+  }
+
+  function initDrawControl(){
+    drawnItems = L.featureGroup();
+    map.addLayer(drawnItems);
+
+    drawControl = new L.Control.Draw({
+      draw: {
+        polyline: false,
+        polygon: true,
+        rectangle: true,
+        circle: true,
+        marker: true
+      },
+      edit: {
+        featureGroup: drawnItems,
+        remove: true
       }
     });
+
+    map.on('draw:created', function(e){
+      const layer = e.layer;
+      // Create GeoJSON feature and tag with target layer name
+      layer.feature = {
+        type: 'Feature',
+        geometry: layer.toGeoJSON().geometry,
+        properties: {}
+      };
+      const targetLayerName = document.getElementById('target-layer').value;
+      // Tag the feature with its user layer name for persistence
+      layer.feature.properties.layerName = targetLayerName;
+      // Add to the appropriate user layer
+      const layerObj = userLayers[targetLayerName];
+      if (!layerObj) {
+        alert("Invalid target layer selected.");
+        return;
+      }
+      layerObj.featureGroup.addLayer(layer);
+    });
+
+    map.on('draw:edited', function(e){
+      e.layers.eachLayer(function(layer){
+        if(layer.feature) {
+          layer.feature.geometry = layer.toGeoJSON().geometry;
+        }
+      });
+    });
+  }
+
+  function activateDrawTool(toolType){
+    if (!drawControl || !drawControl._toolbars) return;
+    const drawBar = drawControl._toolbars.draw;
+    const editBar = drawControl._toolbars.edit;
+    // Disable any active mode
+    if (drawBar) {
+      Object.values(drawBar._modes).forEach(m => m.handler.disable());
+    }
+    if (editBar) {
+      Object.values(editBar._modes).forEach(m => m.handler.disable());
+    }
+    switch (toolType) {
+      case 'polygon': drawBar?._modes?.polygon?.handler.enable(); break;
+      case 'rectangle': drawBar?._modes?.rectangle?.handler.enable(); break;
+      case 'circle': drawBar?._modes?.circle?.handler.enable(); break;
+      case 'marker': drawBar?._modes?.marker?.handler.enable(); break;
+      case 'edit': editBar?._modes?.edit?.handler.enable(); break;
+      case 'delete': editBar?._modes?.remove?.handler.enable(); break;
+      default: console.warn("Unknown draw tool:", toolType);
+    }
+  }
+
+  // =========== LAYER EDIT MODAL ===========
+  let editingLayerName = null;
+  function openLayerEditModal(layerName){
+    editingLayerName = layerName;
+    const modal = document.getElementById('layer-edit-modal');
+    const header = document.getElementById('layer-edit-title');
+    const nameInput = document.getElementById('layer-name-input');
+    const typeInput = document.getElementById('layer-type-input');
+
+    if(layerName){
+      header.textContent = "Edit Layer";
+      const layerObj = userLayers[layerName];
+      if (!layerObj) return alert("Layer not found");
+      nameInput.value = layerObj.name;
+      typeInput.value = layerObj.type;
+    } else {
+      header.textContent = "Add New Layer";
+      nameInput.value = "";
+      typeInput.value = "QD";
+    }
+    modal.classList.add('active');
+    document.getElementById('save-layer-btn').onclick = saveLayerEdits;
+  }
+
+  function closeLayerEditModal(){
+    document.getElementById('layer-edit-modal').classList.remove('active');
+    editingLayerName = null;
+  }
+
+  function saveLayerEdits(){
+    const nameInput = document.getElementById('layer-name-input');
+    const typeInput = document.getElementById('layer-type-input');
+    const newName = nameInput.value.trim();
+    const newType = typeInput.value;
+    if (!newName) {
+      alert("Layer name cannot be empty");
+      return;
+    }
+    if (editingLayerName) {
+      const layerObj = userLayers[editingLayerName];
+      if (!layerObj) return alert("Layer not found?");
+      if (newName !== editingLayerName) {
+        if (userLayers[newName]) {
+          alert("Layer with that name already exists!");
+          return;
+        }
+        userLayers[newName] = layerObj;
+        delete userLayers[editingLayerName];
+        layerObj.name = newName;
+      }
+      layerObj.type = newType;
+    } else {
+      addUserLayer(newName, newType);
+    }
+    closeLayerEditModal();
+    updateUserLayersUI();
+    updateLayerSelectDropdown();
+  }
+
+  // =========== QD ANALYSIS ===========
+  function runQDAnalysis(){
+    let analysisResults = "";
+    // Loop through QD-type user layers and count shapes (replace with your own logic)
+    for (const layerName in userLayers) {
+      if (userLayers[layerName].type === "QD") {
+        let count = 0;
+        userLayers[layerName].featureGroup.eachLayer(layer => {
+          count++;
+        });
+        analysisResults += `Layer "${layerName}" has ${count} shape(s).\n`;
+      }
+    }
+    document.getElementById('qd-results').textContent = analysisResults || "No QD shapes found.";
+    closeQDAnalysisModal();
+    alert("QD Analysis Results:\n" + analysisResults);
+  }
+  function closeQDAnalysisModal(){
+    document.getElementById('qd-analysis-modal').classList.remove('active');
+  }
+
+  // =========== SAVE & LOAD MAP ===========
+  function saveMap(){
+    const fc = { type: "FeatureCollection", features: [] };
+    for (const nm in userLayers) {
+      userLayers[nm].featureGroup.eachLayer(layer => {
+        if (layer.feature) fc.features.push(layer.feature);
+      });
+    }
+    fetch('/api/save-map', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(fc)
+    })
+    .then(r => r.json())
+    .then(res => {
+      alert("Map saved successfully on the server.");
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Failed to save map.");
+    });
+  }
+
+  function loadMap(){
+    // Fetch saved map GeoJSON from your backend endpoint
+    fetch('/api/load-map')
+    .then(r => r.json())
+    .then(data => {
+      // Clear current layers (optional)
+      for (const nm in userLayers) {
+        userLayers[nm].featureGroup.clearLayers();
+      }
+      // Process each feature from the loaded FeatureCollection
+      data.features.forEach(feature => {
+        const layerName = feature.properties.layerName;
+        // If the layer doesn't exist, optionally create it
+        if (!userLayers[layerName]) {
+          addUserLayer(layerName, "QD"); // Default type; adjust as needed
+        }
+        // Convert GeoJSON feature into a Leaflet layer
+        const lyr = L.geoJSON(feature).getLayers()[0];
+        // Reattach the feature data
+        lyr.feature = feature;
+        userLayers[layerName].featureGroup.addLayer(lyr);
+      });
+      alert("Map loaded successfully.");
+    })
+    .catch(err => {
+      console.error(err);
+      alert("Failed to load map.");
+    });
+  }
   </script>
 </body>
 </html>
