@@ -1,0 +1,57 @@
+?initialPath=%2F&id=%3Ar1es%3A:1595 Loading last used location: 1
+?initialPath=%2F&id=%3Ar1es%3A:283 Initializing QDPro...
+?initialPath=%2F&id=%3Ar1es%3A:684 Starting loadProject function
+?initialPath=%2F&id=%3Ar1es%3A:699 Found saved project in localStorage
+?initialPath=%2F&id=%3Ar1es%3A:704 Parsed project data: Object
+?initialPath=%2F&id=%3Ar1es%3A:723 Processing saved layer: Default Object
+?initialPath=%2F&id=%3Ar1es%3A:723 Processing saved layer: ES Object
+?initialPath=%2F&id=%3Ar1es%3A:723 Processing saved layer: PES Object
+?initialPath=%2F&id=%3Ar1es%3A:768 Project loaded successfully
+?initialPath=%2F&id=%3Ar1es%3A:562 Location data loaded: Object
+?initialPath=%2F&id=%3Ar1es%3A:684 Starting loadProject function
+?initialPath=%2F&id=%3Ar1es%3A:699 Found saved project in localStorage
+?initialPath=%2F&id=%3Ar1es%3A:704 Parsed project data: Object
+?initialPath=%2F&id=%3Ar1es%3A:723 Processing saved layer: Default Object
+?initialPath=%2F&id=%3Ar1es%3A:723 Processing saved layer: ES Object
+?initialPath=%2F&id=%3Ar1es%3A:723 Processing saved layer: PES Object
+?initialPath=%2F&id=%3Ar1es%3A:768 Project loaded successfully
+?initialPath=%2F&id=%3Ar1es%3A:1597 Last location loaded successfully
+?initialPath=%2F&id=%3Ar1es%3A:1171 Selected checkboxes: 3
+?initialPath=%2F&id=%3Ar1es%3A:1175 Selected feature IDs: Array(3)
+?initialPath=%2F&id=%3Ar1es%3A:1182 Selected features after filtering: 3
+?initialPath=%2F&id=%3Ar1es%3A:1183 All features available: 3
+?initialPath=%2F&id=%3Ar1es%3A:1567 Status: Running QD analysis... (info)
+?initialPath=%2F&id=%3Ar1es%3A:1212 Analysis results: Object
+?initialPath=%2F&id=%3Ar1es%3A:1389 Could not fit bounds: Error: Bounds are not valid.
+    at e.fitBounds (Map.js:291:10)
+    at Object.displayAnalysisResults (?initialPath=%2F&id=%3Ar1es%3A:1387:22)
+    at HTMLButtonElement.<anonymous> (?initialPath=%2F&id=%3Ar1es%3A:1215:18)
+displayAnalysisResults @ ?initialPath=%2F&id=%3Ar1es%3A:1389
+?initialPath=%2F&id=%3Ar1es%3A:1567 Status: Analysis complete: 0 facilities analyzed, 0 violations found (success)
+?initialPath=%2F&id=%3Ar1es%3A:959 Layer clicked: v
+/api/update-feature:1 
+        
+        
+       Failed to load resource: the server responded with a status of 404 (Not Found)
+feature-editor.js:128 Failed to save feature properties
+(anonymous) @ feature-editor.js:128
+?initialPath=%2F&id=%3Ar1es%3A:959 Layer clicked: v
+/api/update-feature:1 
+        
+        
+       Failed to load resource: the server responded with a status of 404 (Not Found)
+feature-editor.js:128 Failed to save feature properties
+(anonymous) @ feature-editor.js:128
+?initialPath=%2F&id=%3Ar1es%3A:590 Starting saveProject function
+?initialPath=%2F&id=%3Ar1es%3A:600 Processing layer: Default
+?initialPath=%2F&id=%3Ar1es%3A:600 Processing layer: ES
+?initialPath=%2F&id=%3Ar1es%3A:600 Processing layer: PES
+?initialPath=%2F&id=%3Ar1es%3A:637 Project saved to localStorage: Object
+?initialPath=%2F&id=%3Ar1es%3A:675 Project saved successfully to server: Object
+?initialPath=%2F&id=%3Ar1es%3A:1171 Selected checkboxes: 2
+?initialPath=%2F&id=%3Ar1es%3A:1175 Selected feature IDs: Array(2)
+?initialPath=%2F&id=%3Ar1es%3A:1182 Selected features after filtering: 2
+?initialPath=%2F&id=%3Ar1es%3A:1183 All features available: 3
+?initialPath=%2F&id=%3Ar1es%3A:1567 Status: Running QD analysis... (info)
+?initialPath=%2F&id=%3Ar1es%3A:1212 Analysis results: Object
+?initialPath=%2F&id=%3Ar1es%3A:1567 Status: Analysis complete: 2 facilities analyzed, 0 violations found (success)
