@@ -701,7 +701,140 @@
         // Update UI
         this.updateDrawToLayerSelect();
       },
+      openFeaturePropertiesModal: function(layer) {
+        const properties = layer.feature ? layer.feature.properties : {};
+        
+        // Create modal for editing properties
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'featurePropertiesModal';
+        modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
+        
+        let modalContent = `
+          <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+            <h2>Edit Feature Properties</h2>
+            <form id="featurePropertiesForm">
+              <div style="margin-bottom: 10px;">
+                <label for="displayName">Display Name:</label>
+                <input type="text" id="displayName" value="${properties.displayName || ''}" style="width: 100%; padding: 5px;">
+              </div>
+              <div style="margin-bottom: 10px;">
+                <label>
+                  <input type="checkbox" id="newExplosiveFacility" ${properties.new ? 'checked' : ''}>
+                  NEW (Net Explosive Weight) Facility
+                </label>
+              </div>
+              <div style="margin-bottom: 10px;">
+                <label for="facilityType">Facility Type:</label>
+                <select id="facilityType" style="width: 100%; padding: 5px;">
+                  <option value="Facility" ${properties.type === 'Facility' ? 'selected' : ''}>Facility</option>
+                  <option value="Storage" ${properties.type === 'Storage' ? 'selected' : ''}>Storage</option>
+                  <option value="Administrative" ${properties.type === 'Administrative' ? 'selected' : ''}>Administrative</option>
+                  <option value="Other" ${properties.type === 'Other' ? 'selected' : ''}>Other</option>
+                </select>
+              </div>
+              <div style="margin-bottom: 10px;">
+                <label for="netExplosiveWeight">Net Explosive Weight (lbs):</label>
+                <input type="number" id="netExplosiveWeight" value="${properties.net_explosive_weight || ''}" style="width: 100%; padding: 5px;">
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <button type="button" id="savePropertiesBtn" style="background-color: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer;">
+                  Save
+                </button>
+                <button type="button" id="cancelPropertiesBtn" style="padding: 10px 15px; border: 1px solid #ddd; cursor: pointer;">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        `;
+        
+        modal.innerHTML = modalContent;
+        document.body.appendChild(modal);
+        
+        // Store reference to the layer
+        const self = this;
+        
+        // Add event listeners
+        document.getElementById('savePropertiesBtn').addEventListener('click', function() {
+          // Get values from form
+          const displayName = document.getElementById('displayName').value;
+          const isNew = document.getElementById('newExplosiveFacility').checked;
+          const type = document.getElementById('facilityType').value;
+          const netExplosiveWeight = document.getElementById('netExplosiveWeight').value;
+          
+          // Ensure layer.feature and properties exist
+          if (!layer.feature) {
+            layer.feature = { properties: {} };
+          }
+          if (!layer.feature.properties) {
+            layer.feature.properties = {};
+          }
+          
+          // Update properties
+          layer.feature.properties.displayName = displayName;
+          layer.feature.properties.new = isNew;
+          layer.feature.properties.type = type;
+          layer.feature.properties.net_explosive_weight = netExplosiveWeight ? parseFloat(netExplosiveWeight) : null;
+          
+          // Close modal
+          document.body.removeChild(modal);
+          
+          // Update popup if one exists
+          if (layer.getPopup()) {
+            const popupContent = `
+              <div>
+                <h3>${displayName || 'Unnamed Feature'}</h3>
+                <p>Type: ${type || 'Unknown'}</p>
+                ${netExplosiveWeight ? `<p>NEW: ${netExplosiveWeight} lbs</p>` : ''}
+                <button class="edit-properties-btn">Edit Properties</button>
+              </div>
+            `;
+            layer.setPopupContent(popupContent);
+            
+            // Add click handler to the edit button in popup
+            setTimeout(() => {
+              const editBtn = document.querySelector('.edit-properties-btn');
+              if (editBtn) {
+                editBtn.addEventListener('click', function() {
+                  self.openFeaturePropertiesModal(layer);
+                });
+              }
+            }, 100);
+          }
+        });
+        
+        document.getElementById('cancelPropertiesBtn').addEventListener('click', function() {
+          document.body.removeChild(modal);
+        });
+      },
+      
       addLayerClickHandlers: function(layer) {
+        // Add popup with properties
+        const properties = layer.feature ? layer.feature.properties : {};
+        const popupContent = `
+          <div>
+            <h3>${properties.displayName || 'Unnamed Feature'}</h3>
+            <p>Type: ${properties.type || 'Unknown'}</p>
+            ${properties.net_explosive_weight ? `<p>NEW: ${properties.net_explosive_weight} lbs</p>` : ''}
+            <button class="edit-properties-btn">Edit Properties</button>
+          </div>
+        `;
+        
+        layer.bindPopup(popupContent);
+        
+        // Add click handler
+        const self = this;
+        layer.on('popupopen', function() {
+          setTimeout(() => {
+            const editBtn = document.querySelector('.edit-properties-btn');
+            if (editBtn) {
+              editBtn.addEventListener('click', function() {
+                self.openFeaturePropertiesModal(layer);
+              });
+            }
+          }, 100);
+        });
         layer.on({
           click: (e) => {
             console.log('Layer clicked:', e.latlng);
@@ -910,14 +1043,23 @@
         const self = this;
         document.getElementById('runAnalysisBtn').addEventListener('click', async function() {
           // Get selected features
-          const selectedFeatureIds = Array.from(
+          const selectedCheckboxes = Array.from(
             document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]:checked')
-          ).map(cb => cb.getAttribute('data-feature-id'));
-
-          // Filter features based on selection
-          const selectedFeatures = allFeatures.filter(f => 
-            selectedFeatureIds.includes(f.properties.featureId)
           );
+          
+          console.log("Selected checkboxes:", selectedCheckboxes.length);
+          
+          // Get the feature IDs from the checkboxes
+          const selectedFeatureIds = selectedCheckboxes.map(cb => cb.getAttribute('data-feature-id'));
+          console.log("Selected feature IDs:", selectedFeatureIds);
+          
+          // Convert all IDs to strings for consistent comparison
+          const selectedFeatures = allFeatures.filter(f => 
+            selectedFeatureIds.includes(String(f.properties.featureId))
+          );
+          
+          console.log("Selected features after filtering:", selectedFeatures.length);
+          console.log("All features available:", allFeatures.length);
 
           if (selectedFeatures.length === 0) {
             alert("Please select at least one feature to analyze.");
