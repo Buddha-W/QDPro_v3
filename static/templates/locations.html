@@ -147,7 +147,7 @@
                 button.classList.remove('active');
             });
             document.getElementById(tabId).classList.add('active');
-            document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+            document.querySelector("button[onclick=\"showTab('" + tabId + "')\"]").classList.add('active');
         }
 
         // Open edit modal
