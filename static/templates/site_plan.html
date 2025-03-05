@@ -483,36 +483,65 @@
           document.getElementById("dbStatus").textContent = `Error loading location: ${this.currentLocationName}`;
         }
       },
-      saveProject: async function() {
-        let projectData = { layers: {} };
+      saveProject: function() {
+        // Prepare data for saving in a format the backend expects
+        const features = [];
 
+        // Process each layer
         for (let layerName in this.layers) {
           const layer = this.layers[layerName];
-          if (!layer) continue;
 
-          // Extract features from the layer
-          let features = [];
           layer.eachLayer(function(l) {
             if (l.toGeoJSON) {
               let feature = l.toGeoJSON();
-              // Store the layer name in the feature properties
+              // Add layerName directly to the feature for backend processing
+              feature.layerName = layerName;
+
+              // Ensure properties exists
               feature.properties = feature.properties || {};
+              // Store layerName in properties for retrieval
               feature.properties.layerName = layerName;
 
+              // Save popup content if it exists
               if (l._popup) {
                 feature.properties.popupContent = l._popup._content;
               }
+
               features.push(feature);
             }
           });
-
-          projectData.layers[layerName] = {
-            features: features
-          };
         }
 
-        // Save to localStorage
+        // Save to both localStorage (for backup) and send to server
+        const projectData = {
+          layers: {
+            type: "FeatureCollection",
+            features: features
+          }
+        };
+
+        // Save to localStorage as backup
         localStorage.setItem('qdproProject', JSON.stringify(projectData));
+
+        // Send to server
+        fetch('/api/save-layers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            features: features,
+            layer_name: "all_layers" // Use a container name for all layers
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Project saved successfully:", data);
+        })
+        .catch(error => {
+          console.error("Error saving project:", error);
+          alert("Failed to save project to server. Changes saved locally only.");
+        });
       },
       loadProject: async function() {
         try {
