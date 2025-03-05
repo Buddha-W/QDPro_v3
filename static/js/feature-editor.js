@@ -29,17 +29,15 @@ async function saveFeatureProperties(featureId, properties) {
 // Function to handle form submission when editing feature properties
 function handleFeatureFormSubmit(e, layer) {
   e.preventDefault();
+  console.log("Form submitted for layer:", layer);
 
-  // Get the feature ID
-  const featureId = layer.feature.id;
-
-  // Gather all form field values
+  // Get the form data
   const form = document.getElementById('featurePropertiesForm');
   const formData = new FormData(form);
 
   // Ensure layer has a feature and properties object
   if (!layer.feature) {
-    layer.feature = {};
+    layer.feature = { type: "Feature" };
   }
   if (!layer.feature.properties) {
     layer.feature.properties = {};
@@ -66,6 +64,12 @@ function handleFeatureFormSubmit(e, layer) {
 
   // Update the layer's feature properties
   layer.feature.properties = properties;
+
+  // Get the feature ID or generate one if not exists
+  const featureId = properties.id || generateUniqueId();
+  properties.id = featureId;
+
+  console.log("Saving properties:", properties);
 
   // Save to server
   saveFeatureProperties(featureId, properties)
@@ -111,3 +115,21 @@ function openFeaturePropertiesModal(layer) {
 
 // Call init when DOM is loaded
 document.addEventListener('DOMContentLoaded', initFeatureEditor);
+
+function generateUniqueId() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// Placeholder functions -  replace with your actual implementations
+function createPopupContent(properties) {
+  // Implement your popup content generation logic here.  This should return HTML.
+  return "<p>Popup Content</p>";
+}
+
+function updateLayerStyle(layer, type) {
+  // Implement your layer styling update logic here
+  console.log("Updating style for layer:", layer, "type:", type);
+}
