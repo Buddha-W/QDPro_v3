@@ -396,26 +396,30 @@
       showNewLocationModal: function() { document.getElementById("newLocationModal").classList.add("visible"); },
       closeNewLocationModal: function() { document.getElementById("newLocationModal").classList.remove("visible"); },
       createNewLocation: async function() {
-        let locName = document.getElementById("newLocationName").value.trim();
-        if (!locName) { alert("Enter a location name"); return; }
+        const locationName = document.getElementById("newLocationName").value.trim();
+        if (!locationName) {
+          alert("Please enter a location name");
+          return;
+        }
         try {
           const response = await fetch("/api/create_location", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ location_name: locName })
+            body: JSON.stringify({ location_name: locationName })
           });
           const data = await response.json();
-          this.currentLocationId = data.id;
-          this.currentLocationName = data.name;
-          updateLocationDisplay(data.name);
-          for (let key in this.layers) this.map.removeLayer(this.layers[key]);
-          this.layers = {};
-          this.activeLayer = L.featureGroup().addTo(this.map);
-          this.layers["Default"] = this.activeLayer;
-          this.updateDrawToLayerSelect();
+          console.log("Location created:", data);
+
+          // Update status immediately
+          document.getElementById('dbStatus').textContent = `Current location: ${data.name}`;
+
           this.closeNewLocationModal();
-          console.log("Created new location:", data);
-          this.saveProject();
+
+          // Switch to the new location
+          this.switchToLocation(data.id);
+
+          // Refresh the location list
+          this.showSwitchLocationModal();
         } catch (e) {
           console.error("Error creating location:", e);
           alert("Failed to create location");
@@ -462,7 +466,7 @@
           this.currentLocationName = data.name || "Unknown";
 
           // Update the status display
-          updateLocationDisplay(data.name);
+          document.getElementById('dbStatus').textContent = `Current location: ${data.name}`;
 
           // Load all layers for this location
           await this.loadProject();
@@ -471,6 +475,8 @@
           localStorage.setItem('lastLocationId', locationId);
           localStorage.setItem('lastLocationName', data.name);
 
+          // Close the modal after switching
+          this.closeSwitchLocationModal();
         } catch (error) {
           console.error("Error switching location:", error);
           setStatusMessage(`Error loading location: ${error.message}`, 'error');
