@@ -256,19 +256,47 @@
         document.getElementById("panTool").classList.add("active");
       },
       updateDrawToLayerSelect: function() {
-        const select = document.getElementById("drawToLayer");
-        select.innerHTML = "";
-        for (let layerName in this.layers) {
+        const sel = document.getElementById("drawToLayer");
+        sel.innerHTML = "";
+
+        // Add all existing layers to the dropdown
+        for (let key in this.layers) {
           const opt = document.createElement("option");
-          opt.value = layerName;
-          opt.textContent = layerName;
-          select.appendChild(opt);
+          opt.value = key;
+          opt.textContent = key;
+
+          // Select the active layer
+          if (this.activeLayer === this.layers[key]) {
+            opt.selected = true;
+          }
+
+          sel.appendChild(opt);
         }
-        select.addEventListener("change", (e) => {
-          this.activeLayer = this.layers[e.target.value];
-          console.log("Active layer changed to:", e.target.value);
-          this.saveProject();
-        });
+
+        // If no layers exist, create a default one
+        if (Object.keys(this.layers).length === 0) {
+          const opt = document.createElement("option");
+          opt.value = "Default";
+          opt.textContent = "Default";
+          opt.selected = true;
+          sel.appendChild(opt);
+
+          this.activeLayer = L.featureGroup().addTo(this.map);
+          this.layers["Default"] = this.activeLayer;
+        }
+
+        // When layer selection changes, update the active layer
+        sel.onchange = () => {
+          const layerName = sel.value;
+
+          // If the layer doesn't exist yet, create it
+          if (!this.layers[layerName]) {
+            this.layers[layerName] = L.featureGroup().addTo(this.map);
+          }
+
+          this.activeLayer = this.layers[layerName];
+          console.log(`Active layer changed to: ${layerName}`);
+        };
       },
       toggleBaseLayerDropdown: function() {
         const dropdown = document.getElementById("baseLayerDropdown");
@@ -391,10 +419,14 @@
         let features = [];
         for (let key in this.layers) {
           this.layers[key].eachLayer(layer => {
-            if (layer.toGeoJSON) features.push(layer.toGeoJSON());
+            if (layer.toGeoJSON) {
+              let geojson = layer.toGeoJSON();
+              geojson.layerName = key; // Add layer name to GeoJSON
+              features.push(geojson);
+            }
           });
         }
-        const projectData = { layer_name: document.getElementById("drawToLayer").value, features };
+        const projectData = { features };
         try {
           const response = await fetch(this.currentLocationId ? `/api/save-layers?location_id=${this.currentLocationId}` : "/api/save-layers", {
             method: "POST",
@@ -417,16 +449,30 @@
           const data = await response.json();
           for (let key in this.layers) this.layers[key].clearLayers();
           if (data.layers && data.layers.features && data.layers.features.length > 0) {
-            let geojsonLayer = L.geoJSON(data.layers, {
-              onEachFeature: (feature, layer) => {
-                if (feature.properties && feature.properties.type) {
-                  layer.bindPopup("Type: " + feature.properties.type);
+            data.layers.features.forEach(feature => {
+              if (feature.layerName) { // Check if layerName exists
+                let layer = this.layers[feature.layerName];
+                if (!layer) {
+                  layer = L.featureGroup().addTo(this.map);
+                  this.layers[feature.layerName] = layer;
                 }
-                this.activeLayer.addLayer(layer);
+                L.geoJSON(feature, {
+                  onEachFeature: (f, l) => {
+                    if (f.properties && f.properties.type) {
+                      l.bindPopup("Type: " + f.properties.type);
+                    }
+                    layer.addLayer(l);
+                  }
+                });
               }
             });
-            if (geojsonLayer.getLayers().length > 0) {
-              this.map.fitBounds(geojsonLayer.getBounds());
+            this.updateDrawToLayerSelect(); //Added to update select after load.
+            if (Object.keys(this.layers).length > 0) {
+              let bounds = L.latLngBounds([]);
+              for (let layerName in this.layers) {
+                bounds.extend(this.layers[layerName].getBounds());
+              }
+              this.map.fitBounds(bounds);
             }
             console.log("Project loaded:", data);
           } else {
@@ -442,6 +488,15 @@
           this.map.removeLayer(this.layers[key]);
         }
         this.layers = {};
+      },
+
+      getLayerNameByObject: function(layerObj) {
+        for (let name in this.layers) {
+          if (this.layers[name] === layerObj) {
+            return name;
+          }
+        }
+        return null;
       }
     };
 
