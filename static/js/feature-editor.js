@@ -1,3 +1,227 @@
+
+/**
+ * Feature Editor for QDPro application
+ * Handles editing of GeoJSON features on the map
+ */
+
+// Function to open a feature editor popup for a given layer
+function openFeatureEditor(layer) {
+  console.log("Opening feature editor for layer:", layer);
+  
+  // Get existing properties or initialize empty object
+  const properties = layer.feature ? layer.feature.properties || {} : {};
+  
+  // Create popup content
+  const popupContent = document.createElement('div');
+  popupContent.innerHTML = `
+    <h3>Edit Feature Properties</h3>
+    <form id="feature-properties-form">
+      <div class="form-group">
+        <label for="feature-name">Name:</label>
+        <input type="text" id="feature-name" value="${properties.name || ''}" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="feature-is-facility" ${properties.is_facility ? 'checked' : ''}>
+          Facility
+        </label>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="feature-has-explosive" ${properties.has_explosive ? 'checked' : ''}>
+          Contains Explosives (NEW)
+        </label>
+      </div>
+      <div id="explosive-details" style="display: ${properties.has_explosive ? 'block' : 'none'}">
+        <div class="form-group">
+          <label for="feature-net-explosive-weight">Net Explosive Weight:</label>
+          <input type="number" id="feature-net-explosive-weight" value="${properties.net_explosive_weight || '0'}" min="0" step="0.1" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="feature-new-unit">Unit:</label>
+          <select id="feature-new-unit" class="form-control">
+            <option value="lb" ${(properties.unit || 'lb') === 'lb' ? 'selected' : ''}>Pounds (lb)</option>
+            <option value="kg" ${(properties.unit || 'lb') === 'kg' ? 'selected' : ''}>Kilograms (kg)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="feature-type">Type:</label>
+        <select id="feature-type" class="form-control">
+          <option value="Standard" ${(properties.type || 'Standard') === 'Standard' ? 'selected' : ''}>Standard</option>
+          <option value="Storage" ${(properties.type || 'Standard') === 'Storage' ? 'selected' : ''}>Storage</option>
+          <option value="Processing" ${(properties.type || 'Standard') === 'Processing' ? 'selected' : ''}>Processing</option>
+          <option value="Admin" ${(properties.type || 'Standard') === 'Admin' ? 'selected' : ''}>Administrative</option>
+          <option value="Other" ${(properties.type || 'Standard') === 'Other' ? 'selected' : ''}>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="feature-description">Description:</label>
+        <textarea id="feature-description" class="form-control">${properties.description || ''}</textarea>
+      </div>
+      <div class="form-group" style="text-align: right;">
+        <button type="button" id="save-properties-btn" class="btn btn-primary">Save</button>
+        <button type="button" id="cancel-properties-btn" class="btn btn-secondary">Cancel</button>
+      </div>
+    </form>
+  `;
+  
+  // If layer has a popup, close it and then set new content
+  if (layer.getPopup()) {
+    layer.closePopup();
+  }
+  
+  // Create new popup and open it
+  layer.bindPopup(popupContent, { 
+    maxWidth: 500,
+    className: 'feature-editor-popup'
+  }).openPopup();
+  
+  // Add event listeners after popup is opened
+  setTimeout(() => {
+    // Toggle explosive details visibility
+    const hasExplosiveCheckbox = document.getElementById('feature-has-explosive');
+    const explosiveDetails = document.getElementById('explosive-details');
+    
+    if (hasExplosiveCheckbox && explosiveDetails) {
+      hasExplosiveCheckbox.addEventListener('change', function() {
+        explosiveDetails.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+    
+    // Save button handler
+    const saveButton = document.getElementById('save-properties-btn');
+    if (saveButton) {
+      saveButton.addEventListener('click', function() {
+        saveFeatureProperties(layer);
+      });
+    }
+    
+    // Cancel button handler
+    const cancelButton = document.getElementById('cancel-properties-btn');
+    if (cancelButton) {
+      cancelButton.addEventListener('click', function() {
+        layer.closePopup();
+      });
+    }
+  }, 100);
+}
+
+// Function to save the feature properties
+function saveFeatureProperties(layer) {
+  try {
+    // Get values from form
+    const name = document.getElementById('feature-name').value;
+    const isFacility = document.getElementById('feature-is-facility').checked;
+    const hasExplosive = document.getElementById('feature-has-explosive').checked;
+    const netExplosiveWeight = hasExplosive ? parseFloat(document.getElementById('feature-net-explosive-weight').value) : 0;
+    const unit = document.getElementById('feature-new-unit').value;
+    const type = document.getElementById('feature-type').value;
+    const description = document.getElementById('feature-description').value;
+    
+    // Initialize feature if it doesn't exist
+    if (!layer.feature) {
+      layer.feature = {
+        type: 'Feature',
+        properties: {}
+      };
+    }
+    
+    if (!layer.feature.properties) {
+      layer.feature.properties = {};
+    }
+    
+    // Update properties
+    layer.feature.properties.name = name;
+    layer.feature.properties.is_facility = isFacility;
+    layer.feature.properties.has_explosive = hasExplosive;
+    layer.feature.properties.net_explosive_weight = netExplosiveWeight;
+    layer.feature.properties.unit = unit;
+    layer.feature.properties.type = type;
+    layer.feature.properties.description = description;
+    
+    // Close popup
+    layer.closePopup();
+    
+    // Create a new popup with the updated information
+    const popupContent = `
+      <div>
+        <h3>${name || 'Unnamed Feature'}</h3>
+        <p><strong>Type:</strong> ${type}</p>
+        ${hasExplosive ? `<p><strong>NET:</strong> ${netExplosiveWeight} ${unit}</p>` : ''}
+        ${description ? `<p>${description}</p>` : ''}
+        <button class="edit-feature-btn">Edit</button>
+      </div>
+    `;
+    
+    layer.bindPopup(popupContent);
+    
+    // Add click handler to the edit button in the new popup
+    layer.on('popupopen', function() {
+      setTimeout(() => {
+        const editBtn = document.querySelector('.edit-feature-btn');
+        if (editBtn) {
+          editBtn.addEventListener('click', function() {
+            openFeatureEditor(layer);
+          });
+        }
+      }, 100);
+    });
+    
+    // Try to save to the server if available
+    try {
+      const featureData = {
+        id: layer.feature.id || layer._leaflet_id,
+        properties: layer.feature.properties,
+        geometry: layer.toGeoJSON().geometry
+      };
+      
+      fetch('/api/update-feature', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(featureData)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Feature saved successfully:', data);
+      })
+      .catch(error => {
+        console.error('Failed to save feature properties:', error);
+        // Continue anyway - changes are saved to the layer object
+      });
+    } catch (e) {
+      console.error('Failed to save feature properties:', e);
+      // Continue anyway - changes are saved to the layer object locally
+    }
+    
+    // Save the overall project state
+    if (window.QDPro && typeof window.QDPro.saveProject === 'function') {
+      window.QDPro.saveProject();
+    }
+    
+  } catch (error) {
+    console.error('Error saving feature properties:', error);
+    alert('An error occurred while saving feature properties. See console for details.');
+  }
+}
+
+// Function to initialize feature editor on a map
+function initFeatureEditor(map) {
+  console.log('Feature editor initialized for map:', map);
+  
+  // Set up click handler for features
+  map.on('click', function(e) {
+    console.log('Map clicked at:', e.latlng);
+  });
+}
+
 // Feature editing functionality for QDPro
 
 // Store reference to the layer being edited

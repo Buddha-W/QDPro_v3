@@ -1230,11 +1230,33 @@
 
         // Create a new layer for analysis results
         this.analysisLayer = L.featureGroup().addTo(this.map);
+        
+        // Check if facilities data exists and is valid
+        if (!analysis || !analysis.facilities_analyzed || !Array.isArray(analysis.facilities_analyzed)) {
+          console.warn("No valid facilities to analyze in the analysis results");
+          // Create a minimal summary panel to show the issue
+          this.showAnalysisSummary(analysis || {total_facilities: 0, total_violations: 0, timestamp: new Date().toISOString()});
+          return;
+        }
+
+        // Track if we've added any valid features to determine if bounds fitting is possible
+        let hasValidFeatures = false;
 
         // Add QD rings to the map
         analysis.facilities_analyzed.forEach(facility => {
+          // Validate facility coordinates
+          const facilityLat = facility.facility_latitude || 0;
+          const facilityLng = facility.facility_longitude || 0;
+          
+          if (!isFinite(facilityLat) || !isFinite(facilityLng)) {
+            console.warn(`Invalid facility coordinates for ${facility.facility_name || 'unnamed facility'}`);
+            return; // Skip this facility
+          }
+          
+          hasValidFeatures = true;
+
           // Add a marker for the facility location
-          const facilityMarker = L.marker([facility.facility_latitude || 0, facility.facility_longitude || 0], {
+          const facilityMarker = L.marker([facilityLat, facilityLng], {
             icon: L.divIcon({
               className: 'facility-icon',
               html: `<div style="background-color: red; border-radius: 50%; width: 12px; height: 12px; border: 2px solid white;"></div>`,
@@ -1242,153 +1264,201 @@
               iconAnchor: [8, 8]
             })
           }).bindPopup(`<div class="analysis-popup">
-  <h3>${facility.facility_name}</h3>
-  <p><strong>NEW:</strong> ${facility.net_explosive_weight_display} ${facility.unit_display}</p>
-  <p><strong>Safe Distance:</strong> ${facility.safe_distance} ft</p>
-  <p><strong>Analysis Status:</strong> ${facility.violations ? facility.violations.length + ' violations found' : 'No violations'}</p>
-  <p><strong>Standard:</strong> ${facility.k_factor_type} (K=${facility.k_factor_value})</p>
+  <h3>${facility.facility_name || 'Unnamed Facility'}</h3>
+  <p><strong>NEW:</strong> ${facility.net_explosive_weight_display || 'N/A'} ${facility.unit_display || ''}</p>
+  <p><strong>Safe Distance:</strong> ${facility.safe_distance || 'N/A'} ft</p>
+  <p><strong>Analysis Status:</strong> ${facility.violations && facility.violations.length ? facility.violations.length + ' violations found' : 'No violations'}</p>
+  <p><strong>Standard:</strong> ${facility.k_factor_type || 'Standard'} (K=${facility.k_factor_value || 'N/A'})</p>
 </div>`)
             .addTo(this.analysisLayer);
 
           // Add QD rings if available
-          if (facility.qd_rings && facility.qd_rings.length > 0) {
+          if (facility.qd_rings && Array.isArray(facility.qd_rings) && facility.qd_rings.length > 0) {
             facility.qd_rings.forEach(ring => {
-              // Create a style based on the QD type
-              let style = {
-                fillColor: '#ff3300',
-                color: '#ff0000',
-                weight: 2,
-                opacity: 0.8,
-                fillOpacity: 0.2
-              };
-
-              // Different colors for different QD types
-              if (ring.properties && ring.properties.qd_type) {
-                switch(ring.properties.qd_type) {
-                  case 'IBD':
-                    style.fillColor = '#ff3300';
-                    style.color = '#ff0000';
-                    break;
-                  case 'PTRD':
-                    style.fillColor = '#ff9900';
-                    style.color = '#cc7700';
-                    break;
-                  case 'ILD':
-                    style.fillColor = '#ffcc00';
-                    style.color = '#cc9900';
-                    break;
-                  case 'IMD':
-                    style.fillColor = '#33cc33';
-                    style.color = '#009900';
-                    break;
-                  case 'FRAG':
-                    style.fillColor = '#9900cc';
-                    style.color = '#660099';
-                    break;
+              try {
+                // Skip invalid GeoJSON
+                if (!ring || !ring.type || !ring.coordinates) {
+                  return;
                 }
-              }
+                
+                // Create a style based on the QD type
+                let style = {
+                  fillColor: '#ff3300',
+                  color: '#ff0000',
+                  weight: 2,
+                  opacity: 0.8,
+                  fillOpacity: 0.2
+                };
 
-              // Create the GeoJSON layer
-              const ringLayer = L.geoJSON(ring, {
-                style: style
-              }).addTo(this.analysisLayer);
+                // Different colors for different QD types
+                if (ring.properties && ring.properties.qd_type) {
+                  switch(ring.properties.qd_type) {
+                    case 'IBD':
+                      style.fillColor = '#ff3300';
+                      style.color = '#ff0000';
+                      break;
+                    case 'PTRD':
+                      style.fillColor = '#ff9900';
+                      style.color = '#cc7700';
+                      break;
+                    case 'ILD':
+                      style.fillColor = '#ffcc00';
+                      style.color = '#cc9900';
+                      break;
+                    case 'IMD':
+                      style.fillColor = '#33cc33';
+                      style.color = '#009900';
+                      break;
+                    case 'FRAG':
+                      style.fillColor = '#9900cc';
+                      style.color = '#660099';
+                      break;
+                  }
+                }
 
-              // Add a popup with information
-              if (ring.properties) {
-                ringLayer.bindPopup(`
-                  <div class="qd-ring-popup">
-                    <h4>${ring.properties.label || 'QD Ring'}</h4>
-                    <p>${ring.properties.description || ''}</p>
-                    ${ring.properties.standard ? `<p><small>${ring.properties.standard}</small></p>` : ''}
-                  </div>
-                `);
+                // Create the GeoJSON layer
+                const ringLayer = L.geoJSON(ring, {
+                  style: style
+                }).addTo(this.analysisLayer);
+
+                // Add a popup with information
+                if (ring.properties) {
+                  ringLayer.bindPopup(`
+                    <div class="qd-ring-popup">
+                      <h4>${ring.properties.label || 'QD Ring'}</h4>
+                      <p>${ring.properties.description || ''}</p>
+                      ${ring.properties.standard ? `<p><small>${ring.properties.standard}</small></p>` : ''}
+                    </div>
+                  `);
+                }
+              } catch (err) {
+                console.error("Error adding QD ring:", err);
               }
             });
           }
 
           // Add violations if any
-          if (facility.violations && facility.violations.length > 0) {
+          if (facility.violations && Array.isArray(facility.violations) && facility.violations.length > 0) {
             facility.violations.forEach(violation => {
-              // Highlight the violated feature
-              this.layers.eachLayer(layer => {
-                if (layer.feature && layer.feature.id === violation.feature_id) {
-                  // Highlight the violated feature
-                  layer.setStyle({
-                    color: '#ff0000',
-                    weight: 3,
-                    fillColor: '#ff9999',
-                    fillOpacity: 0.5
-                  });
-
-                  // Add a popup with violation details
-                  layer.bindPopup(`
-                    <div class="violation-popup">
-                      <h4>QD Violation</h4>
-                      <p><strong>Feature:</strong> ${violation.feature_name}</p>
-                      <p><strong>Current Distance:</strong> ${violation.distance} ft</p>
-                      <p><strong>Required Distance:</strong> ${violation.required} ft</p>
-                      <p><strong>Deficiency:</strong> ${violation.deficiency} ft (${violation.percent_deficient}%)</p>
-                      <p><small>${violation.standard_reference}</small></p>
-                    </div>
-                  `);
-
-                  // Add a violation marker
-                  const violationIcon = L.divIcon({
-                    className: 'violation-icon',
-                    html: '<div><i class="fas fa-exclamation-triangle"></i></div>',
-                    iconSize: [24, 24]
-                  });
-
-                  // Get the centroid of the violated feature
-                  let violationPoint;
-                  if (layer.getLatLng) {
-                    violationPoint = layer.getLatLng();
-                  } else if (layer.getBounds) {
-                    violationPoint = layer.getBounds().getCenter();
-                  } else {
-                    return;
-                  }
-
-                  const violationMarker = L.marker(violationPoint, {
-                    icon: violationIcon
-                  }).addTo(this.analysisLayer);
-
-                  violationMarker.bindPopup(`
-                    <div class="violation-popup">
-                      <h4>QD Violation</h4>
-                      <p><strong>Feature:</strong> ${violation.feature_name}</p>
-                      <p><strong>Required Distance:</strong> ${violation.required} ft</p>
-                      <p><strong>Current Distance:</strong> ${violation.distance} ft</p>
-                      <p><strong>Deficiency:</strong> ${violation.deficiency} ft (${violation.percent_deficient}%)</p>
-                    </div>
-                  `);
+              try {
+                // Validate violation data
+                if (!violation || !violation.feature_id) {
+                  return;
                 }
-              });
+                
+                // Iterate through all layers to find the matching feature
+                for (const layerName in this.layers) {
+                  const layerGroup = this.layers[layerName];
+                  layerGroup.eachLayer(layer => {
+                    if (layer.feature && (layer.feature.id === violation.feature_id || 
+                        (layer.feature.properties && layer.feature.properties.id === violation.feature_id))) {
+                      // Highlight the violated feature if it has styling capabilities
+                      if (typeof layer.setStyle === 'function') {
+                        layer.setStyle({
+                          color: '#ff0000',
+                          weight: 3,
+                          fillColor: '#ff9999',
+                          fillOpacity: 0.5
+                        });
+                      }
+
+                      // Add a popup with violation details
+                      layer.bindPopup(`
+                        <div class="violation-popup">
+                          <h4>QD Violation</h4>
+                          <p><strong>Feature:</strong> ${violation.feature_name || 'Unknown Feature'}</p>
+                          <p><strong>Current Distance:</strong> ${violation.distance || 'N/A'} ft</p>
+                          <p><strong>Required Distance:</strong> ${violation.required || violation.required_distance || 'N/A'} ft</p>
+                          <p><strong>Deficiency:</strong> ${violation.deficiency || 'N/A'} ft ${violation.percent_deficient ? `(${violation.percent_deficient}%)` : ''}</p>
+                          <p><small>${violation.standard_reference || ''}</small></p>
+                        </div>
+                      `);
+
+                      // Add a violation marker
+                      const violationIcon = L.divIcon({
+                        className: 'violation-icon',
+                        html: '<div><i class="fas fa-exclamation-triangle"></i></div>',
+                        iconSize: [24, 24]
+                      });
+
+                      // Get the centroid of the violated feature
+                      let violationPoint;
+                      if (typeof layer.getLatLng === 'function') {
+                        violationPoint = layer.getLatLng();
+                      } else if (typeof layer.getBounds === 'function') {
+                        try {
+                          violationPoint = layer.getBounds().getCenter();
+                        } catch (e) {
+                          console.warn("Could not get bounds center:", e);
+                          return;
+                        }
+                      } else {
+                        return;
+                      }
+
+                      const violationMarker = L.marker(violationPoint, {
+                        icon: violationIcon
+                      }).addTo(this.analysisLayer);
+
+                      violationMarker.bindPopup(`
+                        <div class="violation-popup">
+                          <h4>QD Violation</h4>
+                          <p><strong>Feature:</strong> ${violation.feature_name || 'Unknown Feature'}</p>
+                          <p><strong>Required Distance:</strong> ${violation.required || violation.required_distance || 'N/A'} ft</p>
+                          <p><strong>Current Distance:</strong> ${violation.distance || 'N/A'} ft</p>
+                          <p><strong>Deficiency:</strong> ${violation.deficiency || 'N/A'} ft ${violation.percent_deficient ? `(${violation.percent_deficient}%)` : ''}</p>
+                        </div>
+                      `);
+                    }
+                  });
+                }
+              } catch (err) {
+                console.error("Error processing violation:", err);
+              }
             });
           }
         });
 
+        // Create a summary panel and display it
+        this.showAnalysisSummary(analysis);
+
+        // Zoom to fit all analysis features only if we have valid features
+        if (hasValidFeatures) {
+          try {
+            // First check if the layer has valid bounds
+            const layerBounds = this.analysisLayer.getBounds();
+            if (layerBounds && layerBounds.isValid()) {
+              this.map.fitBounds(layerBounds);
+            } else {
+              console.warn("Analysis layer has invalid bounds, cannot fit");
+            }
+          } catch (e) {
+            console.error("Could not fit bounds:", e);
+            // If we can't fit bounds, at least center on the first facility
+            if (analysis.facilities_analyzed && analysis.facilities_analyzed.length > 0) {
+              const firstFacility = analysis.facilities_analyzed[0];
+              if (firstFacility.facility_latitude && firstFacility.facility_longitude) {
+                this.map.setView([firstFacility.facility_latitude, firstFacility.facility_longitude], 15);
+              }
+            }
+          }
+        }
+      },
+      
+      // Helper method to show analysis summary panel
+      showAnalysisSummary: function(analysis) {
         // Create a summary panel for the analysis
         const summaryPanel = document.createElement('div');
         summaryPanel.className = 'analysis-summary-panel';
         summaryPanel.innerHTML = `
           <h3>Analysis Results</h3>
-          <p><strong>Total Facilities:</strong> ${analysis.total_facilities}</p>
-          <p><strong>Total Violations:</strong> ${analysis.total_violations}</p>
-          <p><strong>Analysis Timestamp:</strong> ${new Date(analysis.timestamp).toLocaleString()}</p>
+          <p><strong>Total Facilities:</strong> ${analysis.total_facilities || 0}</p>
+          <p><strong>Total Violations:</strong> ${analysis.total_violations || 0}</p>
+          <p><strong>Analysis Timestamp:</strong> ${new Date(analysis.timestamp || Date.now()).toLocaleString()}</p>
           <button id="closeAnalysisBtn" class="close-btn">Close Analysis</button>
         `;
 
         document.body.appendChild(summaryPanel);
-
-        // Zoom to fit all analysis features
-        if (this.analysisLayer.getBounds) {
-          try {
-            this.map.fitBounds(this.analysisLayer.getBounds());
-          } catch (e) {
-            console.error("Could not fit bounds:", e);
-          }
-        }
 
         // Handle close button
         document.getElementById('closeAnalysisBtn').addEventListener('click', () => {
