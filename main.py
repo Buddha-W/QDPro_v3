@@ -358,15 +358,13 @@ async def calculate_qd(request: QDCalculationRequest):
             humidity=request.humidity,
             confinement_factor=request.confinement_factor
         )
-        safe_distance = qd_engine.calculate_esqd(
+        safe_distance = qd_engine.calculate_safe_distance(
             quantity=request.quantity,
             material_props=material_props,
-            env_conditions=env_conditions,
-            k_factor=request.k_factor
+            env_conditions=env_conditions
         )
         buffer_zones = qd_engine.generate_k_factor_rings(
-            center_lat=request.lat,
-            center_lon=request.lng,
+            center=[request.lng, request.lat],
             safe_distance=safe_distance
         )
         return {
@@ -380,6 +378,142 @@ async def calculate_qd(request: QDCalculationRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/analyze-location")
+async def analyze_location(request: Request):
+    """Analyze a location using QD analysis for all facilities"""
+    try:
+        data = await request.json()
+        location_id = data.get("location_id")
+        features = data.get("features", [])
+        
+        # Initialize QD engine
+        qd_engine = get_engine("DOD")  # Default to DOD standards
+        
+        # Separate explosive facilities from other features
+        facilities = []
+        other_features = []
+        
+        for feature in features:
+            properties = feature.get("properties", {})
+            if properties.get("is_facility") and properties.get("net_explosive_weight", 0) > 0:
+                facilities.append(feature)
+            else:
+                other_features.append(feature)
+        
+        # Run analysis for each facility
+        results = []
+        for facility in facilities:
+            properties = facility.get("properties", {})
+            new_value = float(properties.get("net_explosive_weight", 0))
+            
+            # Skip if NEW is 0
+            if new_value <= 0:
+                continue
+                
+            # Calculate safe distance
+            safe_distance = qd_engine.calculate_arc_radius(new_value)
+            
+            # Generate QD rings
+            center = facility["geometry"]["coordinates"]
+            if facility["geometry"]["type"] == "Point":
+                qd_rings = qd_engine.generate_k_factor_rings(
+                    center=center,
+                    safe_distance=safe_distance,
+                    k_factors=[1.0, 1.25, 1.5]
+                )
+            else:
+                # For polygons, use centroid
+                # This is simplified - in a real implementation you might want a better approach
+                qd_rings = qd_engine.generate_k_factor_rings(
+                    center=center[0][0],  # Using first point of the polygon as an approximation
+                    safe_distance=safe_distance,
+                    k_factors=[1.0, 1.25, 1.5]
+                )
+            
+            # Check for violations
+            violations = []
+            for feature in other_features:
+                if feature["geometry"]["type"] == "Point":
+                    target_point = feature["geometry"]["coordinates"]
+                else:
+                    # Use first point as approximation
+                    target_point = feature["geometry"]["coordinates"][0][0]
+                
+                distance = qd_engine.calculate_distance(center, target_point)
+                
+                if distance < safe_distance:
+                    violations.append({
+                        "feature_id": feature.get("id", "unknown"),
+                        "feature_name": feature.get("properties", {}).get("name", "Unnamed Feature"),
+                        "distance": round(distance, 2),
+                        "required_distance": round(safe_distance, 2)
+                    })
+            
+            # Add to results
+            results.append({
+                "facility_id": facility.get("id", "unknown"),
+                "facility_name": properties.get("name", "Unnamed Facility"),
+                "net_explosive_weight": new_value,
+                "safe_distance": round(safe_distance, 2),
+                "qd_rings": qd_rings,
+                "violations": violations
+            })
+        
+        # Generate a timestamp for the analysis
+        timestamp = datetime.now().isoformat()
+        
+        # Compile the final analysis
+        analysis_result = {
+            "timestamp": timestamp,
+            "location_id": location_id,
+            "total_facilities": len(facilities),
+            "total_violations": sum(len(result["violations"]) for result in results),
+            "facilities_analyzed": results
+        }
+        
+        return analysis_result
+    except Exception as e:
+        logger.error(f"QD Analysis error: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+# Report Generation Endpoint
+@app.post("/api/generate-report")
+async def generate_report(request: Request):
+    try:
+        data = await request.json()
+        report_data = data.get("report")
+        map_snapshot = data.get("map_snapshot")
+        
+        # Import Report and generate_pdf_report
+        from reports import Report, generate_pdf_report
+        from datetime import datetime
+        
+        # Create a Report object
+        report = Report(
+            title=report_data.get("title", "QD Analysis Report"),
+            generated_at=datetime.fromisoformat(report_data.get("generated_at")),
+            data=report_data.get("data", {})
+        )
+        
+        # Ensure reports directory exists
+        os.makedirs("data/reports", exist_ok=True)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"data/reports/qd_analysis_{timestamp}.pdf"
+        
+        # Generate the PDF
+        result = await generate_pdf_report(report, filename, map_snapshot)
+        
+        # Setup a static route for the reports directory if it doesn't exist
+        if not any(route.path == "/reports" for route in app.routes):
+            app.mount("/reports", StaticFiles(directory="data/reports"), name="reports")
+        
+        return result
+    except Exception as e:
+        logger.error(f"Report generation error: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 # Database Initialization
 def init_db():
