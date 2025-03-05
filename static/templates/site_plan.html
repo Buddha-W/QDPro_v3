@@ -675,36 +675,30 @@
         }
       },
       clearLayers: function(clearBaseLayersToo = false) {
-        // Remove all user-created layers
-        for (const [id, layer] of Object.entries(this.layers)) {
-          if (this.map.hasLayer(layer)) {
-            this.map.removeLayer(layer);
-          }
+        // Safely check if map exists
+        if (!this.map) {
+          console.warn("Cannot clear layers: map is not initialized");
+          return;
         }
 
-        // Reset layer tracking but preserve base layers
-        if (clearBaseLayersToo) {
-          this.layers = {};
-          this.layerColors = {};
-          this.activeLayerId = null;
-        } else {
-          // Keep a copy of base layers if they exist
-          const baseLayersCopy = {};
-          const baseColorssCopy = {};
-
-          Object.keys(this.layers).forEach(key => {
-            if (key.startsWith('base_')) {
-              baseLayersCopy[key] = this.layers[key];
-              baseColorssCopy[key] = this.layerColors[key];
+        // Remove all layers from the map
+        if (this.layers) {
+          Object.values(this.layers).forEach(layer => {
+            if (layer && this.map.hasLayer(layer)) {
+              this.map.removeLayer(layer);
             }
           });
-
-          this.layers = baseLayersCopy;
-          this.layerColors = baseColorssCopy;
-          this.activeLayerId = null;
         }
 
-        // Update the draw-to layer dropdown
+        // Reset layers object
+        this.layers = {};
+
+        // Create a default layer
+        const defaultLayer = L.featureGroup().addTo(this.map);
+        this.layers['Default'] = defaultLayer;
+        this.activeLayer = defaultLayer;
+
+        // Update UI
         this.updateDrawToLayerSelect();
       },
       addLayerClickHandlers: function(layer) {
