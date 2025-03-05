@@ -54,6 +54,8 @@ class QDParameters:
     hazard_division: str = "1.1"  # Default to HD 1.1
     lab_environment: bool = False
     risk_based: bool = False
+    lop_class: Optional[str] = None  # Level of Protection class for DOE
+    mce_factor: float = 1.0  # Maximum Credible Event factor
 
     def validate(self):
         if self.quantity <= 0:
@@ -62,6 +64,8 @@ class QDParameters:
             raise ValueError(f"Invalid site type: {self.site_type}")
         if self.unit_type not in [ut.value for ut in UnitType]:
             raise ValueError(f"Invalid unit type: {self.unit_type}")
+        if self.mce_factor <= 0 or self.mce_factor > 1.0:
+            raise ValueError(f"MCE factor must be between 0 and 1.0")
 
 
 def get_engine(site_type: str = "DOD") -> 'QDEngine':
@@ -458,47 +462,72 @@ QD engine calculation steps:
                         unit_type: UnitType = UnitType.POUNDS) -> Dict:
         """Analyze a facility against surrounding features with enhanced information"""
         
-        new_value = facility.get("properties", {}).get("net_explosive_weight", 0)
-        unit = facility.get("properties", {}).get("unit", UnitType.POUNDS.value)
+        properties = facility.get("properties", {})
+        new_value = float(properties.get("net_explosive_weight", 0))
+        unit = properties.get("unit", UnitType.POUNDS.value)
+        
+        # Skip if no explosive weight
+        if new_value <= 0:
+            return {
+                "violations": [],
+                "safe_distance": 0,
+                "facility_id": facility.get("id"),
+                "facility_name": properties.get("name", "Unknown Facility"),
+                "message": "No explosive weight specified"
+            }
         
         # Calculate the safe distance with detailed information
-        calc_result = self.calculate_safe_distance(
-            quantity=new_value,
-            k_factor_type=k_factor_type,
-            unit_type=unit
-        )
+        try:
+            calc_result = self.calculate_safe_distance(
+                quantity=new_value,
+                k_factor_type=k_factor_type,
+                unit_type=unit
+            )
+            
+            safe_distance = calc_result["distance_ft"]
+        except Exception as e:
+            logger.error(f"Safe distance calculation error: {str(e)}")
+            return {
+                "violations": [],
+                "safe_distance": 0,
+                "facility_id": facility.get("id"),
+                "facility_name": properties.get("name", "Unknown Facility"),
+                "error": f"QD calculation error: {str(e)}"
+            }
         
-        safe_distance = calc_result["distance_ft"]
+        # Get facility centroid for QD arcs
+        facility_geometry = facility.get("geometry", {})
+        facility_centroid = self.get_centroid(facility_geometry)
         
         # Initialize results
         results = {
             "violations": [],
             "safe_distance": safe_distance,
-            "facility_id": facility.get("id"),
-            "facility_name": facility.get("properties", {}).get("name", "Unknown Facility"),
+            "facility_id": facility.get("id", "unknown"),
+            "facility_name": properties.get("name", "Unknown Facility"),
             "calculation_details": calc_result,
-            "standards_reference": self.get_standard_text(k_factor_type)
+            "standards_reference": self.get_standard_text(k_factor_type),
+            "facility_centroid": facility_centroid
         }
         
         # Check each surrounding feature for violations
         for feature in surrounding_features:
-            # Skip if this is a QD arc
+            # Skip if this is a QD arc or the same feature
             if feature.get("properties", {}).get("is_qd_arc", False):
                 continue
                 
-            # Calculate distance
-            if feature["geometry"]["type"] == "Point":
-                distance = self.calculate_distance(
-                    facility["geometry"]["coordinates"],
-                    feature["geometry"]["coordinates"]
+            if feature.get("id") == facility.get("id"):
+                continue
+                
+            # Calculate distance using enhanced polygon distance
+            try:
+                distance = self.calculate_polygon_distance(
+                    facility_geometry,
+                    feature.get("geometry", {})
                 )
-            else:
-                # For polygons, use first point as approximation
-                # A real implementation would do proper polygon-to-polygon distance
-                distance = self.calculate_distance(
-                    facility["geometry"]["coordinates"],
-                    feature["geometry"]["coordinates"][0][0]
-                )
+            except Exception as e:
+                logger.error(f"Distance calculation error: {str(e)}")
+                continue
                 
             # Check for violation
             if distance < safe_distance:
@@ -535,3 +564,68 @@ QD engine calculation steps:
             math.pow(x2 - x1, 2) + 
             math.pow(y2 - y1, 2)
         )
+        
+    def calculate_polygon_distance(self, geometry1: Dict, geometry2: Dict) -> float:
+        """Calculate the minimum distance between two geometries (point, line, or polygon)"""
+        try:
+            # Extract coordinates based on geometry type
+            coords1 = self._extract_coordinates(geometry1)
+            coords2 = self._extract_coordinates(geometry2)
+            
+            # Calculate minimum distance between all points
+            min_distance = float('inf')
+            for p1 in coords1:
+                for p2 in coords2:
+                    dist = self.calculate_distance(p1, p2)
+                    min_distance = min(min_distance, dist)
+                    
+            return min_distance
+        except Exception as e:
+            logger.error(f"Error calculating polygon distance: {str(e)}")
+            # Return a very large distance as fallback
+            return float('inf')
+            
+    def _extract_coordinates(self, geometry: Dict) -> List[List[float]]:
+        """Extract all coordinates from a GeoJSON geometry object"""
+        geo_type = geometry.get("type", "")
+        coordinates = geometry.get("coordinates", [])
+        result = []
+        
+        if geo_type == "Point":
+            # Single point
+            result.append(coordinates)
+        elif geo_type == "LineString":
+            # List of points
+            result.extend(coordinates)
+        elif geo_type == "Polygon":
+            # List of rings (first is exterior, rest are holes)
+            for ring in coordinates:
+                result.extend(ring)
+        elif geo_type == "MultiPoint":
+            # List of points
+            result.extend(coordinates)
+        elif geo_type == "MultiLineString":
+            # List of linestrings
+            for line in coordinates:
+                result.extend(line)
+        elif geo_type == "MultiPolygon":
+            # List of polygons
+            for polygon in coordinates:
+                for ring in polygon:
+                    result.extend(ring)
+        
+        return result
+        
+    def get_centroid(self, geometry: Dict) -> List[float]:
+        """Calculate the centroid of a geometry"""
+        coords = self._extract_coordinates(geometry)
+        if not coords:
+            return [0, 0]
+            
+        # Simple average of coordinates
+        sum_x, sum_y = 0, 0
+        for point in coords:
+            sum_x += point[0]
+            sum_y += point[1]
+            
+        return [sum_x / len(coords), sum_y / len(coords)]

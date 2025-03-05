@@ -598,7 +598,8 @@ async def analyze_location(request: Request):
         
         for feature in features:
             properties = feature.get("properties", {})
-            if properties.get("is_facility") and properties.get("net_explosive_weight", 0) > 0:
+            # Consider any feature with explosive weight as a facility
+            if properties and float(properties.get("net_explosive_weight", 0)) > 0:
                 facilities.append(feature)
             else:
                 other_features.append(feature)
@@ -609,9 +610,13 @@ async def analyze_location(request: Request):
             properties = facility.get("properties", {})
             
             # Get explosive weight and unit
-            new_value = float(properties.get("net_explosive_weight", 0))
-            unit_type = properties.get("unit", "lbs")
-            hazard_division = properties.get("hazard_division", "1.1")
+            try:
+                new_value = float(properties.get("net_explosive_weight", 0))
+                unit_type = properties.get("unit", "lbs")
+                hazard_division = properties.get("hazard_division", "1.1")
+            except (ValueError, TypeError) as e:
+                logger.error(f"Invalid facility properties: {str(e)}")
+                continue
             
             # Skip if NEW is 0
             if new_value <= 0:
@@ -628,36 +633,33 @@ async def analyze_location(request: Request):
             )
             
             # Calculate safe distance with detailed information
-            safe_distance_result = qd_engine.calculate_safe_distance(
-                quantity=new_value,
-                k_factor_type=k_factor_type,
-                unit_type=unit_type,
-                risk_based=use_risk_based
-            )
+            try:
+                safe_distance_result = qd_engine.calculate_safe_distance(
+                    quantity=new_value,
+                    k_factor_type=k_factor_type,
+                    unit_type=unit_type,
+                    risk_based=use_risk_based
+                )
+                
+                safe_distance = safe_distance_result["distance_ft"]
+            except Exception as calc_error:
+                logger.error(f"Safe distance calculation error: {str(calc_error)}")
+                continue
             
-            safe_distance = safe_distance_result["distance_ft"]
-            
-            # Generate QD rings
-            center = facility["geometry"]["coordinates"]
-            if facility["geometry"]["type"] == "Point":
+            # Get facility centroid for QD rings
+            try:
+                facility_centroid = qd_engine.get_centroid(facility.get("geometry", {}))
+                
+                # Generate QD rings from the centroid
                 qd_rings = qd_engine.generate_k_factor_rings(
-                    center=center,
+                    center=facility_centroid,
                     parameters=params,
                     k_factors=[1.0, 1.25, 1.5]
                 )
-            else:
-                # For polygons, use centroid or first point
-                # This is simplified - a real implementation would calculate proper centroid
-                if len(facility["geometry"]["coordinates"]) > 0 and len(facility["geometry"]["coordinates"][0]) > 0:
-                    center_approx = facility["geometry"]["coordinates"][0][0]
-                    qd_rings = qd_engine.generate_k_factor_rings(
-                        center=center_approx,
-                        parameters=params,
-                        k_factors=[1.0, 1.25, 1.5]
-                    )
-                else:
-                    logger.warning(f"Invalid polygon coordinates for facility {facility.get('id')}")
-                    qd_rings = []
+            except Exception as e:
+                logger.error(f"Error generating QD rings: {str(e)}")
+                qd_rings = []
+                facility_centroid = [0, 0]
             
             # Calculate fragment distance if requested
             fragment_data = None
@@ -672,7 +674,7 @@ async def analyze_location(request: Request):
                     if fragment_data and "hazard_distance" in fragment_data:
                         frag_distance = fragment_data["hazard_distance"]
                         frag_ring = qd_engine._create_circle_feature(
-                            center=center,
+                            center=facility_centroid,
                             radius=frag_distance,
                             k_factor=0,  # Not a K-factor based ring
                             label=f"Fragment Distance {frag_distance:.0f} ft",
@@ -686,20 +688,28 @@ async def analyze_location(request: Request):
                     fragment_data = {"error": str(frag_error)}
             
             # Check for violations using enhanced analysis
-            facility_analysis = qd_engine.analyze_facility(
-                facility=facility,
-                surrounding_features=other_features,
-                k_factor_type=k_factor_type,
-                unit_type=unit_type
-            )
+            try:
+                facility_analysis = qd_engine.analyze_facility(
+                    facility=facility,
+                    surrounding_features=other_features + [f for f in facilities if f.get('id') != facility.get('id')],
+                    k_factor_type=k_factor_type,
+                    unit_type=unit_type
+                )
+            except Exception as analysis_error:
+                logger.error(f"Facility analysis error: {str(analysis_error)}")
+                facility_analysis = {"violations": [], "error": str(analysis_error)}
             
             # Get unit-converted values for display
-            new_value_display = new_value
-            if unit_type != display_unit:
-                # Convert to pounds first if not already
-                new_lbs = qd_engine.convert_to_pounds(new_value, unit_type)
-                # Then convert to display unit
-                new_value_display = qd_engine.convert_from_pounds(new_lbs, display_unit)
+            try:
+                new_value_display = new_value
+                if unit_type != display_unit:
+                    # Convert to pounds first if not already
+                    new_lbs = qd_engine.convert_to_pounds(new_value, unit_type)
+                    # Then convert to display unit
+                    new_value_display = qd_engine.convert_from_pounds(new_lbs, display_unit)
+            except Exception as e:
+                logger.error(f"Unit conversion error: {str(e)}")
+                new_value_display = new_value
             
             # Add to results with enhanced information
             facility_result = {
@@ -715,7 +725,8 @@ async def analyze_location(request: Request):
                 "k_factor_type": k_factor_type,
                 "k_factor_value": qd_engine.get_k_factor(k_factor_type),
                 "qd_rings": qd_rings,
-                "violations": facility_analysis["violations"],
+                "facility_centroid": facility_centroid,
+                "violations": facility_analysis.get("violations", []),
                 "calculation_details": safe_distance_result["calculation_steps"] if include_standards else None,
                 "standard_reference": safe_distance_result["standard_reference"] if include_standards else None
             }
@@ -741,9 +752,10 @@ async def analyze_location(request: Request):
             "k_factor_type": k_factor_type,
             "display_unit": display_unit,
             "total_facilities": len(facilities),
-            "total_violations": sum(len(result["violations"]) for result in results),
+            "total_violations": sum(len(result.get("violations", [])) for result in results),
             "facilities_analyzed": results,
-            "analysis_options": analysis_options
+            "analysis_options": analysis_options,
+            "features_analyzed": len(features)
         }
         
         # Add standards information if requested
@@ -758,11 +770,22 @@ async def analyze_location(request: Request):
                 }
             except ImportError:
                 logger.warning("Standards database not available")
+                
+        # Add multiple units support information
+        analysis_result["supported_units"] = {
+            "g": "Grams",
+            "kg": "Kilograms",
+            "lbs": "Pounds",
+            "NEQ": "NATO Net Explosive Quantity"
+        }
         
         return analysis_result
     except Exception as e:
         logger.error(f"QD Analysis error: {str(e)}\n{traceback.format_exc()}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=500, content={
+            "error": str(e), 
+            "message": "QD Analysis encountered an error. Please check that all features have valid geometries and properties."
+        })
 
 # Report Generation Endpoint
 @app.post("/api/generate-report")
