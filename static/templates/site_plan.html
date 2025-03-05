@@ -680,7 +680,7 @@
         // Safely check if map exists
         if (!this.map) {
           console.warn("Cannotclear layers: map is not initialized");
-          return;
+                    return;
         }
 
         // Remove all layers from the map        if (this.layers) {
@@ -726,8 +726,7 @@
                   <label>
                     <input type="checkbox" id="has_explosive" name="has_explosive" ${properties.has_explosive ? 'checked' : ''}>
                     Contains Explosives (NEW)
-                  </label>
-                </div>
+                  </label></div>
                 <div style="margin-bottom: 10px;">
                   <label for="facilityType">Facility Type:</label>
                   <select id="facilityType" style="width: 100%; padding: 5px;">
@@ -1417,8 +1416,7 @@
           console.log("Last location loaded successfully");
         } catch (error) {
           console.error("Failed to load last location:", error);
-          document.getElementById('dbStatus').textContent = "No location loaded";
-        }
+          document.getElementById('dbStatus').textContent = "No location loaded";        }
       }
     })();
 

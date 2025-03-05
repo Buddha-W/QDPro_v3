@@ -43,6 +43,14 @@ function handleFeatureFormSubmit(e, layer) {
     layer.feature.properties = {};
   }
 
+  // Ensure layer has a feature and properties object
+  if (!layer.feature) {
+    layer.feature = {};
+  }
+  if (!layer.feature.properties) {
+    layer.feature.properties = {};
+  }
+  
   // Update the feature properties
   const properties = { ...layer.feature.properties };
 
