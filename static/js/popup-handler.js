@@ -51,6 +51,59 @@ function openEditPopup(layer) {
   if (!layer.feature.properties) {
     layer.feature.properties = {};
   }
+  
+  // Create a simple popup for editing
+  const properties = layer.feature.properties || {};
+  
+  const popupContent = `
+    <div id="editPopup" style="padding: 10px; max-width: 300px;">
+      <h3>Edit Properties</h3>
+      <div style="margin-bottom: 10px;">
+        <label for="name">Name:</label>
+        <input type="text" id="name" value="${properties.name || ''}" style="width: 100%; padding: 5px;">
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label>
+          <input type="checkbox" id="has_explosive" ${properties.has_explosive ? 'checked' : ''}>
+          Contains Explosives
+        </label>
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label for="facilityType">Facility Type:</label>
+        <select id="facilityType" style="width: 100%; padding: 5px;">
+          <option value="">Select Type</option>
+          <option value="Bunker" ${properties.facilityType === 'Bunker' ? 'selected' : ''}>Bunker</option>
+          <option value="Open Storage" ${properties.facilityType === 'Open Storage' ? 'selected' : ''}>Open Storage</option>
+          <option value="Processing" ${properties.facilityType === 'Processing' ? 'selected' : ''}>Processing</option>
+          <option value="Admin" ${properties.facilityType === 'Admin' ? 'selected' : ''}>Admin</option>
+          <option value="Housing" ${properties.facilityType === 'Housing' ? 'selected' : ''}>Housing</option>
+        </select>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+        <button type="button" onclick="saveProperties()" style="background-color: #4CAF50; color: white; padding: 8px 12px; border: none; cursor: pointer;">
+          Save
+        </button>
+        <button type="button" onclick="closePopup()" style="padding: 8px 12px; border: 1px solid #ddd; cursor: pointer;">
+          Cancel
+        </button>
+      </div>
+    </div>
+  `;
+  
+  layer.bindPopup(popupContent).openPopup();
+}
+
+function saveProperties() {
+  // This will be implemented to save the properties
+  console.log("Saving properties");
+  closePopup();
+}
+
+function closePopup() {
+  if (window.map) {
+    window.map.closePopup();
+  }
+}
 
   // Store reference to active layer being edited
   window.activeEditLayer = layer;
