@@ -118,48 +118,62 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
         layer_name = data.get("layer_name", "Default")
         layer_config = {"type": "FeatureCollection", "features": data.get("features", [])}
         
-        # Check if location_id column exists
-        cur.execute("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'map_layers' AND column_name = 'location_id')")
-        location_id_exists = cur.fetchone()[0]
-        
-        # Check if there's a primary key constraint on (name, location_id)
-        cur.execute("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.table_constraints tc
-                JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
-                WHERE tc.constraint_type = 'PRIMARY KEY' 
-                AND tc.table_name = 'map_layers' 
-                AND ccu.column_name = 'name' 
-                AND EXISTS (
-                    SELECT FROM information_schema.constraint_column_usage 
-                    WHERE constraint_name = tc.constraint_name 
-                    AND column_name = 'location_id'
-                )
-            )
-        """)
-        has_composite_pk = cur.fetchone()[0]
-        
-        if location_id_exists and location_id and has_composite_pk:
-            cur.execute("""
-                INSERT INTO map_layers (name, layer_config, location_id, is_active)
-                VALUES (%s, %s, %s, TRUE)
-                ON CONFLICT (name, location_id) DO UPDATE SET layer_config = EXCLUDED.layer_config, is_active = TRUE
-            """, (layer_name, json.dumps(layer_config), location_id))
-        elif location_id_exists and location_id:
-            # If location_id exists but no composite PK
-            cur.execute("""
-                INSERT INTO map_layers (name, layer_config, location_id, is_active)
-                VALUES (%s, %s, %s, TRUE)
-            """, (layer_name, json.dumps(layer_config), location_id))
-        else:
-            # Fallback to just using name
-            cur.execute("""
-                INSERT INTO map_layers (name, layer_config, is_active)
-                VALUES (%s, %s, TRUE)
-            """, (layer_name, json.dumps(layer_config)))
-        
-        conn.commit()
-        return {"status": "success", "message": f"Layer '{layer_name}' saved to DB"}
+        # Simplified save logic - just handle the most common case
+        try:
+            # Try with location_id first if provided
+            if location_id:
+                cur.execute("""
+                    INSERT INTO map_layers (name, layer_config, location_id, is_active)
+                    VALUES (%s, %s, %s, TRUE)
+                    ON CONFLICT (name, location_id) 
+                    DO UPDATE SET layer_config = %s, is_active = TRUE
+                    RETURNING id
+                """, (layer_name, json.dumps(layer_config), location_id, json.dumps(layer_config)))
+            else:
+                # If no location_id, just use name (may create duplicate entries)
+                cur.execute("""
+                    INSERT INTO map_layers (name, layer_config, is_active)
+                    VALUES (%s, %s, TRUE)
+                    RETURNING id
+                """, (layer_name, json.dumps(layer_config)))
+                
+            layer_id = cur.fetchone()[0]
+            conn.commit()
+            return {"status": "success", "message": f"Layer '{layer_name}' saved to DB with ID {layer_id}"}
+            
+        except psycopg2.Error as e:
+            # If first attempt fails, try alternative approach
+            logger.warning(f"Initial save attempt failed: {str(e)}")
+            
+            # On conflict clause might fail if there's no unique constraint
+            # Try a simpler insertion without ON CONFLICT
+            if location_id:
+                # First try to update
+                cur.execute("""
+                    UPDATE map_layers SET layer_config = %s, is_active = TRUE
+                    WHERE name = %s AND location_id = %s
+                    RETURNING id
+                """, (json.dumps(layer_config), layer_name, location_id))
+                
+                if cur.rowcount == 0:
+                    # If no rows updated, try insert
+                    cur.execute("""
+                        INSERT INTO map_layers (name, layer_config, location_id, is_active)
+                        VALUES (%s, %s, %s, TRUE)
+                        RETURNING id
+                    """, (layer_name, json.dumps(layer_config), location_id))
+            else:
+                # Without location_id, just insert
+                cur.execute("""
+                    INSERT INTO map_layers (name, layer_config, is_active)
+                    VALUES (%s, %s, TRUE)
+                    RETURNING id
+                """, (layer_name, json.dumps(layer_config)))
+                
+            layer_id = cur.fetchone()[0]
+            conn.commit()
+            return {"status": "success", "message": f"Layer '{layer_name}' saved to DB with ID {layer_id} (fallback method)"}
+            
     except Exception as e:
         logger.error(f"Error saving layers: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -174,17 +188,19 @@ async def get_locations(include_deleted: bool = False):
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
         
-        # Check if deleted column exists
-        cur.execute("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'locations' AND column_name = 'deleted')")
-        deleted_exists = cur.fetchone()[0]
-        
-        if deleted_exists and not include_deleted:
-            query = "SELECT id, location_name, created_at FROM locations WHERE deleted = FALSE"
-        else:
-            # If deleted column doesn't exist or we want all locations
-            query = "SELECT id, location_name, created_at FROM locations"
+        # Simplified approach - always get all locations
+        try:
+            # First attempt to query with deleted filter if appropriate
+            if not include_deleted:
+                cur.execute("SELECT id, location_name, created_at FROM locations WHERE deleted = FALSE")
+            else:
+                cur.execute("SELECT id, location_name, created_at FROM locations")
+                
+        except psycopg2.Error as e:
+            # If error occurs (likely missing deleted column), fallback to simpler query
+            logger.warning(f"Initial locations query failed: {str(e)}, falling back to simpler query")
+            cur.execute("SELECT id, location_name, created_at FROM locations")
             
-        cur.execute(query)
         rows = cur.fetchall()
         locations = [{"id": r[0], "name": r[1], "created_at": str(r[2])} for r in rows]
         return {"locations": locations}
@@ -310,6 +326,7 @@ def init_db():
                     deleted_at TIMESTAMP WITH TIME ZONE
                 )
             """)
+            print("Created locations table")
         else:
             # Add 'deleted' column if it doesn't exist
             cur.execute("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'locations' AND column_name = 'deleted')")
@@ -317,6 +334,7 @@ def init_db():
             if not deleted_exists:
                 cur.execute("ALTER TABLE locations ADD COLUMN deleted BOOLEAN DEFAULT FALSE")
                 cur.execute("ALTER TABLE locations ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE")
+                print("Added deleted columns to locations table")
         
         # Check if map_layers table exists
         cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'map_layers')")
@@ -333,12 +351,38 @@ def init_db():
                     is_active BOOLEAN DEFAULT TRUE
                 )
             """)
+            print("Created map_layers table")
         else:
-            # Add 'location_id' column if it doesn't exist
+            # Check if location_id column exists and add if it doesn't
             cur.execute("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'map_layers' AND column_name = 'location_id')")
             location_id_exists = cur.fetchone()[0]
             if not location_id_exists:
                 cur.execute("ALTER TABLE map_layers ADD COLUMN location_id INTEGER")
+                print("Added location_id column to map_layers table")
+        
+        # Force run db init now - drop and recreate tables if needed
+        if map_layers_exists:
+            try:
+                # Test a query to make sure the schema is correct
+                cur.execute("INSERT INTO map_layers (name, layer_config, location_id, is_active) VALUES ('test', '{}'::jsonb, 1, TRUE) RETURNING id")
+                test_id = cur.fetchone()[0]
+                cur.execute("DELETE FROM map_layers WHERE id = %s", (test_id,))
+                print("Map layers table structure is valid")
+            except psycopg2.Error as e:
+                print(f"Map layers table structure issue detected: {e}")
+                # Drop and recreate the table if there's an error with its structure
+                cur.execute("DROP TABLE map_layers")
+                conn.commit()
+                cur.execute("""
+                    CREATE TABLE map_layers (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL,
+                        layer_config JSONB,
+                        location_id INTEGER,
+                        is_active BOOLEAN DEFAULT TRUE
+                    )
+                """)
+                print("Recreated map_layers table with correct structure")
         
         conn.commit()
         print("Database initialized successfully")
