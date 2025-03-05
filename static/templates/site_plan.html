@@ -642,7 +642,7 @@
 
           return true;
         } catch (error) {
-          console.error("Error in saveProject```html
+          console.error("Error in saveProject:", error);
           alert("Error saving project: " + error.message);
           return false;
         }
@@ -1450,7 +1450,7 @@
                     <p><strong>Required Safety Distance:</strong> ${facility.safe_distance} ft</p>
                   </div>
                   <div style="flex: 1; min-width: 250px;">
-                    <p><strong>Location:strong> ${facility.facility_latitude ? `${facility.facility_latitude.toFixed(6)}, ${facility.facility_longitude.toFixed(6)}` : 'Unknown'}</p>
+                    <p><strong>Location:</strong> ${facility.facility_latitude ? `${facility.facility_latitude.toFixed(6)}, ${facility.facility_longitude.toFixed(6)}` : 'Unknown'}</p>
                     <p><strong>Rules Applied:</strong> ${facility.rules_applied || 'Standard DoD 6055.09-M'}</p>
                   </div>
                 </div>
