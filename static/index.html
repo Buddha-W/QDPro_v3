@@ -42,10 +42,36 @@
     <div class="loader"></div>
     <p>Loading application...</p>
     <script>
-        // Redirect to main application page
-        setTimeout(function() {
-            window.location.href = "/ui/locations";
-        }, 1000);
+        // Check if all scripts have loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Checking application dependencies...');
+            
+            // Show loading status
+            const loadingText = document.querySelector('p');
+            
+            // Check for critical scripts
+            if (!window.L) {
+                loadingText.textContent = 'Warning: Leaflet library not detected. Loading anyway...';
+                console.warn('Leaflet library not detected');
+            }
+            
+            // Simulate application loading with progress indicators
+            let progress = 0;
+            const progressInterval = setInterval(function() {
+                progress += 10;
+                if (progress <= 100) {
+                    loadingText.textContent = `Loading application... ${progress}%`;
+                } else {
+                    clearInterval(progressInterval);
+                    loadingText.textContent = 'Redirecting to application...';
+                    
+                    // Redirect to main application page
+                    setTimeout(function() {
+                        window.location.href = "/ui/locations";
+                    }, 500);
+                }
+            }, 100);
+        });
     </script>
 </body>
 </html>
