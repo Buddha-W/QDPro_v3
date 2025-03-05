@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
+  <script src="/static/js/popup-handler.js"></script>
+  <script src="/static/js/feature-editor.js"></script>t>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
@@ -711,28 +713,49 @@
         modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
         
         let modalContent = `
-          <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
-            <h2>Edit Feature Properties</h2>
-            <form id="featurePropertiesForm">
-              <div style="margin-bottom: 10px;">
-                <label for="displayName">Display Name:</label>
-                <input type="text" id="displayName" value="${properties.displayName || ''}" style="width: 100%; padding: 5px;">
-              </div>
-              <div style="margin-bottom: 10px;">
-                <label>
-                  <input type="checkbox" id="newExplosiveFacility" ${properties.new ? 'checked' : ''}>
-                  NEW (Net Explosive Weight) Facility
-                </label>
-              </div>
-              <div style="margin-bottom: 10px;">
-                <label for="facilityType">Facility Type:</label>
-                <select id="facilityType" style="width: 100%; padding: 5px;">
-                  <option value="Facility" ${properties.type === 'Facility' ? 'selected' : ''}>Facility</option>
-                  <option value="Storage" ${properties.type === 'Storage' ? 'selected' : ''}>Storage</option>
-                  <option value="Administrative" ${properties.type === 'Administrative' ? 'selected' : ''}>Administrative</option>
-                  <option value="Other" ${properties.type === 'Other' ? 'selected' : ''}>Other</option>
-                </select>
-              </div>
+          <div id="featurePropertiesModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+            <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+              <span style="float: right; cursor: pointer; font-size: 28px;" onclick="document.getElementById('featurePropertiesModal').style.display='none'">&times;</span>
+              <h2>Edit Feature Properties</h2>
+              <form id="featurePropertiesForm">
+                <div style="margin-bottom: 10px;">
+                  <label for="name">Display Name:</label>
+                  <input type="text" id="name" name="name" style="width: 100%; padding: 5px;">
+                </div>
+                <div style="margin-bottom: 10px;">
+                  <label>
+                    <input type="checkbox" id="is_facility" name="is_facility">
+                    Facility
+                  </label>
+                </div>
+                <div style="margin-bottom: 10px;">
+                  <label>
+                    <input type="checkbox" id="has_explosive" name="has_explosive">
+                    Contains Explosives (NEW)
+                  </label>
+                </div>
+                <div id="newSection" style="margin-bottom: 10px; display: none;">
+                  <label for="net_explosive_weight">Net Explosive Weight (lb):</label>
+                  <input type="number" id="net_explosive_weight" name="net_explosive_weight" min="0" style="width: 100%; padding: 5px;">
+                </div>
+                <div style="margin-bottom: 10px;">
+                  <label for="type">Facility Type:</label>
+                  <select id="type" name="type" style="width: 100%; padding: 5px;">
+                    <option value="Facility">Facility</option>
+                    <option value="Storage">Storage</option>
+                    <option value="Administrative">Administrative</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div style="margin-bottom: 10px;">
+                  <label for="description">Description:</label>
+                  <textarea id="description" name="description" style="width: 100%; padding: 5px; height: 60px;"></textarea>
+                </div>
+                <button type="submit" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">Save</button>
+                <button type="button" onclick="document.getElementById('featurePropertiesModal').style.display='none'" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
+              </form>
+            </div>
+          </div>/div>
               <div style="margin-bottom: 10px;">
                 <label for="netExplosiveWeight">Net Explosive Weight (lbs):</label>
                 <input type="number" id="netExplosiveWeight" value="${properties.net_explosive_weight || ''}" style="width: 100%; padding: 5px;">

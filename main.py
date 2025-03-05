@@ -135,6 +135,59 @@ async def load_layers(location_id: Optional[int] = None):
         if 'cur' in locals(): cur.close()
         if 'conn' in locals(): conn.close()
 
+@app.post("/api/update-feature")
+async def update_feature(request: Request):
+    try:
+        data = await request.json()
+        feature_id = data.get("feature_id")
+        properties = data.get("properties", {})
+        
+        # Load the current data
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        # Find which layer contains this feature
+        cur.execute("SELECT id, layer_config FROM map_layers WHERE is_active = TRUE")
+        layers = cur.fetchall()
+        
+        updated = False
+        for layer_id, layer_config in layers:
+            if not layer_config or "features" not in layer_config:
+                continue
+                
+            # Search for feature with matching ID
+            for i, feature in enumerate(layer_config["features"]):
+                if feature.get("id") == feature_id:
+                    # Update the properties
+                    layer_config["features"][i]["properties"] = properties
+                    
+                    # Save the updated layer back to DB
+                    cur.execute(
+                        "UPDATE map_layers SET layer_config = %s WHERE id = %s",
+                        (json.dumps(layer_config), layer_id)
+                    )
+                    conn.commit()
+                    updated = True
+                    break
+            
+            if updated:
+                break
+        
+        if updated:
+            return {"status": "success", "message": "Feature properties updated"}
+        else:
+            return JSONResponse(
+                status_code=404, 
+                content={"status": "error", "message": f"Feature with ID {feature_id} not found"}
+            )
+            
+    except Exception as e:
+        logger.error(f"Error updating feature: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
 @app.post("/api/save-layers")
 async def save_layers(request: Request, location_id: Optional[int] = None):
     conn = None

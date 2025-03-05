@@ -240,8 +240,51 @@ function createPopupContent(properties) {
   if (properties.description) {
     content += `<p>${properties.description}</p>`;
   }
-  content += `<button class="popup-edit-btn">Edit</button>`;
+  content += `<button class="popup-edit-btn" onclick="openFeatureEditor(this)">Edit</button>`;
   content += '</div>';
   return content;
+}
+
+function openFeatureEditor(button) {
+  // Get the layer associated with this popup
+  const popup = button.closest('.leaflet-popup');
+  const layer = popup.__layer;
+  
+  if (!layer || !layer.feature) {
+    console.error('Cannot find layer for editing');
+    return;
+  }
+  
+  // Store reference to active layer being edited
+  window.activeEditLayer = layer;
+  
+  // Get properties
+  const properties = layer.feature.properties || {};
+  
+  // Fill the form with current properties
+  const form = document.getElementById('featurePropertiesForm');
+  
+  // Reset form
+  form.reset();
+  
+  // Set values for each field
+  if (properties.name) document.getElementById('name').value = properties.name;
+  if (properties.is_facility !== undefined) document.getElementById('is_facility').checked = properties.is_facility;
+  if (properties.has_explosive !== undefined) document.getElementById('has_explosive').checked = properties.has_explosive;
+  if (properties.net_explosive_weight) document.getElementById('net_explosive_weight').value = properties.net_explosive_weight;
+  if (properties.type) document.getElementById('type').value = properties.type;
+  if (properties.description) document.getElementById('description').value = properties.description;
+  
+  // Show/hide the NEW field based on has_explosive checkbox
+  const showNewSection = properties.has_explosive;
+  document.getElementById('newSection').style.display = showNewSection ? 'block' : 'none';
+  
+  // Setup event listener for the has_explosive checkbox
+  document.getElementById('has_explosive').addEventListener('change', function() {
+    document.getElementById('newSection').style.display = this.checked ? 'block' : 'none';
+  });
+  
+  // Show the modal
+  document.getElementById('featurePropertiesModal').style.display = 'block';
 }
 </script>
