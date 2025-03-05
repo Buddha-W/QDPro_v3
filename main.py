@@ -85,6 +85,32 @@ async def load_project():
         logger.error(f"Error loading project: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+@app.get("/api/db_status")
+async def db_status():
+    """Return the database connection status"""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        cur.execute("SELECT version()")
+        version = cur.fetchone()[0]
+        cur.close()
+        conn.close()
+        return {
+            "status": "connected",
+            "type": "PostgreSQL",
+            "version": version,
+            "message": "Database connection successful"
+        }
+    except Exception as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": f"Database connection failed: {str(e)}"
+            }
+        )
+
 # Layer Persistence Endpoints
 @app.get("/api/load-layers")
 async def load_layers(location_id: Optional[int] = None):
