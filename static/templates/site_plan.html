@@ -266,6 +266,12 @@
           opt.value = key;
           opt.textContent = key;
 
+          // Add layer type as a hint in the dropdown
+          const layerType = this.layers[key].properties?.type || 'Default';
+          if (layerType !== 'Default') {
+            opt.textContent = `${key} (${layerType})`;
+          }
+
           // Select the active layer
           if (this.activeLayer === this.layers[key]) {
             opt.selected = true;
@@ -279,16 +285,20 @@
           const opt = document.createElement("option");
           opt.value = "Default";
           opt.textContent = "Default";
-          opt.selected = true;
           sel.appendChild(opt);
 
           this.activeLayer = L.featureGroup().addTo(this.map);
+          this.activeLayer.properties = { type: 'Default', color: '#3388ff' };
           this.layers["Default"] = this.activeLayer;
         }
 
-        // When layer selection changes, update the active layer
+        // Add event listener for layer changes
         sel.onchange = () => {
-          this.switchDrawToLayer();
+          const selectedLayerName = sel.value;
+          this.activeLayer = this.layers[selectedLayerName];
+          console.log(`Switched to layer: ${selectedLayerName}`);
+          // Update draw tools with the new layer's color
+          this.updateDrawToolColors();
         };
       },
       switchDrawToLayer: function() {
@@ -374,7 +384,7 @@
         if (!layerName) { alert("Enter a layer name"); return; }
         if (this.layers[layerName]) { alert(`Layer "${layerName}" exists`); return; }
         let newLayer = L.featureGroup().addTo(this.map);
-        newLayer.properties = { type: layerType };
+        newLayer.properties = { type: layerType, color: '#3388ff' }; // Default color
         this.layers[layerName] = newLayer;
         this.activeLayer = newLayer;
         this.updateDrawToLayerSelect();
@@ -459,128 +469,131 @@
         }
       },
       saveProject: async function() {
-        let projectData = { layers: {} };
+        if (!this.currentLocationId) { console.log("No location selected"); return; }
+        try {
+          const layerData = [];
+          for (const layerName in this.layers) {
+            const layer = this.layers[layerName];
+            const layerProperties = layer.properties || { type: 'Default', color: '#3388ff' };
+            const layerType = layerProperties.type || 'Default';
+            const layerColor = layerProperties.color || '#3388ff';
 
-        for (let layerName in this.layers) {
-          const layer = this.layers[layerName];
-          if (!layer) continue;
+            const layerGeoJSON = layer.toGeoJSON();
 
-          // Extract features from the layer
-          let features = [];
-          layer.eachLayer(function(l) {
-            if (l.toGeoJSON) {
-              let feature = l.toGeoJSON();
-              // Store the layer name in the feature properties
-              feature.properties = feature.properties || {};
-              feature.properties.layerName = layerName;
-
-              if (l._popup) {
-                feature.properties.popupContent = l._popup._content;
-              }
-              features.push(feature);
+            // Add custom properties to each feature for color preservation
+            if (layerGeoJSON.features && layerGeoJSON.features.length > 0) {
+              layerGeoJSON.features.forEach(feature => {
+                if (!feature.properties) feature.properties = {};
+                feature.properties.layerColor = layerColor;
+                feature.properties.layerType = layerType;
+              });
             }
+
+            layerData.push({
+              name: layerName,
+              type: layerType,
+              color: layerColor,
+              geojson: layerGeoJSON
+            });
+          }
+          const response = await fetch(`/api/save-layers?location_id=${this.currentLocationId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ layers: layerData })
           });
 
-          projectData.layers[layerName] = {
-            features: features
-          };
+          const result = await response.json();
+          if (result.success) {
+            console.log("Layers saved successfully");
+          } else {
+            console.error("Error saving layers:", result.error);
+          }
+        } catch (err) {
+          console.error("Error saving layers:", err);
         }
-
-        // Save to localStorage
-        localStorage.setItem('qdproProject', JSON.stringify(projectData));
       },
       loadProject: async function() {
+        if (!this.currentLocationId) return;
+
         try {
-          const url = this.currentLocationId ? `/api/load-layers?location_id=${this.currentLocationId}` : "/api/load-layers";
-          const response = await fetch(url);
+          const response = await fetch(`/api/load-layers?location_id=${this.currentLocationId}`);
           const data = await response.json();
-          for (let key in this.layers) this.layers[key].clearLayers();
-          if (data.layers && data.layers.features && data.layers.features.length > 0) {
-            data.layers.features.forEach(feature => {
-              if (feature.layerName) { // Check if layerName exists
-                let layer = this.layers[feature.layerName];
-                if (!layer) {
-                  layer = L.featureGroup().addTo(this.map);
-                  this.layers[feature.layerName] = layer;
-                }
-                let layerStyle = {};
-                if (feature.properties && feature.properties.layerName === "PES") {
-                  layerStyle = {
-                    color: 'red',
-                    fillColor: 'red',
-                    fillOpacity: 0.3
-                  };
-                } else if (feature.properties && feature.properties.layerName === "ES") {
-                  layerStyle = {
-                    color: 'green',
-                    fillColor: 'green',
-                    fillOpacity: 0.3
-                  };
-                }
-                L.geoJSON(feature, {
-                  style: layerStyle,
-                  onEachFeature: (f, l) => {
-                    if (f.properties && f.properties.type) {
-                      l.bindPopup("Type: " + f.properties.type);
+
+          this.clearLayers();
+
+          if (data.layers && data.layers.length > 0) {
+            for (const layerData of data.layers) {
+              const newLayer = L.featureGroup().addTo(this.map);
+              const layerColor = layerData.color || 
+                                (layerData.type === 'PES' ? '#ff0000' : 
+                                 layerData.type === 'ES' ? '#00ff00' : '#3388ff');
+
+              newLayer.properties = { 
+                type: layerData.type || 'Default',
+                color: layerColor
+              };
+
+              if (layerData.geojson && layerData.geojson.features) {
+                L.geoJSON(layerData.geojson, {
+                  style: function(feature) {
+                    // Use feature's stored color if available, otherwise use layer color
+                    const featureColor = feature.properties?.layerColor || layerColor;
+                    return { color: featureColor };
+                  },
+                  onEachFeature: (feature, layer) => {
+                    // Store layer properties on each feature for reference
+                    if (layer.setStyle && typeof layer.setStyle === 'function') {
+                      const featureColor = feature.properties?.layerColor || layerColor;
+                      layer.setStyle({ color: featureColor });
                     }
-                    layer.addLayer(l);
+                    newLayer.addLayer(layer);
                   }
                 });
               }
-            });
-            this.updateDrawToLayerSelect(); //Added to update select after load.
 
-            // Set the first layer as active if available
+              this.layers[layerData.name] = newLayer;
+            }
+
+            // Set activeLayer to the first layer or create a Default one if none exist
             const layerNames = Object.keys(this.layers);
             if (layerNames.length > 0) {
-              const selectElement = document.getElementById("drawToLayer");
-              if (selectElement) {
-                selectElement.value = layerNames[0];
-                this.switchDrawToLayer(); // Apply styling based on selected layer
+              this.activeLayer = this.layers[layerNames[0]];
+            } else {
+              this.activeLayer = L.featureGroup().addTo(this.map);
+              this.activeLayer.properties = { type: 'Default', color: '#3388ff' };
+              this.layers['Default'] = this.activeLayer;
+            }
+
+            this.updateDrawToLayerSelect();
+
+            // Fit map to bounds if there are features
+            let hasFeatures = false;
+            for (const layerName in this.layers) {
+              const layer = this.layers[layerName];
+              if (layer.getLayers().length > 0) {
+                hasFeatures = true;
+                break;
               }
             }
 
-            // Only try to fit bounds if there are valid layers with features
-            if (Object.keys(this.layers).length > 0) {
-              try {
-                // First check which layers have valid bounds
-                let hasValidBounds = false;
-                let bounds = L.latLngBounds([]);
-
-                for (let layerName in this.layers) {
-                  const layer = this.layers[layerName];
-                  // Only extend bounds if the layer has features
-                  if (layer.getLayers().length > 0) {
-                    try {
-                      const layerBounds = layer.getBounds();
-                      if (layerBounds.isValid()) {
-                        bounds.extend(layerBounds);
-                        hasValidBounds = true;
-                      }
-                    } catch (e) {
-                      console.warn(`Layer ${layerName} has invalid bounds:`, e);
-                    }
-                  }
-                }
-
-                // Only fit bounds if we have valid bounds
-                if (hasValidBounds) {
-                  this.map.fitBounds(bounds);
-                } else {
-                  console.log("No valid bounds found, using default view");
-                }
-              } catch (e) {
-                console.warn("Error fitting bounds:", e);
-                // Use default view if bounds fitting fails
+            if (hasFeatures) {
+              const bounds = this.getBounds();
+              if (bounds) {
+                this.map.fitBounds(bounds);
               }
             }
-            console.log("Project loaded:", data);
           } else {
-            console.log("No project features found.");
+            // No layers found, create a default one
+            this.activeLayer = L.featureGroup().addTo(this.map);
+            this.activeLayer.properties = { type: 'Default', color: '#3388ff' };
+            this.layers['Default'] = this.activeLayer;
+            this.updateDrawToLayerSelect();
           }
-        } catch (e) {
-          console.error("Error loading project:", e);
-          alert("Failed to load project");
+
+          // Update draw tools to use active layer color
+          this.updateDrawToolColors();
+        } catch (error) {
+          console.error("Error loading project:", error);
         }
       },
       clearLayers: function() {
@@ -617,6 +630,46 @@
             console.error("Error loading last location:", error);
           }
         }
+      },
+      updateDrawToolColors: function() {
+        // Get active layer color
+        let shapeColor = "#3388ff"; // Default blue
+        if (this.activeLayer && this.activeLayer.properties && this.activeLayer.properties.color) {
+          shapeColor = this.activeLayer.properties.color;
+        }
+
+        // Update draw tools with new color
+        const drawOptions = { shapeOptions: { color: shapeColor } };
+
+        if (this.drawTools) {
+          // Recreate the draw tools with the new color
+          this.drawTools.polygon = new L.Draw.Polygon(this.map, { 
+            allowIntersection: false, 
+            showArea: true, 
+            drawError: { color: "#e1e100", timeout: 1000 }, 
+            shapeOptions: { color: shapeColor } 
+          });
+
+          this.drawTools.polyline = new L.Draw.Polyline(this.map, drawOptions);
+          this.drawTools.rectangle = new L.Draw.Rectangle(this.map, drawOptions);
+          this.drawTools.circle = new L.Draw.Circle(this.map, drawOptions);
+          this.drawTools.marker = new L.Draw.Marker(this.map);
+        }
+      },
+
+      getBounds: function() {
+        let bounds = L.latLngBounds([]);
+        for (let layerName in this.layers) {
+          let layer = this.layers[layerName];
+          if (layer && layer.getLayers().length > 0) {
+            try {
+              bounds.extend(layer.getBounds());
+            } catch (e) {
+              console.warn(`Layer ${layerName} has invalid bounds:`, e);
+            }
+          }
+        }
+        return bounds.isValid() ? bounds : null;
       }
     };
 
