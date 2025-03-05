@@ -714,20 +714,20 @@
               <h3>Edit Properties</h3>
               <form id="featurePropertiesForm">
                 <div style="margin-bottom: 10px;">
-                  <label for="displayName">Display Name:</label>
-                  <input type="text" id="displayName" value="${properties.displayName || ''}" style="width: 100%; padding: 5px;">
+                  <label for="name">Name:</label>
+                  <input type="text" id="name" style="width: 100%; padding: 5px;">
                 </div>
                 <div style="margin-bottom: 10px;">
                   <label>
-                    <input type="checkbox" id="newExplosiveFacility" name="newExplosiveFacility" ${properties.new ? 'checked' : ''}>
-                    NEW Explosive Facility
+                    <input type="checkbox" id="is_facility" name="is_facility">
+                    Is Facility
                   </label>
                 </div>
                 <div style="margin-bottom: 10px;">
                   <label>
-                    <input type="checkbox" id="has_explosive" name="has_explosive" ${properties.has_explosive ? 'checked' : ''}>
-                    Contains Explosives (NEW)
-                  </label></div>
+                    <input type="checkbox" id="has_explosive" name="has_explosive">
+                    Contains Explosives
+                  </label>/div>
                 <div style="margin-bottom: 10px;">
                   <label for="facilityType">Facility Type:</label>
                   <select id="facilityType" style="width: 100%; padding: 5px;">
@@ -753,17 +753,32 @@
                     Cancel
                   </button>
                 </div>
+                <div id="newSection" style="margin-bottom: 10px; display: none;">
+                  <label for="net_explosive_weight">Net Explosive Weight (lbs):</label>
+                  <input type="number" id="net_explosive_weight" style="width: 100%; padding: 5px;">
+                </div>
+                <div style="margin-bottom: 10px;">
+                  <label for="facilityType">Facility Type:</label>
+                  <select id="facilityType" style="width: 100%; padding: 5px;">
+                    <option value="">Select Type</option>
+                    <option value="Bunker">Bunker</option>
+                    <option value="Open Storage">Open Storage</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Housing">Housing</option>
+                  </select>
+                </div>
+                <div style="margin-bottom: 10px;">
+                  <label for="description">Description:</label>
+                  <textarea id="description" style="width: 100%; padding: 5px; height: 60px;"></textarea>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                  <button type="submit" style="background-color: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer;">Save</button>
+                  <button type="button" onclick="document.getElementById('featurePropertiesModal').style.display='none'" style="padding: 10px 15px; border: 1px solid #ddd; cursor: pointer;">Cancel</button>
+                </div>
               </form>
             </div>
           </div>
-        `;
-
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.id = 'featurePropertiesModal';
-        modal.innerHTML = modalContent;
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
 
         const self = this;
 
