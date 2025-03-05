@@ -111,6 +111,36 @@ async def db_status():
             }
         )
 
+@app.post("/api/unit-conversion")
+async def unit_conversion(request: Request):
+    """Convert between different explosive weight units"""
+    try:
+        data = await request.json()
+        quantity = data.get("quantity", 0)
+        from_unit = data.get("from_unit", "lbs")
+        to_unit = data.get("to_unit", "kg")
+        site_type = data.get("site_type", "DOD")
+        
+        # Initialize QD engine
+        qd_engine = get_engine(site_type)
+        
+        # Convert to pounds first if not already
+        quantity_lbs = qd_engine.convert_to_pounds(quantity, from_unit)
+        
+        # Then convert to target unit
+        result = qd_engine.convert_from_pounds(quantity_lbs, to_unit)
+        
+        return {
+            "original_value": quantity,
+            "original_unit": from_unit,
+            "converted_value": round(result, 6),
+            "converted_unit": to_unit,
+            "pounds_equivalent": round(quantity_lbs, 6)
+        }
+    except Exception as e:
+        logger.error(f"Unit conversion error: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 # Layer Persistence Endpoints
 @app.get("/api/load-layers")
 async def load_layers(location_id: Optional[int] = None):
@@ -396,6 +426,27 @@ class QDCalculationRequest(BaseModel):
     humidity: float = 50
     confinement_factor: float = 0.0
 
+class QDCalculationRequest(BaseModel):
+    quantity: float
+    lat: float
+    lng: float
+    k_factor: float = 40
+    site_type: str = "DOD"
+    material_type: str = "General Explosive"
+    hazard_division: str = "1.1"
+    k_factor_type: str = "IBD"
+    unit_type: str = "lbs"
+    sensitivity: float = 0.5
+    det_velocity: float = 6000
+    tnt_equiv: float = 1.0
+    temperature: float = 298
+    pressure: float = 101.325
+    humidity: float = 50
+    confinement_factor: float = 0.0
+    include_fragments: bool = False
+    risk_based: bool = False
+    lop_class: str = None
+
 @app.post("/api/calculate-qd", response_model=Dict[str, Any])
 async def calculate_qd(request: QDCalculationRequest):
     try:
@@ -411,26 +462,115 @@ async def calculate_qd(request: QDCalculationRequest):
             humidity=request.humidity,
             confinement_factor=request.confinement_factor
         )
-        safe_distance = qd_engine.calculate_safe_distance(
+        
+        # Create parameters for calculations
+        params = QDParameters(
             quantity=request.quantity,
+            site_type=request.site_type,
+            unit_type=request.unit_type,
+            k_factor_type=request.k_factor_type,
+            hazard_division=request.hazard_division,
             material_props=material_props,
-            env_conditions=env_conditions
+            env_conditions=env_conditions,
+            risk_based=request.risk_based
         )
+        
+        # Calculate safe distance with detailed info
+        qd_result = qd_engine.calculate_safe_distance(
+            quantity=request.quantity,
+            k_factor_type=request.k_factor_type,
+            unit_type=request.unit_type,
+            lop_class=request.lop_class,
+            material_props=material_props,
+            env_conditions=env_conditions,
+            risk_based=request.risk_based
+        )
+        
+        safe_distance = qd_result["distance_ft"]
+        
+        # Generate buffer zones
         buffer_zones = qd_engine.generate_k_factor_rings(
             center=[request.lng, request.lat],
-            safe_distance=safe_distance
+            parameters=params
         )
-        return {
+        
+        # Add fragment analysis if requested
+        fragment_data = None
+        if request.include_fragments:
+            fragment_data = qd_engine.calculate_fragment_distance(
+                quantity=request.quantity,
+                unit_type=request.unit_type,
+                material_type=request.material_type
+            )
+            
+            # Add fragment distance ring to the buffer zones
+            if fragment_data and "hazard_distance" in fragment_data:
+                frag_distance = fragment_data["hazard_distance"]
+                frag_ring = qd_engine._create_circle_feature(
+                    center=[request.lng, request.lat],
+                    radius=frag_distance,
+                    k_factor=0,
+                    label=f"Fragment Distance {frag_distance:.0f} ft",
+                    description=f"Maximum Hazardous Fragment Distance",
+                    qd_type="FRAG",
+                    hazard_division=request.hazard_division
+                )
+                buffer_zones.append(frag_ring)
+        
+        # Prepare response
+        response = {
             "safe_distance": safe_distance,
             "units": "feet",
             "material_type": request.material_type,
+            "site_type": request.site_type,
+            "k_factor_type": request.k_factor_type,
+            "k_factor": qd_engine.get_k_factor(request.k_factor_type, request.lop_class),
+            "calculation_details": qd_result["calculation_steps"],
+            "standard_reference": qd_result["standard_reference"],
             "buffer_zones": {
                 "type": "FeatureCollection",
                 "features": buffer_zones
             }
         }
+        
+        # Add fragment data if available
+        if fragment_data:
+            response["fragment_analysis"] = fragment_data
+            
+        # Add risk analysis if available
+        if request.risk_based and qd_result.get("risk_analysis"):
+            response["risk_analysis"] = qd_result["risk_analysis"]
+            
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/calculate-fragments")
+async def calculate_fragments(request: Request):
+    """Calculate hazardous fragment distances"""
+    try:
+        data = await request.json()
+        quantity = data.get("quantity", 0)
+        unit_type = data.get("unit_type", "lbs")
+        material_type = data.get("material_type", "Steel")
+        casing_thickness = data.get("casing_thickness", 0.5)
+        site_type = data.get("site_type", "DOD")
+        
+        # Initialize QD engine
+        qd_engine = get_engine(site_type)
+        
+        # Calculate fragment distance
+        result = qd_engine.calculate_fragment_distance(
+            quantity=quantity,
+            unit_type=unit_type,
+            material_type=material_type,
+            casing_thickness=casing_thickness
+        )
+        
+        return result
+    except Exception as e:
+        logger.error(f"Fragment calculation error: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/api/analyze-location")
 async def analyze_location(request: Request):
@@ -439,9 +579,18 @@ async def analyze_location(request: Request):
         data = await request.json()
         location_id = data.get("location_id")
         features = data.get("features", [])
+        site_type = data.get("site_type", "DOD")
+        analysis_options = data.get("analysis_options", {})
         
-        # Initialize QD engine
-        qd_engine = get_engine("DOD")  # Default to DOD standards
+        # Get analysis parameters
+        use_risk_based = analysis_options.get("risk_based", False)
+        include_fragments = analysis_options.get("include_fragments", False)
+        k_factor_type = analysis_options.get("k_factor_type", "IBD")
+        display_unit = analysis_options.get("display_unit", "lbs")
+        include_standards = analysis_options.get("include_standards", True)
+        
+        # Initialize QD engine with specified site type
+        qd_engine = get_engine(site_type)
         
         # Separate explosive facilities from other features
         facilities = []
@@ -458,72 +607,157 @@ async def analyze_location(request: Request):
         results = []
         for facility in facilities:
             properties = facility.get("properties", {})
+            
+            # Get explosive weight and unit
             new_value = float(properties.get("net_explosive_weight", 0))
+            unit_type = properties.get("unit", "lbs")
+            hazard_division = properties.get("hazard_division", "1.1")
             
             # Skip if NEW is 0
             if new_value <= 0:
                 continue
                 
-            # Calculate safe distance
-            safe_distance = qd_engine.calculate_arc_radius(new_value)
+            # Create parameters object for QD calculations
+            params = QDParameters(
+                quantity=new_value,
+                site_type=site_type,
+                unit_type=unit_type,
+                k_factor_type=k_factor_type,
+                hazard_division=hazard_division,
+                risk_based=use_risk_based
+            )
+            
+            # Calculate safe distance with detailed information
+            safe_distance_result = qd_engine.calculate_safe_distance(
+                quantity=new_value,
+                k_factor_type=k_factor_type,
+                unit_type=unit_type,
+                risk_based=use_risk_based
+            )
+            
+            safe_distance = safe_distance_result["distance_ft"]
             
             # Generate QD rings
             center = facility["geometry"]["coordinates"]
             if facility["geometry"]["type"] == "Point":
                 qd_rings = qd_engine.generate_k_factor_rings(
                     center=center,
-                    safe_distance=safe_distance,
+                    parameters=params,
                     k_factors=[1.0, 1.25, 1.5]
                 )
             else:
-                # For polygons, use centroid
-                # This is simplified - in a real implementation you might want a better approach
-                qd_rings = qd_engine.generate_k_factor_rings(
-                    center=center[0][0],  # Using first point of the polygon as an approximation
-                    safe_distance=safe_distance,
-                    k_factors=[1.0, 1.25, 1.5]
-                )
-            
-            # Check for violations
-            violations = []
-            for feature in other_features:
-                if feature["geometry"]["type"] == "Point":
-                    target_point = feature["geometry"]["coordinates"]
+                # For polygons, use centroid or first point
+                # This is simplified - a real implementation would calculate proper centroid
+                if len(facility["geometry"]["coordinates"]) > 0 and len(facility["geometry"]["coordinates"][0]) > 0:
+                    center_approx = facility["geometry"]["coordinates"][0][0]
+                    qd_rings = qd_engine.generate_k_factor_rings(
+                        center=center_approx,
+                        parameters=params,
+                        k_factors=[1.0, 1.25, 1.5]
+                    )
                 else:
-                    # Use first point as approximation
-                    target_point = feature["geometry"]["coordinates"][0][0]
-                
-                distance = qd_engine.calculate_distance(center, target_point)
-                
-                if distance < safe_distance:
-                    violations.append({
-                        "feature_id": feature.get("id", "unknown"),
-                        "feature_name": feature.get("properties", {}).get("name", "Unnamed Feature"),
-                        "distance": round(distance, 2),
-                        "required_distance": round(safe_distance, 2)
-                    })
+                    logger.warning(f"Invalid polygon coordinates for facility {facility.get('id')}")
+                    qd_rings = []
             
-            # Add to results
-            results.append({
+            # Calculate fragment distance if requested
+            fragment_data = None
+            if include_fragments:
+                try:
+                    fragment_data = qd_engine.calculate_fragment_distance(
+                        quantity=new_value,
+                        unit_type=unit_type
+                    )
+                    
+                    # Add a fragment distance ring
+                    if fragment_data and "hazard_distance" in fragment_data:
+                        frag_distance = fragment_data["hazard_distance"]
+                        frag_ring = qd_engine._create_circle_feature(
+                            center=center,
+                            radius=frag_distance,
+                            k_factor=0,  # Not a K-factor based ring
+                            label=f"Fragment Distance {frag_distance:.0f} ft",
+                            description=f"Maximum Hazardous Fragment Distance",
+                            qd_type="FRAG",
+                            hazard_division=hazard_division
+                        )
+                        qd_rings.append(frag_ring)
+                except Exception as frag_error:
+                    logger.error(f"Error calculating fragmentation: {str(frag_error)}")
+                    fragment_data = {"error": str(frag_error)}
+            
+            # Check for violations using enhanced analysis
+            facility_analysis = qd_engine.analyze_facility(
+                facility=facility,
+                surrounding_features=other_features,
+                k_factor_type=k_factor_type,
+                unit_type=unit_type
+            )
+            
+            # Get unit-converted values for display
+            new_value_display = new_value
+            if unit_type != display_unit:
+                # Convert to pounds first if not already
+                new_lbs = qd_engine.convert_to_pounds(new_value, unit_type)
+                # Then convert to display unit
+                new_value_display = qd_engine.convert_from_pounds(new_lbs, display_unit)
+            
+            # Add to results with enhanced information
+            facility_result = {
                 "facility_id": facility.get("id", "unknown"),
                 "facility_name": properties.get("name", "Unnamed Facility"),
                 "net_explosive_weight": new_value,
+                "net_explosive_weight_display": round(new_value_display, 4),
+                "unit_original": unit_type,
+                "unit_display": display_unit,
+                "hazard_division": hazard_division,
+                "site_type": site_type,
                 "safe_distance": round(safe_distance, 2),
+                "k_factor_type": k_factor_type,
+                "k_factor_value": qd_engine.get_k_factor(k_factor_type),
                 "qd_rings": qd_rings,
-                "violations": violations
-            })
+                "violations": facility_analysis["violations"],
+                "calculation_details": safe_distance_result["calculation_steps"] if include_standards else None,
+                "standard_reference": safe_distance_result["standard_reference"] if include_standards else None
+            }
+            
+            # Add fragment data if available
+            if fragment_data:
+                facility_result["fragment_analysis"] = fragment_data
+                
+            # Add risk analysis if available
+            if use_risk_based and safe_distance_result.get("risk_analysis"):
+                facility_result["risk_analysis"] = safe_distance_result["risk_analysis"]
+                
+            results.append(facility_result)
         
         # Generate a timestamp for the analysis
         timestamp = datetime.now().isoformat()
         
-        # Compile the final analysis
+        # Compile the final analysis with standards information
         analysis_result = {
             "timestamp": timestamp,
             "location_id": location_id,
+            "site_type": site_type,
+            "k_factor_type": k_factor_type,
+            "display_unit": display_unit,
             "total_facilities": len(facilities),
             "total_violations": sum(len(result["violations"]) for result in results),
-            "facilities_analyzed": results
+            "facilities_analyzed": results,
+            "analysis_options": analysis_options
         }
+        
+        # Add standards information if requested
+        if include_standards:
+            # Import the Standards class
+            try:
+                from standards_db import Standards, StandardType
+                standards_info = Standards.get_all_references(site_type)
+                analysis_result["standards_information"] = {
+                    "site_type": site_type,
+                    "references": standards_info
+                }
+            except ImportError:
+                logger.warning("Standards database not available")
         
         return analysis_result
     except Exception as e:
