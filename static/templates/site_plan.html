@@ -792,14 +792,139 @@
         this.layerColors[layerName] = layerColor;
         return newLayer;
       },
-      analyzeLocation: function() {
-        // Implement QD analysis here.  This is a placeholder.
-        alert("Analyze Location function called.  QD analysis would be performed here.");
+      analyzeLocation: async function() {
+        if (!this.currentLocationId) {
+          alert("Please open a location before running analysis");
+          return;
+        }
+        
+        // Get all features from all layers
+        const features = [];
+        Object.values(this.layers).forEach(layer => {
+          layer.eachLayer(l => {
+            if (l.toGeoJSON) {
+              const feature = l.toGeoJSON();
+              // Make sure to preserve properties
+              if (l.feature && l.feature.properties) {
+                feature.properties = {...feature.properties, ...l.feature.properties};
+              }
+              features.push(feature);
+            }
+          });
+        });
+        
+        if (features.length === 0) {
+          alert("No shapes to analyze. Please draw some shapes first.");
+          return;
+        }
+        
+        try {
+          // Show loading indicator
+          setStatusMessage("Running QD analysis...", "info");
+          
+          // Call the backend API
+          const response = await fetch("/api/analyze-location", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              location_id: this.currentLocationId,
+              features: features
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Analysis failed: ${response.statusText}`);
+          }
+          
+          const result = await response.json();
+          console.log("Analysis results:", result);
+          
+          // Display results on the map
+          this.displayAnalysisResults(result);
+          
+          // Update status
+          setStatusMessage(`Analysis complete: ${result.total_facilities} facilities analyzed, ${result.total_violations} violations found`, "success");
+        } catch (error) {
+          console.error("Error during analysis:", error);
+          setStatusMessage(`Analysis failed: ${error.message}`, "error");
+        }
+      },
+      
+      displayAnalysisResults: function(analysis) {
+        // Clear any existing analysis layers
+        if (this.analysisLayer) {
+          this.map.removeLayer(this.analysisLayer);
+        }
+        
+        // Create a new layer for analysis results
+        this.analysisLayer = L.featureGroup().addTo(this.map);
+        
+        // Add QD rings to the map
+        analysis.facilities_analyzed.forEach(facility => {
+          // Add QD rings
+          if (facility.qd_rings && facility.qd_rings.length > 0) {
+            facility.qd_rings.forEach(ring => {
+              const color = ring.properties.k_factor === 1.0 ? 'red' : 
+                           ring.properties.k_factor === 1.25 ? 'orange' : 'yellow';
+              
+              L.geoJSON(ring, {
+                style: {
+                  color: color,
+                  weight: 2,
+                  opacity: 0.7,
+                  fillOpacity: 0.2
+                }
+              }).bindPopup(`<b>${facility.facility_name}</b><br>
+                            Safety Distance: ${facility.safe_distance} ft<br>
+                            K-Factor: ${ring.properties.k_factor}<br>
+                            NEW: ${facility.net_explosive_weight} lbs`)
+                .addTo(this.analysisLayer);
+            });
+          }
+          
+          // Highlight violations if any
+          if (facility.violations && facility.violations.length > 0) {
+            // Create a popup with violation details
+            const violationsHtml = facility.violations.map(v => 
+              `<li>${v.feature_name}: ${v.distance} ft (required: ${v.required_distance} ft)</li>`
+            ).join('');
+            
+            const popup = L.popup()
+              .setLatLng(L.latLng(facility.facility_latitude || 0, facility.facility_longitude || 0))
+              .setContent(`<h3>Safety Violations for ${facility.facility_name}</h3>
+                           <p>Net Explosive Weight: ${facility.net_explosive_weight} lbs</p>
+                           <p>Required Safety Distance: ${facility.safe_distance} ft</p>
+                           <h4>Violations:</h4>
+                           <ul>${violationsHtml}</ul>`);
+            
+            popup.addTo(this.analysisLayer);
+          }
+        });
+        
+        // Fit the map to show all analysis results
+        if (this.analysisLayer.getLayers().length > 0) {
+          this.map.fitBounds(this.analysisLayer.getBounds(), {padding: [50, 50]});
+        }
+        
+        // Show a summary alert
+        alert(`Analysis complete:\n${analysis.total_facilities} facilities analyzed\n${analysis.total_violations} safety violations found`);
       }
     };
 
     function setStatusMessage(message, type) {
-      const statusElement = document.getElementById('dbStatus');
+      const statusElement = document.getElementById('statusMessage');
+      if (statusElement) {
+        statusElement.textContent = message;
+        statusElement.className = 'status-message ' + (type || 'info');
+        statusElement.style.display = 'block';
+        
+        // Hide after 5 seconds
+        setTimeout(() => {
+          statusElement.style.display = 'none';
+        }, 5000);
+      } else {
+        console.log(`Status: ${message} (${type})`);
+      }d('dbStatus');
       statusElement.textContent = message;
       statusElement.classList.remove('success', 'error', 'info');
       statusElement.classList.add(type);
