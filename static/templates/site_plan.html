@@ -223,11 +223,8 @@
               coords.push(coords[0]);
               layer.setLatLngs(coords);
             }
-            let polyType = prompt("Enter polygon type (PES or ES):", "PES");
-            if (polyType) {
-              layer.feature = layer.toGeoJSON();
-              layer.feature.properties.type = polyType;
-            }
+            // Removed prompt for polygon type
+            layer.feature = layer.toGeoJSON();
           }
           this.activeLayer.addLayer(layer);
           this.deactivateAllTools();
@@ -438,5 +435,8 @@
 
     document.addEventListener("DOMContentLoaded", () => QDPro.init());
   </script>
+  <!-- Custom modal script -->
+  <script src="/static/js/custom-modal.js"></script>
+  <!-- End of your existing scripts -->
 </body>
 </html>
