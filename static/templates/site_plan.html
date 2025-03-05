@@ -683,7 +683,8 @@
                     return;
         }
 
-        // Remove all layers from the map        if (this.layers) {
+        // Remove all layers from the map
+        if (this.layers) {
           Object.values(this.layers).forEach(layer => {
             if (layer && this.map.hasLayer(layer)) {
               this.map.removeLayer(layer);

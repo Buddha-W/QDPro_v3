@@ -50,7 +50,7 @@ function handleFeatureFormSubmit(e, layer) {
   if (!layer.feature.properties) {
     layer.feature.properties = {};
   }
-  
+
   // Update the feature properties
   const properties = { ...layer.feature.properties };
 
@@ -140,4 +140,18 @@ function createPopupContent(properties) {
 function updateLayerStyle(layer, type) {
   // Implement your layer styling update logic here
   console.log("Updating style for layer:", layer, "type:", type);
+}
+
+function openEditPopup(layer) {
+  console.log("Opening edit popup for layer:", layer);
+
+  // Ensure the layer has a feature object
+  if (!layer.feature) {
+    layer.feature = {};
+  }
+
+  // Ensure the feature has a properties object
+  if (!layer.feature.properties) {
+    layer.feature.properties = {};
+  }
 }
