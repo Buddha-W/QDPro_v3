@@ -197,6 +197,600 @@
     <div style="margin-top: 20px;">
       <button class="btn btn-primary" onclick="QDPro.generateReport()">Generate Report</button>
       <button class="btn btn-default" onclick="QDPro.saveAnalysisLayer()">Save Analysis Layer</button>
+
+<!-- QD Analysis Section -->
+<div id="qdAnalysisPanel" class="side-panel">
+  <div class="panel-header">
+    <h3>QD Analysis</h3>
+    <button id="closeQdAnalysisBtn" class="close-btn"><i class="fas fa-times"></i></button>
+  </div>
+  <div class="panel-content">
+    <div class="form-group">
+      <label for="qdFeatureSelect">Select Feature:</label>
+      <select id="qdFeatureSelect" class="form-control">
+        <option value="">-- Select Feature --</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="qdQuantity">Net Explosive Weight (lbs):</label>
+      <input type="number" id="qdQuantity" class="form-control" value="1000" min="0" step="1">
+    </div>
+    
+    <div class="form-group">
+      <label for="qdKFactor">K-Factor:</label>
+      <select id="qdKFactor" class="form-control">
+        <option value="40">K40 - Default</option>
+        <option value="50">K50 - Increased Safety</option>
+        <option value="24">K24 - Substantial Construction</option>
+        <option value="18">K18 - Heavy Construction</option>
+        <option value="12">K12 - Earth-Covered Magazines</option>
+        <option value="8">K8 - Barricaded</option>
+        <option value="6">K6 - Special Hazard</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="qdSiteType">Site Type:</label>
+      <select id="qdSiteType" class="form-control">
+        <option value="DOD">DoD Standards</option>
+        <option value="ATF">ATF Standards</option>
+        <option value="OSHA">OSHA Standards</option>
+        <option value="NFPA">NFPA Standards</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label>Material Properties:</label>
+      <div class="sub-form">
+        <div class="form-group">
+          <label for="qdSensitivity">Sensitivity:</label>
+          <input type="range" id="qdSensitivity" min="0" max="1" step="0.1" value="0.5" class="form-control">
+          <span id="qdSensitivityValue">0.5</span>
+        </div>
+        
+        <div class="form-group">
+          <label for="qdTntEquiv">TNT Equivalence:</label>
+          <input type="number" id="qdTntEquiv" class="form-control" value="1.0" min="0.1" max="2.0" step="0.1">
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button id="runQdAnalysisBtn" class="action-btn primary-btn">Run Analysis</button>
+      <button id="clearQdAnalysisBtn" class="action-btn secondary-btn">Clear Results</button>
+    </div>
+    
+    <div id="qdAnalysisResults" class="results-section" style="display: none;">
+      <h4>Analysis Results</h4>
+      <div class="result-item">
+        <span class="result-label">Safe Distance:</span>
+        <span id="qdSafeDistance" class="result-value">0</span> feet
+      </div>
+      
+      <h4>Affected Features</h4>
+      <div class="table-container">
+        <table id="qdResultsTable" class="results-table">
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>Distance (ft)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Results will be populated here -->
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="form-actions">
+        <button id="generateReportBtn" class="action-btn primary-btn">Generate Report</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QD Analysis Report Modal -->
+<div id="reportModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Generate QD Analysis Report</h3>
+      <span class="close-modal">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="reportTitle">Report Title:</label>
+        <input type="text" id="reportTitle" class="form-control" value="QD Analysis Report">
+      </div>
+      
+      <div class="form-group">
+        <label for="includeMap">Include Map:</label>
+        <input type="checkbox" id="includeMap" checked>
+      </div>
+      
+      <div class="form-actions">
+        <button id="generateReportSubmitBtn" class="action-btn primary-btn">Generate</button>
+        <button class="action-btn secondary-btn close-modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* QD Analysis Styles */
+#qdAnalysisPanel {
+  width: 350px;
+  right: -350px;
+  transition: right 0.3s ease;
+}
+
+#qdAnalysisPanel.active {
+  right: 0;
+}
+
+.sub-form {
+  padding: 10px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  margin-top: 5px;
+}
+
+.results-section {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #ddd;
+}
+
+.result-item {
+  margin-bottom: 10px;
+}
+
+.result-label {
+  font-weight: bold;
+}
+
+.result-value {
+  color: #2c3e50;
+  margin-left: 5px;
+}
+
+.table-container {
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 10px 0;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.results-table th,
+.results-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.results-table th {
+  background-color: #f2f2f2;
+}
+
+.status-compliant {
+  color: green;
+}
+
+.status-non-compliant {
+  color: red;
+}
+</style>
+
+<script>
+// QD Analysis functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // QD Analysis panel controls
+  const qdAnalysisBtn = document.getElementById('qdAnalysisBtn');
+  const closeQdAnalysisBtn = document.getElementById('closeQdAnalysisBtn');
+  const qdAnalysisPanel = document.getElementById('qdAnalysisPanel');
+  
+  // QD Form elements
+  const qdFeatureSelect = document.getElementById('qdFeatureSelect');
+  const qdQuantity = document.getElementById('qdQuantity');
+  const qdKFactor = document.getElementById('qdKFactor');
+  const qdSiteType = document.getElementById('qdSiteType');
+  const qdSensitivity = document.getElementById('qdSensitivity');
+  const qdSensitivityValue = document.getElementById('qdSensitivityValue');
+  const qdTntEquiv = document.getElementById('qdTntEquiv');
+  
+  // QD Action buttons
+  const runQdAnalysisBtn = document.getElementById('runQdAnalysisBtn');
+  const clearQdAnalysisBtn = document.getElementById('clearQdAnalysisBtn');
+  const generateReportBtn = document.getElementById('generateReportBtn');
+  
+  // Results elements
+  const qdAnalysisResults = document.getElementById('qdAnalysisResults');
+  const qdSafeDistance = document.getElementById('qdSafeDistance');
+  const qdResultsTable = document.getElementById('qdResultsTable');
+  
+  // Report modal elements
+  const reportModal = document.getElementById('reportModal');
+  const reportTitle = document.getElementById('reportTitle');
+  const includeMap = document.getElementById('includeMap');
+  const generateReportSubmitBtn = document.getElementById('generateReportSubmitBtn');
+  
+  // Current analysis data
+  let currentAnalysisId = null;
+  let currentBufferLayers = [];
+  
+  // Add QD Analysis button to toolbar if it doesn't exist
+  if (!qdAnalysisBtn) {
+    const toolbarLastGroup = document.querySelector('.toolbar').lastElementChild;
+    const newButton = document.createElement('button');
+    newButton.id = 'qdAnalysisBtn';
+    newButton.className = 'tool-button';
+    newButton.title = 'QD Analysis';
+    newButton.innerHTML = '<i class="fas fa-calculator"></i>';
+    toolbarLastGroup.appendChild(newButton);
+  }
+  
+  // Set up event listeners
+  if (document.getElementById('qdAnalysisBtn')) {
+    document.getElementById('qdAnalysisBtn').addEventListener('click', toggleQdAnalysisPanel);
+  }
+  
+  if (closeQdAnalysisBtn) {
+    closeQdAnalysisBtn.addEventListener('click', closeQdAnalysisPanel);
+  }
+  
+  if (qdSensitivity) {
+    qdSensitivity.addEventListener('input', function() {
+      qdSensitivityValue.textContent = this.value;
+    });
+  }
+  
+  if (runQdAnalysisBtn) {
+    runQdAnalysisBtn.addEventListener('click', runQdAnalysis);
+  }
+  
+  if (clearQdAnalysisBtn) {
+    clearQdAnalysisBtn.addEventListener('click', clearQdAnalysis);
+  }
+  
+  if (generateReportBtn) {
+    generateReportBtn.addEventListener('click', showReportModal);
+  }
+  
+  // Close modal when clicking the X
+  document.querySelectorAll('.close-modal').forEach(function(element) {
+    element.addEventListener('click', function() {
+      reportModal.style.display = 'none';
+    });
+  });
+  
+  // Generate report submit button
+  if (generateReportSubmitBtn) {
+    generateReportSubmitBtn.addEventListener('click', generateReport);
+  }
+  
+  // Close modal when clicking outside
+  window.addEventListener('click', function(event) {
+    if (event.target === reportModal) {
+      reportModal.style.display = 'none';
+    }
+  });
+  
+  // Functions
+  function toggleQdAnalysisPanel() {
+    qdAnalysisPanel.classList.toggle('active');
+    updateFeatureSelect();
+  }
+  
+  function closeQdAnalysisPanel() {
+    qdAnalysisPanel.classList.remove('active');
+  }
+  
+  function updateFeatureSelect() {
+    // Clear existing options
+    while (qdFeatureSelect.options.length > 1) {
+      qdFeatureSelect.remove(1);
+    }
+    
+    // Add options for each feature in drawnItems
+    if (window.drawnItems) {
+      window.drawnItems.eachLayer(function(layer) {
+        if (layer.feature && layer.feature.properties) {
+          const name = layer.feature.properties.name || 'Unnamed Feature';
+          const id = layer.feature.id || generateId();
+          
+          const option = document.createElement('option');
+          option.value = id;
+          option.textContent = name;
+          qdFeatureSelect.appendChild(option);
+        }
+      });
+    }
+  }
+  
+  function generateId() {
+    return 'feature_' + Math.random().toString(36).substr(2, 9);
+  }
+  
+  async function runQdAnalysis() {
+    const featureId = qdFeatureSelect.value;
+    
+    if (!featureId) {
+      alert('Please select a feature to analyze');
+      return;
+    }
+    
+    // Clear previous results
+    clearBufferLayers();
+    
+    // Collect all features for analysis
+    const featuresToAnalyze = [];
+    if (window.drawnItems) {
+      window.drawnItems.eachLayer(function(layer) {
+        if (layer.feature) {
+          featuresToAnalyze.push(layer.feature);
+        }
+      });
+    }
+    
+    // Prepare analysis request
+    const analysisRequest = {
+      feature_id: featureId,
+      location_id: currentLocationId || null,
+      site_type: qdSiteType.value,
+      quantity: parseFloat(qdQuantity.value),
+      k_factor: parseFloat(qdKFactor.value),
+      features_to_analyze: featuresToAnalyze,
+      material_props: {
+        sensitivity: parseFloat(qdSensitivity.value),
+        tnt_equiv: parseFloat(qdTntEquiv.value)
+      }
+    };
+    
+    try {
+      // Show loading indicator
+      showLoading('Analyzing...');
+      
+      // Send analysis request
+      const response = await fetch('/api/analyze-qd', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(analysisRequest)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Analysis failed: ' + response.statusText);
+      }
+      
+      const result = await response.json();
+      
+      // Store analysis ID for report generation
+      currentAnalysisId = result.analysis_id;
+      
+      // Display results
+      displayAnalysisResults(result);
+      
+      // Hide loading indicator
+      hideLoading();
+    } catch (error) {
+      console.error('Error performing QD analysis:', error);
+      alert('Error performing analysis: ' + error.message);
+      hideLoading();
+    }
+  }
+  
+  function displayAnalysisResults(result) {
+    // Show results section
+    qdAnalysisResults.style.display = 'block';
+    
+    // Update safe distance
+    qdSafeDistance.textContent = result.safe_distance;
+    
+    // Clear existing table rows
+    const tableBody = qdResultsTable.querySelector('tbody');
+    tableBody.innerHTML = '';
+    
+    // Add rows for each result
+    result.analysis_results.forEach(function(item) {
+      const row = document.createElement('tr');
+      
+      const nameCell = document.createElement('td');
+      nameCell.textContent = item.name;
+      
+      const distanceCell = document.createElement('td');
+      distanceCell.textContent = item.distance;
+      
+      const statusCell = document.createElement('td');
+      statusCell.textContent = item.status;
+      statusCell.className = item.is_safe ? 'status-compliant' : 'status-non-compliant';
+      
+      row.appendChild(nameCell);
+      row.appendChild(distanceCell);
+      row.appendChild(statusCell);
+      
+      tableBody.appendChild(row);
+    });
+    
+    // Add buffer zones to map
+    addBufferZonesToMap(result.buffer_zones);
+  }
+  
+  function addBufferZonesToMap(bufferZones) {
+    if (!window.map) return;
+    
+    // Clear previous buffer layers
+    clearBufferLayers();
+    
+    // Add new buffer zones
+    if (bufferZones && bufferZones.features) {
+      bufferZones.features.forEach(function(feature) {
+        let layer;
+        
+        if (feature.geometry.type === 'Point') {
+          // Create marker for point
+          layer = L.circleMarker(
+            [feature.geometry.coordinates[1], feature.geometry.coordinates[0]],
+            {
+              radius: feature.properties.radius || 5,
+              color: feature.properties.color || '#ff0000',
+              fillColor: feature.properties.color || '#ff0000',
+              fillOpacity: 0.5
+            }
+          );
+        } else if (feature.geometry.type === 'Polygon') {
+          // Create polygon for rings
+          const coordinates = feature.geometry.coordinates[0].map(
+            coord => [coord[1], coord[0]]
+          );
+          
+          layer = L.polygon(coordinates, {
+            color: feature.properties.color || '#ff0000',
+            fillColor: feature.properties.fillColor || feature.properties.color || '#ff0000',
+            fillOpacity: feature.properties.fillOpacity || 0.2,
+            weight: feature.properties.weight || 2
+          });
+        }
+        
+        if (layer) {
+          // Add popup with distance information
+          if (feature.properties.distance !== undefined) {
+            layer.bindTooltip(`${feature.properties.distance} feet`);
+          }
+          
+          // Add to map and track
+          layer.addTo(window.map);
+          currentBufferLayers.push(layer);
+        }
+      });
+    }
+  }
+  
+  function clearBufferLayers() {
+    // Remove all buffer layers from map
+    currentBufferLayers.forEach(function(layer) {
+      if (window.map) {
+        window.map.removeLayer(layer);
+      }
+    });
+    
+    currentBufferLayers = [];
+  }
+  
+  function clearQdAnalysis() {
+    // Clear buffer layers
+    clearBufferLayers();
+    
+    // Hide results
+    qdAnalysisResults.style.display = 'none';
+    
+    // Reset current analysis ID
+    currentAnalysisId = null;
+  }
+  
+  function showReportModal() {
+    if (!currentAnalysisId) {
+      alert('No analysis results to generate report from');
+      return;
+    }
+    
+    reportModal.style.display = 'block';
+  }
+  
+  async function generateReport() {
+    if (!currentAnalysisId) {
+      alert('No analysis results to generate report from');
+      return;
+    }
+    
+    try {
+      // Show loading indicator
+      showLoading('Generating report...');
+      
+      // Take a screenshot of the map if include map is checked
+      let mapSnapshot = null;
+      if (includeMap.checked && window.map) {
+        // Use leaflet-image library if available, otherwise null
+        if (window.L && window.L.Control.Screenshot) {
+          mapSnapshot = await captureMapScreenshot();
+        }
+      }
+      
+      // Prepare report request
+      const reportRequest = {
+        title: reportTitle.value,
+        analysis_id: currentAnalysisId,
+        location_id: currentLocationId || null,
+        include_map: includeMap.checked,
+        map_snapshot: mapSnapshot
+      };
+      
+      // Send report generation request
+      const response = await fetch('/api/generate-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reportRequest)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Report generation failed: ' + response.statusText);
+      }
+      
+      const result = await response.json();
+      
+      // Hide loading indicator
+      hideLoading();
+      
+      // Close modal
+      reportModal.style.display = 'none';
+      
+      // Open report in new window/tab
+      window.open('/api/reports/' + result.report_id, '_blank');
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('Error generating report: ' + error.message);
+      hideLoading();
+    }
+  }
+  
+  async function captureMapScreenshot() {
+    return new Promise((resolve) => {
+      // Implement map screenshot functionality if needed
+      // This is a placeholder for now
+      resolve(null);
+    });
+  }
+  
+  function showLoading(message) {
+    // Show loading overlay
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+    
+    if (loadingOverlay) {
+      if (loadingMessage) {
+        loadingMessage.textContent = message || 'Loading...';
+      }
+      loadingOverlay.style.display = 'flex';
+    }
+  }
+  
+  function hideLoading() {
+    // Hide loading overlay
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+      loadingOverlay.style.display = 'none';
+    }
+  }
+});
+</script>
+
     </div>
   </div>
 </div>
@@ -274,7 +868,7 @@
     <div class="tool-group">
       <button id="selectTool" class="tool-button" title="Select Features"><i class="fas fa-mouse-pointer"></i></button>
       <button id="panTool" class="tool-button active" title="Pan Map"><i class="fas fa-hand-paper"></i></button>
-    </div>
+    </div>v>
     <div class="tool-group">
       <button id="drawMarker" class="tool-button" title="Add Point"><i class="fas fa-map-marker-alt"></i></button>
       <button id="drawPolygon" class="tool-button" title="Draw Polygon"><i class="fas fa-draw-polygon"></i></button>
