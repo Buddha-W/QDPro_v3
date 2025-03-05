@@ -670,6 +670,75 @@
           }
         }
         return bounds.isValid() ? bounds : null;
+      },
+      createLayer: function() {
+        const layerName = document.getElementById("newLayerName").value.trim();
+        const layerType = document.getElementById("newLayerType").value;
+
+        if (!layerName) {
+          alert("Please enter a layer name");
+          return;
+        }
+
+        if (this.layers[layerName]) {
+          alert("A layer with this name already exists");
+          return;
+        }
+
+        let layerColor = "#3388ff"; // Default blue
+
+        if (layerType === "PES") {
+          layerColor = "#ff0000"; // Red for PES
+        } else if (layerType === "ES") {
+          layerColor = "#00ff00"; // Green for ES
+        }
+
+        const newLayer = L.featureGroup().addTo(this.map);
+        newLayer.properties = { type: layerType, color: layerColor };
+        this.layers[layerName] = newLayer;
+
+        // Switch to the new layer as active
+        this.activeLayer = newLayer;
+
+        this.updateDrawToLayerSelect();
+        this.updateDrawToolColors();
+        this.closeAddLayerModal();
+
+        console.log(`Created new layer: ${layerName}, type: ${layerType}, color: ${layerColor}`);
+
+        // Save after creating a new layer
+        this.saveProject();
+      },
+      setupEventHandlers: function() {
+        // Use event handling for objects created with drawing tools
+        this.map.on(L.Draw.Event.CREATED, (e) => {
+          const layer = e.layer;
+
+          // Apply the current active layer's color to the new shape
+          if (this.activeLayer && this.activeLayer.properties) {
+            const layerColor = this.activeLayer.properties.color || "#3388ff";
+            layer.setStyle({
+              color: layerColor,
+              fillColor: layerColor,
+              fillOpacity: 0.2
+            });
+
+            // Store layer properties on the feature for persistence
+            if (!layer.feature) {
+              layer.feature = { type: "Feature", properties: {} };
+            }
+            if (!layer.feature.properties) {
+              layer.feature.properties = {};
+            }
+            layer.feature.properties.layerColor = layerColor;
+            layer.feature.properties.layerType = this.activeLayer.properties.type || 'Default';
+          }
+
+          this.activeLayer.addLayer(layer);
+
+          // Save project when shapes are drawn
+          this.saveProject();
+        });
       }
     };
 
