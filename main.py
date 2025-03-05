@@ -117,18 +117,47 @@ async def save_layers(request: Request, location_id: Optional[int] = None):
         cur = conn.cursor()
         layer_name = data.get("layer_name", "Default")
         layer_config = {"type": "FeatureCollection", "features": data.get("features", [])}
-        if location_id:
+        
+        # Check if location_id column exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'map_layers' AND column_name = 'location_id')")
+        location_id_exists = cur.fetchone()[0]
+        
+        # Check if there's a primary key constraint on (name, location_id)
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.table_constraints tc
+                JOIN information_schema.constraint_column_usage ccu ON tc.constraint_name = ccu.constraint_name
+                WHERE tc.constraint_type = 'PRIMARY KEY' 
+                AND tc.table_name = 'map_layers' 
+                AND ccu.column_name = 'name' 
+                AND EXISTS (
+                    SELECT FROM information_schema.constraint_column_usage 
+                    WHERE constraint_name = tc.constraint_name 
+                    AND column_name = 'location_id'
+                )
+            )
+        """)
+        has_composite_pk = cur.fetchone()[0]
+        
+        if location_id_exists and location_id and has_composite_pk:
             cur.execute("""
                 INSERT INTO map_layers (name, layer_config, location_id, is_active)
                 VALUES (%s, %s, %s, TRUE)
-                ON CONFLICT (name) DO UPDATE SET layer_config = EXCLUDED.layer_config, is_active = TRUE
+                ON CONFLICT (name, location_id) DO UPDATE SET layer_config = EXCLUDED.layer_config, is_active = TRUE
+            """, (layer_name, json.dumps(layer_config), location_id))
+        elif location_id_exists and location_id:
+            # If location_id exists but no composite PK
+            cur.execute("""
+                INSERT INTO map_layers (name, layer_config, location_id, is_active)
+                VALUES (%s, %s, %s, TRUE)
             """, (layer_name, json.dumps(layer_config), location_id))
         else:
+            # Fallback to just using name
             cur.execute("""
                 INSERT INTO map_layers (name, layer_config, is_active)
                 VALUES (%s, %s, TRUE)
-                ON CONFLICT (name) DO UPDATE SET layer_config = EXCLUDED.layer_config, is_active = TRUE
             """, (layer_name, json.dumps(layer_config)))
+        
         conn.commit()
         return {"status": "success", "message": f"Layer '{layer_name}' saved to DB"}
     except Exception as e:
@@ -144,7 +173,17 @@ async def get_locations(include_deleted: bool = False):
     try:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
-        query = "SELECT id, location_name, created_at FROM locations WHERE deleted = FALSE" if not include_deleted else "SELECT id, location_name, created_at FROM locations"
+        
+        # Check if deleted column exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'locations' AND column_name = 'deleted')")
+        deleted_exists = cur.fetchone()[0]
+        
+        if deleted_exists and not include_deleted:
+            query = "SELECT id, location_name, created_at FROM locations WHERE deleted = FALSE"
+        else:
+            # If deleted column doesn't exist or we want all locations
+            query = "SELECT id, location_name, created_at FROM locations"
+            
         cur.execute(query)
         rows = cur.fetchall()
         locations = [{"id": r[0], "name": r[1], "created_at": str(r[2])} for r in rows]
@@ -255,27 +294,57 @@ def init_db():
     try:
         conn = psycopg2.connect(db_url)
         cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS locations (
-                id SERIAL PRIMARY KEY,
-                location_name VARCHAR(255) NOT NULL,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                deleted BOOLEAN DEFAULT FALSE,
-                deleted_at TIMESTAMP WITH TIME ZONE
-            )
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS map_layers (
-                name VARCHAR(255) NOT NULL,
-                layer_config JSONB,
-                location_id INTEGER REFERENCES locations(id) ON DELETE CASCADE,
-                is_active BOOLEAN DEFAULT TRUE,
-                PRIMARY KEY (name, location_id)
-            )
-        """)
+        
+        # Check if locations table exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'locations')")
+        locations_exists = cur.fetchone()[0]
+        
+        if not locations_exists:
+            # Create locations table if it doesn't exist
+            cur.execute("""
+                CREATE TABLE locations (
+                    id SERIAL PRIMARY KEY,
+                    location_name VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    deleted BOOLEAN DEFAULT FALSE,
+                    deleted_at TIMESTAMP WITH TIME ZONE
+                )
+            """)
+        else:
+            # Add 'deleted' column if it doesn't exist
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'locations' AND column_name = 'deleted')")
+            deleted_exists = cur.fetchone()[0]
+            if not deleted_exists:
+                cur.execute("ALTER TABLE locations ADD COLUMN deleted BOOLEAN DEFAULT FALSE")
+                cur.execute("ALTER TABLE locations ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE")
+        
+        # Check if map_layers table exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'map_layers')")
+        map_layers_exists = cur.fetchone()[0]
+        
+        if not map_layers_exists:
+            # Create map_layers table if it doesn't exist
+            cur.execute("""
+                CREATE TABLE map_layers (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    layer_config JSONB,
+                    location_id INTEGER,
+                    is_active BOOLEAN DEFAULT TRUE
+                )
+            """)
+        else:
+            # Add 'location_id' column if it doesn't exist
+            cur.execute("SELECT EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'map_layers' AND column_name = 'location_id')")
+            location_id_exists = cur.fetchone()[0]
+            if not location_id_exists:
+                cur.execute("ALTER TABLE map_layers ADD COLUMN location_id INTEGER")
+        
         conn.commit()
+        print("Database initialized successfully")
     except Exception as e:
         print(f"Error initializing DB: {e}")
+        traceback.print_exc()
     finally:
         if 'cur' in locals(): cur.close()
         if 'conn' in locals(): conn.close()
