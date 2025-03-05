@@ -39,6 +39,10 @@
     .modal-content h2 { margin-bottom: 15px; }
     .modal-content input, .modal-content select, .modal-content textarea { width: 100%; padding: 5px; margin-top: 5px; margin-bottom: 10px; }
     .modal-content button { margin: 5px; }
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+    .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; }
+    .facility-icon { text-align: center; }
+    .violation-icon { text-align: center; }
   </style>
 </head>
 <body>
@@ -692,7 +696,8 @@
             if (key.startsWith('base_')) {
               baseLayersCopy[key] = this.layers[key];
               baseColorssCopy[key] = this.layerColors[key];
-                        }          });
+            }
+          });
 
           this.layers = baseLayersCopy;
           this.layerColors = baseColorssCopy;
@@ -798,9 +803,9 @@
           return;
         }
 
-        // Get all features from all layers
-        const features = [];
-        Object.values(this.layers).forEach(layer => {
+        // Get all selectable features from all layers
+        const allFeatures = [];
+        Object.entries(this.layers).forEach(([layerName, layer]) => {
           layer.eachLayer(l => {
             if (l.toGeoJSON) {
               const feature = l.toGeoJSON();
@@ -808,48 +813,157 @@
               if (l.feature && l.feature.properties) {
                 feature.properties = {...feature.properties, ...l.feature.properties};
               }
-              features.push(feature);
+              // Add layer name and ID for reference
+              feature.properties.layerName = layerName;
+              feature.properties.featureId = l._leaflet_id || Math.random().toString(36).substr(2, 9);
+              // Add a human-readable name for display
+              feature.properties.displayName = feature.properties.name || feature.properties.facility_name || 
+                                              (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${feature.properties.featureId.substr(-4)}`);
+              allFeatures.push(feature);
             }
           });
         });
 
-        if (features.length === 0) {
+        if (allFeatures.length === 0) {
           alert("No shapes to analyze. Please draw some shapes first.");
           return;
         }
 
-        try {
-          // Show loading indicator
-          setStatusMessage("Running QD analysis...", "info");
+        // Create a selection modal for choosing features to analyze
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'analysisSelectionModal';
+        modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
 
-          // Call the backend API
-          const response = await fetch("/api/analyze-location", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              location_id: this.currentLocationId,
-              features: features
-            })
+        let modalContent = `
+          <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px;">
+            <h2>Select Features for Analysis</h2>
+            <div style="margin-bottom: 10px;">
+              <button id="selectAllFeatures" style="margin-right: 10px;">Select All</button>
+              <button id="deselectAllFeatures">Deselect All</button>
+            </div>
+            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 15px;">
+        `;
+
+        // Group features by layer for better organization
+        const featuresByLayer = {};
+        allFeatures.forEach(feature => {
+          const layerName = feature.properties.layerName;
+          if (!featuresByLayer[layerName]) {
+            featuresByLayer[layerName] = [];
+          }
+          featuresByLayer[layerName].push(feature);
+        });
+
+        // Add feature selection checkboxes grouped by layer
+        Object.entries(featuresByLayer).forEach(([layerName, features]) => {
+          modalContent += `<div style="margin-bottom: 10px;"><strong>${layerName}</strong></div>`;
+
+          features.forEach(feature => {
+            const isExplosiveFacility = feature.properties.net_explosive_weight || 
+                                      feature.properties.new || 
+                                      feature.properties.type === 'Facility' || 
+                                      feature.properties.type === 'Bunker';
+
+            modalContent += `
+              <div style="margin-left: 20px; margin-bottom: 5px;">
+                <input type="checkbox" id="feature-${feature.properties.featureId}" 
+                       data-feature-id="${feature.properties.featureId}" 
+                       ${isExplosiveFacility ? 'checked' : ''}>
+                <label for="feature-${feature.properties.featureId}">
+                  ${feature.properties.displayName}
+                  ${isExplosiveFacility ? ' (Explosive Facility)' : ''}
+                </label>
+              </div>
+            `;
           });
+        });
 
-          if (!response.ok) {
-            throw new Error(`Analysis failed: ${response.statusText}`);
+        modalContent += `
+            </div>
+            <div>
+              <button id="runAnalysisBtn" style="background-color: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; margin-right: 10px;">
+                Run Analysis
+              </button>
+              <button id="cancelAnalysisBtn" style="padding: 10px 15px; border: 1px solid #ddd; cursor: pointer;">
+                Cancel
+              </button>
+            </div>
+          </div>
+        `;
+
+        modal.innerHTML = modalContent;
+        document.body.appendChild(modal);
+
+        // Add event listeners to buttons
+        document.getElementById('selectAllFeatures').addEventListener('click', () => {
+          document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]').forEach(cb => {
+            cb.checked = true;
+          });
+        });
+
+        document.getElementById('deselectAllFeatures').addEventListener('click', () => {
+          document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]').forEach(cb => {
+            cb.checked = false;
+          });
+        });
+
+        document.getElementById('cancelAnalysisBtn').addEventListener('click', () => {
+          document.body.removeChild(modal);
+        });
+
+        const self = this;
+        document.getElementById('runAnalysisBtn').addEventListener('click', async function() {
+          // Get selected features
+          const selectedFeatureIds = Array.from(
+            document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]:checked')
+          ).map(cb => cb.getAttribute('data-feature-id'));
+
+          // Filter features based on selection
+          const selectedFeatures = allFeatures.filter(f => 
+            selectedFeatureIds.includes(f.properties.featureId)
+          );
+
+          if (selectedFeatures.length === 0) {
+            alert("Please select at least one feature to analyze.");
+            return;
           }
 
-          const result = await response.json();
-          console.log("Analysis results:", result);
+          // Remove modal
+          document.body.removeChild(modal);
 
-          // Display results on the map
-          this.displayAnalysisResults(result);
+          try {
+            // Show loading indicator
+            setStatusMessage("Running QD analysis...", "info");
 
-          // Update status
-          setStatusMessage(`Analysis complete: ${result.total_facilities} facilities analyzed, ${result.total_violations} violations found`, "success");
-        } catch (error) {
-          console.error("Error during analysis:", error);
-          setStatusMessage(`Analysis failed: ${error.message}`, "error");
-        }
+            // Call the backend API
+            const response = await fetch("/api/analyze-location", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                location_id: self.currentLocationId,
+                features: selectedFeatures
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error(`Analysis failed: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log("Analysis results:", result);
+
+            // Display results on the map
+            self.displayAnalysisResults(result);
+
+            // Update status
+            setStatusMessage(`Analysis complete: ${result.total_facilities} facilities analyzed, ${result.total_violations} violations found`, "success");
+          } catch (error) {
+            console.error("Error during analysis:", error);
+            setStatusMessage(`Analysis failed: ${error.message}`, "error");
+          }
+        });
       },
-
       displayAnalysisResults: function(analysis) {
         // Clear any existing analysis layers
         if (this.analysisLayer) {
@@ -861,6 +975,20 @@
 
         // Add QD rings to the map
         analysis.facilities_analyzed.forEach(facility => {
+          // Add a marker for the facility location
+          const facilityMarker = L.marker([facility.facility_latitude || 0, facility.facility_longitude || 0], {
+            icon: L.divIcon({
+              className: 'facility-icon',
+              html: `<div style="background-color: red; border-radius: 50%; width: 12px; height: 12px; border: 2px solid white;"></div>`,
+              iconSize: [16, 16],
+              iconAnchor: [8, 8]
+            })
+          }).bindPopup(`<b>${facility.facility_name}</b><br>
+                        NEW: ${facility.net_explosive_weight} lbs<br>
+                        Type: ${facility.facility_type || 'Bunker'}<br>
+                        Safety Distance: ${facility.safe_distance} ft`)
+            .addTo(this.analysisLayer);
+
           // Add QD rings
           if (facility.qd_rings && facility.qd_rings.length > 0) {
             facility.qd_rings.forEach(ring => {
@@ -884,9 +1012,42 @@
 
           // Highlight violations if any
           if (facility.violations && facility.violations.length > 0) {
+            // Create violation markers and lines
+            facility.violations.forEach(violation => {
+              if (violation.feature_coordinates) {
+                // Draw a line between facility and violation
+                const violationLine = L.polyline([
+                  [facility.facility_latitude || 0, facility.facility_longitude || 0],
+                  violation.feature_coordinates
+                ], {
+                  color: 'red',
+                  weight: 2,
+                  dashArray: '5, 5',
+                  opacity: 0.8
+                }).addTo(this.analysisLayer);
+
+                // Add a marker for the violation
+                const violationMarker = L.marker(violation.feature_coordinates, {
+                  icon: L.divIcon({
+                    className: 'violation-icon',
+                    html: `<div style="background-color: yellow; color: black; border-radius: 50%; width: 20px; height: 20px; 
+                           border: 2px solid red; display: flex; align-items: center; justify-content: center; font-weight: bold;">!</div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                  })
+                }).bindPopup(`<b>Violation: ${violation.feature_name}</b><br>
+                              Current Distance: ${Math.round(violation.distance)} ft<br>
+                              Required Distance: ${Math.round(violation.required_distance)} ft<br>
+                              <span style="color: red; font-weight: bold;">
+                                Shortfall: ${Math.round(violation.required_distance - violation.distance)} ft
+                              </span>`)
+                  .addTo(this.analysisLayer);
+              }
+            });
+
             // Create a popup with violation details
             const violationsHtml = facility.violations.map(v => 
-              `<li>${v.feature_name}: ${v.distance} ft (required: ${v.required_distance} ft)</li>`
+              `<li>${v.feature_name}: ${Math.round(v.distance)} ft (required: ${Math.round(v.required_distance)} ft)</li>`
             ).join('');
 
             const popup = L.popup()
@@ -906,8 +1067,160 @@
           this.map.fitBounds(this.analysisLayer.getBounds(), {padding: [50, 50]});
         }
 
-        // Show a summary alert
-        alert(`Analysis complete:\n${analysis.total_facilities} facilities analyzed\n${analysis.total_violations} safety violations found`);
+        // Show detailed analysis report in a modal
+        this.showAnalysisReportModal(analysis);
+      },
+
+      showAnalysisReportModal: function(analysis) {
+        // Create a modal for the analysis report
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'analysisReportModal';
+        modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
+
+        let modalContent = `
+          <div style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+              <h2>QD Analysis Report</h2>
+              <div>
+                <button id="exportPdfBtn" style="background-color: #4CAF50; color: white; padding: 5px 10px; margin-right: 10px; border: none; cursor: pointer;">
+                  Export PDF
+                </button>
+                <button id="closeReportBtn" style="background-color: #f44336; color: white; padding: 5px 10px; border: none; cursor: pointer;">
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div style="padding: 10px; border: 1px solid #ddd; margin-bottom: 15px; background-color: #f9f9f9;">
+              <h3>Summary</h3>
+              <p><strong>Location:</strong> ${this.currentLocationName || 'Current Location'}</p>
+              <p><strong>Total Facilities Analyzed:</strong> ${analysis.total_facilities}</p>
+              <p><strong>Total Violations Found:</strong> ${analysis.total_violations}</p>
+              <p><strong>Analysis Date:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+        `;
+
+        // Detailed facility analysis
+        if (analysis.facilities_analyzed && analysis.facilities_analyzed.length > 0) {
+          modalContent += `<h3>Facilities Analyzed</h3>`;
+
+          analysis.facilities_analyzed.forEach(facility => {
+            const hasViolations = facility.violations && facility.violations.length > 0;
+
+            modalContent += `
+              <div style="padding: 10px; border: 1px solid ${hasViolations ? '#f44336' : '#ddd'}; 
+                          margin-bottom: 15px; background-color: ${hasViolations ? '#fff8f8' : '#fff'};">
+                <h4 style="color: ${hasViolations ? '#f44336' : '#333'};">
+                  ${facility.facility_name || 'Unnamed Facility'} 
+                  ${hasViolations ? ' <span style="color: #f44336;">(VIOLATIONS FOUND)</span>' : ''}
+                </h4>
+                <div style="display: flex; flex-wrap: wrap;">
+                  <div style="flex: 1; min-width: 250px; margin-right: 15px;">
+                    <p><strong>Type:</strong> ${facility.facility_type || 'Bunker'}</p>
+                    <p><strong>Net Explosive Weight:</strong> ${facility.net_explosive_weight} lbs</p>
+                    <p><strong>Required Safety Distance:</strong> ${facility.safe_distance} ft</p>
+                  </div>
+                  <div style="flex: 1; min-width: 250px;">
+                    <p><strong>Location:</strong> ${facility.facility_latitude ? `${facility.facility_latitude.toFixed(6)}, ${facility.facility_longitude.toFixed(6)}` : 'Unknown'}</p>
+                    <p><strong>Rules Applied:</strong> ${facility.rules_applied || 'Standard DoD 6055.09-M'}</p>
+                  </div>
+                </div>
+            `;
+
+            // Violation details if any
+            if (hasViolations) {
+              modalContent += `
+                <div style="margin-top: 10px; padding: 10px; background-color: #fff0f0; border-left: 3px solid #f44336;">
+                  <h5 style="color: #f44336; margin-top: 0;">Safety Violations</h5>
+                  <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                      <tr style="background-color: #f8f8f8;">
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Feature</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Actual Distance (ft)</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Required Distance (ft)</th>
+                        <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Shortfall (ft)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+              `;
+
+              facility.violations.forEach(violation => {
+                const shortfall = Math.round(violation.required_distance - violation.distance);
+                modalContent += `
+                  <tr>
+                    <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${violation.feature_name}</td>
+                    <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${Math.round(violation.distance)}</td>
+                    <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${Math.round(violation.required_distance)}</td>
+                    <td style="padding: 8px; text-align: left; border: 1px solid #ddd; color: #f44336; font-weight: bold;">${shortfall}</td>
+                  </tr>
+                `;
+              });
+
+              modalContent += `
+                    </tbody>
+                  </table>
+                </div>
+              `;
+            } else {
+              modalContent += `
+                <div style="margin-top: 10px; padding: 10px; background-color: #f0fff0; border-left: 3px solid #4CAF50;">
+                  <p style="color: #4CAF50; margin: 0;"><strong>✓ No safety violations detected for this facility</strong></p>
+                </div>
+              `;
+            }
+
+            modalContent += `</div>`;
+          });
+        }
+
+        // Recommendations section
+        modalContent += `
+          <div style="padding: 10px; border: 1px solid #ddd; margin-top: 20px; background-color: #f9f9f9;">
+            <h3>Recommendations</h3>
+            <ul>
+        `;
+
+        if (analysis.total_violations > 0) {
+          modalContent += `
+            <li>Review all highlighted violations and assess the risk level for each.</li>
+            <li>Consider relocating explosive materials to maintain proper safety distances.</li>
+            <li>Implement administrative controls for areas that cannot be physically modified.</li>
+            <li>Consult safety officer for waiver requirements where violations cannot be resolved.</li>
+          `;
+        } else {
+          modalContent += `
+            <li>All analyzed facilities meet safety distance requirements.</li>
+            <li>Continue to monitor any new construction or changes to facility usage.</li>
+          `;
+        }
+
+        modalContent += `
+            </ul>
+          </div>
+
+          <div style="margin-top: 20px; font-size: 0.8em; text-align: center; color: #777;">
+            <p>Generated by QDPro Analysis Engine • ${new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+        `;
+
+        modal.innerHTML = modalContent;
+        document.body.appendChild(modal);
+
+        // Add event listeners to buttons
+        document.getElementById('closeReportBtn').addEventListener('click', () => {
+          document.body.removeChild(modal);
+        });
+
+        document.getElementById('exportPdfBtn').addEventListener('click', () => {
+          // Use the exportPDF function if available, otherwise print
+          if (typeof exportPDF === 'function') {
+            exportPDF();
+          } else {
+            window.print();
+          }
+        });
       }
     };
 
