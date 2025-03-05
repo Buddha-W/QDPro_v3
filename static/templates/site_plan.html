@@ -174,11 +174,11 @@
       baseLayers: {},
       currentBaseLayer: null,
       currentLocationId: null,
-      currentLocationName: null, // Added to store location name
+      currentLocationName: null,
+      layerColors: {}, // Added to store layer colors
       init: async function() {
         console.log("Initializing QDPro...");
 
-        // Initialize location tracking variables
         this.currentLocationId = null;
         this.currentLocationName = null;
 
@@ -211,7 +211,6 @@
         document.getElementById("drawPolyline").addEventListener("click", () => this.activateTool("polyline", "drawPolyline"));
         this.updateDrawToLayerSelect();
 
-        // Initialize status display
         document.getElementById("dbStatus").textContent = "No location selected";
 
         this.loadProject();
@@ -233,15 +232,37 @@
               coords.push(coords[0]);
               layer.setLatLngs(coords);
             }
-            // Removed prompt for polygon type
-            layer.feature = layer.toGeoJSON();
           }
-          this.activeLayer.addLayer(layer);
-          this.deactivateAllTools();
-          this.saveProject();
+          this.handleDrawCreated(e);
         });
         this.map.on("draw:edited", () => this.saveProject());
         this.map.on("draw:deleted", () => this.saveProject());
+      },
+      handleDrawCreated: function(e) {
+        const layer = e.layer;
+        const selectedLayer = document.getElementById("drawToLayer").value;
+
+        if (!this.layers[selectedLayer]) {
+          this.layers[selectedLayer] = L.featureGroup().addTo(this.map);
+        }
+
+        if (this.layerColors[selectedLayer]) {
+          if (layer.setStyle) {
+            layer.setStyle({
+              color: this.layerColors[selectedLayer],
+              fillColor: this.layerColors[selectedLayer],
+              weight: 3,
+              opacity: 1,
+              fillOpacity: 0.2
+            });
+          }
+        }
+
+        this.layers[selectedLayer].addLayer(layer);
+        this.addLayerClickHandlers(layer);
+
+        this.saveProject();
+        console.log("Project saved after creating new shape");
       },
       activateTool: function(toolName, buttonId) {
         this.deactivateAllTools();
@@ -259,21 +280,16 @@
         const sel = document.getElementById("drawToLayer");
         sel.innerHTML = "";
 
-        // Add all existing layers to the dropdown
         for (let key in this.layers) {
           const opt = document.createElement("option");
           opt.value = key;
           opt.textContent = key;
-
-          // Select the active layer
           if (this.activeLayer === this.layers[key]) {
             opt.selected = true;
           }
-
           sel.appendChild(opt);
         }
 
-        // If no layers exist, create a default one
         if (Object.keys(this.layers).length === 0) {
           const opt = document.createElement("option");
           opt.value = "Default";
@@ -285,7 +301,6 @@
           this.layers["Default"] = this.activeLayer;
         }
 
-        // When layer selection changes, update the active layer
         sel.onchange = () => {
           this.switchDrawToLayer();
         };
@@ -295,19 +310,17 @@
         if (layerName && this.layers[layerName]) {
           this.activeLayer = this.layers[layerName];
 
-          // Update draw controls with layer-specific styles
           if (layerName === "PES") {
             this.updateDrawStyles('red');
           } else if (layerName === "ES") {
             this.updateDrawStyles('green');
           } else {
-            this.updateDrawStyles(null); // Reset to default
+            this.updateDrawStyles(null);
           }
         }
       },
       updateDrawStyles: function(color) {
         if (!color) {
-          // Use defaults if no color specified
           const drawOptions = { shapeOptions: { color: "#3388ff" } };
           for (let type in this.drawTools) {
             if (this.drawTools[type]) {
@@ -325,7 +338,6 @@
           }
         };
 
-        // Update all draw controls with the new style
         for (let type in this.drawTools) {
           if (this.drawTools[type] && this.drawTools[type].options && this.drawTools[type].options.shapeOptions) {
             Object.assign(this.drawTools[type].options.shapeOptions, styleOptions.shapeOptions);
@@ -394,7 +406,7 @@
           });
           const data = await response.json();
           this.currentLocationId = data.id;
-          this.currentLocationName = data.name; // Store location name
+          this.currentLocationName = data.name;
           document.getElementById("dbStatus").textContent = `Location: ${data.name}`;
           for (let key in this.layers) this.map.removeLayer(this.layers[key]);
           this.layers = {};
@@ -435,7 +447,6 @@
         console.log("Switching to location:", locObj);
 
         try {
-          // Store both location ID and name
           this.currentLocationId = locObj.id;
           this.currentLocationName = locObj.name;
 
@@ -443,7 +454,6 @@
           this.activeLayer = L.featureGroup().addTo(this.map);
           this.layers["Default"] = this.activeLayer;
 
-          // Update UI to reflect current location
           document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationName}`;
 
           this.updateDrawToLayerSelect();
@@ -455,129 +465,191 @@
           document.getElementById("dbStatus").textContent = `Error loading location: ${this.currentLocationName}`;
         }
       },
-      saveProject: async function() {
-        let projectData = { layers: {} };
-
-        for (let layerName in this.layers) {
-          const layer = this.layers[layerName];
-          if (!layer) continue;
-
-          // Extract features from the layer
-          let features = [];
-          layer.eachLayer(function(l) {
-            if (l.toGeoJSON) {
-              let feature = l.toGeoJSON();
-              // Store the layer name in the feature properties
-              feature.properties = feature.properties || {};
-              feature.properties.layerName = layerName;
-
-              if (l._popup) {
-                feature.properties.popupContent = l._popup._content;
-              }
-              features.push(feature);
-            }
-          });
-
-          projectData.layers[layerName] = {
-            features: features
-          };
-        }
-
-        // Save to localStorage
-        localStorage.setItem('qdproProject', JSON.stringify(projectData));
-      },
-      loadProject: async function() {
+      saveProject: function() {
         try {
-          const url = this.currentLocationId ? `/api/load-layers?location_id=${this.currentLocationId}` : "/api/load-layers";
-          const response = await fetch(url);
-          const data = await response.json();
-          for (let key in this.layers) this.layers[key].clearLayers();
-          if (data.layers && data.layers.features && data.layers.features.length > 0) {
-            data.layers.features.forEach(feature => {
-              if (feature.layerName) { // Check if layerName exists
-                let layer = this.layers[feature.layerName];
-                if (!layer) {
-                  layer = L.featureGroup().addTo(this.map);
-                  this.layers[feature.layerName] = layer;
-                }
-                let layerStyle = {};
-                if (feature.properties && feature.properties.layerName === "PES") {
-                  layerStyle = {
-                    color: 'red',
-                    fillColor: 'red',
-                    fillOpacity: 0.3
+          console.log("Starting saveProject function");
+          let savedData = {
+            layers: {},
+            currentLocationName: this.currentLocationName || "",
+            currentLocationId: this.currentLocationId || null
+          };
+
+          for (const layerName in this.layers) {
+            if (!this.layers[layerName]) continue;
+
+            console.log(`Processing layer: ${layerName}`);
+            const layer = this.layers[layerName];
+
+            const layerInfo = {
+              color: this.layerColors[layerName] || "#3388ff",
+              features: []
+            };
+
+            layer.eachLayer(function(l) {
+              if (l.toGeoJSON) {
+                const feature = l.toGeoJSON();
+
+                feature.properties = feature.properties || {};
+                feature.properties.layerName = layerName;
+
+                if (l.options) {
+                  feature.properties.style = {
+                    color: l.options.color,
+                    fillColor: l.options.fillColor,
+                    weight: l.options.weight,
+                    opacity: l.options.opacity,
+                    fillOpacity: l.options.fillOpacity
                   };
-                } else if (feature.properties && feature.properties.layerName === "ES") {
-                  layerStyle = {
-                    color: 'green',
-                    fillColor: 'green',
-                    fillOpacity: 0.3
-                  };
                 }
-                L.geoJSON(feature, {
-                  style: layerStyle,
-                  onEachFeature: (f, l) => {
-                    if (f.properties && f.properties.type) {
-                      l.bindPopup("Type: " + f.properties.type);
-                    }
-                    layer.addLayer(l);
-                  }
-                });
+
+                if (l._popup) {
+                  feature.properties.popupContent = l._popup._content;
+                }
+
+                layerInfo.features.push(feature);
               }
             });
-            this.updateDrawToLayerSelect(); //Added to update select after load.
 
-            // Set the first layer as active if available
-            const layerNames = Object.keys(this.layers);
-            if (layerNames.length > 0) {
-              const selectElement = document.getElementById("drawToLayer");
-              if (selectElement) {
-                selectElement.value = layerNames[0];
-                this.switchDrawToLayer(); // Apply styling based on selected layer
-              }
-            }
-
-            // Only try to fit bounds if there are valid layers with features
-            if (Object.keys(this.layers).length > 0) {
-              try {
-                // First check which layers have valid bounds
-                let hasValidBounds = false;
-                let bounds = L.latLngBounds([]);
-
-                for (let layerName in this.layers) {
-                  const layer = this.layers[layerName];
-                  // Only extend bounds if the layer has features
-                  if (layer.getLayers().length > 0) {
-                    try {
-                      const layerBounds = layer.getBounds();
-                      if (layerBounds.isValid()) {
-                        bounds.extend(layerBounds);
-                        hasValidBounds = true;
-                      }
-                    } catch (e) {
-                      console.warn(`Layer ${layerName} has invalid bounds:`, e);
-                    }
-                  }
-                }
-
-                // Only fit bounds if we have valid bounds
-                if (hasValidBounds) {
-                  this.map.fitBounds(bounds);
-                } else {
-                  console.log("No valid bounds found, using default view");
-                }
-              } catch (e) {
-                console.warn("Error fitting bounds:", e);
-                // Use default view if bounds fitting fails
-              }
-            }
-            console.log("Project loaded:", data);
-          } else {
-            console.log("No project features found.");
+            savedData.layers[layerName] = layerInfo;
           }
-        } catch (e) {
-          console.error("Error loading project:", e);
-          alert("Failed to load project");
+
+          localStorage.setItem('qdproProject', JSON.stringify(savedData));
+          console.log("Project saved to localStorage:", savedData);
+
+          sessionStorage.setItem('qdproProject', JSON.stringify(savedData));
+
+          this.saveToServer(savedData);
+
+          return true;
+        } catch (error) {
+          console.error("Error in saveProject:", error);
+          alert("Error saving project: " + error.message);
+          return false;
+        }
+      },
+
+      saveToServer: function(data) {
+        const features = [];
+
+        for (const layerName in data.layers) {
+          const layerData = data.layers[layerName];
+          layerData.features.forEach(feature => {
+            feature.layerName = layerName;
+            features.push(feature);
+          });
+        }
+
+        fetch('/api/save-layers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            features: features,
+            layer_name: "all_layers",
+            location_id: data.currentLocationId || null
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Project saved successfully to server:", data);
+        })
+        .catch(error => {
+          console.error("Error saving project to server:", error);
+        });
+      },
+
+      loadProject: async function() {
+        try {
+          console.log("Starting loadProject function");
+
+          const urlParams = new URLSearchParams(window.location.search);
+          const locationId = urlParams.get('location_id');
+          if (locationId) {
+            await this.loadLocation(locationId);
+            return;
+          }
+
+          const savedProject = localStorage.getItem('qdproProject');
+          if (!savedProject) {
+            console.log("No saved project found in localStorage");
+            return false;
+          }
+
+          console.log("Found saved project in localStorage");
+          let projectData;
+
+          try {
+            projectData = JSON.parse(savedProject);
+            console.log("Parsed project data:", projectData);
+          } catch (e) {
+            console.error("Failed to parse saved project:", e);
+            return false;
+          }
+
+          this.clearLayers();
+
+          if (projectData.currentLocationName) {
+            this.currentLocationName = projectData.currentLocationName;
+            document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationName}`;
+          }
+
+          if (projectData.currentLocationId) {
+            this.currentLocationId = projectData.currentLocationId;
+          }
+
+          for (const layerName in projectData.layers) {
+            const layerData = projectData.layers[layerName];
+            console.log(`Processing saved layer: ${layerName}`, layerData);
+
+            const layer = L.featureGroup();
+
+            if (layerData.color) {
+              this.layerColors[layerName] = layerData.color;
+            }
+
+            if (layerData.features && layerData.features.length > 0) {
+              layerData.features.forEach(feature => {
+                let style = {};
+                if (feature.properties && feature.properties.style) {
+                  style = feature.properties.style;
+                } else {
+                  style = {
+                    color: this.layerColors[layerName] || "#3388ff",
+                    fillColor: this.layerColors[layerName] || "#3388ff",
+                    weight: 3,
+                    opacity: 1,
+                    fillOpacity: 0.2
+                  };
+                }
+
+                const geoJSONLayer = L.geoJSON(feature, {
+                  style: style,
+                  onEachFeature: (feature, layer) => {
+                    if (feature.properties && feature.properties.popupContent) {
+                      layer.bindPopup(feature.properties.popupContent);
+                    }
+
+                    this.addLayerClickHandlers(layer);
+                  }
+                });
+
+                geoJSONLayer.eachLayer(l => {
+                  layer.addLayer(l);
+                });
+              });
+            }
+
+            layer.addTo(this.map);
+            this.layers[layerName] = layer;
+          }
+
+          this.updateLayerToggle();
+          console.log("Project loaded successfully");
+          return true;
+        } catch (error) {
+          console.error("Error loading project:", error);
+          return false;
         }
       },
       clearLayers: function() {
@@ -586,7 +658,54 @@
         }
         this.layers = {};
       },
+      addLayerClickHandlers: function(layer) {
+        layer.on({
+          click: (e) => {
+            console.log('Layer clicked:', e.latlng);
+          }
+        });
+      },
+      updateLayerToggle: function() {
+        this.updateDrawToLayerSelect();
+        const layerNames = Object.keys(this.layers);
+        if (layerNames.length > 0) {
+          const selectElement = document.getElementById("drawToLayer");
+          if (selectElement) {
+            selectElement.value = layerNames[0];
+            this.switchDrawToLayer();
+          }
+        }
+        // Attempt to fit bounds after loading
+        if (Object.keys(this.layers).length > 0) {
+          try {
+            let hasValidBounds = false;
+            let bounds = L.latLngBounds([]);
 
+            for (let layerName in this.layers) {
+              const layer = this.layers[layerName];
+              if (layer.getLayers().length > 0) {
+                try {
+                  const layerBounds = layer.getBounds();
+                  if (layerBounds.isValid()) {
+                    bounds.extend(layerBounds);
+                    hasValidBounds = true;
+                  }
+                } catch (e) {
+                  console.warn(`Layer ${layerName} has invalid bounds:`, e);
+                }
+              }
+            }
+
+            if (hasValidBounds) {
+              this.map.fitBounds(bounds);
+            } else {
+              console.log("No valid bounds found, using default view");
+            }
+          } catch (e) {
+            console.warn("Error fitting bounds:", e);
+          }
+        }
+      },
       getLayerNameByObject: function(layerObj) {
         for (let name in this.layers) {
           if (this.layers[name] === layerObj) {
@@ -594,6 +713,26 @@
           }
         }
         return null;
+      },
+      loadLocation: async function(locationId) {
+        try {
+          const response = await fetch(`/api/load-layers?location_id=${locationId}`);
+          const data = await response.json();
+          if (data.name) {
+            this.currentLocationName = data.name;
+            document.getElementById("dbStatus").textContent = `Location: ${data.name}`;
+            this.currentLocationId = locationId;
+          }
+
+          this.clearLayers();
+          this.activeLayer = L.featureGroup().addTo(this.map);
+          this.layers["Default"] = this.activeLayer;
+          this.updateDrawToLayerSelect();
+          await this.loadProject();
+        } catch (error) {
+          console.error("Error loading location:", error);
+          alert(`Failed to load location with ID ${locationId}`);
+        }
       }
     };
 
@@ -610,8 +749,6 @@
 
     document.addEventListener("DOMContentLoaded", () => QDPro.init());
   </script>
-  <!-- Custom modal script -->
   <script src="/static/js/custom-modal.js"></script>
-  <!-- End of your existing scripts -->
 </body>
 </html>
