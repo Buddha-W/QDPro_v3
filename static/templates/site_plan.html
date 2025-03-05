@@ -434,7 +434,7 @@
             div.style.borderBottom = "1px solid #eee";
             div.style.cursor = "pointer";
             div.textContent = `${loc.name} (Created: ${new Date(loc.created_at).toLocaleString()})`;
-            div.addEventListener("click", () => this.switchToLocation(loc));
+            div.addEventListener("click", () => this.switchToLocation(loc.id));
             locationList.appendChild(div);
           });
         } catch (e) {
@@ -443,26 +443,38 @@
         }
       },
       closeSwitchLocationModal: function() { document.getElementById("switchLocationModal").classList.remove("visible"); },
-      switchToLocation: async function(locObj) {
-        console.log("Switching to location:", locObj);
-
+      switchToLocation: async function(locId) {
         try {
-          this.currentLocationId = locObj.id;
-          this.currentLocationName = locObj.name;
+          console.log("Switching to location ID:", locId);
+          setStatusMessage("Loading location...", "info");
 
+          const response = await fetch(`/api/load-layers?location_id=${locId}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Error loading location: ${errorData.error || response.statusText}`);
+          }
+
+          const data = await response.json();
+          console.log("Location data loaded:", data);
+
+          // Clear existing layers
           this.clearLayers();
-          this.activeLayer = L.featureGroup().addTo(this.map);
-          this.layers["Default"] = this.activeLayer;
 
-          document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationName}`;
+          // Set current location
+          this.currentLocationId = locId;
+          this.currentLocationName = data.name || "Unknown";
+          document.getElementById('dbStatus').textContent = `Location: ${this.currentLocationName}`;
 
-          this.updateDrawToLayerSelect();
+          // Load all layers for this location
           await this.loadProject();
-          this.closeSwitchLocationModal();
+
+          // Save as last used location in localStorage
+          localStorage.setItem('lastLocationId', locId);
+
+          setStatusMessage(`Loaded location: ${data.name}`, "success");
         } catch (error) {
           console.error("Error switching location:", error);
-          alert(`Failed to switch to location "${locObj.name}". Please try again.`);
-          document.getElementById("dbStatus").textContent = `Error loading location: ${this.currentLocationName}`;
+          setStatusMessage(`Error loading location: ${error.message}`, 'error');
         }
       },
       saveProject: function() {
@@ -673,7 +685,7 @@
           if (selectElement) {
             selectElement.value = layerNames[0];
             this.switchDrawToLayer();
-          }
+                    }
         }
         // Attempt to fit bounds after loading
         if (Object.keys(this.layers).length > 0) {
@@ -736,6 +748,18 @@
       }
     };
 
+    function setStatusMessage(message, type) {
+      const statusElement = document.getElementById('dbStatus');
+      statusElement.textContent = message;
+      statusElement.classList.remove('success', 'error', 'info');
+      statusElement.classList.add(type);
+    }
+
+    function clearAllLayers() {
+      QDPro.clearLayers();
+    }
+
+
     function showNewLocationModal() { QDPro.showNewLocationModal(); }
     function closeNewLocationModal() { QDPro.closeNewLocationModal(); }
     function createNewLocation() { QDPro.createNewLocation(); }
@@ -746,6 +770,32 @@
     function createNewLayer() { QDPro.createNewLayer(); }
     function saveProject() { QDPro.saveProject(); }
     function loadProject() { QDPro.loadProject(); }
+
+    // Initialize status display
+    document.getElementById('dbStatus').textContent = "No location selected";
+
+    // Add database connection status check
+    async function checkDatabaseConnection() {
+      try {
+        const response = await fetch('/api/locations');
+        if (response.ok) {
+          setStatusMessage("Database connection successful", "success");
+          return true;
+        } else {
+          setStatusMessage("Database connection issue", "error");
+          return false;
+        }
+      } catch (error) {
+        console.error("Database connection error:", error);
+        setStatusMessage("Database connection error", "error");
+        return false;
+      }
+    }
+
+    // Check database connection on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(checkDatabaseConnection, 1000);
+    });
 
     document.addEventListener("DOMContentLoaded", () => QDPro.init());
   </script>

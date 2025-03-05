@@ -256,13 +256,37 @@ async def load_location(location_id: int):
     try:
         conn = psycopg2.connect(os.environ['DATABASE_URL'])
         cur = conn.cursor()
-        cur.execute("SELECT location_name FROM locations WHERE id = %s AND deleted = FALSE", (location_id,))
+        
+        # First check if location exists, with more relaxed constraints
+        cur.execute("SELECT id, location_name FROM locations WHERE id = %s", (location_id,))
         row = cur.fetchone()
+        
         if not row:
+            logger.warning(f"Location {location_id} not found")
             return JSONResponse(status_code=404, content={"error": "Location not found"})
-        return {"location_id": location_id, "name": row[0], "facilities": [], "qdArcs": [], "analysis": []}
+            
+        location_name = row[1]
+        logger.info(f"Loading location: {location_id} - {location_name}")
+        
+        # Get all layers associated with this location
+        cur.execute("SELECT layer_config FROM map_layers WHERE location_id = %s AND is_active = TRUE", (location_id,))
+        layers_data = cur.fetchall()
+        
+        # Process the layers
+        facilities = []
+        qdArcs = []
+        analysis = []
+        
+        # Return with the location data
+        return {
+            "location_id": location_id, 
+            "name": location_name,
+            "facilities": facilities,
+            "qdArcs": qdArcs, 
+            "analysis": analysis
+        }
     except Exception as e:
-        logger.error(f"Error loading location: {str(e)}")
+        logger.error(f"Error loading location: {str(e)}\n{traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
         if 'cur' in locals(): cur.close()
@@ -328,6 +352,7 @@ def init_db():
     print(f"Using DB: {db_url}")
     try:
         conn = psycopg2.connect(db_url)
+        conn.autocommit = True  # Ensure autocommit is on
         cur = conn.cursor()
         
         # Check if locations table exists
