@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>QDPro – Full Modal Example</title>
+  <title>QDPro – Working Example with Persistence</title>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
   <!-- Leaflet.draw CSS -->
@@ -34,7 +34,7 @@
     .menu-dropdown-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
     .menu-dropdown-item:hover { background: #f0f0f0; }
     #dbStatus { margin-left: auto; }
-    /* SECOND TOOLBAR (Drawing) */
+    /* SECOND TOOLBAR (Drawing & Zoom) */
     .toolbar {
       position: fixed; top: 40px; left: 0; right: 0;
       height: 40px; background: #fff; border-bottom: 1px solid #ccc;
@@ -194,7 +194,7 @@
   <!-- MAP -->
   <div id="map"></div>
 
-  <!-- MODALS: New Location, Switch Location, Add Layer -->
+  <!-- MODALS -->
   <!-- New Location Modal -->
   <div id="newLocationModal" class="modal-overlay">
     <div class="modal-content">
@@ -233,15 +233,10 @@
   </div>
 
   <script>
-    /************************************************************
-     * Minimal toggleMenu function for top nav
-     ************************************************************/
+    // Minimal toggleMenu function for top navigation
     window.toggleMenu = function(element, menuId) {
       const dropdown = document.getElementById(menuId);
-      if (!dropdown) {
-        console.error("Menu dropdown not found:", menuId);
-        return;
-      }
+      if (!dropdown) return;
       document.querySelectorAll(".menu-dropdown").forEach(dd => {
         if (dd.id !== menuId) {
           dd.style.display = "none";
@@ -260,10 +255,11 @@
       }
     };
 
-    /************************************************************
-     * QDPro Object: Handles map, layers, drawing, modals, and persistence.
-     * Auto-saves project state on drawing, layer creation, and location change.
-     ************************************************************/
+    /******************************************************
+     * QDPro Object
+     * - Uses localStorage to persist drawn features.
+     * - Uses built-in Leaflet.draw tools.
+     ******************************************************/
     const QDPro = {
       map: null,
       layers: {},
@@ -271,22 +267,20 @@
       drawTools: {},
       baseLayers: {},
       currentBaseLayer: null,
-      // For demonstration, a fake location array; new locations get pushed here.
+      // Use a mockLocations array for switching locations.
       mockLocations: [
         { id: 1, name: "Location A", created_at: "2023-01-01" },
         { id: 2, name: "Location B", created_at: "2023-02-15" }
       ],
       init: function() {
         console.log("Initializing QDPro...");
-
-        // Initialize the map with zoomControl disabled
+        // Initialize map with default zoom control disabled.
         this.map = L.map("map", {
           center: [39.8283, -98.5795],
           zoom: 4,
           zoomControl: false
         });
-
-        // Set up base layers
+        // Set up base layers.
         this.baseLayers = {
           "OSM": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors" }),
           "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "Tiles © Esri" }),
@@ -294,48 +288,39 @@
         };
         this.currentBaseLayer = this.baseLayers.OSM;
         this.currentBaseLayer.addTo(this.map);
-
-        // Create default layer group for drawing and persistence
+        // Create default layer group for drawn features.
         this.activeLayer = L.featureGroup().addTo(this.map);
         this.layers["Default"] = this.activeLayer;
-
-        // Set up draw tools
+        // Set up draw tools.
         this.setupDrawTools();
-
-        // Set up left panel toggle
+        // Left panel toggle.
         const leftPanel = document.getElementById("leftPanel");
-        const mapElement = document.getElementById("map");
+        const mapEl = document.getElementById("map");
         document.getElementById("toggleLayersPanel").addEventListener("click", () => {
           leftPanel.classList.toggle("visible");
           if (leftPanel.classList.contains("visible")) {
-            mapElement.style.left = "300px";
-            mapElement.style.width = "calc(100% - 300px)";
+            mapEl.style.left = "300px";
+            mapEl.style.width = "calc(100% - 300px)";
           } else {
-            mapElement.style.left = "0";
-            mapElement.style.width = "100%";
+            mapEl.style.left = "0";
+            mapEl.style.width = "100%";
           }
           this.map.invalidateSize();
         });
-
-        // Set up base layer tool button
+        // Base layer tool.
         document.getElementById("baseLayerTool").addEventListener("click", () => this.toggleBaseLayerDropdown());
-
-        // Set up zoom buttons
+        // Zoom buttons.
         document.getElementById("zoomInBtn").addEventListener("click", () => { this.map.zoomIn(); });
         document.getElementById("zoomOutBtn").addEventListener("click", () => { this.map.zoomOut(); });
-
-        // Update "Draw to Layer" dropdown
+        // Update draw-to-layer dropdown.
         this.updateDrawToLayerSelect();
-
-        // Auto-load project on init
+        // Auto-load project from localStorage.
         this.loadProject();
-
-        console.log("QDPro init complete. Map should be visible now.");
+        console.log("QDPro init complete.");
       },
-
       setupDrawTools: function() {
         const drawOptions = { shapeOptions: { color: "#3388ff" } };
-        // Store draw tool instances for reuse
+        // Instantiate draw tool instances.
         this.drawTools = {
           polygon: new L.Draw.Polygon(this.map, {
             allowIntersection: false, showArea: true,
@@ -347,10 +332,9 @@
           circle: new L.Draw.Circle(this.map, drawOptions),
           marker: new L.Draw.Marker(this.map)
         };
-
-        // Listen for shape creation
+        // Listen for drawing completion.
         this.map.on("draw:created", (e) => {
-          console.log("draw:created event fired", e);
+          console.log("Shape drawn:", e);
           const layer = e.layer;
           if (e.layerType === "polygon") {
             const coords = layer.getLatLngs()[0];
@@ -358,36 +342,20 @@
               coords.push(coords[0]);
               layer.setLatLngs(coords);
             }
-            const polyType = prompt("Enter polygon type (PES or ES):", "PES");
+            let polyType = prompt("Enter polygon type (PES or ES):", "PES");
             if (polyType) {
               layer.feature = layer.toGeoJSON();
               layer.feature.properties.type = polyType;
             }
           }
           this.activeLayer.addLayer(layer);
-          console.log("Shape added to active layer:", layer);
           this.deactivateAllTools();
-          this.saveProject(); // Auto-save after drawing
+          this.saveProject(); // Save after drawing.
         });
-        
-        // Add more event listeners for map interactions
-        this.map.on("draw:edited", (e) => {
-          console.log("Features edited:", e);
-          this.saveProject();
-        });
-        
-        this.map.on("draw:deleted", (e) => {
-          console.log("Features deleted:", e);
-          this.saveProject();
-        });
-        
-        // Save on layer modifications
-        Object.values(this.layers).forEach(layer => {
-          layer.on("layeradd", () => this.autoSave());
-          layer.on("layerremove", () => this.autoSave());
-        });
+        // Optionally, listen for edit or delete events to auto-save.
+        this.map.on("draw:edited", (e) => { this.saveProject(); });
+        this.map.on("draw:deleted", (e) => { this.saveProject(); });
       },
-
       activateTool: function(toolName, buttonId) {
         this.deactivateAllTools();
         if (this.drawTools[toolName]) {
@@ -395,48 +363,36 @@
           document.getElementById(buttonId).classList.add("active");
         }
       },
-
       deactivateAllTools: function() {
-        for (const tool in this.drawTools) {
+        for (let tool in this.drawTools) {
           this.drawTools[tool].disable();
         }
         document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("active"));
         document.getElementById("panTool").classList.add("active");
       },
-
       updateDrawToLayerSelect: function() {
         const select = document.getElementById("drawToLayer");
         select.innerHTML = "";
-        Object.keys(this.layers).forEach(layerName => {
+        for (let layerName in this.layers) {
           const opt = document.createElement("option");
           opt.value = layerName;
           opt.textContent = layerName;
           select.appendChild(opt);
-        });
+        }
         select.addEventListener("change", (e) => {
-          const selected = e.target.value;
+          let selected = e.target.value;
           this.activeLayer = this.layers[selected];
           console.log("Active layer changed to:", selected);
-          this.saveProject(); // Auto-save on layer change
+          this.saveProject();
         });
       },
-      
-      // Enhanced auto-save method with debounce to prevent too many calls
-      autoSaveDebounceTimeout: null,
-      autoSave: function() {
-        clearTimeout(this.autoSaveDebounceTimeout);
-        this.autoSaveDebounceTimeout = setTimeout(() => {
-          this.saveProject();
-        }, 1000); // Wait 1 second before saving to reduce API calls
-      },
-
       toggleBaseLayerDropdown: function() {
         const dropdown = document.getElementById("baseLayerDropdown");
         if (dropdown.style.display === "block") {
           dropdown.style.display = "none";
         } else {
           dropdown.innerHTML = "";
-          for (const name in this.baseLayers) {
+          for (let name in this.baseLayers) {
             const div = document.createElement("div");
             div.textContent = name;
             div.style.cursor = "pointer";
@@ -444,25 +400,23 @@
             div.addEventListener("click", () => {
               this.switchBaseLayer(name);
               dropdown.style.display = "none";
-              this.saveProject(); // Auto-save on base layer change
+              this.saveProject();
             });
             dropdown.appendChild(div);
           }
           const btn = document.getElementById("baseLayerTool");
-          const rect = btn.getBoundingClientRect();
+          let rect = btn.getBoundingClientRect();
           dropdown.style.display = "block";
           dropdown.style.top = rect.bottom + "px";
           dropdown.style.left = rect.left + "px";
           dropdown.style.zIndex = "2800";
         }
       },
-
       switchBaseLayer: function(name) {
         if (this.currentBaseLayer) this.map.removeLayer(this.currentBaseLayer);
         this.currentBaseLayer = this.baseLayers[name];
         this.currentBaseLayer.addTo(this.map);
       },
-
       showAddLayerModal: function() {
         document.getElementById("addLayerModal").classList.add("visible");
       },
@@ -471,26 +425,19 @@
         document.getElementById("newLayerName").value = "";
       },
       createNewLayer: function() {
-        const layerName = document.getElementById("newLayerName").value.trim();
-        const layerType = document.getElementById("newLayerType").value;
-        if (!layerName) {
-          alert("Please enter a layer name");
-          return;
-        }
-        if (this.layers[layerName]) {
-          alert(`Layer "${layerName}" already exists`);
-          return;
-        }
-        const newLayer = L.featureGroup().addTo(this.map);
+        let layerName = document.getElementById("newLayerName").value.trim();
+        let layerType = document.getElementById("newLayerType").value;
+        if (!layerName) { alert("Enter a layer name"); return; }
+        if (this.layers[layerName]) { alert(`Layer "${layerName}" exists`); return; }
+        let newLayer = L.featureGroup().addTo(this.map);
         newLayer.properties = { type: layerType };
         this.layers[layerName] = newLayer;
         this.activeLayer = newLayer;
         this.updateDrawToLayerSelect();
         this.closeAddLayerModal();
-        console.log(`Created new layer: ${layerName}, type: ${layerType}`);
-        this.saveProject(); // Auto-save on new layer creation
+        console.log(`Created layer: ${layerName}, type: ${layerType}`);
+        this.saveProject();
       },
-
       showNewLocationModal: function() {
         document.getElementById("newLocationModal").classList.add("visible");
       },
@@ -498,33 +445,29 @@
         document.getElementById("newLocationModal").classList.remove("visible");
       },
       createNewLocation: function() {
-        const locName = document.getElementById("newLocationName").value.trim();
-        if (!locName) {
-          alert("Please enter a location name");
-          return;
-        }
+        let locName = document.getElementById("newLocationName").value.trim();
+        if (!locName) { alert("Enter a location name"); return; }
         this.currentLocation = locName;
         document.getElementById("dbStatus").textContent = `Location: ${locName}`;
-        // Add new location to mockLocations so it appears when switching
-        const newLoc = { id: Date.now(), name: locName, created_at: new Date().toISOString() };
+        // Add new location to mockLocations.
+        let newLoc = { id: Date.now(), name: locName, created_at: new Date().toISOString() };
         this.mockLocations.push(newLoc);
-        // Reset layers for new location
-        Object.values(this.layers).forEach(layer => { this.map.removeLayer(layer); });
+        // Reset layers for new location.
+        for (let key in this.layers) { this.map.removeLayer(this.layers[key]); }
         this.layers = {};
         this.activeLayer = L.featureGroup().addTo(this.map);
         this.layers["Default"] = this.activeLayer;
         this.updateDrawToLayerSelect();
         this.closeNewLocationModal();
         console.log("Created new location:", locName);
-        this.saveProject(); // Auto-save new location state
+        this.saveProject();
       },
-
       showSwitchLocationModal: function() {
         document.getElementById("switchLocationModal").classList.add("visible");
-        const locationList = document.getElementById("locationList");
+        let locationList = document.getElementById("locationList");
         locationList.innerHTML = "";
         this.mockLocations.forEach(loc => {
-          const div = document.createElement("div");
+          let div = document.createElement("div");
           div.style.padding = "10px";
           div.style.borderBottom = "1px solid #eee";
           div.style.cursor = "pointer";
@@ -538,72 +481,38 @@
       },
       switchToLocation: function(locObj) {
         console.log("Switching to location:", locObj);
-        // Clear current layers
-        Object.values(this.layers).forEach(layer => this.map.removeLayer(layer));
+        for (let key in this.layers) { this.map.removeLayer(this.layers[key]); }
         this.layers = {};
-        // Create new default layer
         this.activeLayer = L.featureGroup().addTo(this.map);
         this.layers["Default"] = this.activeLayer;
         this.updateDrawToLayerSelect();
         this.currentLocation = locObj.name;
         document.getElementById("dbStatus").textContent = `Location: ${locObj.name}`;
         this.closeSwitchLocationModal();
-        this.saveProject(); // Auto-save after switching location
+        this.saveProject();
       },
-
       saveProject: function() {
-        // Show saving indicator
-        const dbStatus = document.getElementById("dbStatus");
-        const originalText = dbStatus.textContent;
-        dbStatus.textContent = "Saving...";
-        
         let features = [];
-        // Iterate over all layers and gather GeoJSON features
-        Object.values(this.layers).forEach(layerGroup => {
-          layerGroup.eachLayer(layer => {
+        for (let key in this.layers) {
+          this.layers[key].eachLayer(layer => {
             if (layer.toGeoJSON) {
               features.push(layer.toGeoJSON());
             }
           });
-        });
+        }
         const projectData = { features: features };
-        
-        fetch('/api/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(projectData)
-        })
-        .then(res => res.json())
-        .then(data => { 
-          console.log("Project saved successfully:", data); 
-          dbStatus.textContent = "Saved ✓";
-          // Reset status text after 2 seconds
-          setTimeout(() => {
-            if (dbStatus.textContent === "Saved ✓") {
-              dbStatus.textContent = originalText;
-            }
-          }, 2000);
-        })
-        .catch(err => { 
-          console.error("Auto-save failed:", err); 
-          dbStatus.textContent = "Save Failed!";
-          // Reset status text after 3 seconds
-          setTimeout(() => {
-            if (dbStatus.textContent === "Save Failed!") {
-              dbStatus.textContent = originalText;
-            }
-          }, 3000);
-        });
+        localStorage.setItem("projectData", JSON.stringify(projectData));
+        console.log("Project saved:", projectData);
+        document.getElementById("dbStatus").textContent = "Saved ✓";
+        setTimeout(() => { document.getElementById("dbStatus").textContent = `Location: ${this.currentLocation || "None"}`; }, 2000);
       },
-
       loadProject: function() {
-        fetch('/api/load')
-        .then(res => res.json())
-        .then(data => {
-          // Clear all layers
-          Object.values(this.layers).forEach(layerGroup => layerGroup.clearLayers());
-          if (data.features && data.features.length > 0) {
-            const geojsonLayer = L.geoJSON(data, {
+        let data = localStorage.getItem("projectData");
+        if (data) {
+          let projectData = JSON.parse(data);
+          for (let key in this.layers) { this.layers[key].clearLayers(); }
+          if (projectData.features && projectData.features.length > 0) {
+            let geojsonLayer = L.geoJSON(projectData, {
               onEachFeature: (feature, layer) => {
                 if (feature.properties && feature.properties.type) {
                   layer.bindPopup("Type: " + feature.properties.type);
@@ -614,17 +523,18 @@
             if (geojsonLayer.getLayers().length > 0) {
               this.map.fitBounds(geojsonLayer.getBounds());
             }
-            console.log("Project loaded successfully.");
+            console.log("Project loaded:", projectData);
           } else {
-            console.log("No project data found.");
+            console.log("No project features found.");
           }
-        })
-        .catch(err => { console.error("Load failed:", err); });
+        } else {
+          console.log("No project data in localStorage.");
+        }
       }
     };
 
     /************************************************************
-     * Global functions to expose modal methods and persistence
+     * Global functions for modals and persistence
      ************************************************************/
     function showNewLocationModal() { QDPro.showNewLocationModal(); }
     function closeNewLocationModal() { QDPro.closeNewLocationModal(); }
@@ -636,17 +546,6 @@
     function createNewLayer() { QDPro.createNewLayer(); }
     function saveProject() { QDPro.saveProject(); }
     function loadProject() { QDPro.loadProject(); }
-    
-    // Automatically call saveProject when the user interacts with the map
-    document.addEventListener("click", function(e) {
-      // Don't save on every click, only on clicks that change the state
-      if (e.target.matches(".menu-dropdown-item") || 
-          e.target.matches(".tool-button") || 
-          e.target.matches("button[id^='draw']")) {
-        // Small delay to ensure the action has completed
-        setTimeout(() => QDPro.autoSave(), 500);
-      }
-    });
 
     document.addEventListener("DOMContentLoaded", () => { QDPro.init(); });
   </script>
