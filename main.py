@@ -327,7 +327,7 @@ async def load_location(location_id: int):
         if 'cur' in locals(): cur.close()
         if 'conn' in locals(): conn.close()
 
-# QD Calculation Endpoint (unchanged for now)
+# QD Calculation Endpoints
 class QDCalculationRequest(BaseModel):
     quantity: float
     lat: float
@@ -342,6 +342,228 @@ class QDCalculationRequest(BaseModel):
     pressure: float = 101.325
     humidity: float = 50
     confinement_factor: float = 0.0
+
+class QDAnalysisRequest(BaseModel):
+    feature_id: str
+    location_id: Optional[int] = None
+    site_type: str = "DOD"
+    quantity: float
+    k_factor: float = 40
+    features_to_analyze: List[Dict] = []
+    material_props: Optional[Dict] = None
+    env_conditions: Optional[Dict] = None
+
+class ReportGenerationRequest(BaseModel):
+    title: str
+    analysis_id: str
+    location_id: Optional[int] = None
+    include_map: bool = True
+    map_snapshot: Optional[str] = None
+
+@app.post("/api/analyze-qd")
+async def analyze_qd(request: QDAnalysisRequest):
+    try:
+        qd_engine = get_engine(request.site_type)
+        
+        # Set up material properties and environmental conditions
+        material_props = MaterialProperties(
+            sensitivity=request.material_props.get('sensitivity', 1.0) if request.material_props else 1.0,
+            det_velocity=request.material_props.get('det_velocity', 6000) if request.material_props else 6000,
+            tnt_equiv=request.material_props.get('tnt_equiv', 1.0) if request.material_props else 1.0
+        )
+        
+        env_conditions = EnvironmentalConditions(
+            temperature=request.env_conditions.get('temperature', 298) if request.env_conditions else 298,
+            pressure=request.env_conditions.get('pressure', 101.325) if request.env_conditions else 101.325,
+            humidity=request.env_conditions.get('humidity', 50) if request.env_conditions else 50,
+            confinement_factor=request.env_conditions.get('confinement_factor', 0.0) if request.env_conditions else 0.0
+        )
+        
+        # Calculate safe distance
+        safe_distance = qd_engine.calculate_safe_distance(
+            quantity=request.quantity,
+            material_props=material_props,
+            env_conditions=env_conditions
+        )
+        
+        # Generate analysis results
+        feature = next((f for f in request.features_to_analyze if f.get('id') == request.feature_id), None)
+        if not feature:
+            return JSONResponse(status_code=404, content={"error": "Feature not found"})
+            
+        # Get coordinates for center of analysis
+        center = None
+        if feature.get('geometry', {}).get('type') == 'Point':
+            center = feature['geometry']['coordinates']
+        elif feature.get('geometry', {}).get('type') == 'Polygon':
+            # Calculate centroid for polygon
+            coords = feature['geometry']['coordinates'][0]
+            x_sum = sum(c[0] for c in coords)
+            y_sum = sum(c[1] for c in coords)
+            center = [x_sum / len(coords), y_sum / len(coords)]
+        
+        if not center:
+            return JSONResponse(status_code=400, content={"error": "Could not determine center for feature"})
+            
+        # Generate buffer zones
+        buffer_zones = qd_engine.generate_k_factor_rings(center, safe_distance)
+        
+        # Analyze surrounding features
+        analysis_results = []
+        for surrounding_feature in request.features_to_analyze:
+            if surrounding_feature.get('id') == request.feature_id:
+                continue  # Skip the feature being analyzed
+                
+            sf_center = None
+            if surrounding_feature.get('geometry', {}).get('type') == 'Point':
+                sf_center = surrounding_feature['geometry']['coordinates']
+            elif surrounding_feature.get('geometry', {}).get('type') == 'Polygon':
+                # Calculate centroid for polygon
+                coords = surrounding_feature['geometry']['coordinates'][0]
+                x_sum = sum(c[0] for c in coords)
+                y_sum = sum(c[1] for c in coords)
+                sf_center = [x_sum / len(coords), y_sum / len(coords)]
+                
+            if sf_center:
+                # Calculate distance between centers
+                distance = qd_engine.calculate_distance(center, sf_center)
+                is_safe = distance >= safe_distance
+                
+                analysis_results.append({
+                    "feature_id": surrounding_feature.get('id'),
+                    "name": surrounding_feature.get('properties', {}).get('name', 'Unnamed Feature'),
+                    "distance": round(distance, 2),
+                    "required_distance": round(safe_distance, 2),
+                    "is_safe": is_safe,
+                    "status": "COMPLIANT" if is_safe else "NON-COMPLIANT"
+                })
+        
+        analysis_id = f"analysis_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        # Store analysis results in database or file
+        analysis_data = {
+            "id": analysis_id,
+            "timestamp": datetime.now().isoformat(),
+            "feature_id": request.feature_id,
+            "location_id": request.location_id,
+            "quantity": request.quantity,
+            "safe_distance": safe_distance,
+            "k_factor": request.k_factor,
+            "site_type": request.site_type,
+            "results": analysis_results,
+            "buffer_zones": buffer_zones
+        }
+        
+        # Save analysis to file for now, can be moved to database later
+        os.makedirs("data/analyses", exist_ok=True)
+        with open(f"data/analyses/{analysis_id}.json", "w") as f:
+            json.dump(analysis_data, f, indent=2)
+            
+        return {
+            "analysis_id": analysis_id,
+            "safe_distance": safe_distance,
+            "units": "feet",
+            "site_type": request.site_type,
+            "buffer_zones": {
+                "type": "FeatureCollection",
+                "features": buffer_zones
+            },
+            "analysis_results": analysis_results
+        }
+    except Exception as e:
+        logger.error(f"Error in QD analysis: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/api/analysis/{analysis_id}")
+async def get_analysis(analysis_id: str):
+    try:
+        file_path = f"data/analyses/{analysis_id}.json"
+        if not os.path.exists(file_path):
+            return JSONResponse(status_code=404, content={"error": "Analysis not found"})
+            
+        with open(file_path, "r") as f:
+            analysis_data = json.load(f)
+            
+        return analysis_data
+    except Exception as e:
+        logger.error(f"Error retrieving analysis: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.post("/api/generate-report")
+async def generate_report(request: ReportGenerationRequest):
+    try:
+        # Get analysis data
+        analysis_data = None
+        file_path = f"data/analyses/{request.analysis_id}.json"
+        if not os.path.exists(file_path):
+            return JSONResponse(status_code=404, content={"error": "Analysis not found"})
+            
+        with open(file_path, "r") as f:
+            analysis_data = json.load(f)
+        
+        # Prepare report data
+        report_data = {
+            "title": request.title,
+            "generated_at": datetime.now(),
+            "data": {
+                "analysis_summary": {
+                    "feature_id": analysis_data["feature_id"],
+                    "quantity": analysis_data["quantity"],
+                    "safe_distance": analysis_data["safe_distance"],
+                    "k_factor": analysis_data["k_factor"],
+                    "site_type": analysis_data["site_type"]
+                },
+                "compliance_summary": {
+                    "total_features": len(analysis_data["results"]),
+                    "compliant": sum(1 for r in analysis_data["results"] if r["is_safe"]),
+                    "non_compliant": sum(1 for r in analysis_data["results"] if not r["is_safe"])
+                },
+                "detailed_results": analysis_data["results"]
+            }
+        }
+        
+        # Generate PDF report
+        from reports import Report, generate_pdf_report
+        
+        # Create Report object
+        report = Report(
+            title=request.title,
+            generated_at=datetime.now(),
+            data=report_data["data"]
+        )
+        
+        # Set up output directory
+        os.makedirs("data/reports", exist_ok=True)
+        output_filename = f"data/reports/report_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+        
+        # Generate PDF
+        report_result = await generate_pdf_report(
+            report=report,
+            output_filename=output_filename,
+            map_snapshot=request.map_snapshot
+        )
+        
+        return {
+            "status": "success",
+            "report_id": os.path.basename(output_filename),
+            "filename": output_filename,
+            "report_data": report_data
+        }
+    except Exception as e:
+        logger.error(f"Error generating report: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/api/reports/{report_id}")
+async def get_report(report_id: str):
+    try:
+        file_path = f"data/reports/{report_id}"
+        if not os.path.exists(file_path):
+            return JSONResponse(status_code=404, content={"error": "Report not found"})
+            
+        return FileResponse(file_path, media_type="application/pdf")
+    except Exception as e:
+        logger.error(f"Error retrieving report: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/api/calculate-qd", response_model=Dict[str, Any])
 async def calculate_qd(request: QDCalculationRequest):
@@ -358,15 +580,13 @@ async def calculate_qd(request: QDCalculationRequest):
             humidity=request.humidity,
             confinement_factor=request.confinement_factor
         )
-        safe_distance = qd_engine.calculate_esqd(
+        safe_distance = qd_engine.calculate_safe_distance(
             quantity=request.quantity,
             material_props=material_props,
-            env_conditions=env_conditions,
-            k_factor=request.k_factor
+            env_conditions=env_conditions
         )
         buffer_zones = qd_engine.generate_k_factor_rings(
-            center_lat=request.lat,
-            center_lon=request.lng,
+            center=[request.lng, request.lat],
             safe_distance=safe_distance
         )
         return {
