@@ -105,8 +105,10 @@ function closePopup() {
   }
 }
 
-  // Store reference to active layer being edited
+// Store reference to active layer being edited
+function setActiveLayer(layer) {
   window.activeEditLayer = layer;
+}
 
   // Get properties
   const properties = layer.feature.properties || {};
