@@ -51,10 +51,10 @@ function openEditPopup(layer) {
   if (!layer.feature.properties) {
     layer.feature.properties = {};
   }
-  
+
   // Create a simple popup for editing
   const properties = layer.feature.properties || {};
-  
+
   const popupContent = `
     <div id="editPopup" style="padding: 10px; max-width: 300px;">
       <h3>Edit Properties</h3>
@@ -89,7 +89,7 @@ function openEditPopup(layer) {
       </div>
     </div>
   `;
-  
+
   layer.bindPopup(popupContent).openPopup();
 }
 
@@ -106,32 +106,6 @@ function closePopup() {
 }
 
 // Store reference to active layer being edited
-function setActiveLayer(layer) {
+function setActiveEditLayer(layer) {
   window.activeEditLayer = layer;
-}
-
-  // Get properties
-  const properties = layer.feature.properties || {};
-
-  // Set values for each field
-  if (properties.name) document.getElementById('name').value = properties.name || '';
-  if (document.getElementById('is_facility')) document.getElementById('is_facility').checked = !!properties.is_facility;
-  if (document.getElementById('has_explosive')) document.getElementById('has_explosive').checked = !!properties.has_explosive;
-  if (properties.net_explosive_weight) document.getElementById('net_explosive_weight').value = properties.net_explosive_weight || '';
-  if (properties.type) document.getElementById('facilityType').value = properties.type || '';
-  if (properties.description) document.getElementById('description').value = properties.description || '';
-
-  // Show/hide the NEW field based on has_explosive checkbox
-  const showNewSection = properties.has_explosive;
-  if (document.getElementById('newSection')) {
-    document.getElementById('newSection').style.display = showNewSection ? 'block' : 'none';
-  }
-
-  // Show the modal
-  document.getElementById('featurePropertiesModal').style.display = 'block';
-
-  // Setup event listener for the has_explosive checkbox
-  document.getElementById('has_explosive').addEventListener('change', function() {
-    document.getElementById('newSection').style.display = this.checked ? 'block' : 'none';
-  });
 }
