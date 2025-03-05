@@ -38,6 +38,14 @@ function handleFeatureFormSubmit(e, layer) {
   const form = document.getElementById('featurePropertiesForm');
   const formData = new FormData(form);
   
+  // Ensure layer has a feature and properties object
+  if (!layer.feature) {
+    layer.feature = {};
+  }
+  if (!layer.feature.properties) {
+    layer.feature.properties = {};
+  }
+  
   // Update the feature properties
   const properties = { ...layer.feature.properties };
   
@@ -50,6 +58,11 @@ function handleFeatureFormSubmit(e, layer) {
   // Add all other form fields
   for (let [key, value] of formData.entries()) {
     properties[key] = value;
+  }
+  
+  // Ensure NET value is properly handled
+  if (properties.has_explosive && formData.get('net_explosive_weight')) {
+    properties.net_explosive_weight = parseFloat(formData.get('net_explosive_weight'));
   }
   
   // Update the layer's feature properties
