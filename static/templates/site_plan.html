@@ -11,12 +11,10 @@
   <!-- Leaflet and Leaflet.draw JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
-
   <style>
     /* BASIC RESET & BODY */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
-
     /* TOP NAV BAR */
     nav.main-toolbar {
       position: fixed; top: 0; left: 0; right: 0;
@@ -36,7 +34,6 @@
     .menu-dropdown-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
     .menu-dropdown-item:hover { background: #f0f0f0; }
     #dbStatus { margin-left: auto; }
-
     /* SECOND TOOLBAR (Drawing) */
     .toolbar {
       position: fixed; top: 40px; left: 0; right: 0;
@@ -52,13 +49,11 @@
     }
     .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
     .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
-
     /* MAP (Below 2 Toolbars => top: 80px) */
     #map {
       position: fixed; top: 80px; left: 0; right: 0; bottom: 0;
       z-index: 1000; background: #eee;
     }
-
     /* LEFT PANEL */
     .left-panel {
       position: fixed; top: 80px; left: 0; width: 300px;
@@ -71,14 +66,12 @@
       padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ccc; font-weight: bold;
     }
     .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
-
     /* BASE LAYER DROPDOWN */
     .base-layer-dropdown {
       position: fixed; background: white; padding: 10px; border: 1px solid #ccc;
       border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       z-index: 2800; display: none;
     }
-
     /* MODALS */
     .modal-overlay {
       display: none; position: fixed; z-index: 4000; left: 0; top: 0;
@@ -104,7 +97,8 @@
       <div class="menu-dropdown" id="fileMenu">
         <div class="menu-dropdown-item" onclick="showNewLocationModal()">New Location</div>
         <div class="menu-dropdown-item" onclick="showSwitchLocationModal()">Switch Location</div>
-        <div class="menu-dropdown-item" onclick="alert('Save to DB not implemented');">Save</div>
+        <div class="menu-dropdown-item" onclick="saveProject()">Save Project</div>
+        <div class="menu-dropdown-item" onclick="loadProject()">Load Project</div>
       </div>
     </div>
     <div class="menu-item" onclick="toggleMenu(this, 'editMenu')">Edit
@@ -145,7 +139,7 @@
         <i class="fas fa-layer-group"></i>
       </button>
     </div>
-    <!-- New Zoom Buttons Group -->
+    <!-- Zoom Buttons Group -->
     <div class="tool-group">
       <button id="zoomInBtn" class="tool-button" title="Zoom In">
         <i class="fas fa-search-plus"></i>
@@ -270,7 +264,8 @@
     };
 
     /************************************************************
-     * QDPro Object: Handles map, layers, drawing, modals, etc.
+     * QDPro Object: Handles map, layers, drawing, modals, and persistence.
+     * Auto-saves project state on drawing, layer creation, and location change.
      ************************************************************/
     const QDPro = {
       map: null,
@@ -289,10 +284,11 @@
       init: function() {
         console.log("Initializing QDPro...");
 
-        // 1) Initialize the map
+        // 1) Initialize the map with default zoomControl disabled
         this.map = L.map("map", {
           center: [39.8283, -98.5795],
-          zoom: 4
+          zoom: 4,
+          zoomControl: false
         });
 
         // 2) Set up base layers
@@ -336,6 +332,9 @@
         // 8) Update "Draw to Layer" dropdown
         this.updateDrawToLayerSelect();
 
+        // 9) Auto-load project on init
+        this.loadProject();
+
         console.log("QDPro init complete. Map should be visible now.");
       },
 
@@ -376,11 +375,20 @@
               coords.push(coords[0]);
               layer.setLatLngs(coords);
             }
+            // Prompt for PES or ES assignment
+            const polyType = prompt("Enter polygon type (PES or ES):", "PES");
+            if (polyType) {
+              // Attach property to GeoJSON feature
+              layer.feature = layer.toGeoJSON();
+              layer.feature.properties.type = polyType;
+            }
           }
           // Add layer to active drawing layer
           this.activeLayer.addLayer(layer);
           console.log("Shape added to active layer:", layer);
           this.deactivateAllTools();
+          // Auto-save project after drawing is complete
+          this.saveProject();
         });
       },
 
@@ -412,10 +420,13 @@
           opt.textContent = layerName;
           select.appendChild(opt);
         });
+        // Update active layer on change
         select.addEventListener("change", (e) => {
           const selected = e.target.value;
           this.activeLayer = this.layers[selected];
           console.log("Active layer changed to:", selected);
+          // Auto-save project when layer selection changes
+          this.saveProject();
         });
       },
 
@@ -433,6 +444,8 @@
             div.addEventListener("click", () => {
               this.switchBaseLayer(name);
               dropdown.style.display = "none";
+              // Auto-save project on base layer change if needed
+              this.saveProject();
             });
             dropdown.appendChild(div);
           }
@@ -479,6 +492,8 @@
         this.updateDrawToLayerSelect();
         this.closeAddLayerModal();
         console.log(`Created new layer: ${layerName}, type: ${layerType}`);
+        // Auto-save after creating a new layer
+        this.saveProject();
       },
 
       /*************************************
@@ -498,7 +513,8 @@
         }
         this.currentLocation = locName;
         document.getElementById("dbStatus").textContent = `Location: ${locName}`;
-        // Remove existing layers and create a default layer
+        // For persistence, call your API endpoint to create the location in the database.
+        // Here we simply reset the layers on the client:
         Object.values(this.layers).forEach(layer => { this.map.removeLayer(layer); });
         this.layers = {};
         this.activeLayer = L.featureGroup().addTo(this.map);
@@ -506,6 +522,8 @@
         this.updateDrawToLayerSelect();
         this.closeNewLocationModal();
         console.log("Created new location:", locName);
+        // Auto-save the new location state
+        this.saveProject();
       },
 
       /*************************************
@@ -538,11 +556,70 @@
         this.currentLocation = locObj.name;
         document.getElementById("dbStatus").textContent = `Location: ${locObj.name}`;
         this.closeSwitchLocationModal();
+        // Auto-save after switching location
+        this.saveProject();
+      },
+
+      /*************************************
+       * Project Persistence Functions
+       *************************************/
+      saveProject: function() {
+        // Gather GeoJSON features from all layers
+        let allFeatures = [];
+        Object.values(this.layers).forEach(layerGroup => {
+          layerGroup.eachLayer(layer => {
+            if (layer.toGeoJSON) {
+              allFeatures.push(layer.toGeoJSON());
+            }
+          });
+        });
+        const projectData = { features: allFeatures };
+        fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(projectData)
+        })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Project saved successfully:", data);
+        })
+        .catch(err => {
+          console.error("Auto-save failed:", err);
+        });
+      },
+
+      loadProject: function() {
+        fetch('/api/load')
+          .then(res => res.json())
+          .then(data => {
+            // Clear existing layers from the default layer
+            this.activeLayer.clearLayers();
+            if (data.features && data.features.length > 0) {
+              const geojsonLayer = L.geoJSON(data, {
+                onEachFeature: (feature, layer) => {
+                  if (feature.properties && feature.properties.type) {
+                    layer.bindPopup("Type: " + feature.properties.type);
+                  }
+                  this.activeLayer.addLayer(layer);
+                }
+              });
+              // Optionally, fit the map to the loaded features
+              if (geojsonLayer.getLayers().length > 0) {
+                this.map.fitBounds(geojsonLayer.getBounds());
+              }
+              console.log("Project loaded successfully.");
+            } else {
+              console.log("No project data found.");
+            }
+          })
+          .catch(err => {
+            console.error("Load failed:", err);
+          });
       }
     };
 
     /************************************************************
-     * Global functions to expose modal methods
+     * Global functions to expose modal methods and persistence
      ************************************************************/
     function showNewLocationModal() { QDPro.showNewLocationModal(); }
     function closeNewLocationModal() { QDPro.closeNewLocationModal(); }
@@ -552,6 +629,8 @@
     function showAddLayerModal() { QDPro.showAddLayerModal(); }
     function closeAddLayerModal() { QDPro.closeAddLayerModal(); }
     function createNewLayer() { QDPro.createNewLayer(); }
+    function saveProject() { QDPro.saveProject(); }
+    function loadProject() { QDPro.loadProject(); }
 
     /************************************************************
      * Initialize QDPro when DOM is ready
