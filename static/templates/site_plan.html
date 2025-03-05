@@ -142,8 +142,6 @@
       <select id="newLayerType">
         <option value="facility">Facility</option>
         <option value="boundary">Boundary</option>
-        <option value="PES">PES</option>
-        <option value="ES">ES</option>
       </select>
       <div style="text-align:right;">
         <button onclick="closeAddLayerModal()" style="margin-right:10px;">Cancel</button>
@@ -239,29 +237,6 @@
             // Removed prompt for polygon type
             layer.feature = layer.toGeoJSON();
           }
-
-          // Apply the active layer's color if available
-          if (this.activeLayer && this.activeLayer.properties && this.activeLayer.properties.color) {
-            const layerColor = this.activeLayer.properties.color;
-            layer.setStyle({
-              color: layerColor,
-              fillColor: layerColor,
-              fillOpacity: 0.2
-            });
-
-            // Add layer properties to the feature for persistence
-            if (!layer.feature) {
-              layer.feature = { type: "Feature", properties: {} };
-            }
-            if (!layer.feature.properties) {
-              layer.feature.properties = {};
-            }
-            layer.feature.properties.layerName = this.getLayerNameByObject(this.activeLayer);
-            if (this.activeLayer.properties.type) {
-              layer.feature.properties.layerType = this.activeLayer.properties.type;
-            }
-          }
-
           this.activeLayer.addLayer(layer);
           this.deactivateAllTools();
           this.saveProject();
@@ -483,65 +458,36 @@
           document.getElementById("dbStatus").textContent = `Error loading location: ${this.currentLocationName}`;
         }
       },
-      saveProject: function() {
-        // Prepare data for saving in a format the backend expects
-        const features = [];
+      saveProject: async function() {
+        let projectData = { layers: {} };
 
-        // Process each layer
         for (let layerName in this.layers) {
           const layer = this.layers[layerName];
+          if (!layer) continue;
 
+          // Extract features from the layer
+          let features = [];
           layer.eachLayer(function(l) {
             if (l.toGeoJSON) {
               let feature = l.toGeoJSON();
-              // Add layerName directly to the feature for backend processing
-              feature.layerName = layerName;
-
-              // Ensure properties exists
+              // Store the layer name in the feature properties
               feature.properties = feature.properties || {};
-              // Store layerName in properties for retrieval
               feature.properties.layerName = layerName;
 
-              // Save popup content if it exists
               if (l._popup) {
                 feature.properties.popupContent = l._popup._content;
               }
-
               features.push(feature);
             }
           });
+
+          projectData.layers[layerName] = {
+            features: features
+          };
         }
 
-        // Save to both localStorage (for backup) and send to server
-        const projectData = {
-          layers: {
-            type: "FeatureCollection",
-            features: features
-          }
-        };
-
-        // Save to localStorage as backup
+        // Save to localStorage
         localStorage.setItem('qdproProject', JSON.stringify(projectData));
-
-        // Send to server
-        fetch('/api/save-layers', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            features: features,
-            layer_name: "all_layers" // Use a container name for all layers
-          })
-        })
-        .then(response => response.json())
-        .then(data => {
-          console.log("Project saved successfully:", data);
-        })
-        .catch(error => {
-          console.error("Error saving project:", error);
-          alert("Failed to save project to server. Changes saved locally only.");
-        });
       },
       loadProject: async function() {
         try {
@@ -671,52 +617,7 @@
             console.error("Error loading last location:", error);
           }
         }
-      },
-      createLayer: function() {
-        const layerName = document.getElementById("newLayerName").value.trim();
-        if (!layerName) {          alert("Please enter a layer name");
-          return;
-        }
-
-        if (this.layers[layerName]) {
-          alert("A layer with this name already exists");
-          return;
-        }
-
-        const layerType = document.getElementById("newLayerType").value;
-        const newLayer = L.featureGroup().addTo(this.map);
-
-        // Set color based on layer type
-        let layerColor = "#3388ff"; // Default blue
-        if (layerType === "PES") {
-          layerColor = "#ff0000"; // Red for PES
-        } else if (layerType === "ES") {
-          layerColor = "#00ff00"; // Green for ES
-        }
-
-        // Add properties to the layer for use in analysis and styling
-        newLayer.properties = { 
-          type: layerType,
-          color: layerColor
-        };
-
-        this.layers[layerName] = newLayer;
-        this.activeLayer = newLayer;
-
-        this.updateDrawToLayerSelect();
-        this.closeAddLayerModal();
-
-        // Save project when a new layer is created
-        this.saveProject();
-      },
-      getLayerNameByObject: function(layerObj) {
-        for (const name in this.layers) {
-          if (this.layers[name] === layerObj) {
-            return name;
-          }
-        }
-        return "Default";
-      },
+      }
     };
 
     function showNewLocationModal() { QDPro.showNewLocationModal(); }
