@@ -456,31 +456,35 @@
         }
       },
       saveProject: async function() {
-        let features = [];
-        for (let key in this.layers) {
-          this.layers[key].eachLayer(layer => {
-            if (layer.toGeoJSON) {
-              let geojson = layer.toGeoJSON();
-              geojson.layerName = key; // Add layer name to GeoJSON
-              features.push(geojson);
+        let projectData = { layers: {} };
+
+        for (let layerName in this.layers) {
+          const layer = this.layers[layerName];
+          if (!layer) continue;
+
+          // Extract features from the layer
+          let features = [];
+          layer.eachLayer(function(l) {
+            if (l.toGeoJSON) {
+              let feature = l.toGeoJSON();
+              // Store the layer name in the feature properties
+              feature.properties = feature.properties || {};
+              feature.properties.layerName = layerName;
+
+              if (l._popup) {
+                feature.properties.popupContent = l._popup._content;
+              }
+              features.push(feature);
             }
           });
+
+          projectData.layers[layerName] = {
+            features: features
+          };
         }
-        const projectData = { features };
-        try {
-          const response = await fetch(this.currentLocationId ? `/api/save-layers?location_id=${this.currentLocationId}` : "/api/save-layers", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(projectData)
-          });
-          const result = await response.json();
-          console.log("Project saved:", result);
-          document.getElementById("dbStatus").textContent = "Saved ✓";
-          setTimeout(() => document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationId ? this.currentLocationName : "None"}`, 2000); // Use currentLocationName
-        } catch (e) {
-          console.error("Error saving project:", e);
-          alert("Failed to save project");
-        }
+
+        // Save to localStorage
+        localStorage.setItem('qdproProject', JSON.stringify(projectData));
       },
       loadProject: async function() {
         try {
@@ -496,7 +500,22 @@
                   layer = L.featureGroup().addTo(this.map);
                   this.layers[feature.layerName] = layer;
                 }
+                let layerStyle = {};
+                if (feature.properties && feature.properties.layerName === "PES") {
+                  layerStyle = {
+                    color: 'red',
+                    fillColor: 'red',
+                    fillOpacity: 0.3
+                  };
+                } else if (feature.properties && feature.properties.layerName === "ES") {
+                  layerStyle = {
+                    color: 'green',
+                    fillColor: 'green',
+                    fillOpacity: 0.3
+                  };
+                }
                 L.geoJSON(feature, {
+                  style: layerStyle,
                   onEachFeature: (f, l) => {
                     if (f.properties && f.properties.type) {
                       l.bindPopup("Type: " + f.properties.type);
@@ -507,6 +526,16 @@
               }
             });
             this.updateDrawToLayerSelect(); //Added to update select after load.
+
+            // Set the first layer as active if available
+            const layerNames = Object.keys(this.layers);
+            if (layerNames.length > 0) {
+              const selectElement = document.getElementById("drawToLayer");
+              if (selectElement) {
+                selectElement.value = layerNames[0];
+                this.switchDrawToLayer(); // Apply styling based on selected layer
+              }
+            }
 
             // Only try to fit bounds if there are valid layers with features
             if (Object.keys(this.layers).length > 0) {
