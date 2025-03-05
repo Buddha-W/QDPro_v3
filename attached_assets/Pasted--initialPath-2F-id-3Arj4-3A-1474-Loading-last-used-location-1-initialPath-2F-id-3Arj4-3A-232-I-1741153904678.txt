@@ -1,0 +1,35 @@
+?initialPath=%2F&id=%3Arj4%3A:1474 Loading last used location: 1
+?initialPath=%2F&id=%3Arj4%3A:232 Initializing QDPro...
+?initialPath=%2F&id=%3Arj4%3A:633 Starting loadProject function
+?initialPath=%2F&id=%3Arj4%3A:648 Found saved project in localStorage
+?initialPath=%2F&id=%3Arj4%3A:653 Parsed project data: Object
+?initialPath=%2F&id=%3Arj4%3A:672 Processing saved layer: Default Object
+?initialPath=%2F&id=%3Arj4%3A:672 Processing saved layer: ES Object
+?initialPath=%2F&id=%3Arj4%3A:672 Processing saved layer: PES Object
+?initialPath=%2F&id=%3Arj4%3A:717 Project loaded successfully
+?initialPath=%2F&id=%3Arj4%3A:511 Location data loaded: Object
+?initialPath=%2F&id=%3Arj4%3A:633 Starting loadProject function
+?initialPath=%2F&id=%3Arj4%3A:648 Found saved project in localStorage
+?initialPath=%2F&id=%3Arj4%3A:653 Parsed project data: Object
+?initialPath=%2F&id=%3Arj4%3A:672 Processing saved layer: Default Object
+?initialPath=%2F&id=%3Arj4%3A:672 Processing saved layer: ES Object
+?initialPath=%2F&id=%3Arj4%3A:672 Processing saved layer: PES Object
+?initialPath=%2F&id=%3Arj4%3A:717 Project loaded successfully
+?initialPath=%2F&id=%3Arj4%3A:1476 Last location loaded successfully
+?initialPath=%2F&id=%3Arj4%3A:908 Layer clicked: v
+feature-editor.js:141 Cannot save feature without ID
+saveFeatureProperties @ feature-editor.js:141
+feature-editor.js:127 Failed to save feature properties
+(anonymous) @ feature-editor.js:127
+?initialPath=%2F&id=%3Arj4%3A:908 Layer clicked: v
+feature-editor.js:141 Cannot save feature without ID
+saveFeatureProperties @ feature-editor.js:141
+feature-editor.js:127 Failed to save feature properties
+(anonymous) @ feature-editor.js:127
+?initialPath=%2F&id=%3Arj4%3A:1120 Selected checkboxes: 2
+?initialPath=%2F&id=%3Arj4%3A:1124 Selected feature IDs: Array(2)
+?initialPath=%2F&id=%3Arj4%3A:1131 Selected features after filtering: 2
+?initialPath=%2F&id=%3Arj4%3A:1132 All features available: 3
+?initialPath=%2F&id=%3Arj4%3A:1446 Status: Running QD analysis... (info)
+?initialPath=%2F&id=%3Arj4%3A:1161 Analysis results: Object
+?initialPath=%2F&id=%3Arj4%3A:1446 Status: Analysis complete: 2 facilities analyzed, 0 violations found (success)
