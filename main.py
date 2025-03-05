@@ -501,6 +501,10 @@ async def generate_report(request: ReportGenerationRequest):
         with open(file_path, "r") as f:
             analysis_data = json.load(f)
         
+        # Create data directories if they don't exist
+        os.makedirs("data/analyses", exist_ok=True)
+        os.makedirs("data/reports", exist_ok=True)
+        
         # Prepare report data
         report_data = {
             "title": request.title,
@@ -533,7 +537,6 @@ async def generate_report(request: ReportGenerationRequest):
         )
         
         # Set up output directory
-        os.makedirs("data/reports", exist_ok=True)
         output_filename = f"data/reports/report_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
         
         # Generate PDF
