@@ -817,7 +817,7 @@ async def generate_report(request: Request):
 # Database Initialization
 def init_db():
     db_url = os.environ.get('DATABASE_URL', "postgresql://postgres:postgres@localhost:5432/postgres")
-print(f"Using DB: {db_url}")
+    print(f"Using DB: {db_url}")
     try:
         conn = psycopg2.connect(db_url)
         conn.autocommit = True  # Ensure autocommit is on
