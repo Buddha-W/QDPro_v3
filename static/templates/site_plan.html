@@ -174,8 +174,14 @@
       baseLayers: {},
       currentBaseLayer: null,
       currentLocationId: null,
-      init: function() {
+      currentLocationName: null, // Added to store location name
+      init: async function() {
         console.log("Initializing QDPro...");
+
+        // Initialize location tracking variables
+        this.currentLocationId = null;
+        this.currentLocationName = null;
+
         this.map = L.map("map", { center: [39.8283, -98.5795], zoom: 4, zoomControl: false });
         this.baseLayers = {
           "OSM": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors" }),
@@ -204,6 +210,10 @@
         document.getElementById("drawCircle").addEventListener("click", () => this.activateTool("circle", "drawCircle"));
         document.getElementById("drawPolyline").addEventListener("click", () => this.activateTool("polyline", "drawPolyline"));
         this.updateDrawToLayerSelect();
+
+        // Initialize status display
+        document.getElementById("dbStatus").textContent = "No location selected";
+
         this.loadProject();
       },
       setupDrawTools: function() {
@@ -322,6 +332,7 @@
           });
           const data = await response.json();
           this.currentLocationId = data.id;
+          this.currentLocationName = data.name; // Store location name
           document.getElementById("dbStatus").textContent = `Location: ${data.name}`;
           for (let key in this.layers) this.map.removeLayer(this.layers[key]);
           this.layers = {};
@@ -360,12 +371,18 @@
       closeSwitchLocationModal: function() { document.getElementById("switchLocationModal").classList.remove("visible"); },
       switchToLocation: async function(locObj) {
         console.log("Switching to location:", locObj);
+
+        // Store both location ID and name
         this.currentLocationId = locObj.id;
-        document.getElementById("dbStatus").textContent = `Location: ${locObj.name}`;
-        for (let key in this.layers) this.map.removeLayer(this.layers[key]);
-        this.layers = {};
+        this.currentLocationName = locObj.name;
+
+        this.clearLayers();
         this.activeLayer = L.featureGroup().addTo(this.map);
         this.layers["Default"] = this.activeLayer;
+
+        // Update UI to reflect current location
+        document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationName}`;
+
         this.updateDrawToLayerSelect();
         await this.loadProject();
         this.closeSwitchLocationModal();
@@ -387,7 +404,7 @@
           const result = await response.json();
           console.log("Project saved:", result);
           document.getElementById("dbStatus").textContent = "Saved ✓";
-          setTimeout(() => document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationId ? this.layers["Default"].name : "None"}`, 2000);
+          setTimeout(() => document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationId ? this.currentLocationName : "None"}`, 2000); // Use currentLocationName
         } catch (e) {
           console.error("Error saving project:", e);
           alert("Failed to save project");
@@ -419,6 +436,12 @@
           console.error("Error loading project:", e);
           alert("Failed to load project");
         }
+      },
+      clearLayers: function() {
+        for (let key in this.layers) {
+          this.map.removeLayer(this.layers[key]);
+        }
+        this.layers = {};
       }
     };
 
