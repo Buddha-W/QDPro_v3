@@ -520,83 +520,89 @@
           const response = await fetch(url);
           const data = await response.json();
           for (let key in this.layers) this.layers[key].clearLayers();
-          if (data.layers) {
-            for (const layerName in data.layers) {
-              const features = data.layers[layerName].features;
-              if (features && features.length > 0) {
-                let layer = this.layers[layerName];
+          if (data.layers && data.layers.features && data.layers.features.length > 0) {
+            data.layers.features.forEach(feature => {
+              if (feature.layerName) { // Check if layerName exists
+                let layer = this.layers[feature.layerName];
                 if (!layer) {
                   layer = L.featureGroup().addTo(this.map);
-                  this.layers[layerName] = layer;
+                  this.layers[feature.layerName] = layer;
                 }
-
-                // Create GeoJSON layer and add to the feature group
-                features.forEach(feature => {
-                  let layerStyle = {};
-                  if (feature.properties && feature.properties.layerName === "PES") {
-                    layerStyle = {
-                      color: 'red',
-                      fillColor: 'red',
-                      fillOpacity: 0.3
-                    };
-                  } else if (feature.properties && feature.properties.layerName === "ES") {
-                    layerStyle = {
-                      color: 'green',
-                      fillColor: 'green',
-                      fillOpacity: 0.3
-                    };
-                  }
-
-                  // Create GeoJSON layer and add to the feature group
-                  L.geoJSON(feature, {
-                    style: layerStyle,
-                    onEachFeature: (feature, layer) => {
-                      // Restore popup if available
-                      if (feature.properties && feature.properties.popupContent) {
-                        layer.bindPopup(feature.properties.popupContent);
-                      }
-
-                      // Store the original feature data on the layer
-                      layer.feature = feature;
+                let layerStyle = {};
+                if (feature.properties && feature.properties.layerName === "PES") {
+                  layerStyle = {
+                    color: 'red',
+                    fillColor: 'red',
+                    fillOpacity: 0.3
+                  };
+                } else if (feature.properties && feature.properties.layerName === "ES") {
+                  layerStyle = {
+                    color: 'green',
+                    fillColor: 'green',
+                    fillOpacity: 0.3
+                  };
+                }
+                L.geoJSON(feature, {
+                  style: layerStyle,
+                  onEachFeature: (f, l) => {
+                    if (f.properties && f.properties.type) {
+                      l.bindPopup("Type: " + f.properties.type);
                     }
-                  }).addTo(layer);
+                    layer.addLayer(l);
+                  }
                 });
               }
+            });
+            this.updateDrawToLayerSelect(); //Added to update select after load.
+
+            // Set the first layer as active if available
+            const layerNames = Object.keys(this.layers);
+            if (layerNames.length > 0) {
+              const selectElement = document.getElementById("drawToLayer");
+              if (selectElement) {
+                selectElement.value = layerNames[0];
+                this.switchDrawToLayer(); // Apply styling based on selected layer
+              }
             }
-          }
-          this.updateDrawToLayerSelect();
 
-          // Try to fit bounds to the loaded features
-          if (Object.keys(this.layers).length > 0) {
-            try {
-              const bounds = L.latLngBounds([]);
-              let hasValidBounds = false;
+            // Only try to fit bounds if there are valid layers with features
+            if (Object.keys(this.layers).length > 0) {
+              try {
+                // First check which layers have valid bounds
+                let hasValidBounds = false;
+                let bounds = L.latLngBounds([]);
 
-              for (const layerName in this.layers) {
-                const layer = this.layers[layerName];
-                if (layer.getLayers().length > 0) {
-                  try {
-                    const layerBounds = layer.getBounds();
-                    if (layerBounds.isValid()) {
-                      bounds.extend(layerBounds);
-                      hasValidBounds = true;
+                for (let layerName in this.layers) {
+                  const layer = this.layers[layerName];
+                  // Only extend bounds if the layer has features
+                  if (layer.getLayers().length > 0) {
+                    try {
+                      const layerBounds = layer.getBounds();
+                      if (layerBounds.isValid()) {
+                        bounds.extend(layerBounds);
+                        hasValidBounds = true;
+                      }
+                    } catch (e) {
+                      console.warn(`Layer ${layerName} has invalid bounds:`, e);
                     }
-                  } catch (e) {
-                    console.warn(`Layer ${layerName} has invalid bounds:`, e);
                   }
                 }
-              }
 
-              if (hasValidBounds) {
-                this.map.fitBounds(bounds);
-              } else {
-                console.log("No valid bounds found, using default view");
+                // Only fit bounds if we have valid bounds
+                if (hasValidBounds) {
+                  this.map.fitBounds(bounds);
+                } else {
+                  console.log("No valid bounds found, using default view");
+                }
+              } catch (e) {
+                console.warn("Error fitting bounds:", e);
+                // Use default view if bounds fitting fails
               }
-            } catch (e) {
-              console.warn("Error fitting bounds:", e);
             }
+            console.log("Project loaded:", data);
+          } else {
+            console.log("No project features found.");
           }
-          console.log("Project loaded:", data);
         } catch (e) {
           console.error("Error loading project:", e);
           alert("Failed to load project");
