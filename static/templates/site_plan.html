@@ -664,11 +664,38 @@
           return false;
         }
       },
-      clearLayers: function() {
-        for (let key in this.layers) {
-          this.map.removeLayer(this.layers[key]);
+      clearLayers: function(clearBaseLayersToo = false) {
+        // Remove all user-created layers
+        for (const [id, layer] of Object.entries(this.layers)) {
+          if (this.map.hasLayer(layer)) {
+            this.map.removeLayer(layer);
+          }
         }
-        this.layers = {};
+
+        // Reset layer tracking but preserve base layers
+        if (clearBaseLayersToo) {
+          this.layers = {};
+          this.layerColors = {};
+          this.activeLayerId = null;
+        } else {
+          // Keep a copy of base layers if they exist
+          const baseLayersCopy = {};
+          const baseColorssCopy = {};
+
+          Object.keys(this.layers).forEach(key => {
+            if (key.startsWith('base_')) {
+              baseLayersCopy[key] = this.layers[key];
+              baseColorssCopy[key] = this.layerColors[key];
+                        }
+          });
+
+          this.layers = baseLayersCopy;
+          this.layerColors = baseColorssCopy;
+          this.activeLayerId = null;
+        }
+
+        // Update the draw-to layer dropdown
+        this.updateDrawToLayerSelect();
       },
       addLayerClickHandlers: function(layer) {
         layer.on({
@@ -685,7 +712,7 @@
           if (selectElement) {
             selectElement.value = layerNames[0];
             this.switchDrawToLayer();
-                    }
+          }
         }
         // Attempt to fit bounds after loading
         if (Object.keys(this.layers).length > 0) {
@@ -745,6 +772,20 @@
           console.error("Error loading location:", error);
           alert(`Failed to load location with ID ${locationId}`);
         }
+      },
+      getRandomColor: function() {
+        const letters = '0123456789ABCDEF';
+        let color = '#';
+        for (let i = 0; i < 6; i++) {
+          color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color;
+      },
+      addLayer: function(layerName, layerColor) {
+        const newLayer = L.featureGroup().addTo(this.map);
+        this.layers[layerName] = newLayer;
+        this.layerColors[layerName] = layerColor;
+        return newLayer;
       }
     };
 
@@ -772,7 +813,22 @@
     function loadProject() { QDPro.loadProject(); }
 
     // Initialize status display
-    document.getElementById('dbStatus').textContent = "No location selected";
+    document.getElementById('dbStatus').textContent = "No location loaded";
+
+    // Load last used location if available
+    (async function loadLastLocation() {
+      const lastLocationId = localStorage.getItem('lastLocationId');
+      if (lastLocationId) {
+        try {
+          console.log("Loading last used location:", lastLocationId);
+          await QDPro.switchToLocation(parseInt(lastLocationId, 10));
+          console.log("Last location loaded successfully");
+        } catch (error) {
+          console.error("Failed to load last location:", error);
+          document.getElementById('dbStatus').textContent = "No location loaded";
+        }
+      }
+    })();
 
     // Add database connection status check
     async function checkDatabaseConnection() {

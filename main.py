@@ -273,6 +273,11 @@ async def load_location(location_id: int):
         layers_data = cur.fetchall()
         
         # Process the layers
+        features = []
+        for layer_row in layers_data:
+            if layer_row[0] and 'features' in layer_row[0]:
+                features.extend(layer_row[0]['features'])
+        
         facilities = []
         qdArcs = []
         analysis = []
@@ -281,6 +286,10 @@ async def load_location(location_id: int):
         return {
             "location_id": location_id, 
             "name": location_name,
+            "layers": {
+                "type": "FeatureCollection",
+                "features": features
+            },
             "facilities": facilities,
             "qdArcs": qdArcs, 
             "analysis": analysis
