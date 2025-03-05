@@ -287,16 +287,50 @@
 
         // When layer selection changes, update the active layer
         sel.onchange = () => {
-          const layerName = sel.value;
-
-          // If the layer doesn't exist yet, create it
-          if (!this.layers[layerName]) {
-            this.layers[layerName] = L.featureGroup().addTo(this.map);
-          }
-
-          this.activeLayer = this.layers[layerName];
-          console.log(`Active layer changed to: ${layerName}`);
+          this.switchDrawToLayer();
         };
+      },
+      switchDrawToLayer: function() {
+        const layerName = document.getElementById("drawToLayer").value;
+        if (layerName && this.layers[layerName]) {
+          this.activeLayer = this.layers[layerName];
+
+          // Update draw controls with layer-specific styles
+          if (layerName === "PES") {
+            this.updateDrawStyles('red');
+          } else if (layerName === "ES") {
+            this.updateDrawStyles('green');
+          } else {
+            this.updateDrawStyles(null); // Reset to default
+          }
+        }
+      },
+      updateDrawStyles: function(color) {
+        if (!color) {
+          // Use defaults if no color specified
+          const drawOptions = { shapeOptions: { color: "#3388ff" } };
+          for (let type in this.drawTools) {
+            if (this.drawTools[type]) {
+              this.drawTools[type].options.shapeOptions = drawOptions.shapeOptions;
+            }
+          }
+          return;
+        }
+
+        const styleOptions = {
+          shapeOptions: {
+            color: color,
+            fillColor: color,
+            fillOpacity: 0.3
+          }
+        };
+
+        // Update all draw controls with the new style
+        for (let type in this.drawTools) {
+          if (this.drawTools[type] && this.drawTools[type].options && this.drawTools[type].options.shapeOptions) {
+            Object.assign(this.drawTools[type].options.shapeOptions, styleOptions.shapeOptions);
+          }
+        }
       },
       toggleBaseLayerDropdown: function() {
         const dropdown = document.getElementById("baseLayerDropdown");
@@ -473,14 +507,14 @@
               }
             });
             this.updateDrawToLayerSelect(); //Added to update select after load.
-            
+
             // Only try to fit bounds if there are valid layers with features
             if (Object.keys(this.layers).length > 0) {
               try {
                 // First check which layers have valid bounds
                 let hasValidBounds = false;
                 let bounds = L.latLngBounds([]);
-                
+
                 for (let layerName in this.layers) {
                   const layer = this.layers[layerName];
                   // Only extend bounds if the layer has features
@@ -496,7 +530,7 @@
                     }
                   }
                 }
-                
+
                 // Only fit bounds if we have valid bounds
                 if (hasValidBounds) {
                   this.map.fitBounds(bounds);
