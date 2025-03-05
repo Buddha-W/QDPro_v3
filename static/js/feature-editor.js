@@ -1,6 +1,147 @@
 
-// Feature editor functions
+// Feature editing functionality for QDPro
+
+// Store reference to the layer being edited
+window.activeEditLayer = null;
+
+// Initialize feature editor functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Set up event listeners for the feature properties form
+  const featureForm = document.getElementById('featurePropertiesForm');
+  if (featureForm) {
+    featureForm.addEventListener('submit', handleFeatureFormSubmit);
+    
+    // Toggle NEW section visibility based on explosive checkbox
+    const hasExplosiveCheckbox = document.getElementById('has_explosive');
+    if (hasExplosiveCheckbox) {
+      hasExplosiveCheckbox.addEventListener('change', function() {
+        document.getElementById('newSection').style.display = this.checked ? 'block' : 'none';
+      });
+    }
+  }
+});
+
+// Open the feature editor modal
+function openFeatureEditor(layer) {
+  // Store reference to active layer being edited
+  window.activeEditLayer = layer;
+  
+  // Get properties from the layer
+  const properties = layer.feature ? layer.feature.properties || {} : {};
+  
+  // Fill the form with current properties
+  const form = document.getElementById('featurePropertiesForm');
+  
+  // Reset form
+  form.reset();
+  
+  // Set values for each field
+  if (properties.name) document.getElementById('name').value = properties.name;
+  if (properties.is_facility !== undefined) document.getElementById('is_facility').checked = properties.is_facility;
+  if (properties.has_explosive !== undefined) document.getElementById('has_explosive').checked = properties.has_explosive;
+  if (properties.net_explosive_weight) document.getElementById('net_explosive_weight').value = properties.net_explosive_weight;
+  if (properties.type) document.getElementById('type').value = properties.type;
+  if (properties.description) document.getElementById('description').value = properties.description;
+  
+  // Show/hide the NEW field based on has_explosive checkbox
+  const showNewSection = properties.has_explosive;
+  document.getElementById('newSection').style.display = showNewSection ? 'block' : 'none';
+  
+  // Show the modal
+  document.getElementById('featurePropertiesModal').style.display = 'block';
+}
+
+// Handle form submission when editing feature properties
+function handleFeatureFormSubmit(e) {
+  e.preventDefault();
+  
+  if (!window.activeEditLayer) {
+    console.error('No active layer to edit');
+    return;
+  }
+  
+  // Get the layer
+  const layer = window.activeEditLayer;
+  
+  // Ensure layer has feature and properties
+  if (!layer.feature) {
+    layer.feature = { properties: {} };
+  }
+  if (!layer.feature.properties) {
+    layer.feature.properties = {};
+  }
+  
+  // Get form data
+  const form = document.getElementById('featurePropertiesForm');
+  const properties = { ...layer.feature.properties };
+  
+  // Update properties from form
+  properties.name = document.getElementById('name').value;
+  properties.is_facility = document.getElementById('is_facility').checked;
+  properties.has_explosive = document.getElementById('has_explosive').checked;
+  properties.type = document.getElementById('type').value;
+  properties.description = document.getElementById('description').value;
+  
+  // Only set NEW if the checkbox is checked
+  if (properties.has_explosive) {
+    const newValue = document.getElementById('net_explosive_weight').value;
+    properties.net_explosive_weight = newValue ? parseFloat(newValue) : 0;
+  } else {
+    properties.net_explosive_weight = 0;
+  }
+  
+  // Update layer properties
+  layer.feature.properties = properties;
+  
+  // Update popup content if the layer has a popup
+  if (layer.getPopup) {
+    if (layer.getPopup()) {
+      // Use popup-handler.js function if available
+      if (typeof createPopupContent === 'function') {
+        layer.setPopupContent(createPopupContent(properties));
+      } else {
+        // Simple fallback content
+        let content = `<div>
+          <h4>${properties.name || 'Unnamed Feature'}</h4>
+          <p><strong>Type:</strong> ${properties.type || 'Unknown'}</p>
+          ${properties.has_explosive ? `<p><strong>NEW:</strong> ${properties.net_explosive_weight} lbs</p>` : ''}
+          ${properties.description ? `<p>${properties.description}</p>` : ''}
+          <button onclick="openFeatureEditor(window.activeEditLayer)">Edit</button>
+        </div>`;
+        layer.setPopupContent(content);
+      }
+    } else {
+      // Create popup if it doesn't exist
+      if (typeof createPopupContent === 'function') {
+        layer.bindPopup(createPopupContent(properties));
+      }
+    }
+  }
+  
+  // Save to server if possible
+  saveFeatureProperties(layer.feature.id, properties)
+    .then(success => {
+      if (success) {
+        console.log('Feature properties saved successfully');
+      } else {
+        console.warn('Failed to save feature properties');
+      }
+    });
+  
+  // Close the modal
+  document.getElementById('featurePropertiesModal').style.display = 'none';
+  
+  // Clear active edit layer
+  window.activeEditLayer = null;
+}
+
+// Save feature properties to server
 async function saveFeatureProperties(featureId, properties) {
+  if (!featureId) {
+    console.warn('Cannot save feature without ID');
+    return false;
+  }
+  
   try {
     const response = await fetch('/api/update-feature', {
       method: 'POST',
@@ -14,79 +155,41 @@ async function saveFeatureProperties(featureId, properties) {
     });
     
     const data = await response.json();
-    if (response.ok) {
-      console.log('Feature properties saved:', data);
-      return true;
-    } else {
-      console.error('Error saving feature properties:', data);
-      return false;
-    }
+    return data.status === 'success';
   } catch (error) {
     console.error('Error saving feature properties:', error);
     return false;
   }
 }
 
-// Function to handle form submission when editing feature properties
-function handleFeatureFormSubmit(e, layer) {
-  e.preventDefault();
+// Function to add click handlers to layers for editing
+function addLayerClickHandlers(layer) {
+  if (!layer) return;
   
-  // Get the feature ID
-  const featureId = layer.feature.id;
-  
-  // Gather all form field values
-  const form = document.getElementById('featurePropertiesForm');
-  const formData = new FormData(form);
-  
-  // Update the feature properties
-  const properties = { ...layer.feature.properties };
-  
-  // Handle checkbox fields separately (they won't be in formData if unchecked)
-  const checkboxes = form.querySelectorAll('input[type="checkbox"]');
-  checkboxes.forEach(checkbox => {
-    properties[checkbox.id] = checkbox.checked;
-  });
-  
-  // Add all other form fields
-  for (let [key, value] of formData.entries()) {
-    properties[key] = value;
+  // Add a simple popup if none exists
+  if (layer.bindPopup && !layer.getPopup()) {
+    let properties = layer.feature ? layer.feature.properties || {} : {};
+    let content = `<div>
+      <h4>${properties.name || 'Unnamed Feature'}</h4>
+      <button onclick="openFeatureEditor(this._layer)">Edit Properties</button>
+    </div>`;
+    
+    layer.bindPopup(content);
+    
+    // Store reference to the layer in the button when popup opens
+    layer.on('popupopen', function(e) {
+      setTimeout(() => {
+        const buttons = document.querySelectorAll('.leaflet-popup button');
+        buttons.forEach(button => {
+          button._layer = layer;
+        });
+      }, 10);
+    });
   }
   
-  // Update the layer's feature properties
-  layer.feature.properties = properties;
-  
-  // Save to server
-  saveFeatureProperties(featureId, properties)
-    .then(success => {
-      if (success) {
-        // Close the modal
-        const modal = document.getElementById('featurePropertiesModal');
-        if (modal) modal.style.display = 'none';
-        
-        // Update the popup content if needed
-        if (layer.getPopup()) {
-          layer.setPopupContent(createPopupContent(properties));
-        }
-        
-        // If it's a facility with NEW value, maybe update styling
-        if (properties.type === 'Facility' && properties.new) {
-          updateLayerStyle(layer, 'Facility');
-        }
-      } else {
-        alert('Failed to save feature properties. Please try again.');
-      }
-    });
-}
-
-// Initialize feature editor event listeners
-function initFeatureEditor() {
-  // Add event listener for the feature properties form
-  document.addEventListener('submit', function(e) {
-    if (e.target.id === 'featurePropertiesForm' && window.activeEditLayer) {
-      handleFeatureFormSubmit(e, window.activeEditLayer);
-    }
+  // Add a click handler for the layer itself
+  layer.on('click', function(e) {
+    // Store the clicked layer for potential editing
+    window.lastClickedLayer = layer;
   });
 }
-
-// Call init when DOM is loaded
-document.addEventListener('DOMContentLoaded', initFeatureEditor);

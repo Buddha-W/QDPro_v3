@@ -8,7 +8,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
   <script src="/static/js/popup-handler.js"></script>
-  <script src="/static/js/feature-editor.js"></script>t>
+  <script src="/static/js/feature-editor.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
@@ -154,6 +154,51 @@
         <button onclick="closeAddLayerModal()" style="margin-right:10px;">Cancel</button>
         <button onclick="createNewLayer()">Create</button>
       </div>
+    </div>
+  </div>
+  
+  <!-- Feature Properties Modal -->
+  <div id="featurePropertiesModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close" onclick="document.getElementById('featurePropertiesModal').style.display='none'">&times;</span>
+      <h2>Edit Feature Properties</h2>
+      <form id="featurePropertiesForm">
+        <div style="margin-bottom: 10px;">
+          <label for="name">Display Name:</label>
+          <input type="text" id="name" name="name" style="width: 100%; padding: 5px;">
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label>
+            <input type="checkbox" id="is_facility" name="is_facility">
+            Facility
+          </label>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label>
+            <input type="checkbox" id="has_explosive" name="has_explosive">
+            Contains Explosives (NEW)
+          </label>
+        </div>
+        <div id="newSection" style="margin-bottom: 10px; display: none;">
+          <label for="net_explosive_weight">Net Explosive Weight (lb):</label>
+          <input type="number" id="net_explosive_weight" name="net_explosive_weight" min="0" style="width: 100%; padding: 5px;">
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label for="type">Facility Type:</label>
+          <select id="type" name="type" style="width: 100%; padding: 5px;">
+            <option value="Facility">Facility</option>
+            <option value="Storage">Storage</option>
+            <option value="Administrative">Administrative</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <label for="description">Description:</label>
+          <textarea id="description" name="description" style="width: 100%; padding: 5px; height: 60px;"></textarea>
+        </div>
+        <button type="submit" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">Save</button>
+        <button type="button" onclick="document.getElementById('featurePropertiesModal').style.display='none'" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
+      </form>
     </div>
   </div>
 
@@ -837,7 +882,7 @@
         const properties = layer.feature ? layer.feature.properties : {};
         const popupContent = `
           <div>
-            <h3>${properties.displayName || 'Unnamed Feature'}</h3>
+            <h3>${properties.name || 'Unnamed Feature'}</h3>
             <p>Type: ${properties.type || 'Unknown'}</p>
             ${properties.net_explosive_weight ? `<p>NEW: ${properties.net_explosive_weight} lbs</p>` : ''}
             <button class="edit-properties-btn">Edit Properties</button>
@@ -847,20 +892,22 @@
         layer.bindPopup(popupContent);
         
         // Add click handler
-        const self = this;
         layer.on('popupopen', function() {
           setTimeout(() => {
             const editBtn = document.querySelector('.edit-properties-btn');
             if (editBtn) {
               editBtn.addEventListener('click', function() {
-                self.openFeaturePropertiesModal(layer);
+                openFeatureEditor(layer);
               });
             }
           }, 100);
         });
+        
         layer.on({
           click: (e) => {
             console.log('Layer clicked:', e.latlng);
+            // Store the clicked layer for potential editing
+            window.lastClickedLayer = layer;
           }
         });
       },
