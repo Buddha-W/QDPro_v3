@@ -472,13 +472,18 @@ QD engine calculation steps:
         facility_latitude = facility_centroid[1] if len(facility_centroid) > 1 else 0
         facility_longitude = facility_centroid[0] if len(facility_centroid) > 0 else 0
         
+        # Log the facility data for analysis debugging
+        logger.info(f"Analyzing facility: {facility_data['name']}, NEW: {new_value} {unit}")
+        logger.info(f"Surrounding features count: {len(surrounding_features)}")
+        
         # Skip if no explosive weight
         if new_value <= 0:
+            logger.warning(f"Facility {facility_data['id']} has no explosive weight, skipping analysis")
             return {
                 "violations": [],
                 "safe_distance": 0,
                 "facility_id": facility.get("id"),
-                "facility_name": properties.get("name", "Unknown Facility"),
+                "facility_name": facility_data["name"],
                 "message": "No explosive weight specified"
             }
         
@@ -583,13 +588,24 @@ QD engine calculation steps:
             coords1 = self._extract_coordinates(geometry1)
             coords2 = self._extract_coordinates(geometry2)
             
+            # For empty geometries, use centroids
+            if not coords1 or not coords2:
+                centroid1 = self.get_centroid(geometry1)
+                centroid2 = self.get_centroid(geometry2)
+                return self.calculate_distance(centroid1, centroid2)
+            
             # Calculate minimum distance between all points
             min_distance = float('inf')
             for p1 in coords1:
                 for p2 in coords2:
                     dist = self.calculate_distance(p1, p2)
                     min_distance = min(min_distance, dist)
-                    
+            
+            # Log detailed distance information for debugging
+            logger.info(f"Distance calculation between geometries: {min_distance}")
+            logger.info(f"Geometry1 type: {geometry1.get('type')}, coords count: {len(coords1)}")
+            logger.info(f"Geometry2 type: {geometry2.get('type')}, coords count: {len(coords2)}")
+            
             return min_distance
         except Exception as e:
             logger.error(f"Error calculating polygon distance: {str(e)}")
