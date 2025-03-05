@@ -400,20 +400,26 @@
       switchToLocation: async function(locObj) {
         console.log("Switching to location:", locObj);
 
-        // Store both location ID and name
-        this.currentLocationId = locObj.id;
-        this.currentLocationName = locObj.name;
+        try {
+          // Store both location ID and name
+          this.currentLocationId = locObj.id;
+          this.currentLocationName = locObj.name;
 
-        this.clearLayers();
-        this.activeLayer = L.featureGroup().addTo(this.map);
-        this.layers["Default"] = this.activeLayer;
+          this.clearLayers();
+          this.activeLayer = L.featureGroup().addTo(this.map);
+          this.layers["Default"] = this.activeLayer;
 
-        // Update UI to reflect current location
-        document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationName}`;
+          // Update UI to reflect current location
+          document.getElementById("dbStatus").textContent = `Location: ${this.currentLocationName}`;
 
-        this.updateDrawToLayerSelect();
-        await this.loadProject();
-        this.closeSwitchLocationModal();
+          this.updateDrawToLayerSelect();
+          await this.loadProject();
+          this.closeSwitchLocationModal();
+        } catch (error) {
+          console.error("Error switching location:", error);
+          alert(`Failed to switch to location "${locObj.name}". Please try again.`);
+          document.getElementById("dbStatus").textContent = `Error loading location: ${this.currentLocationName}`;
+        }
       },
       saveProject: async function() {
         let features = [];
@@ -467,12 +473,40 @@
               }
             });
             this.updateDrawToLayerSelect(); //Added to update select after load.
+            
+            // Only try to fit bounds if there are valid layers with features
             if (Object.keys(this.layers).length > 0) {
-              let bounds = L.latLngBounds([]);
-              for (let layerName in this.layers) {
-                bounds.extend(this.layers[layerName].getBounds());
+              try {
+                // First check which layers have valid bounds
+                let hasValidBounds = false;
+                let bounds = L.latLngBounds([]);
+                
+                for (let layerName in this.layers) {
+                  const layer = this.layers[layerName];
+                  // Only extend bounds if the layer has features
+                  if (layer.getLayers().length > 0) {
+                    try {
+                      const layerBounds = layer.getBounds();
+                      if (layerBounds.isValid()) {
+                        bounds.extend(layerBounds);
+                        hasValidBounds = true;
+                      }
+                    } catch (e) {
+                      console.warn(`Layer ${layerName} has invalid bounds:`, e);
+                    }
+                  }
+                }
+                
+                // Only fit bounds if we have valid bounds
+                if (hasValidBounds) {
+                  this.map.fitBounds(bounds);
+                } else {
+                  console.log("No valid bounds found, using default view");
+                }
+              } catch (e) {
+                console.warn("Error fitting bounds:", e);
+                // Use default view if bounds fitting fails
               }
-              this.map.fitBounds(bounds);
             }
             console.log("Project loaded:", data);
           } else {
