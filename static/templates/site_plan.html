@@ -1,564 +1,237 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-  <title>QDPro Site Plan</title>
-  <!-- Leaflet & Leaflet.draw CSS -->
+  <title>QDPro – Working Example with Persistence</title>
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
+  <!-- Leaflet.draw CSS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" crossorigin="anonymous"/>
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous"/>
-  
-  <style>
-    /* Basic CSS reset and layout */
-    body, html { margin: 0; padding: 0; font-family: Arial, sans-serif; height: 100%; }
-    
-    /* Main layout grid */
-    .app-container {
-      display: grid;
-      grid-template-rows: 40px 1fr;
-      grid-template-columns: 250px 1fr;
-      height: 100vh;
-      width: 100vw;
-    }
-    
-    /* Header area */
-    .app-header {
-      grid-column: 1 / span 2;
-      background: #333;
-      color: white;
-      display: flex;
-      align-items: center;
-      padding: 0 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      z-index: 1000;
-    }
-    
-    /* Top navigation menu */
-    .top-menu { display: flex; gap: 15px; height: 100%; }
-    .menu-item {
-      position: relative;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      padding: 0 10px;
-    }
-    .menu-item:hover, .menu-item.active { background: #444; }
-    
-    /* Menu dropdowns */
-    .menu-dropdown {
-      display: none;
-      position: absolute;
-      top: 40px;
-      left: 0;
-      background: white;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      min-width: 180px;
-      z-index: 1002;
-    }
-    
-    .menu-dropdown-item {
-      padding: 10px 15px;
-      color: #333;
-      cursor: pointer;
-    }
-    .menu-dropdown-item:hover { background: #f0f0f0; }
-    
-    /* Left sidebar */
-    .sidebar {
-      grid-row: 2;
-      grid-column: 1;
-      background: #f5f5f5;
-      border-right: 1px solid #ddd;
-      padding: 15px;
-      overflow-y: auto;
-    }
-    
-    /* Main map container */
-    .map-container {
-      grid-row: 2;
-      grid-column: 2;
-      position: relative;
-    }
-    
-    #map {
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-    
-    /* Tool buttons */
-    .tools-panel {
-      margin-bottom: 20px;
-    }
-    
-    .tool-button {
-      display: block;
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 5px;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      cursor: pointer;
-      text-align: left;
-    }
-    
-    .tool-button:hover {
-      background: #f0f0f0;
-    }
-    
-    .tool-button.active {
-      background: #e0e0e0;
-      font-weight: bold;
-    }
-    
-    /* Accordion panels */
-    .accordion {
-      margin-bottom: 10px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    
-    .accordion-header {
-      background: #eee;
-      padding: 10px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    
-    .accordion-content {
-      padding: 10px;
-      display: none;
-      background: white;
-    }
-    
-    /* Layer list */
-    .layer-list {
-      margin-top: 10px;
-    }
-    
-    .layer-item {
-      padding: 5px;
-      margin-bottom: 2px;
-      background: white;
-      border: 1px solid #eee;
-      border-radius: 3px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .layer-controls {
-      display: flex;
-      gap: 5px;
-    }
-    
-    /* Modals */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      z-index: 1010;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .modal.visible {
-      display: flex;
-    }
-    
-    .modal-content {
-      background: white;
-      padding: 20px;
-      border-radius: 5px;
-      width: 400px;
-      max-width: 90%;
-    }
-    
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-    
-    .modal-header h3 {
-      margin: 0;
-    }
-    
-    .modal-close {
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    
-    .modal-body {
-      margin-bottom: 15px;
-    }
-    
-    .form-group {
-      margin-bottom: 15px;
-    }
-    
-    label {
-      display: block;
-      margin-bottom: 5px;
-    }
-    
-    input, select, textarea {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-    }
-    
-    .modal-footer {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-    
-    button {
-      padding: 8px 15px;
-      border: none;
-      border-radius: 4px;
-      background: #333;
-      color: white;
-      cursor: pointer;
-    }
-    
-    button:hover {
-      background: #444;
-    }
-    
-    button.secondary {
-      background: #ddd;
-      color: #333;
-    }
-    
-    button.secondary:hover {
-      background: #ccc;
-    }
-    
-    /* Status bar */
-    .status-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(255,255,255,0.8);
-      padding: 5px 10px;
-      font-size: 12px;
-      border-top: 1px solid #ddd;
-      z-index: 1001;
-    }
-    
-    /* Property popup */
-    .property-popup {
-      width: 300px;
-    }
-    
-    .property-popup input, .property-popup select {
-      margin-bottom: 10px;
-    }
-    
-    /* Drawing tooltip */
-    #drawing-tooltip {
-      display: none;
-      position: absolute;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      padding: 5px 10px;
-      border-radius: 3px;
-      font-size: 12px;
-      pointer-events: none;
-      z-index: 1000;
-    }
-    
-    /* Loading spinner */
-    .loading-spinner {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1020;
-      display: none;
-    }
-    
-    .spinner {
-      border: 5px solid #f3f3f3;
-      border-top: 5px solid #333;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    /* Base layer control customizations */
-    .base-layers-control {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: white;
-      padding: 10px;
-      border-radius: 4px;
-      box-shadow: 0 1px 5px rgba(0,0,0,0.4);
-      z-index: 1000;
-    }
-    
-    .base-layers-control h4 {
-      margin: 0 0 10px 0;
-      font-size: 14px;
-    }
-    
-    .base-layer-item {
-      margin-bottom: 5px;
-    }
-    
-    .base-layer-item label {
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-    }
-    
-    .base-layer-item input {
-      margin-right: 5px;
-      width: auto;
-    }
-  </style>
-</head>
-<body>
-  <!-- Main application layout -->
-  <div class="app-container">
-    <!-- Header with menu -->
-    <header class="app-header">
-      <div class="top-menu">
-        <div class="menu-item" onclick="toggleMenu(this, 'fileMenu')">
-          <span>File</span>
-          <div id="fileMenu" class="menu-dropdown">
-            <div class="menu-dropdown-item" onclick="QDPro.showNewLocationModal()">New Location...</div>
-            <div class="menu-dropdown-item" onclick="QDPro.showSwitchLocationModal()">Open Location...</div>
-            <div class="menu-dropdown-item" onclick="QDPro.saveProject()">Save</div>
-            <div class="menu-dropdown-item" onclick="QDPro.loadProject()">Reload from Server</div>
-          </div>
-        </div>
-        <div class="menu-item" onclick="toggleMenu(this, 'layerMenu')">
-          <span>Layers</span>
-          <div id="layerMenu" class="menu-dropdown">
-            <div class="menu-dropdown-item" onclick="QDPro.showAddLayerModal()">New Layer...</div>
-            <div class="menu-dropdown-item" onclick="QDPro.activateLayerManager()">Layer Manager</div>
-          </div>
-        </div>
-        <div class="menu-item" onclick="toggleMenu(this, 'toolsMenu')">
-          <span>Tools</span>
-          <div id="toolsMenu" class="menu-dropdown">
-            <div class="menu-dropdown-item" onclick="QDPro.activateTool('polygon', 'drawPolygon')">Draw Polygon</div>
-            <div class="menu-dropdown-item" onclick="QDPro.activateTool('rectangle', 'drawRectangle')">Draw Rectangle</div>
-            <div class="menu-dropdown-item" onclick="QDPro.activateTool('circle', 'drawCircle')">Draw Circle</div>
-            <div class="menu-dropdown-item" onclick="QDPro.activateTool('marker', 'drawMarker')">Place Marker</div>
-            <div class="menu-dropdown-item" onclick="QDPro.deactivateAllTools()">Cancel Drawing</div>
-          </div>
-        </div>
-        <div class="menu-item" onclick="toggleMenu(this, 'viewMenu')">
-          <span>View</span>
-          <div id="viewMenu" class="menu-dropdown">
-            <div class="menu-dropdown-item" onclick="QDPro.toggleBaseLayerDropdown()">Base Maps</div>
-            <div class="menu-dropdown-item" onclick="QDPro.toggleSidebar()">Toggle Sidebar</div>
-          </div>
-        </div>
-      </div>
-      <div style="flex-grow: 1"></div>
-      <div id="dbStatus" style="font-size: 12px; margin-right: 10px;">Location: None</div>
-    </header>
-    
-    <!-- Left sidebar -->
-    <div class="sidebar" id="sidebar">
-      <!-- Drawing tools -->
-      <div class="tools-panel">
-        <h3>Drawing Tools</h3>
-        <button id="drawPolygon" class="tool-button" onclick="QDPro.activateTool('polygon', 'drawPolygon')">
-          <i class="fas fa-draw-polygon"></i> Polygon
-        </button>
-        <button id="drawRectangle" class="tool-button" onclick="QDPro.activateTool('rectangle', 'drawRectangle')">
-          <i class="fas fa-square"></i> Rectangle
-        </button>
-        <button id="drawCircle" class="tool-button" onclick="QDPro.activateTool('circle', 'drawCircle')">
-          <i class="fas fa-circle"></i> Circle
-        </button>
-        <button id="drawMarker" class="tool-button" onclick="QDPro.activateTool('marker', 'drawMarker')">
-          <i class="fas fa-map-marker-alt"></i> Marker
-        </button>
-        <button id="cancelDrawing" class="tool-button" onclick="QDPro.deactivateAllTools()">
-          <i class="fas fa-times"></i> Cancel Drawing
-        </button>
-      </div>
-      
-      <!-- Layers accordion -->
-      <div class="accordion">
-        <div class="accordion-header" onclick="toggleAccordion(this)">Layers</div>
-        <div class="accordion-content">
-          <div class="layer-list" id="layerList">
-            <!-- Layer items will be added here dynamically -->
-          </div>
-          <button onclick="QDPro.showAddLayerModal()" style="width: 100%; margin-top: 10px;">
-            <i class="fas fa-plus"></i> Add Layer
-          </button>
-        </div>
-      </div>
-      
-      <!-- Analysis accordion (placeholder) -->
-      <div class="accordion">
-        <div class="accordion-header" onclick="toggleAccordion(this)">Analysis</div>
-        <div class="accordion-content">
-          <p>Analysis tools will go here.</p>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Main map area -->
-    <div class="map-container">
-      <div id="map"></div>
-      <div id="drawing-tooltip">Click on map to place points. Click first point to close.</div>
-      <div class="status-bar" id="statusBar">Ready</div>
-    </div>
-  </div>
-  
-  <!-- Add Layer Modal -->
-  <div id="addLayerModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Add New Layer</h3>
-        <button class="modal-close" onclick="QDPro.closeAddLayerModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="newLayerName">Layer Name:</label>
-          <input type="text" id="newLayerName" placeholder="Enter layer name">
-        </div>
-        <div class="form-group">
-          <label for="newLayerType">Layer Type:</label>
-          <select id="newLayerType">
-            <option value="generic">Generic</option>
-            <option value="pes">PES (Potential Explosion Site)</option>
-            <option value="es">ES (Exposed Site)</option>
-            <option value="infrastructure">Infrastructure</option>
-            <option value="boundary">Boundary</option>
-          </select>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="secondary" onclick="QDPro.closeAddLayerModal()">Cancel</button>
-        <button onclick="QDPro.createNewLayer()">Create Layer</button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- New Location Modal -->
-  <div id="newLocationModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Create New Location</h3>
-        <button class="modal-close" onclick="QDPro.closeNewLocationModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="newLocationName">Location Name:</label>
-          <input type="text" id="newLocationName" placeholder="Enter location name">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="secondary" onclick="QDPro.closeNewLocationModal()">Cancel</button>
-        <button onclick="QDPro.createNewLocation()">Create Location</button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Switch Location Modal -->
-  <div id="switchLocationModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Open Location</h3>
-        <button class="modal-close" onclick="QDPro.closeSwitchLocationModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div id="locationsList">
-          <!-- Location items will be added here dynamically -->
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="secondary" onclick="QDPro.closeSwitchLocationModal()">Cancel</button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Feature Properties Modal -->
-  <div id="featurePropertiesModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Feature Properties</h3>
-        <button class="modal-close" onclick="QDPro.closeFeaturePropertiesModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="featureName">Name:</label>
-          <input type="text" id="featureName" placeholder="Enter feature name">
-        </div>
-        <div class="form-group">
-          <label for="featureType">Type:</label>
-          <select id="featureType">
-            <option value="generic">Generic</option>
-            <option value="pes">PES (Potential Explosion Site)</option>
-            <option value="es">ES (Exposed Site)</option>
-            <option value="infrastructure">Infrastructure</option>
-            <option value="boundary">Boundary</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="featureDescription">Description:</label>
-          <textarea id="featureDescription" rows="3" placeholder="Enter description"></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="secondary" onclick="QDPro.closeFeaturePropertiesModal()">Cancel</button>
-        <button onclick="QDPro.saveFeatureProperties()">Save Properties</button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Loading spinner -->
-  <div class="loading-spinner" id="loadingSpinner">
-    <div class="spinner"></div>
-  </div>
-  
-  <!-- Base layer dropdown -->
-  <div class="base-layers-control" id="baseLayersControl" style="display: none;">
-    <h4>Base Maps</h4>
-    <div id="baseLayersList">
-      <!-- Base layer items will be added here dynamically -->
-    </div>
-  </div>
-  
   <!-- Leaflet and Leaflet.draw JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
-  
+  <style>
+    /* BASIC RESET & BODY */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
+    /* TOP NAV BAR */
+    nav.main-toolbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 40px; background: #f1f1f1; border-bottom: 1px solid #ccc;
+      display: flex; align-items: center; z-index: 3000; padding: 0 10px;
+      white-space: nowrap;
+    }
+    .menu-item {
+      padding: 0 15px; font-size: 14px; display: flex; align-items: center;
+      cursor: pointer; position: relative;
+    }
+    .menu-item:hover { background: #e9ecef; }
+    .menu-dropdown {
+      display: none; position: fixed; background: white; min-width: 150px;
+      border: 1px solid #ccc; border-radius: 4px; z-index: 3500;
+    }
+    .menu-dropdown-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
+    .menu-dropdown-item:hover { background: #f0f0f0; }
+    #dbStatus { margin-left: auto; }
+    /* SECOND TOOLBAR (Drawing & Zoom) */
+    .toolbar {
+      position: fixed; top: 40px; left: 0; right: 0;
+      height: 40px; background: #fff; border-bottom: 1px solid #ccc;
+      display: flex; align-items: center; z-index: 2900; padding: 0 10px;
+    }
+    .tool-group { display: flex; align-items: center; margin-right: 10px; }
+    .tool-button {
+      padding: 6px; margin: 0 2px; border: 1px solid transparent;
+      border-radius: 3px; background: #fff; color: #666; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      min-width: 32px; height: 32px;
+    }
+    .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
+    .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
+    /* MAP (Below 2 Toolbars => top: 80px) */
+    #map {
+      position: fixed; top: 80px; left: 0; right: 0; bottom: 0;
+      z-index: 1000; background: #eee;
+    }
+    /* LEFT PANEL */
+    .left-panel {
+      position: fixed; top: 80px; left: 0; width: 300px;
+      height: calc(100vh - 80px); background: white; border-right: 1px solid #ccc;
+      transform: translateX(-300px); transition: transform 0.3s ease; z-index: 1500;
+      display: flex; flex-direction: column;
+    }
+    .left-panel.visible { transform: translateX(0); }
+    .panel-header {
+      padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ccc; font-weight: bold;
+    }
+    .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
+    /* BASE LAYER DROPDOWN */
+    .base-layer-dropdown {
+      position: fixed; background: white; padding: 10px; border: 1px solid #ccc;
+      border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 2800; display: none;
+    }
+    /* MODALS */
+    .modal-overlay {
+      display: none; position: fixed; z-index: 4000; left: 0; top: 0;
+      width: 100%; height: 100%; background: rgba(0,0,0,0.4);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.visible { display: flex; }
+    .modal-content {
+      background: #fff; padding: 20px; border: 1px solid #888;
+      width: 80%; max-width: 500px;
+    }
+    .modal-content h2 { margin-bottom: 15px; }
+    .modal-content input, .modal-content select, .modal-content textarea {
+      width: 100%; padding: 5px; margin-top: 5px; margin-bottom: 10px;
+    }
+    .modal-content button { margin: 5px; }
+  </style>
+</head>
+<body>
+  <!-- TOP NAV BAR -->
+  <nav class="main-toolbar">
+    <div class="menu-item" onclick="toggleMenu(this, 'fileMenu')">File
+      <div class="menu-dropdown" id="fileMenu">
+        <div class="menu-dropdown-item" onclick="showNewLocationModal()">New Location</div>
+        <div class="menu-dropdown-item" onclick="showSwitchLocationModal()">Switch Location</div>
+        <div class="menu-dropdown-item" onclick="saveProject()">Save Project</div>
+        <div class="menu-dropdown-item" onclick="loadProject()">Load Project</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'editMenu')">Edit
+      <div class="menu-dropdown" id="editMenu">
+        <div class="menu-dropdown-item">Cut</div>
+        <div class="menu-dropdown-item">Copy</div>
+        <div class="menu-dropdown-item">Paste</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'viewMenu')">View
+      <div class="menu-dropdown" id="viewMenu">
+        <div class="menu-dropdown-item">Layers</div>
+        <div class="menu-dropdown-item">Base Maps</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'toolsMenu')">Tools
+      <div class="menu-dropdown" id="toolsMenu">
+        <div class="menu-dropdown-item">QD Calculator</div>
+        <div class="menu-dropdown-item">Measure</div>
+      </div>
+    </div>
+    <div class="menu-item" onclick="toggleMenu(this, 'helpMenu')">Help
+      <div class="menu-dropdown" id="helpMenu">
+        <div class="menu-dropdown-item">Documentation</div>
+        <div class="menu-dropdown-item">About</div>
+      </div>
+    </div>
+    <div id="dbStatus">No location selected</div>
+  </nav>
+
+  <!-- SECOND TOOLBAR -->
+  <div class="toolbar">
+    <div class="tool-group">
+      <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel">
+        <i class="fas fa-bars"></i>
+      </button>
+      <button id="baseLayerTool" class="tool-button" title="Base Layers">
+        <i class="fas fa-layer-group"></i>
+      </button>
+    </div>
+    <!-- Zoom Buttons Group -->
+    <div class="tool-group">
+      <button id="zoomInBtn" class="tool-button" title="Zoom In">
+        <i class="fas fa-search-plus"></i>
+      </button>
+      <button id="zoomOutBtn" class="tool-button" title="Zoom Out">
+        <i class="fas fa-search-minus"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button id="selectTool" class="tool-button" title="Select Features">
+        <i class="fas fa-mouse-pointer"></i>
+      </button>
+      <button id="panTool" class="tool-button active" title="Pan Map">
+        <i class="fas fa-hand-paper"></i>
+      </button>
+    </div>
+    <div class="tool-group">
+      <button id="drawMarker" class="tool-button" title="Add Point">
+        <i class="fas fa-map-marker-alt"></i>
+      </button>
+      <button id="drawPolygon" class="tool-button" title="Draw Polygon">
+        <i class="fas fa-draw-polygon"></i>
+      </button>
+      <button id="drawRectangle" class="tool-button" title="Draw Rectangle">
+        <i class="fas fa-square"></i>
+      </button>
+      <button id="drawCircle" class="tool-button" title="Draw Circle">
+        <i class="fas fa-circle"></i>
+      </button>
+      <button id="drawPolyline" class="tool-button" title="Draw Line">
+        <i class="fas fa-minus"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel" id="leftPanel">
+    <div class="panel-header">Layers Panel</div>
+    <div class="panel-content">
+      <div class="layer-select-container">
+        <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
+        <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
+        <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
+      </div>
+      <div id="layerControl" style="margin-top:20px;"></div>
+    </div>
+  </div>
+
+  <!-- BASE LAYER DROPDOWN -->
+  <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
+
+  <!-- MAP -->
+  <div id="map"></div>
+
+  <!-- MODALS -->
+  <!-- New Location Modal -->
+  <div id="newLocationModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>Create New Location</h2>
+      <input type="text" id="newLocationName" placeholder="Enter location name"/>
+      <div style="text-align:right;">
+        <button onclick="closeNewLocationModal()" style="margin-right:10px;">Cancel</button>
+        <button onclick="createNewLocation()">Create</button>
+      </div>
+    </div>
+  </div>
+  <!-- Switch Location Modal -->
+  <div id="switchLocationModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>Switch Location</h2>
+      <div id="locationList" style="margin:10px 0; max-height:200px; overflow-y:auto;"></div>
+      <div style="text-align:right;">
+        <button onclick="closeSwitchLocationModal()">Close</button>
+      </div>
+    </div>
+  </div>
+  <!-- Add Layer Modal -->
+  <div id="addLayerModal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>Add New Layer</h2>
+      <input type="text" id="newLayerName" placeholder="Layer Name"/>
+      <select id="newLayerType">
+        <option value="facility">Facility</option>
+        <option value="boundary">Boundary</option>
+      </select>
+      <div style="text-align:right;">
+        <button onclick="closeAddLayerModal()" style="margin-right:10px;">Cancel</button>
+        <button onclick="createNewLayer()">Create</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Minimal toggleMenu function for top navigation
     window.toggleMenu = function(element, menuId) {
@@ -582,16 +255,9 @@
       }
     };
 
-    // Toggle accordion sections
-    function toggleAccordion(header) {
-      const content = header.nextElementSibling;
-      const isOpen = content.style.display === "block";
-      content.style.display = isOpen ? "none" : "block";
-    }
-
     /******************************************************
      * QDPro Object
-     * - Uses API endpoints to persist drawn features.
+     * - Uses localStorage to persist drawn features.
      * - Uses built-in Leaflet.draw tools.
      ******************************************************/
     const QDPro = {
@@ -601,654 +267,285 @@
       drawTools: {},
       baseLayers: {},
       currentBaseLayer: null,
-      currentLocation: "Default",
-      currentFeature: null,
-      
+      // Use a mockLocations array for switching locations.
+      mockLocations: [
+        { id: 1, name: "Location A", created_at: "2023-01-01" },
+        { id: 2, name: "Location B", created_at: "2023-02-15" }
+      ],
       init: function() {
         console.log("Initializing QDPro...");
-        
-        // Initialize map
-        this.map = L.map('map', {
-          center: [39.8282, -98.5795], // Center of USA
-          zoom: 5,
-          zoomControl: true,
-          attributionControl: true
+        // Initialize map with default zoom control disabled.
+        this.map = L.map("map", {
+          center: [39.8283, -98.5795],
+          zoom: 4,
+          zoomControl: false
         });
-        
-        // Setup base layers
+        // Set up base layers.
         this.baseLayers = {
-          "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          }),
-          "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-          }),
-          "Terrain": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://opentopomap.org/">OpenTopoMap</a>'
-          }),
-          "Dark": L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          })
+          "OSM": L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "© OpenStreetMap contributors" }),
+          "Satellite": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { attribution: "Tiles © Esri" }),
+          "Topographic": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", { attribution: "Map data: © OpenStreetMap contributors" })
         };
-        
-        // Add the default base layer
-        this.currentBaseLayer = this.baseLayers["OpenStreetMap"];
+        this.currentBaseLayer = this.baseLayers.OSM;
         this.currentBaseLayer.addTo(this.map);
-        
-        // Setup base layers dropdown content
-        const baseLayersList = document.getElementById('baseLayersList');
-        Object.keys(this.baseLayers).forEach((name, index) => {
-          const item = document.createElement('div');
-          item.className = 'base-layer-item';
-          item.innerHTML = `
-            <label>
-              <input type="radio" name="baseLayer" value="${name}" ${index === 0 ? 'checked' : ''}>
-              ${name}
-            </label>
-          `;
-          baseLayersList.appendChild(item);
-          
-          // Add event listener
-          const radio = item.querySelector('input');
-          radio.addEventListener('change', () => {
-            if (radio.checked) {
-              this.switchBaseLayer(name);
-            }
-          });
-        });
-        
-        // Initialize default layer
+        // Create default layer group for drawn features.
         this.activeLayer = L.featureGroup().addTo(this.map);
         this.layers["Default"] = this.activeLayer;
-        
-        // Setup draw controls
-        this.setupDrawControls();
-        
-        // Load project data from server
-        this.loadProject();
-        
-        // Update the layer select dropdown
-        this.updateDrawToLayerSelect();
-      },
-      
-      setupDrawControls: function() {
-        // Initialize the Leaflet.Draw control
-        const drawControl = new L.Control.Draw({
-          position: 'topright',
-          draw: {
-            polyline: {
-              shapeOptions: {
-                color: '#f357a1',
-                weight: 3
-              }
-            },
-            polygon: {
-              allowIntersection: false,
-              drawError: {
-                color: '#e1e100',
-                message: '<strong>Error:</strong> Polygon edges cannot cross!'
-              },
-              shapeOptions: {
-                color: '#3388ff'
-              }
-            },
-            circle: {
-              shapeOptions: {
-                color: '#3388ff'
-              }
-            },
-            rectangle: {
-              shapeOptions: {
-                color: '#3388ff'
-              }
-            },
-            marker: true,
-            circlemarker: false
-          },
-          edit: {
-            featureGroup: this.activeLayer,
-            remove: true
+        // Set up draw tools.
+        this.setupDrawTools();
+        // Left panel toggle.
+        const leftPanel = document.getElementById("leftPanel");
+        const mapEl = document.getElementById("map");
+        document.getElementById("toggleLayersPanel").addEventListener("click", () => {
+          leftPanel.classList.toggle("visible");
+          if (leftPanel.classList.contains("visible")) {
+            mapEl.style.left = "300px";
+            mapEl.style.width = "calc(100% - 300px)";
+          } else {
+            mapEl.style.left = "0";
+            mapEl.style.width = "100%";
           }
+          this.map.invalidateSize();
         });
-        
-        // Don't add the control to the map - we'll use our own UI
-        // this.map.addControl(drawControl);
-        
-        // Store the draw handlers for later use
+        // Base layer tool.
+        document.getElementById("baseLayerTool").addEventListener("click", () => this.toggleBaseLayerDropdown());
+        // Zoom buttons.
+        document.getElementById("zoomInBtn").addEventListener("click", () => { this.map.zoomIn(); });
+        document.getElementById("zoomOutBtn").addEventListener("click", () => { this.map.zoomOut(); });
+        // Update draw-to-layer dropdown.
+        this.updateDrawToLayerSelect();
+        // Auto-load project from localStorage.
+        this.loadProject();
+        console.log("QDPro init complete.");
+      },
+      setupDrawTools: function() {
+        const drawOptions = { shapeOptions: { color: "#3388ff" } };
+        // Instantiate draw tool instances.
         this.drawTools = {
-          polygon: new L.Draw.Polygon(this.map, drawControl.options.draw.polygon),
-          rectangle: new L.Draw.Rectangle(this.map, drawControl.options.draw.rectangle),
-          circle: new L.Draw.Circle(this.map, drawControl.options.draw.circle),
-          marker: new L.Draw.Marker(this.map, drawControl.options.draw.marker)
+          polygon: new L.Draw.Polygon(this.map, {
+            allowIntersection: false, showArea: true,
+            drawError: { color: "#e1e100", timeout: 1000 },
+            shapeOptions: { color: "#3388ff" }
+          }),
+          polyline: new L.Draw.Polyline(this.map, drawOptions),
+          rectangle: new L.Draw.Rectangle(this.map, drawOptions),
+          circle: new L.Draw.Circle(this.map, drawOptions),
+          marker: new L.Draw.Marker(this.map)
         };
-        
-        // Event handler for created shapes
-        this.map.on('draw:created', (e) => {
+        // Listen for drawing completion.
+        this.map.on("draw:created", (e) => {
+          console.log("Shape drawn:", e);
           const layer = e.layer;
-          
-          // Show the properties modal when a feature is created
-          this.currentFeature = layer;
-          this.showFeaturePropertiesModal();
-          
-          // Add to active layer after properties are set
-          // (This happens in saveFeatureProperties)
-        });
-        
-        // Event handler for editing existing features
-        this.map.on('draw:edited', (e) => {
-          const layers = e.layers;
-          console.log("Features edited:", e);
-          this.saveProject(); // Auto-save after editing
-        });
-        
-        // Event handler for deleting features
-        this.map.on('draw:deleted', (e) => {
-          const layers = e.layers;
-          console.log("Features deleted:", e);
-          this.saveProject(); // Auto-save after deletion
-        });
-        
-        // Setup tooltip for drawing instructions
-        const drawingTooltip = document.getElementById('drawing-tooltip');
-        this.map.on('draw:drawstart', (e) => {
-          drawingTooltip.style.display = 'block';
-          
-          // Position the tooltip based on the mouse
-          this.map.on('mousemove', this.positionDrawingTooltip);
-        });
-        
-        this.map.on('draw:drawstop', (e) => {
-          drawingTooltip.style.display = 'none';
-          this.map.off('mousemove', this.positionDrawingTooltip);
+          if (e.layerType === "polygon") {
+            const coords = layer.getLatLngs()[0];
+            if (coords.length > 0 && !coords[0].equals(coords[coords.length - 1])) {
+              coords.push(coords[0]);
+              layer.setLatLngs(coords);
+            }
+            let polyType = prompt("Enter polygon type (PES or ES):", "PES");
+            if (polyType) {
+              layer.feature = layer.toGeoJSON();
+              layer.feature.properties.type = polyType;
+            }
+          }
+          this.activeLayer.addLayer(layer);
           this.deactivateAllTools();
-          this.saveProject(); // Auto-save after drawing
+          this.saveProject(); // Save after drawing.
         });
-        
-        // Add more event listeners for map interactions
-        this.map.on("draw:edited", (e) => {
-          console.log("Features edited:", e);
-          this.saveProject();
-        });
-        
-        this.map.on("draw:deleted", (e) => {
-          console.log("Features deleted:", e);
-          this.saveProject();
-        });
-        
-        // Save on layer modifications
-        Object.values(this.layers).forEach(layer => {
-          layer.on("layeradd", () => this.autoSave());
-          layer.on("layerremove", () => this.autoSave());
-        });
+        // Optionally, listen for edit or delete events to auto-save.
+        this.map.on("draw:edited", (e) => { this.saveProject(); });
+        this.map.on("draw:deleted", (e) => { this.saveProject(); });
       },
-      
-      positionDrawingTooltip: function(e) {
-        const tooltip = document.getElementById('drawing-tooltip');
-        tooltip.style.left = (e.containerPoint.x + 10) + 'px';
-        tooltip.style.top = (e.containerPoint.y - 30) + 'px';
-      },
-      
-      // Enhanced auto-save method with debounce to prevent too many calls
-      autoSaveDebounceTimeout: null,
-      autoSave: function() {
-        clearTimeout(this.autoSaveDebounceTimeout);
-        this.autoSaveDebounceTimeout = setTimeout(() => {
-          this.saveProject();
-        }, 1000); // Wait 1 second before saving to reduce API calls
-      },
-      
       activateTool: function(toolName, buttonId) {
-        // Deactivate any active tools first
         this.deactivateAllTools();
-        
-        // Remove active class from all tool buttons
-        document.querySelectorAll('.tool-button').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        
-        // Activate the requested tool
         if (this.drawTools[toolName]) {
           this.drawTools[toolName].enable();
-          
-          // Add active class to the button
-          const button = document.getElementById(buttonId);
-          if (button) {
-            button.classList.add('active');
-          }
-          
-          console.log(`Activated ${toolName} drawing tool`);
-        } else {
-          console.error(`Tool ${toolName} not found`);
+          document.getElementById(buttonId).classList.add("active");
         }
       },
-      
       deactivateAllTools: function() {
-        // Disable all drawing tools
-        Object.values(this.drawTools).forEach(tool => {
-          if (tool && typeof tool.disable === 'function') {
-            tool.disable();
-          }
-        });
-        
-        // Remove active class from all tool buttons
-        document.querySelectorAll('.tool-button').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        
-        console.log("All drawing tools deactivated");
+        for (let tool in this.drawTools) {
+          this.drawTools[tool].disable();
+        }
+        document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("active"));
+        document.getElementById("panTool").classList.add("active");
       },
-      
       updateDrawToLayerSelect: function() {
-        // Update the layer list in the sidebar
-        const layerList = document.getElementById('layerList');
-        layerList.innerHTML = '';
-        
-        Object.keys(this.layers).forEach(layerName => {
-          const layerDiv = document.createElement('div');
-          layerDiv.className = 'layer-item';
-          
-          // Check if this is the active layer
-          const isActive = this.layers[layerName] === this.activeLayer;
-          
-          layerDiv.innerHTML = `
-            <span>${layerName}</span>
-            <div class="layer-controls">
-              <input type="radio" name="activeLayer" value="${layerName}" ${isActive ? 'checked' : ''}>
-            </div>
-          `;
-          
-          // Add event listener for radio button
-          const radio = layerDiv.querySelector('input[type="radio"]');
-          radio.addEventListener('change', () => {
-            if (radio.checked) {
-              this.setActiveLayer(layerName);
-            }
-          });
-          
-          layerList.appendChild(layerDiv);
+        const select = document.getElementById("drawToLayer");
+        select.innerHTML = "";
+        for (let layerName in this.layers) {
+          const opt = document.createElement("option");
+          opt.value = layerName;
+          opt.textContent = layerName;
+          select.appendChild(opt);
+        }
+        select.addEventListener("change", (e) => {
+          let selected = e.target.value;
+          this.activeLayer = this.layers[selected];
+          console.log("Active layer changed to:", selected);
+          this.saveProject();
         });
       },
-      
-      setActiveLayer: function(layerName) {
-        if (this.layers[layerName]) {
-          this.activeLayer = this.layers[layerName];
-          
-          // Update edit control to use this layer
-          this.map.editTools = this.activeLayer;
-          
-          console.log("Active layer changed to:", layerName);
-          this.saveProject(); // Auto-save on layer change
-        }
-      },
-      
       toggleBaseLayerDropdown: function() {
-        const control = document.getElementById('baseLayersControl');
-        control.style.display = control.style.display === 'none' || control.style.display === '' ? 'block' : 'none';
-      },
-      
-      switchBaseLayer: function(name) {
-        if (this.baseLayers[name]) {
-          if (this.currentBaseLayer) this.map.removeLayer(this.currentBaseLayer);
-          this.currentBaseLayer = this.baseLayers[name];
-          this.currentBaseLayer.addTo(this.map);
+        const dropdown = document.getElementById("baseLayerDropdown");
+        if (dropdown.style.display === "block") {
+          dropdown.style.display = "none";
+        } else {
+          dropdown.innerHTML = "";
+          for (let name in this.baseLayers) {
+            const div = document.createElement("div");
+            div.textContent = name;
+            div.style.cursor = "pointer";
+            div.style.padding = "5px";
+            div.addEventListener("click", () => {
+              this.switchBaseLayer(name);
+              dropdown.style.display = "none";
+              this.saveProject();
+            });
+            dropdown.appendChild(div);
+          }
+          const btn = document.getElementById("baseLayerTool");
+          let rect = btn.getBoundingClientRect();
+          dropdown.style.display = "block";
+          dropdown.style.top = rect.bottom + "px";
+          dropdown.style.left = rect.left + "px";
+          dropdown.style.zIndex = "2800";
         }
       },
-      
-      toggleSidebar: function() {
-        const sidebar = document.getElementById('sidebar');
-        sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
-        
-        // Trigger map resize to adjust for the sidebar
-        setTimeout(() => {
-          this.map.invalidateSize();
-        }, 300);
+      switchBaseLayer: function(name) {
+        if (this.currentBaseLayer) this.map.removeLayer(this.currentBaseLayer);
+        this.currentBaseLayer = this.baseLayers[name];
+        this.currentBaseLayer.addTo(this.map);
       },
-      
       showAddLayerModal: function() {
         document.getElementById("addLayerModal").classList.add("visible");
       },
-      
       closeAddLayerModal: function() {
         document.getElementById("addLayerModal").classList.remove("visible");
         document.getElementById("newLayerName").value = "";
       },
-      
       createNewLayer: function() {
         let layerName = document.getElementById("newLayerName").value.trim();
         let layerType = document.getElementById("newLayerType").value;
-        
-        if (!layerName) { 
-          alert("Please enter a layer name"); 
-          return; 
-        }
-        
-        if (this.layers[layerName]) { 
-          alert(`Layer "${layerName}" already exists`); 
-          return; 
-        }
-        
+        if (!layerName) { alert("Enter a layer name"); return; }
+        if (this.layers[layerName]) { alert(`Layer "${layerName}" exists`); return; }
         let newLayer = L.featureGroup().addTo(this.map);
         newLayer.properties = { type: layerType };
         this.layers[layerName] = newLayer;
         this.activeLayer = newLayer;
-        
         this.updateDrawToLayerSelect();
         this.closeAddLayerModal();
-        
         console.log(`Created layer: ${layerName}, type: ${layerType}`);
-        this.saveProject(); // Auto-save after creating a new layer
+        this.saveProject();
       },
-      
       showNewLocationModal: function() {
         document.getElementById("newLocationModal").classList.add("visible");
       },
-      
       closeNewLocationModal: function() {
         document.getElementById("newLocationModal").classList.remove("visible");
       },
-      
       createNewLocation: function() {
-        let locationName = document.getElementById("newLocationName").value.trim();
-        
-        if (!locationName) {
-          alert("Please enter a location name");
-          return;
-        }
-        
-        // Clear existing layers
-        for (let key in this.layers) {
-          this.map.removeLayer(this.layers[key]);
-        }
-        
-        // Initialize with a fresh set of layers
+        let locName = document.getElementById("newLocationName").value.trim();
+        if (!locName) { alert("Enter a location name"); return; }
+        this.currentLocation = locName;
+        document.getElementById("dbStatus").textContent = `Location: ${locName}`;
+        // Add new location to mockLocations.
+        let newLoc = { id: Date.now(), name: locName, created_at: new Date().toISOString() };
+        this.mockLocations.push(newLoc);
+        // Reset layers for new location.
+        for (let key in this.layers) { this.map.removeLayer(this.layers[key]); }
         this.layers = {};
         this.activeLayer = L.featureGroup().addTo(this.map);
         this.layers["Default"] = this.activeLayer;
-        
-        // Update UI
         this.updateDrawToLayerSelect();
-        this.currentLocation = locationName;
-        document.getElementById("dbStatus").textContent = `Location: ${locationName}`;
-        
-        // Close modal
         this.closeNewLocationModal();
-        
-        // Save the new empty location
+        console.log("Created new location:", locName);
         this.saveProject();
       },
-      
       showSwitchLocationModal: function() {
-        // For now, we're just using a simple mock location list
-        const locationsList = document.getElementById("locationsList");
-        locationsList.innerHTML = "";
-        
-        // Add a "Default" location
-        const defaultDiv = document.createElement("div");
-        defaultDiv.className = "menu-dropdown-item";
-        defaultDiv.textContent = "Default";
-        defaultDiv.onclick = () => this.switchToLocation({ name: "Default" });
-        locationsList.appendChild(defaultDiv);
-        
-        // Add the current location if it's not Default
-        if (this.currentLocation !== "Default") {
-          const currentDiv = document.createElement("div");
-          currentDiv.className = "menu-dropdown-item";
-          currentDiv.textContent = this.currentLocation;
-          currentDiv.onclick = () => this.switchToLocation({ name: this.currentLocation });
-          locationsList.appendChild(currentDiv);
-        }
-        
         document.getElementById("switchLocationModal").classList.add("visible");
+        let locationList = document.getElementById("locationList");
+        locationList.innerHTML = "";
+        this.mockLocations.forEach(loc => {
+          let div = document.createElement("div");
+          div.style.padding = "10px";
+          div.style.borderBottom = "1px solid #eee";
+          div.style.cursor = "pointer";
+          div.textContent = `${loc.name} (Created: ${new Date(loc.created_at).toLocaleString()})`;
+          div.addEventListener("click", () => { this.switchToLocation(loc); });
+          locationList.appendChild(div);
+        });
       },
-      
       closeSwitchLocationModal: function() {
         document.getElementById("switchLocationModal").classList.remove("visible");
       },
-      
       switchToLocation: function(locObj) {
         console.log("Switching to location:", locObj);
-        
-        // Clear existing layers
-        for (let key in this.layers) {
-          this.map.removeLayer(this.layers[key]);
-        }
-        
-        // Reset layers
+        for (let key in this.layers) { this.map.removeLayer(this.layers[key]); }
         this.layers = {};
         this.activeLayer = L.featureGroup().addTo(this.map);
         this.layers["Default"] = this.activeLayer;
-        
-        // Update UI
         this.updateDrawToLayerSelect();
         this.currentLocation = locObj.name;
         document.getElementById("dbStatus").textContent = `Location: ${locObj.name}`;
-        
-        // Close modal
         this.closeSwitchLocationModal();
-        
-        // Load data for this location
-        this.loadProject();
-      },
-      
-      showFeaturePropertiesModal: function() {
-        // Reset form fields
-        document.getElementById("featureName").value = "";
-        document.getElementById("featureType").value = "generic";
-        document.getElementById("featureDescription").value = "";
-        
-        // If the feature already has properties, populate the form
-        if (this.currentFeature && this.currentFeature.feature && this.currentFeature.feature.properties) {
-          const props = this.currentFeature.feature.properties;
-          document.getElementById("featureName").value = props.name || "";
-          document.getElementById("featureType").value = props.type || "generic";
-          document.getElementById("featureDescription").value = props.description || "";
-        }
-        
-        // Show the modal
-        document.getElementById("featurePropertiesModal").classList.add("visible");
-      },
-      
-      closeFeaturePropertiesModal: function() {
-        document.getElementById("featurePropertiesModal").classList.remove("visible");
-        
-        // If canceling a new feature, remove it
-        if (this.currentFeature && !this.currentFeature._map) {
-          // Feature isn't on the map yet, so discard it
-          this.currentFeature = null;
-        }
-      },
-      
-      saveFeatureProperties: function() {
-        if (!this.currentFeature) return;
-        
-        // Get values from form
-        const name = document.getElementById("featureName").value.trim() || "Unnamed Feature";
-        const type = document.getElementById("featureType").value;
-        const description = document.getElementById("featureDescription").value.trim();
-        
-        // Initialize or update feature properties
-        if (!this.currentFeature.feature) {
-          this.currentFeature.feature = {
-            type: 'Feature',
-            properties: {},
-            // Geometry will be set by Leaflet.draw
-          };
-        }
-        
-        // Update properties
-        this.currentFeature.feature.properties = {
-          ...this.currentFeature.feature.properties,
-          name: name,
-          type: type,
-          description: description
-        };
-        
-        // If feature is not yet on a layer, add it to the active layer
-        if (!this.currentFeature._map) {
-          this.activeLayer.addLayer(this.currentFeature);
-        }
-        
-        // Bind a popup to show the properties when clicked
-        this.currentFeature.bindPopup(this.createPopupContent(this.currentFeature.feature.properties));
-        
-        // Close the modal
-        this.closeFeaturePropertiesModal();
-        
-        // Save the project
         this.saveProject();
       },
-      
-      createPopupContent: function(properties) {
-        return `
-          <div class="property-popup">
-            <h3>${properties.name || 'Unnamed Feature'}</h3>
-            <p><strong>Type:</strong> ${properties.type || 'Generic'}</p>
-            ${properties.description ? `<p>${properties.description}</p>` : ''}
-            <button onclick="QDPro.editFeature(this)">Edit</button>
-          </div>
-        `;
-      },
-      
-      editFeature: function(button) {
-        // Find the feature that contains this popup
-        const popup = button.closest('.leaflet-popup');
-        const leafletId = popup._source._leaflet_id;
-        
-        // Find the feature in our layers
-        let foundFeature = null;
-        Object.values(this.layers).forEach(layer => {
-          layer.eachLayer(feature => {
-            if (feature._leaflet_id === leafletId) {
-              foundFeature = feature;
-            }
-          });
-        });
-        
-        if (foundFeature) {
-          this.currentFeature = foundFeature;
-          this.showFeaturePropertiesModal();
-        }
-      },
-      
       saveProject: function() {
-        // Show saving indicator
-        const dbStatus = document.getElementById("dbStatus");
-        const originalText = dbStatus.textContent;
-        dbStatus.textContent = "Saving...";
-        
         let features = [];
-        // Iterate over all layers and gather GeoJSON features
-        Object.values(this.layers).forEach(layerGroup => {
-          layerGroup.eachLayer(layer => {
+        for (let key in this.layers) {
+          this.layers[key].eachLayer(layer => {
             if (layer.toGeoJSON) {
               features.push(layer.toGeoJSON());
             }
           });
-        });
-        
+        }
         const projectData = { features: features };
-        
-        fetch('/api/save', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(projectData)
-        })
-        .then(res => res.json())
-        .then(data => { 
-          console.log("Project saved successfully:", data); 
-          dbStatus.textContent = "Saved ✓";
-          // Reset status text after 2 seconds
-          setTimeout(() => {
-            if (dbStatus.textContent === "Saved ✓") {
-              dbStatus.textContent = originalText;
-            }
-          }, 2000);
-        })
-        .catch(err => { 
-          console.error("Auto-save failed:", err); 
-          dbStatus.textContent = "Save Failed!";
-          // Reset status text after 3 seconds
-          setTimeout(() => {
-            if (dbStatus.textContent === "Save Failed!") {
-              dbStatus.textContent = originalText;
-            }
-          }, 3000);
-        });
+        localStorage.setItem("projectData", JSON.stringify(projectData));
+        console.log("Project saved:", projectData);
+        document.getElementById("dbStatus").textContent = "Saved ✓";
+        setTimeout(() => { document.getElementById("dbStatus").textContent = `Location: ${this.currentLocation || "None"}`; }, 2000);
       },
-      
       loadProject: function() {
-        // Show loading indicator
-        document.getElementById("loadingSpinner").style.display = "flex";
-        const dbStatus = document.getElementById("dbStatus");
-        const originalText = dbStatus.textContent;
-        dbStatus.textContent = "Loading...";
-        
-        fetch('/api/load')
-          .then(res => res.json())
-          .then(data => {
-            console.log("Loaded project data:", data);
-            
-            // Clear existing features from all layers
-            Object.values(this.layers).forEach(layer => {
-              layer.clearLayers();
-            });
-            
-            // Process the features from the loaded data
-            if (data.features && Array.isArray(data.features)) {
-              data.features.forEach(feature => {
-                try {
-                  // Create a Leaflet layer from the GeoJSON feature
-                  const layer = L.GeoJSON.geometryToLayer(feature);
-                  
-                  // Assign the feature properties to the layer
-                  layer.feature = feature;
-                  
-                  // Bind popup with feature properties
-                  if (feature.properties) {
-                    layer.bindPopup(this.createPopupContent(feature.properties));
-                  }
-                  
-                  // Add to the active layer (for now, all in default layer)
-                  this.activeLayer.addLayer(layer);
-                } catch (e) {
-                  console.error("Error adding feature:", e, feature);
+        let data = localStorage.getItem("projectData");
+        if (data) {
+          let projectData = JSON.parse(data);
+          for (let key in this.layers) { this.layers[key].clearLayers(); }
+          if (projectData.features && projectData.features.length > 0) {
+            let geojsonLayer = L.geoJSON(projectData, {
+              onEachFeature: (feature, layer) => {
+                if (feature.properties && feature.properties.type) {
+                  layer.bindPopup("Type: " + feature.properties.type);
                 }
-              });
-            }
-            
-            dbStatus.textContent = `Location: ${this.currentLocation}`;
-            document.getElementById("loadingSpinner").style.display = "none";
-          })
-          .catch(err => {
-            console.error("Error loading project:", err);
-            dbStatus.textContent = "Load Failed!";
-            document.getElementById("loadingSpinner").style.display = "none";
-            
-            // Reset status text after 3 seconds
-            setTimeout(() => {
-              if (dbStatus.textContent === "Load Failed!") {
-                dbStatus.textContent = originalText;
+                this.activeLayer.addLayer(layer);
               }
-            }, 3000);
-          });
+            });
+            if (geojsonLayer.getLayers().length > 0) {
+              this.map.fitBounds(geojsonLayer.getBounds());
+            }
+            console.log("Project loaded:", projectData);
+          } else {
+            console.log("No project features found.");
+          }
+        } else {
+          console.log("No project data in localStorage.");
+        }
       }
     };
 
-    // Initialize QDPro when the page loads
+    /************************************************************
+     * Global functions for modals and persistence
+     ************************************************************/
+    function showNewLocationModal() { QDPro.showNewLocationModal(); }
+    function closeNewLocationModal() { QDPro.closeNewLocationModal(); }
+    function createNewLocation() { QDPro.createNewLocation(); }
+    function showSwitchLocationModal() { QDPro.showSwitchLocationModal(); }
+    function closeSwitchLocationModal() { QDPro.closeSwitchLocationModal(); }
+    function showAddLayerModal() { QDPro.showAddLayerModal(); }
+    function closeAddLayerModal() { QDPro.closeAddLayerModal(); }
     function createNewLayer() { QDPro.createNewLayer(); }
     function saveProject() { QDPro.saveProject(); }
     function loadProject() { QDPro.loadProject(); }
-    
-    // Automatically call saveProject when the user interacts with the map
-    document.addEventListener("click", function(e) {
-      // Don't save on every click, only on clicks that change the state
-      if (e.target.matches(".menu-dropdown-item") || 
-          e.target.matches(".tool-button") || 
-          e.target.matches("button[id^='draw']")) {
-        // Small delay to ensure the action has completed
-        setTimeout(() => QDPro.autoSave(), 500);
-      }
-    });
 
     document.addEventListener("DOMContentLoaded", () => { QDPro.init(); });
   </script>
