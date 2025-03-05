@@ -646,9 +646,11 @@ async def analyze_location(request: Request):
                 logger.error(f"Safe distance calculation error: {str(calc_error)}")
                 continue
             
-            # Get facility centroid for QD rings
+            # Extract facility data and get centroid for QD rings
             try:
-                facility_centroid = qd_engine.get_centroid(facility.get("geometry", {}))
+                # Use the new extract_facility_data method
+                facility_data = qd_engine.extract_facility_data(facility)
+                facility_centroid = facility_data["centroid"]
                 
                 # Generate QD rings from the centroid
                 qd_rings = qd_engine.generate_k_factor_rings(
@@ -657,7 +659,7 @@ async def analyze_location(request: Request):
                     k_factors=[1.0, 1.25, 1.5]
                 )
             except Exception as e:
-                logger.error(f"Error generating QD rings: {str(e)}")
+                logger.error(f"Error generating QD rings: {str(e)}\n{traceback.format_exc()}")
                 qd_rings = []
                 facility_centroid = [0, 0]
             

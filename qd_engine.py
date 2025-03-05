@@ -462,9 +462,15 @@ QD engine calculation steps:
                         unit_type: UnitType = UnitType.POUNDS) -> Dict:
         """Analyze a facility against surrounding features with enhanced information"""
         
-        properties = facility.get("properties", {})
-        new_value = float(properties.get("net_explosive_weight", 0))
-        unit = properties.get("unit", UnitType.POUNDS.value)
+        # Extract facility data with proper error handling
+        facility_data = self.extract_facility_data(facility)
+        new_value = facility_data["net_explosive_weight"]
+        unit = facility_data["unit"]
+        
+        # Add facility coordinates for display
+        facility_centroid = facility_data["centroid"]
+        facility_latitude = facility_centroid[1] if len(facility_centroid) > 1 else 0
+        facility_longitude = facility_centroid[0] if len(facility_centroid) > 0 else 0
         
         # Skip if no explosive weight
         if new_value <= 0:
@@ -503,11 +509,16 @@ QD engine calculation steps:
         results = {
             "violations": [],
             "safe_distance": safe_distance,
-            "facility_id": facility.get("id", "unknown"),
-            "facility_name": properties.get("name", "Unknown Facility"),
+            "facility_id": facility_data["id"],
+            "facility_name": facility_data["name"],
             "calculation_details": calc_result,
             "standards_reference": self.get_standard_text(k_factor_type),
-            "facility_centroid": facility_centroid
+            "facility_centroid": facility_centroid,
+            "facility_latitude": facility_latitude,
+            "facility_longitude": facility_longitude,
+            "net_explosive_weight": new_value,
+            "unit": unit,
+            "hazard_division": facility_data["hazard_division"]
         }
         
         # Check each surrounding feature for violations
@@ -625,7 +636,64 @@ QD engine calculation steps:
         # Simple average of coordinates
         sum_x, sum_y = 0, 0
         for point in coords:
-            sum_x += point[0]
-            sum_y += point[1]
+            if len(point) >= 2:  # Ensure point has at least two coordinates
+                sum_x += point[0]
+                sum_y += point[1]
             
-        return [sum_x / len(coords), sum_y / len(coords)]
+        count = len(coords)
+        if count > 0:
+            return [sum_x / count, sum_y / count]
+        else:
+            return [0, 0]
+            
+    def extract_facility_data(self, feature: Dict) -> Dict:
+        """Extract facility data from a GeoJSON feature for QD analysis"""
+        properties = feature.get("properties", {})
+        
+        # Get explosive weight - convert to float if possible
+        new_value = 0
+        try:
+            new_str = properties.get("net_explosive_weight", "0")
+            if isinstance(new_str, (int, float)):
+                new_value = float(new_str)
+            elif isinstance(new_str, str) and new_str.strip():
+                new_value = float(new_str)
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid NEW value for feature {feature.get('id')}: {properties.get('net_explosive_weight')}")
+            new_value = 0
+            
+        # Get unit type with fallback
+        unit_type = properties.get("unit", "lbs")
+        if not unit_type or unit_type not in self.unit_conversions:
+            unit_type = "lbs"
+            
+        # Get hazard division with fallback
+        hazard_division = properties.get("hazard_division", "1.1")
+        if not hazard_division:
+            hazard_division = "1.1"
+            
+        # Get facility name with fallbacks
+        name = properties.get("name", None)
+        if not name:
+            name = properties.get("facility_name", None)
+        if not name:
+            name = f"Facility {feature.get('id', 'unknown')}"
+            
+        # Get feature type with fallback
+        feature_type = properties.get("type", "Unknown")
+            
+        # Get centroid for location
+        geometry = feature.get("geometry", {})
+        centroid = self.get_centroid(geometry)
+        
+        return {
+            "id": feature.get("id", "unknown"),
+            "name": name,
+            "type": feature_type,
+            "net_explosive_weight": new_value,
+            "unit": unit_type,
+            "hazard_division": hazard_division,
+            "centroid": centroid,
+            "geometry": geometry,
+            "properties": properties
+        }

@@ -1467,3 +1467,226 @@
   <script src="/static/js/custom-modal.js"></script>
 </body>
 </html>
+<file_path>static/templates/site_plan.html</file_path>
+<change_summary>Complete the displayAnalysisResults function</change_summary>
+<line_number>812</line_number>
+tml: `
+              <div><i class="fas fa-radiation"></i></div>
+            }),
+            title: facility.facility_name
+          }).addTo(this.analysisLayer);
+          
+          facilityMarker.bindPopup(`
+            <div class="analysis-popup">
+              <h3>${facility.facility_name}</h3>
+              <p><strong>NEW:</strong> ${facility.net_explosive_weight_display} ${facility.unit_display}</p>
+              <p><strong>Safe Distance:</strong> ${facility.safe_distance} ft</p>
+              <p><strong>Violations:</strong> ${facility.violations.length}</p>
+            </div>
+          `);
+          
+          // Add QD rings if available
+          if (facility.qd_rings && facility.qd_rings.length > 0) {
+            facility.qd_rings.forEach(ring => {
+              // Create a style based on the QD type
+              let style = {
+                fillColor: '#ff3300',
+                color: '#ff0000',
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0.2
+              };
+              
+              // Different colors for different QD types
+              if (ring.properties && ring.properties.qd_type) {
+                switch(ring.properties.qd_type) {
+                  case 'IBD':
+                    style.fillColor = '#ff3300';
+                    style.color = '#ff0000';
+                    break;
+                  case 'PTRD':
+                    style.fillColor = '#ff9900';
+                    style.color = '#cc7700';
+                    break;
+                  case 'ILD':
+                    style.fillColor = '#ffcc00';
+                    style.color = '#cc9900';
+                    break;
+                  case 'IMD':
+                    style.fillColor = '#33cc33';
+                    style.color = '#009900';
+                    break;
+                  case 'FRAG':
+                    style.fillColor = '#9900cc';
+                    style.color = '#660099';
+                    break;
+                }
+              }
+              
+              // Create the GeoJSON layer
+              const ringLayer = L.geoJSON(ring, {
+                style: style
+              }).addTo(this.analysisLayer);
+              
+              // Add a popup with information
+              if (ring.properties) {
+                ringLayer.bindPopup(`
+                  <div class="qd-ring-popup">
+                    <h4>${ring.properties.label || 'QD Ring'}</h4>
+                    <p>${ring.properties.description || ''}</p>
+                    ${ring.properties.standard ? `<p><small>${ring.properties.standard}</small></p>` : ''}
+                  </div>
+                `);
+              }
+            });
+          }
+          
+          // Add violations if any
+          if (facility.violations && facility.violations.length > 0) {
+            facility.violations.forEach(violation => {
+              // Highlight the violated feature
+              this.layers.eachLayer(layer => {
+                if (layer.feature && layer.feature.id === violation.feature_id) {
+                  // Highlight the violated feature
+                  layer.setStyle({
+                    color: '#ff0000',
+                    weight: 3,
+                    fillColor: '#ff9999',
+                    fillOpacity: 0.5
+                  });
+                  
+                  // Add a popup with violation details
+                  layer.bindPopup(`
+                    <div class="violation-popup">
+                      <h4>QD Violation</h4>
+                      <p><strong>Feature:</strong> ${violation.feature_name}</p>
+                      <p><strong>Current Distance:</strong> ${violation.distance} ft</p>
+                      <p><strong>Required Distance:</strong> ${violation.required} ft</p>
+                      <p><strong>Deficiency:</strong> ${violation.deficiency} ft (${violation.percent_deficient}%)</p>
+                      <p><small>${violation.standard_reference}</small></p>
+                    </div>
+                  `);
+                  
+                  // Add a violation marker
+                  const violationIcon = L.divIcon({
+                    className: 'violation-icon',
+                    html: '<div><i class="fas fa-exclamation-triangle"></i></div>',
+                    iconSize: [24, 24]
+                  });
+                  
+                  // Get the centroid of the violated feature
+                  let violationPoint;
+                  if (layer.getLatLng) {
+                    violationPoint = layer.getLatLng();
+                  } else if (layer.getBounds) {
+                    violationPoint = layer.getBounds().getCenter();
+                  } else {
+                    return;
+                  }
+                  
+                  const violationMarker = L.marker(violationPoint, {
+                    icon: violationIcon
+                  }).addTo(this.analysisLayer);
+                  
+                  violationMarker.bindPopup(`
+                    <div class="violation-popup">
+                      <h4>QD Violation</h4>
+                      <p><strong>Feature:</strong> ${violation.feature_name}</p>
+                      <p><strong>Required Distance:</strong> ${violation.required} ft</p>
+                      <p><strong>Current Distance:</strong> ${violation.distance} ft</p>
+                      <p><strong>Deficiency:</strong> ${violation.deficiency} ft (${violation.percent_deficient}%)</p>
+                    </div>
+                  `);
+                }
+              });
+            });
+          }
+        });
+        
+        // Create a summary panel for the analysis
+        const summaryPanel = document.createElement('div');
+        summaryPanel.className = 'analysis-summary-panel';
+        summaryPanel.innerHTML = `
+          <h3>Analysis Results</h3>
+          <p><strong>Total Facilities:</strong> ${analysis.total_facilities}</p>
+          <p><strong>Total Violations:</strong> ${analysis.total_violations}</p>
+          <p><strong>Analysis Timestamp:</strong> ${new Date(analysis.timestamp).toLocaleString()}</p>
+          <button id="closeAnalysisBtn" class="close-btn">Close Analysis</button>
+        `;
+        
+        document.body.appendChild(summaryPanel);
+        
+        // Zoom to fit all analysis features
+        if (this.analysisLayer.getBounds) {
+          try {
+            this.map.fitBounds(this.analysisLayer.getBounds());
+          } catch (e) {
+            console.error("Could not fit bounds:", e);
+          }
+        }
+        
+        // Handle close button
+        document.getElementById('closeAnalysisBtn').addEventListener('click', () => {
+          if (this.analysisLayer) {
+            this.map.removeLayer(this.analysisLayer);
+            this.analysisLayer = null;
+          }
+          document.body.removeChild(summaryPanel);
+        });
+      },
+<file_path>static/templates/site_plan.html</file_path>
+<change_summary>Add CSS for analysis visualization</change_summary>
+<line_number>33</line_number>
+    .facility-icon { text-align: center; }
+    .violation-icon { text-align: center; }
+    
+    .facility-icon div, .violation-icon div {
+      background-color: #fff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #333;
+    }
+    
+    .facility-icon div {
+      background-color: #ffcc00;
+      border-color: #cc9900;
+    }
+    
+    .violation-icon div {
+      background-color: #ff3300;
+      border-color: #cc0000;
+    }
+    
+    .analysis-summary-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: white;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      max-width: 300px;
+    }
+    
+    .analysis-popup, .qd-ring-popup, .violation-popup {
+      max-width: 250px;
+    }
+    
+    .close-btn {
+      background: #f44336;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    
+    .close-btn:hover {
+      background: #d32f2f;
+    }
