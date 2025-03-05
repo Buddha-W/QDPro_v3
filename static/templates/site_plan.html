@@ -369,6 +369,23 @@
           this.deactivateAllTools();
           this.saveProject(); // Auto-save after drawing
         });
+        
+        // Add more event listeners for map interactions
+        this.map.on("draw:edited", (e) => {
+          console.log("Features edited:", e);
+          this.saveProject();
+        });
+        
+        this.map.on("draw:deleted", (e) => {
+          console.log("Features deleted:", e);
+          this.saveProject();
+        });
+        
+        // Save on layer modifications
+        Object.values(this.layers).forEach(layer => {
+          layer.on("layeradd", () => this.autoSave());
+          layer.on("layerremove", () => this.autoSave());
+        });
       },
 
       activateTool: function(toolName, buttonId) {
@@ -402,6 +419,15 @@
           console.log("Active layer changed to:", selected);
           this.saveProject(); // Auto-save on layer change
         });
+      },
+      
+      // Enhanced auto-save method with debounce to prevent too many calls
+      autoSaveDebounceTimeout: null,
+      autoSave: function() {
+        clearTimeout(this.autoSaveDebounceTimeout);
+        this.autoSaveDebounceTimeout = setTimeout(() => {
+          this.saveProject();
+        }, 1000); // Wait 1 second before saving to reduce API calls
       },
 
       toggleBaseLayerDropdown: function() {
@@ -526,6 +552,11 @@
       },
 
       saveProject: function() {
+        // Show saving indicator
+        const dbStatus = document.getElementById("dbStatus");
+        const originalText = dbStatus.textContent;
+        dbStatus.textContent = "Saving...";
+        
         let features = [];
         // Iterate over all layers and gather GeoJSON features
         Object.values(this.layers).forEach(layerGroup => {
@@ -536,14 +567,33 @@
           });
         });
         const projectData = { features: features };
+        
         fetch('/api/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(projectData)
         })
         .then(res => res.json())
-        .then(data => { console.log("Project saved successfully:", data); })
-        .catch(err => { console.error("Auto-save failed:", err); });
+        .then(data => { 
+          console.log("Project saved successfully:", data); 
+          dbStatus.textContent = "Saved ✓";
+          // Reset status text after 2 seconds
+          setTimeout(() => {
+            if (dbStatus.textContent === "Saved ✓") {
+              dbStatus.textContent = originalText;
+            }
+          }, 2000);
+        })
+        .catch(err => { 
+          console.error("Auto-save failed:", err); 
+          dbStatus.textContent = "Save Failed!";
+          // Reset status text after 3 seconds
+          setTimeout(() => {
+            if (dbStatus.textContent === "Save Failed!") {
+              dbStatus.textContent = originalText;
+            }
+          }, 3000);
+        });
       },
 
       loadProject: function() {
@@ -586,6 +636,17 @@
     function createNewLayer() { QDPro.createNewLayer(); }
     function saveProject() { QDPro.saveProject(); }
     function loadProject() { QDPro.loadProject(); }
+    
+    // Automatically call saveProject when the user interacts with the map
+    document.addEventListener("click", function(e) {
+      // Don't save on every click, only on clicks that change the state
+      if (e.target.matches(".menu-dropdown-item") || 
+          e.target.matches(".tool-button") || 
+          e.target.matches("button[id^='draw']")) {
+        // Small delay to ensure the action has completed
+        setTimeout(() => QDPro.autoSave(), 500);
+      }
+    });
 
     document.addEventListener("DOMContentLoaded", () => { QDPro.init(); });
   </script>
