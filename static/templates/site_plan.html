@@ -812,7 +812,7 @@
               feature.properties.featureId = l._leaflet_id || Math.random().toString(36).substr(2, 9);
               // Add a human-readable name for display
               feature.properties.displayName = feature.properties.name || feature.properties.facility_name || 
-                                              (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${feature.properties.featureId.substr(-4)}`);
+                                              (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${String(feature.properties.featureId).slice(-4)}`);
               allFeatures.push(feature);
             }
           });
