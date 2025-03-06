@@ -390,6 +390,10 @@ async function saveFeatureProperties(featureId, properties) {
     });
 
     const data = await response.json();
+    if (data.status === 'success') {
+      // Refresh edit handlers to ensure all features are editable
+      setTimeout(setupAllLayerEditHandlers, 300);
+    }
     return data.status === 'success';
   } catch (error) {
     console.warn("Local feature only, will be used for analysis", error);
@@ -406,7 +410,7 @@ function addLayerClickHandlers(layer) {
     let properties = layer.feature ? layer.feature.properties || {} : {};
     let content = `<div>
       <h4>${properties.name || 'Unnamed Feature'}</h4>
-      <button onclick="openFeatureEditor(this._layer)">Edit Properties</button>
+      <button class="edit-feature-btn">Edit Properties</button>
     </div>`;
 
     layer.bindPopup(content);
@@ -414,9 +418,12 @@ function addLayerClickHandlers(layer) {
     // Store reference to the layer in the button when popup opens
     layer.on('popupopen', function(e) {
       setTimeout(() => {
-        const buttons = document.querySelectorAll('.leaflet-popup button');
+        const buttons = document.querySelectorAll('.leaflet-popup .edit-feature-btn');
         buttons.forEach(button => {
           button._layer = layer;
+          button.onclick = function() {
+            openFeatureEditor(this._layer);
+          };
         });
       }, 10);
     });
@@ -426,5 +433,64 @@ function addLayerClickHandlers(layer) {
   layer.on('click', function(e) {
     // Store the clicked layer for potential editing
     window.lastClickedLayer = layer;
+    console.log("Layer clicked:", layer);
   });
 }
+// Function to ensure all features in all layers have edit capabilities
+function setupAllLayerEditHandlers() {
+  if (!window.map) {
+    console.warn("Map not available, cannot set up layer edit handlers");
+    return;
+  }
+  
+  // Process all layer groups in the map
+  window.map.eachLayer(function(layer) {
+    // Check if it's a feature group or has features
+    if (layer.eachLayer) {
+      layer.eachLayer(function(sublayer) {
+        if (sublayer.feature) {
+          addLayerClickHandlers(sublayer);
+        }
+      });
+    } else if (layer.feature) {
+      addLayerClickHandlers(layer);
+    }
+  });
+  
+  console.log("Edit handlers set up for all layers");
+}
+
+// Call this function after map initialization and whenever layers change
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait for map to be ready
+  const checkMapInterval = setInterval(function() {
+    if (window.map) {
+      clearInterval(checkMapInterval);
+      setupAllLayerEditHandlers();
+    }
+  }, 500);
+});
+// Function specifically to ensure ES layer features are editable
+function ensureESLayerEditable() {
+  if (!window.map) return;
+  
+  // Find the ES layer
+  window.map.eachLayer(function(layer) {
+    if (layer.options && layer.options.name === "ES") {
+      console.log("Found ES layer, setting up edit handlers");
+      // Apply edit handlers to all features in this layer
+      layer.eachLayer(function(feature) {
+        addLayerClickHandlers(feature);
+      });
+    }
+  });
+}
+
+// Call this when the page loads and after any layer changes
+document.addEventListener('layersLoaded', function() {
+  console.log("Layers loaded event detected");
+  setTimeout(function() {
+    ensureESLayerEditable();
+    setupAllLayerEditHandlers();
+  }, 500);
+});
