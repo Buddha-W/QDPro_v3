@@ -167,6 +167,10 @@
         <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
         <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
       </div>
+      <div id="layersList" style="margin-top:20px;">
+        <h4>Available Layers</h4>
+        <ul id="availableLayers" style="list-style: none; padding: 0; margin: 0;"></ul>
+      </div>
       <div id="layerControl" style="margin-top:20px;"></div>
     </div>
   </div>
@@ -303,6 +307,11 @@
           mapEl.style.left = leftPanel.classList.contains("visible") ? "300px" : "0";
           mapEl.style.width = leftPanel.classList.contains("visible") ? "calc(100% - 300px)" : "100%";
           this.map.invalidateSize();
+          
+          // Update the layers list when the panel becomes visible
+          if (leftPanel.classList.contains("visible")) {
+            this.updateLayersList();
+          }
         });
         document.getElementById("baseLayerTool").addEventListener("click", () => this.toggleBaseLayerDropdown());
         document.getElementById("zoomInBtn").addEventListener("click", () => this.map.zoomIn());
@@ -964,6 +973,8 @@
       },
       updateLayerToggle: function() {
         this.updateDrawToLayerSelect();
+        this.updateLayersList();
+        
         const layerNames = Object.keys(this.layers);
         if (layerNames.length > 0) {
           const selectElement = document.getElementById("drawToLayer");
@@ -1001,6 +1012,56 @@
           } catch (e) {
             console.warn("Error fitting bounds:", e);
           }
+        }
+      },
+      
+      updateLayersList: function() {
+        const layersList = document.getElementById("availableLayers");
+        if (!layersList) return;
+        
+        // Clear the current list
+        layersList.innerHTML = "";
+        
+        // Add each layer to the list
+        for (const layerName in this.layers) {
+          const layerItem = document.createElement("li");
+          layerItem.style.padding = "8px 5px";
+          layerItem.style.borderBottom = "1px solid #eee";
+          layerItem.style.display = "flex";
+          layerItem.style.alignItems = "center";
+          
+          // Create checkbox for toggling visibility
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = this.map.hasLayer(this.layers[layerName]);
+          checkbox.style.marginRight = "10px";
+          checkbox.dataset.layerName = layerName;
+          
+          // Toggle layer visibility when checkbox changes
+          checkbox.addEventListener("change", (e) => {
+            const layer = this.layers[e.target.dataset.layerName];
+            if (e.target.checked) {
+              if (!this.map.hasLayer(layer)) {
+                this.map.addLayer(layer);
+              }
+            } else {
+              if (this.map.hasLayer(layer)) {
+                this.map.removeLayer(layer);
+              }
+            }
+          });
+          
+          // Create label with layer name
+          const label = document.createElement("span");
+          label.textContent = layerName;
+          label.style.flexGrow = "1";
+          
+          // Add elements to the layer item
+          layerItem.appendChild(checkbox);
+          layerItem.appendChild(label);
+          
+          // Add the layer item to the list
+          layersList.appendChild(layerItem);
         }
       },
       getLayerNameByObject: function(layerObj) {
