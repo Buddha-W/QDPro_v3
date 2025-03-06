@@ -28,6 +28,17 @@ function closeFeaturePropertiesModal() {
   // Reset active editing layer
   window.activeEditLayer = null;
   editingLayer = null;
+
+  // Make sure all layers are interactive after closing the modal
+  if (window.map) {
+    window.map.eachLayer(function(layer) {
+      if (layer.feature && typeof layer.on === 'function') {
+        // Make sure the layer is clickable
+        layer.options = layer.options || {};
+        layer.options.interactive = true;
+      }
+    });
+  }
 }
 
 // Add a global document click event to track clicks that aren't on polygons
@@ -821,3 +832,23 @@ function submitFeatureProperties() {
   // If saving to server is needed
   const featureId = currentEditingLayer.feature.id || currentEditingLayer._leaflet_id;
 }
+// Document ready function or initialization code
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Feature editor initialized");
+
+  // Set up click event for closing the modal when clicking the X
+  const closeButton = document.getElementById('closeFeaturePropertiesBtn');
+  if (closeButton) {
+    closeButton.addEventListener('click', closeFeaturePropertiesModal);
+  }
+
+  // Add a global click handler to make editing more seamless
+  if (window.map) {
+    window.map.on('click', function(e) {
+      // Only close if clicking on the map (not on a polygon)
+      if (!e.originalEvent.target.closest('.leaflet-interactive')) {
+        closeFeaturePropertiesModal();
+      }
+    });
+  }
+});
