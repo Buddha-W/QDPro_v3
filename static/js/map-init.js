@@ -302,13 +302,17 @@ function setupLayerClickHandlers() {
       // Remove any existing click handlers to prevent duplicates
       layer.off('click');
       
-      // Add new click handler with direct reference to openFeatureEditor
+      // Add new click handler with direct reference to handleLayerClick
       layer.on('click', function(e) {
         // Prevent the click from propagating to the map
         L.DomEvent.stopPropagation(e);
         
-        // Direct call to global function
-        window.openFeatureEditor(layer);
+        // Use the new global handler function
+        if (typeof window.handleLayerClick === 'function') {
+          window.handleLayerClick(layer);
+        } else {
+          console.error("handleLayerClick function not available");
+        }
       });
     }
   });
@@ -321,7 +325,9 @@ function setupLayerClickHandlers() {
         e.layer.off('click');
         e.layer.on('click', function(evt) {
           L.DomEvent.stopPropagation(evt);
-          window.openFeatureEditor(e.layer);
+          if (typeof window.handleLayerClick === 'function') {
+            window.handleLayerClick(e.layer);
+          }
         });
       }
     });
