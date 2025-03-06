@@ -178,11 +178,9 @@
             <label for="editLayerName">Layer Name:</label>
             <input type="text" id="editLayerName" style="width: 100%; padding: 5px;">
           </div>
-          <div style="margin-bottom: 10px;">
-            <label>
-              <input type="checkbox" id="isQDLayer">
-              QD Analysis Layer (contains explosives)
-            </label>
+          <div style="display: flex; align-items: center; margin: 10px 0;">
+            <input type="checkbox" id="isQDLayer" name="isQDLayer" style="margin-right: 5px;">
+            <label for="isQDLayer">QD analysis layer (contains explosives)</label>
           </div>
           <div style="margin-bottom: 10px;">
             <label for="layerColor">Layer Color:</label>
@@ -330,7 +328,7 @@
           mapEl.style.left = leftPanel.classList.contains("visible") ? "300px" : "0";
           mapEl.style.width = leftPanel.classList.contains("visible") ? "calc(100% - 300px)" : "100%";
           this.map.invalidateSize();
-          
+
           // Update the layers list when the panel becomes visible
           if (leftPanel.classList.contains("visible")) {
             this.updateLayersList();
@@ -520,19 +518,19 @@
         if (!layerName) { alert("Enter a layer name"); return; }
         if (this.layers[layerName]) { alert(`Layer "${layerName}" exists`); return; }
         let newLayer = L.featureGroup().addTo(this.map);
-        
+
         // Determine if this is a QD analysis layer based on type
         const isQDLayer = layerType === "facility";
-        
+
         newLayer.properties = { 
           type: layerType,
           isQDAnalyzed: isQDLayer 
         };
-        
+
         // Generate a color for the layer
         const layerColor = this.getRandomColor();
         this.layerColors[layerName] = layerColor;
-        
+
         this.layers[layerName] = newLayer;
         this.activeLayer = newLayer;
         this.updateDrawToLayerSelect();
@@ -649,7 +647,7 @@
               features: [],
               properties: {}
             };
-            
+
             // Save layer properties including QD analysis flag
             if (layer.properties) {
               layerInfo.properties = {...layer.properties};
@@ -774,7 +772,7 @@
             console.log(`Processing saved layer: ${layerName}`, layerData);
 
             const layer = L.featureGroup();
-            
+
             // Restore layer properties
             if (layerData.properties) {
               layer.properties = {...layerData.properties};
@@ -1022,7 +1020,7 @@
       updateLayerToggle: function() {
         this.updateDrawToLayerSelect();
         this.updateLayersList();
-        
+
         const layerNames = Object.keys(this.layers);
         if (layerNames.length > 0) {
           const selectElement = document.getElementById("drawToLayer");
@@ -1062,14 +1060,14 @@
           }
         }
       },
-      
+
       updateLayersList: function() {
         const layersList = document.getElementById("availableLayers");
         if (!layersList) return;
-        
+
         // Clear the current list
         layersList.innerHTML = "";
-        
+
         // Add each layer to the list
         for (const layerName in this.layers) {
           const layerItem = document.createElement("li");
@@ -1077,14 +1075,14 @@
           layerItem.style.borderBottom = "1px solid #eee";
           layerItem.style.display = "flex";
           layerItem.style.alignItems = "center";
-          
+
           // Create checkbox for toggling visibility
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
           checkbox.checked = this.map.hasLayer(this.layers[layerName]);
           checkbox.style.marginRight = "10px";
           checkbox.dataset.layerName = layerName;
-          
+
           // Toggle layer visibility when checkbox changes
           checkbox.addEventListener("change", (e) => {
             const layer = this.layers[e.target.dataset.layerName];
@@ -1098,12 +1096,12 @@
               }
             }
           });
-          
+
           // Create label with layer name
           const label = document.createElement("span");
           label.textContent = layerName;
           label.style.flexGrow = "1";
-          
+
           // Create edit button
           const editButton = document.createElement("button");
           editButton.innerHTML = '<i class="fas fa-edit"></i>';
@@ -1116,12 +1114,12 @@
           editButton.addEventListener("click", (e) => {
             this.showLayerEditModal(e.target.dataset.layerName || e.target.parentElement.dataset.layerName);
           });
-          
+
           // Add elements to the layer item
           layerItem.appendChild(checkbox);
           layerItem.appendChild(label);
           layerItem.appendChild(editButton);
-          
+
           // Add the layer item to the list
           layersList.appendChild(layerItem);
         }
@@ -1134,60 +1132,60 @@
         }
         return null;
       },
-      
+
       // Layer editing functionality
       currentEditingLayer: null,
-      
+
       showLayerEditModal: function(layerName) {
         if (!layerName || !this.layers[layerName]) return;
-        
+
         this.currentEditingLayer = layerName;
         const layer = this.layers[layerName];
-        
+
         // Fill in the form with current values
         document.getElementById("editLayerName").value = layerName;
-        
+
         // Set the QD analysis checkbox based on layer properties
         const isQDLayer = layer.properties && layer.properties.isQDAnalyzed;
         document.getElementById("isQDLayer").checked = isQDLayer || false;
-        
+
         // Set the layer color
         const layerColor = this.layerColors[layerName] || "#3388ff";
         document.getElementById("layerColor").value = layerColor;
-        
+
         // Show the modal
         document.getElementById("layerEditModal").classList.add("visible");
       },
-      
+
       closeLayerEditModal: function() {
         document.getElementById("layerEditModal").classList.remove("visible");
         this.currentEditingLayer = null;
       },
-      
+
       saveLayerEdits: function() {
         if (!this.currentEditingLayer) return;
-        
+
         const oldLayerName = this.currentEditingLayer;
         const newLayerName = document.getElementById("editLayerName").value.trim();
         const isQDLayer = document.getElementById("isQDLayer").checked;
         const layerColor = document.getElementById("layerColor").value;
-        
+
         // Update layer properties
         const layer = this.layers[oldLayerName];
-        
+
         // Create properties object if it doesn't exist
         if (!layer.properties) {
           layer.properties = {};
         }
-        
+
         // Set QD analysis flag
         layer.properties.isQDAnalyzed = isQDLayer;
-        
+
         console.log(`Layer ${oldLayerName} QD status set to: ${isQDLayer}`);
-        
+
         // Update layer color
         this.layerColors[oldLayerName] = layerColor;
-        
+
         // Apply color to all features in the layer if they support styling
         layer.eachLayer(feature => {
           if (feature.setStyle) {
@@ -1200,37 +1198,37 @@
             });
           }
         });
-        
+
         // Rename the layer if the name has changed
         if (newLayerName && newLayerName !== oldLayerName) {
           // Store the layer object
           const layerObj = this.layers[oldLayerName];
-          
+
           // Delete the old entry
           delete this.layers[oldLayerName];
-          
+
           // Add with new name
           this.layers[newLayerName] = layerObj;
-          
+
           // Move the color
           this.layerColors[newLayerName] = this.layerColors[oldLayerName];
           if (oldLayerName !== newLayerName) {
             delete this.layerColors[oldLayerName];
           }
-          
+
           // Update active layer if needed
           if (this.activeLayer === layerObj) {
             this.updateDrawToLayerSelect();
           }
         }
-        
+
         // Update UI elements
         this.updateLayersList();
         this.updateDrawToLayerSelect();
-        
+
         // Save project changes to ensure persistence
         this.saveProject();
-        
+
         // Close the modal
         this.closeLayerEditModal();
       },
@@ -1453,7 +1451,7 @@
 
         // Create a new layer for analysis results
         this.analysisLayer = L.featureGroup().addTo(this.map);
-        
+
         // Check if facilities data exists and is valid
         if (!analysis || !analysis.facilities_analyzed || !Array.isArray(analysis.facilities_analyzed)) {
           console.warn("No valid facilities to analyze in the analysis results");
@@ -1470,12 +1468,12 @@
           // Validate facility coordinates
           const facilityLat = facility.facility_latitude || 0;
           const facilityLng = facility.facility_longitude || 0;
-          
+
           if (!isFinite(facilityLat) || !isFinite(facilityLng)) {
             console.warn(`Invalid facility coordinates for ${facility.facility_name || 'unnamed facility'}`);
             return; // Skip this facility
           }
-          
+
           hasValidFeatures = true;
 
           // Add a marker for the facility location
@@ -1503,7 +1501,7 @@
                 if (!ring || !ring.type || !ring.coordinates) {
                   return;
                 }
-                
+
                 // Create a style based on the QD type
                 let style = {
                   fillColor: '#ff3300',
@@ -1568,7 +1566,7 @@
                 if (!violation || !violation.feature_id) {
                   return;
                 }
-                
+
                 // Iterate through all layers to find the matching feature
                 for (const layerName in this.layers) {
                   const layerGroup = this.layers[layerName];
@@ -1667,7 +1665,7 @@
           }
         }
       },
-      
+
       // Helper method to show analysis summary panel
       showAnalysisSummary: function(analysis) {
         // Create a summary panel for the analysis
@@ -1876,7 +1874,7 @@
     function createNewLayer() { QDPro.createNewLayer(); }
     function saveProject() { QDPro.saveProject(); }
     function loadProject() { QDPro.loadProject(); }
-    
+
     function showLayerEditModal(layerName) { QDPro.showLayerEditModal(layerName); }
     function closeLayerEditModal() { QDPro.closeLayerEditModal(); }
     function saveLayerEdits() { QDPro.saveLayerEdits(); }
