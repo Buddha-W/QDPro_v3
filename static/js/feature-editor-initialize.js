@@ -161,14 +161,42 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Ensure global window functions are defined
       if (typeof window.closeFeaturePropertiesModal !== 'function') {
-        window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
+        window.closeFeaturePropertiesModal = function() {
+          console.log("Closing feature properties modal from global function");
+          const modal = document.getElementById('featurePropertiesModal');
+          if (modal) {
+            modal.style.display = 'none';
+          } else {
+            console.warn("Modal element not found when trying to close");
+          }
+          window.activeEditingLayer = null;
+        };
       }
       
       // Setup map click handlers if not already done
       if (window.map && !window.map._featureEditorInitialized) {
         window.map._featureEditorInitialized = true;
-        setupMapClickHandler();
-        setupAllLayerEditHandlers();
+        if (typeof setupMapClickHandler === 'function') {
+          setupMapClickHandler();
+        } else {
+          console.warn("setupMapClickHandler is not defined");
+          // Define a basic version if missing
+          window.setupMapClickHandler = function() {
+            console.log("Setting up map click handler (fallback)");
+            window.map.on('click', function(e) {
+              if (!e.originalEvent.target.closest('.leaflet-interactive')) {
+                window.closeFeaturePropertiesModal();
+              }
+            });
+          };
+          window.setupMapClickHandler();
+        }
+        
+        if (typeof setupAllLayerEditHandlers === 'function') {
+          setupAllLayerEditHandlers();
+        } else {
+          console.warn("setupAllLayerEditHandlers is not defined");
+        }
       }
     }
   }, 100);
