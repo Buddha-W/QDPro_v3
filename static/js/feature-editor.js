@@ -3,8 +3,9 @@
  * Handles editing of GeoJSON features on the map
  */
 
-// Close any open popups on the map
+// Close any open popups and modals on the map
 function closeAllPopups() {
+  // Close Leaflet popups
   if (window.map) {
     window.map.eachLayer(function(layer) {
       if (layer.closePopup) {
@@ -12,7 +13,14 @@ function closeAllPopups() {
       }
     });
   }
-  // Also reset the active editing layer
+  
+  // Hide any open feature properties modal
+  const featurePropertiesModal = document.getElementById('featurePropertiesModal');
+  if (featurePropertiesModal) {
+    featurePropertiesModal.style.display = 'none';
+  }
+  
+  // Reset active editing layers
   window.activeEditLayer = null;
   editingLayer = null;
 }
@@ -30,6 +38,16 @@ function openFeatureEditor(layer) {
 
   // Get existing properties or initialize empty object
   const properties = layer.feature ? layer.feature.properties || {} : {};
+  
+  // Make sure the feature properties modal exists
+  const modal = document.getElementById('featurePropertiesModal');
+  if (!modal) {
+    console.error("Feature properties modal not found in the DOM");
+    return;
+  }
+  
+  // Display the modal
+  modal.style.display = 'block';
 
   // Create popup content
   const popupContent = document.createElement('div');
@@ -467,15 +485,24 @@ function addLayerClickHandlers(layer) {
     }
   }
 
-  // Add a simple popup if none exists
-  if (layer.bindPopup && !layer.getPopup()) {
-    let properties = layer.feature ? layer.feature.properties || {} : {};
-    let content = `<div>
-      <h4>${properties.name || 'Unnamed Feature'}</h4>
-      <button class="edit-feature-btn">Edit Properties</button>
-    </div>`;
-
-    layer.bindPopup(content);
+  // Direct click handler - this will always fire first, before the popup opens
+  layer.on('click', function(e) {
+    // Close all existing popups first
+    closeAllPopups();
+    
+    // Store the clicked layer for potential editing
+    window.lastClickedLayer = layer;
+    console.log("Layer clicked:", layer, "in layer:", layer._parentLayerName || "unknown");
+    
+    // Open the feature editor directly without a popup
+    openFeatureEditor(layer);
+    
+    // Stop propagation to prevent map click
+    L.DomEvent.stopPropagation(e);
+    
+    // Prevent the default popup from opening
+    return false;
+  });
 
     // Store reference to the layer in the button when popup opens
     layer.on('popupopen', function(e) {
@@ -493,10 +520,7 @@ function addLayerClickHandlers(layer) {
 
   // Add a click handler for the layer itself
   layer.on('click', function(e) {
-    // Store the clicked layer for potential editing
-    window.lastClickedLayer = layer;
-    console.log("Layer clicked:", layer, "in layer:", layer.options ? layer.options.name : "unknown");
-  });
+    });
 }
 // Function to ensure all features in all layers have edit capabilities
 function setupAllLayerEditHandlers() {
