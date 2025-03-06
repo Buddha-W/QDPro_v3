@@ -1495,8 +1495,7 @@
   <p><strong>Safe Distance:</strong> ${facility.safe_distance || 'N/A'} ft</p>
   <p><strong>Analysis Status:</strong> ${facility.violations &&facility.violations.length ? facility.violations.length + ' violations found' : 'No violations'}</p<p><strong>Standard:</strong> ${facility.k_factor_type || 'Standard'} (K=${facility.k_factor_value || 'N/A'})</p>
   <button class="close-btn" onclick="QDPro.closeAnalysisPopup()">Close</button>
-</div>`)
-            .addTo(this.analysisLayer);
+</div>`)            .addTo(this.analysisLayer);
 
           // Add QD rings if available
           if (facility.qd_rings && Array.isArray(facility.qd_rings) && facility.qd_rings.length > 0) {
