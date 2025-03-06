@@ -3,9 +3,26 @@
  * Handles editing of GeoJSON features on the map
  */
 
-// Function to open a feature editor popup for a given layer
+// Close any open popups on the map
+function closeAllPopups() {
+  if (window.map) {
+    window.map.eachLayer(function(layer) {
+      if (layer.closePopup) {
+        layer.closePopup();
+      }
+    });
+  }
+  // Also reset the active editing layer
+  window.activeEditLayer = null;
+  editingLayer = null;
+}
+
+// Open the feature editor popup for a given layer
 function openFeatureEditor(layer) {
   console.log("Opening feature editor for layer:", layer);
+
+  // Close any existing popups first
+  closeAllPopups();
 
   // Set global active editing layer
   window.activeEditLayer = layer;
