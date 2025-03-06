@@ -1,92 +1,67 @@
-/**
- * Feature Editor for QDPro application
- * Handles editing of GeoJSON features on the map
- */
 
-// Global variables for tracking editing state
+// Feature Editor for QDPro
+// Handles the editing of feature properties and interactions
+
+// Global variables to track editing state
 let editingLayer = null;
 let popupIsOpen = false;
 
-// Function to close all popups
-function closeAllPopups() {
-  if (window.map) {
-    window.map.closePopup();
-  }
-}
-
-// Function to open the feature properties editor
+// Function to open the feature properties editor for a given layer
 function openFeatureEditor(layer) {
   console.log("Opening feature editor for layer:", layer);
-
-  // If we're already editing this exact layer, don't do anything
-  if (editingLayer === layer) {
-    console.log("Already editing this layer");
+  
+  // If we already have the editor open for this same layer, just return
+  if (editingLayer === layer && popupIsOpen) {
+    console.log("Editor already open for this layer");
     return;
   }
-
-  // If we're switching to a different layer, close any open popups first
-  closeAllPopups();
-
-  // Set the new editing layer
-  editingLayer = layer;
+  
+  // Close any existing feature properties modal for different layers
+  if (editingLayer && editingLayer !== layer) {
+    // We're switching layers, so update the editing layer reference
+    console.log("Switching from previous layer to new layer");
+  }
+  
+  // Set global active editing layer
   window.activeEditLayer = layer;
-
+  editingLayer = layer;
+  
   // Get existing properties or initialize empty object
-  const feature = layer.feature || {};
-  const props = feature.properties || {};
-
-  // Extract known properties with defaults
-  const name = props.name || '';
-  const type = props.type || '';
-  const description = props.description || '';
-  const hasExplosive = props.hasExplosive || false;
-  const netExplosiveWeight = props.netExplosiveWeight || '';
-  const unit = props.unit || 'kg';
-
-  // Get the modal element
+  const properties = (layer.feature && layer.feature.properties) || {};
+  
+  // Get the feature properties modal
   const modal = document.getElementById('featurePropertiesModal');
   if (!modal) {
-    console.error("Feature properties modal not found in DOM");
+    console.error("Feature properties modal not found");
     return;
   }
 
-  // Populate the form fields
-  document.getElementById('featureName').value = name;
-  document.getElementById('featureType').value = type;
-  document.getElementById('featureDescription').value = description;
-
-  // Handle explosive properties checkbox and related fields
-  const explosiveCheckbox = document.getElementById('hasExplosive');
-  if (explosiveCheckbox) {
-    explosiveCheckbox.checked = hasExplosive;
-    // Show/hide the explosive weight fields based on checkbox
-    const explosiveFields = document.getElementById('explosiveFields');
-    if (explosiveFields) {
-      explosiveFields.style.display = hasExplosive ? 'block' : 'none';
-    }
+  // Set values in the form
+  document.getElementById('featureName').value = properties.name || '';
+  document.getElementById('featureType').value = properties.type || 'PES';
+  document.getElementById('featureDescription').value = properties.description || '';
+  
+  const hasExplosive = properties.hasExplosive || false;
+  document.getElementById('hasExplosive').checked = hasExplosive;
+  
+  // Show/hide explosive fields based on checkbox
+  const explosiveFields = document.getElementById('explosiveFields');
+  if (explosiveFields) {
+    explosiveFields.style.display = hasExplosive ? 'block' : 'none';
+  }
+  
+  // Set explosive weight and unit if available
+  if (hasExplosive) {
+    document.getElementById('netExplosiveWeight').value = properties.netExplosiveWeight || '';
+    document.getElementById('weightUnit').value = properties.unit || 'kg';
   }
 
-  // Set explosive weight and unit
-  document.getElementById('netExplosiveWeight').value = netExplosiveWeight;
-  const unitSelect = document.getElementById('weightUnit');
-  if (unitSelect) {
-    for (let i = 0; i < unitSelect.options.length; i++) {
-      if (unitSelect.options[i].value === unit) {
-        unitSelect.selectedIndex = i;
-        break;
-      }
-    }
-  }
-
-  // Display the modal
+  // Show the modal
   modal.style.display = 'block';
   popupIsOpen = true;
-
-  // Focus the first input field
-  document.getElementById('featureName').focus();
 }
 
-// Function to save feature properties
+// Function to save properties from the form to the feature
 function saveFeatureProperties() {
   if (!editingLayer) {
     console.error("No active editing layer");
@@ -123,39 +98,55 @@ function saveFeatureProperties() {
   editingLayer.feature.properties.netExplosiveWeight = netExplosiveWeight;
   editingLayer.feature.properties.unit = unit;
 
-  // Create a new popup with the updated information
-  const popupContent = `
-    <div>
-      <h3>${name || 'Unnamed Feature'}</h3>
-      <p><strong>Type:</strong> ${type}</p>
-      ${hasExplosive ? `<p><strong>NET:</strong> ${netExplosiveWeight} ${unit}</p>` : ''}
-      ${description ? `<p>${description}</p>` : ''}
-    </div>
-  `;
-
-  editingLayer.setPopupContent(popupContent);
-
-  // Save to server if available
-  try {
-    const featureData = {
-      id: editingLayer.feature.id || editingLayer._leaflet_id,
-      properties: editingLayer.feature.properties,
-      geometry: editingLayer.toGeoJSON().geometry
-    };
-
-    if (typeof saveGeometryToServer === 'function') {
-      saveGeometryToServer(featureData);
-    }
-  } catch (error) {
-    console.error("Error saving feature data:", error);
+  // Update layer style based on type
+  if (typeof updateLayerStyle === 'function') {
+    updateLayerStyle(editingLayer, type);
   }
 
   // Close the modal
-  closeAllPopups();
+  closeFeaturePropertiesModal();
 
-  // Clear the editing layer reference
-  editingLayer = null;
-  window.activeEditLayer = null;
+  // Update popup content if there's a popup
+  if (editingLayer.getPopup) {
+    const popup = editingLayer.getPopup();
+    if (popup) {
+      const currentEditingLayer = editingLayer;
+      
+      // Create updated popup content
+      let content = '';
+      if (typeof window.createPopupContent === 'function') {
+        content = window.createPopupContent(currentEditingLayer.feature.properties);
+      } else {
+        content = createBasicPopupContent(currentEditingLayer.feature.properties);
+      }
+      
+      // Set the new content and refresh the popup
+      popup.setContent(content);
+      popup.update();
+    }
+  }
+
+  // If saving to server is needed
+  const featureId = editingLayer.feature.id || editingLayer._leaflet_id;
+  
+  console.log("Feature properties saved for:", featureId);
+}
+
+// Basic popup content creator as fallback
+function createBasicPopupContent(properties) {
+  let content = '<div class="feature-popup">';
+  if (properties.name) {
+    content += `<h4>${properties.name}</h4>`;
+  }
+  if (properties.type) {
+    content += `<p><strong>Type:</strong> ${properties.type}</p>`;
+  }
+  if (properties.description) {
+    content += `<p>${properties.description}</p>`;
+  }
+  content += `<button class="edit-properties-btn" onclick="openFeatureEditor(window.activeEditLayer)">Edit Properties</button>`;
+  content += '</div>';
+  return content;
 }
 
 // Function to close the feature properties modal
@@ -168,26 +159,26 @@ function closeFeaturePropertiesModal() {
 
   // Reset popup state
   popupIsOpen = false;
-
+  
   // Reset active editing layer
   window.activeEditLayer = null;
   editingLayer = null;
+}
 
-  // Make sure all layers are interactive
+// Close all popups in the map
+function closeAllPopups() {
   if (window.map) {
     window.map.eachLayer(function(layer) {
-      if (layer.feature && typeof layer.on === 'function') {
-        layer.options = layer.options || {};
-        layer.options.interactive = true;
+      if (layer.closePopup) {
+        layer.closePopup();
       }
     });
   }
 }
 
-
 // Function to add click handlers to layers
 function addLayerClickHandlers(layer) {
-  if (!layer) return;
+  if (!layer || !layer.on) return;
 
   // Remove any existing click handlers to prevent duplicates
   layer.off('click');
@@ -195,13 +186,18 @@ function addLayerClickHandlers(layer) {
   // Add a direct click handler to the layer
   layer.on('click', function(e) {
     console.log("Layer clicked:", layer);
-
+    
     // Stop propagation to prevent map click
     L.DomEvent.stopPropagation(e);
-
+    
+    // If another layer's editor is open, close it first
+    if (popupIsOpen && editingLayer && editingLayer !== layer) {
+      closeFeaturePropertiesModal();
+    }
+    
     // Always open the feature editor for this layer
     openFeatureEditor(layer);
-
+    
     return false;
   });
 }
@@ -209,28 +205,28 @@ function addLayerClickHandlers(layer) {
 // Function to ensure all features in all layers have edit capabilities
 function setupAllLayerEditHandlers() {
   if (!window.map) {
-    console.warn("Map not available, cannot set up layer edit handlers");
+    console.warn("Map not available, cannot setup layer handlers");
     return;
   }
 
-  // Process all layer groups in the map
+  console.log("Setting up all layer edit handlers");
   window.map.eachLayer(function(layer) {
-    // Check if it's a feature group or has features
-    if (layer.eachLayer) {
-      layer.eachLayer(function(sublayer) {
-        if (sublayer.feature) {
-          addLayerClickHandlers(sublayer);
-        }
-      });
-    } else if (layer.feature) {
+    // Handle GeoJSON layers
+    if (layer.feature) {
       addLayerClickHandlers(layer);
     }
+    
+    // Handle layer groups (like GeoJSON layer groups)
+    if (layer.eachLayer) {
+      layer.eachLayer(function(subLayer) {
+        if (subLayer.feature) {
+          addLayerClickHandlers(subLayer);
+        }
+      });
+    }
   });
-
-  console.log("Edit handlers set up for all layers");
 }
 
-// Function to refresh edit handlers for all layers
 function refreshAllLayerEditHandlers() {
   setupAllLayerEditHandlers();
 }
@@ -264,13 +260,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Close modal when clicking outside the modal content
   window.addEventListener('click', function(event) {
-    const modals = document.getElementsByClassName('modal');
-    for (let i = 0; i < modals.length; i++) {
-      if (event.target === modals[i]) {
-        closeAllPopups();
-      }
+    const modal = document.getElementById('featurePropertiesModal');
+    if (event.target === modal) {
+      closeFeaturePropertiesModal();
     }
   });
+
+  // Handle clicks on map to close popups when clicking away from features
+  if (window.map) {
+    window.map.on('click', function() {
+      closeFeaturePropertiesModal();
+    });
+  }
 
   // Wait for map to be ready
   const checkMapInterval = setInterval(function() {
@@ -278,6 +279,33 @@ document.addEventListener('DOMContentLoaded', function() {
       clearInterval(checkMapInterval);
       setupAllLayerEditHandlers();
       console.log("Feature editor initialized");
+      
+      // Set up draw:created event handler
+      window.map.on('draw:created', function(e) {
+        const layer = e.layer;
+        
+        // Initialize new feature
+        if (!layer.feature) {
+          layer.feature = {
+            type: 'Feature',
+            properties: {
+              name: 'New Feature',
+              type: 'PES'
+            }
+          };
+        }
+        
+        // Add the layer to the feature group
+        if (window.drawnItems) {
+          window.drawnItems.addLayer(layer);
+        }
+        
+        // Add click handler
+        addLayerClickHandlers(layer);
+        
+        // Open the editor for the new feature
+        openFeatureEditor(layer);
+      });
     }
   }, 500);
 });
@@ -293,4 +321,4 @@ window.openFeatureEditor = openFeatureEditor;
 window.saveFeatureProperties = saveFeatureProperties;
 window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
 window.refreshAllLayerEditHandlers = refreshAllLayerEditHandlers;
-window.closeAllPopups = closeAllPopups; // Added for completeness
+window.closeAllPopups = closeAllPopups;
