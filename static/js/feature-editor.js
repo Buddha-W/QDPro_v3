@@ -18,6 +18,30 @@ function closeAllPopups() {
   }
 
   // Hide any open feature properties modal
+
+// Add a global document click event to track clicks that aren't on polygons
+document.addEventListener('click', function(e) {
+  // Don't close the modal if the click is inside the modal
+  if (e.target.closest('#featurePropertiesModal')) {
+    return;
+  }
+  
+  // Don't close the modal if the click is on a Leaflet marker or polygon
+  if (e.target.closest('.leaflet-marker-icon') || e.target.closest('.leaflet-interactive')) {
+    return;
+  }
+  
+  // Otherwise, reset editing state
+  window.activeEditLayer = null;
+  editingLayer = null;
+  
+  // Hide the modal
+  const featurePropertiesModal = document.getElementById('featurePropertiesModal');
+  if (featurePropertiesModal) {
+    featurePropertiesModal.style.display = 'none';
+  }
+});
+
   const featurePropertiesModal = document.getElementById('featurePropertiesModal');
   if (featurePropertiesModal) {
     featurePropertiesModal.style.display = 'none';
@@ -32,11 +56,11 @@ function closeAllPopups() {
 function openFeatureEditor(layer) {
   console.log("Opening feature editor for layer:", layer);
 
-  // Don't close the modal, just update its content for the new layer
-  // This allows seamless switching between features without closing/reopening the modal
-
-  // Set global active editing layer
+  // First, set the global active editing layer
   window.activeEditLayer = layer;
+  
+  // Store the active layer
+  editingLayer = layer;
   editingLayer = layer;
 
   // Get existing properties or initialize empty object
@@ -217,19 +241,17 @@ function addLayerClickHandlers(layer) {
   layer.on('click', function(e) {
     console.log("Layer clicked:", layer);
 
-    // Close any existing feature properties modal first
+    // Get the feature properties modal
     const featurePropertiesModal = document.getElementById('featurePropertiesModal');
-    if (featurePropertiesModal) {
-      featurePropertiesModal.style.display = 'none';
-    }
-
-    // Reset any previous editing state
-    if (window.activeEditLayer && window.activeEditLayer !== layer) {
+    
+    // If we're clicking on a different layer than the currently active one
+    if (window.activeEditLayer !== layer) {
       console.log("Switching from previous layer to new layer");
-      window.activeEditLayer = null;
-      editingLayer = null;
+      
+      // No need to explicitly close the modal - we'll just update its contents
+      // for the new layer. This avoids needing to click the X button.
     }
-
+    
     // Stop propagation to prevent map click
     L.DomEvent.stopPropagation(e);
 
