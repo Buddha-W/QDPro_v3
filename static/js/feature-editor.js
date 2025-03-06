@@ -231,11 +231,9 @@ function closeFeaturePropertiesModal() {
 
   // Hide the modal
   if (modal) {
-    if (modal.style) {
-      modal.style.display = 'none';
-    } else {
-      modal.classList.remove('show-modal');
-    }
+    modal.style.display = 'none';
+  } else {
+    console.warn("Modal element not found when trying to close");
   }
 
   // Reset active editing layer
