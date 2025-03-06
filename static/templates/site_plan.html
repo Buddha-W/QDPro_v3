@@ -186,6 +186,7 @@
             <label for="layerColor">Layer Color:</label>
             <input type="color" id="layerColor" style="width: 100%; padding: 5px;">
           </div>
+          <hr style="margin: 10px 0; border-top: 1px solid #ddd;">
           <div style="text-align:right;">
             <button onclick="closeLayerEditModal()" style="margin-right:10px;">Cancel</button>
             <button onclick="saveLayerEdits()">Save</button>
@@ -606,7 +607,7 @@
           // Clear existing layers
           this.clearLayers();
 
-          // Set current location
+          //          // Set current location
           this.currentLocationId = locationId;
           this.currentLocationName = data.name || "Unknown";
 
@@ -1488,7 +1489,7 @@
   <h3>${facility.facility_name || 'Unnamed Facility'}</h3>
   <p><strong>NEW:</strong> ${facility.net_explosive_weight_display || 'N/A'} ${facility.unit_display || ''}</p>
   <p><strong>Safe Distance:</strong> ${facility.safe_distance || 'N/A'} ft</p>
-  <p><strong>Analysis Status:</strong> ${facility.violations && facility.violations.length ? facility.violations.length + ' violations found' : 'No violations'}</p>
+  <p><strong>Analysis Status:</strong> ${facility.violations &&facility.violations.length ? facility.violations.length + ' violations found' : 'No violations'}</p>
   <p><strong>Standard:</strong> ${facility.k_factor_type || 'Standard'} (K=${facility.k_factor_value || 'N/A'})</p>
 </div>`)
             .addTo(this.analysisLayer);
