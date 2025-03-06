@@ -24,7 +24,7 @@ function closeFeaturePropertiesModal() {
   if (featurePropertiesModal) {
     featurePropertiesModal.style.display = 'none';
   }
-  
+
   // Reset active editing layer
   window.activeEditLayer = null;
   editingLayer = null;
@@ -36,12 +36,12 @@ document.addEventListener('click', function(e) {
   if (e.target.closest('#featurePropertiesModal')) {
     return;
   }
-  
+
   // Don't close the modal if the click is on a Leaflet marker or polygon
   if (e.target.closest('.leaflet-marker-icon') || e.target.closest('.leaflet-interactive')) {
     return;
   }
-  
+
   // Otherwise, close the modal
   closeFeaturePropertiesModal();
 });
@@ -52,7 +52,7 @@ function openFeatureEditor(layer) {
 
   // First, set the global active editing layer
   window.activeEditLayer = layer;
-  
+
   // Store the active layer
   editingLayer = layer;
 
@@ -68,7 +68,7 @@ function openFeatureEditor(layer) {
 
   // Always close any existing popups before showing the modal
   closeAllPopups();
-  
+
   // Display the modal
   modal.style.display = 'block';
 
@@ -236,14 +236,14 @@ function addLayerClickHandlers(layer) {
   // Add a direct click handler to the layer
   layer.on('click', function(e) {
     console.log("Layer clicked:", layer);
-    
+
     // Stop propagation to prevent map click
     L.DomEvent.stopPropagation(e);
-    
+
     // Always open the feature editor for this layer
     // This will handle switching between polygons automatically
     openFeatureEditor(layer);
-    
+
     return false;
   });
 }
@@ -528,7 +528,7 @@ function handleFeatureFormSubmit(e) {
 
   // Don't close the modal here - this allows users to click directly on another polygon
   // to edit without closing/reopening the modal
-  
+
   // Only reset if user explicitly closes with X button
   // We'll keep the modal open so they can click on another polygon
 }
@@ -771,3 +771,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 1000);
 });
+
+// Function to submit the feature properties form
+function submitFeatureProperties() {
+  const form = document.getElementById('featurePropertiesForm');
+  if (!form) {
+    console.error("Cannot find feature properties form");
+    return;
+  }
+
+  // Get form data
+  const name = document.getElementById('name').value || 'Unnamed Feature';
+  const type = document.getElementById('type').value || '';
+  const description = document.getElementById('description').value || '';
+
+  // Create properties object
+  const properties = {
+    name: name,
+    type: type,
+    description: description,
+  };
+
+  // Only proceed if we have an editing layer
+  if (!editingLayer) {
+    console.error("No active editing layer found");
+    alert("Error: No feature selected for editing.");
+    return;
+  }
+
+  // Store the current editingLayer to a local variable in case it changes during async operations
+  const currentEditingLayer = editingLayer;
+
+  // Update the feature properties
+  if (!currentEditingLayer.feature) {
+    currentEditingLayer.feature = {
+      type: 'Feature',
+      properties: properties,
+      geometry: currentEditingLayer.toGeoJSON().geometry
+    };
+  } else {
+    currentEditingLayer.feature.properties = properties;
+  }
+
+  // Update the layer style based on type if needed
+  if (typeof updateLayerStyle === 'function') {
+    updateLayerStyle(currentEditingLayer, type);
+  }
+
+  // If saving to server is needed
+  const featureId = currentEditingLayer.feature.id || currentEditingLayer._leaflet_id;
+}
