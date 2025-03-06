@@ -294,22 +294,38 @@ function openFeatureEditor(button) {
 function setupLayerClickHandlers() {
   if (!window.map) return;
   
+  console.log("Setting up layer click handlers");
+  
   window.map.eachLayer(function(layer) {
     // Only add click handlers to feature layers
     if (layer.feature && typeof layer.on === 'function') {
       // Remove any existing click handlers to prevent duplicates
       layer.off('click');
       
-      // Add new click handler
+      // Add new click handler with direct reference to openFeatureEditor
       layer.on('click', function(e) {
         // Prevent the click from propagating to the map
         L.DomEvent.stopPropagation(e);
         
-        // Open the feature editor for this layer
-        openFeatureEditor(layer);
+        // Direct call to global function
+        window.openFeatureEditor(layer);
       });
     }
   });
+  
+  // Add this call whenever a new layer is added to the map
+  if (window.map.on) {
+    // Handle newly added layers
+    window.map.on('layeradd', function(e) {
+      if (e.layer && e.layer.feature && typeof e.layer.on === 'function') {
+        e.layer.off('click');
+        e.layer.on('click', function(evt) {
+          L.DomEvent.stopPropagation(evt);
+          window.openFeatureEditor(e.layer);
+        });
+      }
+    });
+  }
 }
 
 // Call this function when new layers are added to the map

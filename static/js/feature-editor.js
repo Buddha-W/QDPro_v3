@@ -1,289 +1,268 @@
-
 // Feature Editor for QDPro
 // Provides functionality for editing feature properties
 
+// Global variables to track editing state
 let editingLayer = null;
 
-// Function to open feature editor for a specific layer
-function openFeatureEditor(layer) {
-  console.log("Opening feature editor for layer:", layer);
-
-  // Store the active layer
-  editingLayer = layer;
-  window.activeEditLayer = layer;
-
-  // Get existing properties or initialize empty object
-  const properties = layer.feature ? layer.feature.properties || {} : {};
-  
-  // Create and show the feature properties modal directly on the map
-  showFeaturePropertiesModal(properties, layer);
-}
-
-// Create and display feature properties modal
-function showFeaturePropertiesModal(properties, layer) {
-  // Create modal if it doesn't exist, or reset if it does
-  let modal = document.getElementById('featurePropertiesModal');
-  if (!modal) {
-    modal = document.createElement('div');
-    modal.id = 'featurePropertiesModal';
-    modal.className = 'feature-properties-modal';
-    document.body.appendChild(modal);
-  }
-  
-  // Position the modal (adjust as needed)
-  if (layer && layer.getCenter) {
-    const center = layer.getCenter();
-    const point = window.map.latLngToContainerPoint(center);
-    modal.style.left = (point.x + 20) + 'px'; // Offset to not cover feature
-    modal.style.top = (point.y - 100) + 'px';
-  } else {
-    // Default position in the center of the screen
-    modal.style.left = '50%';
-    modal.style.top = '50%';
-    modal.style.transform = 'translate(-50%, -50%)';
-  }
-
-  // Create form content
-  modal.innerHTML = `
-    <div class="modal-header">
-      <h3>Edit Properties</h3>
-      <button id="closeFeaturePropertiesBtn" type="button" class="close-btn">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="featurePropertiesForm">
-        <div class="form-group">
-          <label for="name">Name:</label>
-          <input type="text" id="name" name="name" value="${properties.name || ''}">
-        </div>
-        <div class="form-group">
-          <label for="type">Type:</label>
-          <select id="type" name="type">
-            <option value="Facility" ${properties.type === 'Facility' ? 'selected' : ''}>Facility</option>
-            <option value="Bunker" ${properties.type === 'Bunker' ? 'selected' : ''}>Bunker</option>
-            <option value="Magazine" ${properties.type === 'Magazine' ? 'selected' : ''}>Magazine</option>
-            <option value="Barricade" ${properties.type === 'Barricade' ? 'selected' : ''}>Barricade</option>
-            <option value="Boundary" ${properties.type === 'Boundary' ? 'selected' : ''}>Boundary</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>
-            <input type="checkbox" id="is_facility" name="is_facility" ${properties.is_facility ? 'checked' : ''}>
-            Is Facility
-          </label>
-        </div>
-        <div class="form-group">
-          <label>
-            <input type="checkbox" id="has_explosive" name="has_explosive" ${properties.has_explosive ? 'checked' : ''}>
-            Contains Explosives
-          </label>
-        </div>
-        <div id="newSection" class="form-group" style="display: ${properties.has_explosive ? 'block' : 'none'};">
-          <label for="net_explosive_weight">Net Explosive Weight:</label>
-          <input type="number" id="net_explosive_weight" name="net_explosive_weight" value="${properties.net_explosive_weight || 0}" min="0">
-          
-          <label for="hazard_division">Hazard Division:</label>
-          <select id="hazard_division" name="hazard_division" ${!properties.has_explosive ? 'disabled' : ''}>
-            <option value="1.1" ${properties.hazard_division === '1.1' ? 'selected' : ''}>1.1</option>
-            <option value="1.2" ${properties.hazard_division === '1.2' ? 'selected' : ''}>1.2</option>
-            <option value="1.3" ${properties.hazard_division === '1.3' ? 'selected' : ''}>1.3</option>
-            <option value="1.4" ${properties.hazard_division === '1.4' ? 'selected' : ''}>1.4</option>
-          </select>
-          
-          <label for="unit">Unit:</label>
-          <select id="unit" name="unit" ${!properties.has_explosive ? 'disabled' : ''}>
-            <option value="kg" ${properties.unit === 'kg' ? 'selected' : ''}>kg</option>
-            <option value="lbs" ${(properties.unit === 'lbs' || !properties.unit) ? 'selected' : ''}>lbs</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="description">Description:</label>
-          <textarea id="description" name="description">${properties.description || ''}</textarea>
-        </div>
-        <div class="button-group">
-          <button type="button" id="saveFeaturePropertiesBtn" class="save-btn">Save</button>
-        </div>
-      </form>
-    </div>
-  `;
-
-  // Show the modal
-  modal.style.display = 'block';
-  
-  // Set up event listeners after rendering
-  setTimeout(() => {
-    // Set up has_explosive checkbox to toggle NEW section
-    const hasExplosiveCheckbox = document.getElementById('has_explosive');
-    const newSection = document.getElementById('newSection');
-    const hazardDivisionSelect = document.getElementById('hazard_division');
-    const unitSelect = document.getElementById('unit');
-    
-    if (hasExplosiveCheckbox && newSection) {
-      hasExplosiveCheckbox.addEventListener('change', function() {
-        newSection.style.display = this.checked ? 'block' : 'none';
-        hazardDivisionSelect.disabled = !this.checked;
-        unitSelect.disabled = !this.checked;
-      });
-    }
-    
-    // Set up close button
-    const closeBtn = document.getElementById('closeFeaturePropertiesBtn');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', closeFeaturePropertiesModal);
-    }
-    
-    // Set up save button
-    const saveBtn = document.getElementById('saveFeaturePropertiesBtn');
-    if (saveBtn) {
-      saveBtn.addEventListener('click', function() {
-        saveFeatureProperties();
-      });
-    }
-  }, 10);
-}
-
-// Save feature properties
-function saveFeatureProperties() {
-  if (!editingLayer || !editingLayer.feature) {
-    console.error('No layer currently being edited');
-    return;
-  }
-  
-  const form = document.getElementById('featurePropertiesForm');
-  if (!form) {
-    console.error('Feature properties form not found');
-    return;
-  }
-  
-  // Get form data
-  const formData = new FormData(form);
-  
-  // Update layer properties
-  if (!editingLayer.feature.properties) {
-    editingLayer.feature.properties = {};
-  }
-  
-  const properties = editingLayer.feature.properties;
-  
-  // Set basic properties
-  properties.name = formData.get('name') || '';
-  properties.type = formData.get('type') || 'Facility';
-  properties.description = formData.get('description') || '';
-  properties.is_facility = document.getElementById('is_facility').checked;
-  properties.has_explosive = document.getElementById('has_explosive').checked;
-  
-  // Handle explosive properties
-  if (properties.has_explosive) {
-    const newValue = formData.get('net_explosive_weight');
-    properties.net_explosive_weight = newValue ? parseFloat(newValue) : 0;
-    properties.hazard_division = formData.get('hazard_division');
-    properties.unit = formData.get('unit') || 'lbs';
-  } else {
-    properties.net_explosive_weight = 0;
-    delete properties.hazard_division;
-    delete properties.unit;
-  }
-  
-  // Update layer popup if it has one
-  if (editingLayer.getPopup && typeof editingLayer.getPopup === 'function') {
-    const popup = editingLayer.getPopup();
-    if (popup) {
-      // Create updated popup content using the popup-handler.js function if available
-      let content = '';
-      if (typeof window.createPopupContent === 'function') {
-        content = window.createPopupContent(properties);
-      } else {
-        content = createBasicPopupContent(properties);
-      }
-      
-      popup.setContent(content);
-      popup.update();
-    }
-  }
-  
-  // Store layer ID in properties for later reference
-  properties.id = properties.id || editingLayer._leaflet_id;
-  
-  console.log("Feature properties saved:", properties);
-  
-  // Try to save to server if function exists
-  if (typeof saveFeatureToServer === 'function') {
-    saveFeatureToServer(editingLayer.feature);
-  }
-  
-  // Close modal
-  closeFeaturePropertiesModal();
-}
-
-// Create basic popup content as fallback
+// Create a standardized popup content
 function createBasicPopupContent(properties) {
+  properties = properties || {};
   let content = `<div class="feature-popup">`;
-  
+
   if (properties.name) {
     content += `<h4>${properties.name}</h4>`;
   }
-  
+
   if (properties.type) {
     content += `<p><strong>Type:</strong> ${properties.type}</p>`;
   }
-  
+
   if (properties.has_explosive && properties.net_explosive_weight) {
     content += `<p><strong>NEW:</strong> ${properties.net_explosive_weight} ${properties.unit || 'lbs'}</p>`;
     if (properties.hazard_division) {
       content += `<p><strong>HD:</strong> ${properties.hazard_division}</p>`;
     }
   }
-  
+
   if (properties.description) {
     content += `<p>${properties.description}</p>`;
   }
-  
-  content += `<button class="popup-edit-btn" onclick="openFeatureEditor(this.closest('.leaflet-popup')._source)">Edit Properties</button>`;
+
+  content += `<button class="popup-edit-btn" onclick="openFeaturePropertiesModal(this)">Edit Properties</button>`;
   content += `</div>`;
-  
+
   return content;
 }
 
-// Close the feature properties modal
+// Function to open feature properties modal
+function openFeaturePropertiesModal(button) {
+  // Find the layer from the button's context (popup)
+  let layer;
+
+  // Handle different ways the function might be called
+  if (button && button._source) {
+    // Called directly with a layer
+    layer = button;
+  } else if (button && button.closest) {
+    // Called from a button in a popup
+    const popup = button.closest('.leaflet-popup');
+    if (popup && popup._source) {
+      layer = popup._source;
+    }
+  } else if (button && typeof button === 'object' && button.target) {
+    // Called from layer click event
+    layer = button.target;
+  }
+
+  if (!layer) {
+    console.error("Could not find layer to edit");
+    return;
+  }
+
+  // Store the current editing layer
+  editingLayer = layer;
+
+  // Get properties or initialize empty object
+  const properties = layer.feature && layer.feature.properties ? {...layer.feature.properties} : {};
+
+  // Get the modal element
+  const modal = document.getElementById('featurePropertiesModal');
+  if (!modal) {
+    console.error("Feature properties modal not found in the DOM");
+    return;
+  }
+
+  // Get the form element
+  const form = document.getElementById('featurePropertiesForm');
+  if (!form) {
+    console.error("Feature properties form not found in the DOM");
+    return;
+  }
+
+  // Reset form
+  form.reset();
+
+  // Populate form fields with current properties
+  const nameInput = document.getElementById('featureName');
+  if (nameInput) nameInput.value = properties.name || '';
+
+  const typeInput = document.getElementById('featureType');
+  if (typeInput) typeInput.value = properties.type || '';
+
+  const descriptionInput = document.getElementById('featureDescription');
+  if (descriptionInput) descriptionInput.value = properties.description || '';
+
+  const hasMunitionInput = document.getElementById('featureHasMunition');
+  if (hasMunitionInput) {
+    hasMunitionInput.checked = properties.has_explosive || false;
+    // Trigger change event to show/hide dependent fields
+    const event = new Event('change');
+    hasMunitionInput.dispatchEvent(event);
+  }
+
+  const newInput = document.getElementById('featureNEW');
+  if (newInput) newInput.value = properties.net_explosive_weight || '';
+
+  const unitInput = document.getElementById('featureUnit');
+  if (unitInput) unitInput.value = properties.unit || 'lbs';
+
+  const hazardDivisionInput = document.getElementById('featureHazardDivision');
+  if (hazardDivisionInput) hazardDivisionInput.value = properties.hazard_division || '';
+
+  // Show the modal
+  modal.style.display = 'block';
+}
+
+// Function to save feature properties
+function saveFeatureProperties() {
+  if (!editingLayer) {
+    console.error("No active editing layer");
+    return;
+  }
+
+  // Get form values
+  const name = document.getElementById('featureName').value;
+  const type = document.getElementById('featureType').value;
+  const description = document.getElementById('featureDescription').value;
+  const hasMunition = document.getElementById('featureHasMunition').checked;
+
+  // Initialize or get existing properties
+  if (!editingLayer.feature) {
+    editingLayer.feature = { type: 'Feature', properties: {} };
+  }
+
+  if (!editingLayer.feature.properties) {
+    editingLayer.feature.properties = {};
+  }
+
+  // Update properties
+  editingLayer.feature.properties.name = name;
+  editingLayer.feature.properties.type = type;
+  editingLayer.feature.properties.description = description;
+  editingLayer.feature.properties.has_explosive = hasMunition;
+
+  // Add munition details if applicable
+  if (hasMunition) {
+    editingLayer.feature.properties.net_explosive_weight = document.getElementById('featureNEW').value;
+    editingLayer.feature.properties.unit = document.getElementById('featureUnit').value;
+    editingLayer.feature.properties.hazard_division = document.getElementById('featureHazardDivision').value;
+  } else {
+    // Remove munition properties if not applicable
+    delete editingLayer.feature.properties.net_explosive_weight;
+    delete editingLayer.feature.properties.unit;
+    delete editingLayer.feature.properties.hazard_division;
+  }
+
+  // Update the layer's popup content if it has a popup
+  if (editingLayer.getPopup()) {
+    editingLayer.setPopupContent(createBasicPopupContent(editingLayer.feature.properties));
+  } else {
+    // Create a new popup if none exists
+    editingLayer.bindPopup(createBasicPopupContent(editingLayer.feature.properties));
+  }
+
+  // Close the modal
+  closeFeaturePropertiesModal();
+
+  // Save to server if needed (implement this function)
+  if (typeof saveFeatureToServer === 'function') {
+    saveFeatureToServer(editingLayer);
+  }
+}
+
+// Function to close the feature properties modal
 function closeFeaturePropertiesModal() {
   const modal = document.getElementById('featurePropertiesModal');
   if (modal) {
     modal.style.display = 'none';
   }
-  
-  // Reset editing state
-  window.activeEditLayer = null;
+
+  // Clear editing state
   editingLayer = null;
 }
 
-// Initialize click handlers for map layers
-function initFeatureEditor() {
-  if (!window.map) {
-    console.error('Map not initialized for feature editor');
-    return;
+// Function to open feature editor for a specific layer
+// This is the main function to call when clicking on a polygon
+function openFeatureEditor(layer) {
+  // Close any existing popups to avoid confusion
+  if (window.map) {
+    window.map.closePopup();
   }
-  
-  // Add map click handler to close popup when clicking elsewhere
-  window.map.on('click', function(e) {
-    // Only close if we're not clicking on a layer or the modal itself
-    if (!e.originalEvent.target.closest('.leaflet-interactive') && 
-        !e.originalEvent.target.closest('#featurePropertiesModal')) {
+
+  // Open the properties modal directly
+  openFeaturePropertiesModal(layer);
+}
+
+// Add event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Set up event listener for munition checkbox
+  const hasMunitionCheckbox = document.getElementById('featureHasMunition');
+  if (hasMunitionCheckbox) {
+    hasMunitionCheckbox.addEventListener('change', function() {
+      const munitionSection = document.getElementById('munitionSection');
+      if (munitionSection) {
+        munitionSection.style.display = this.checked ? 'block' : 'none';
+      }
+    });
+  }
+
+  // Set up event listener for save button
+  const saveButton = document.getElementById('saveFeaturePropertiesBtn');
+  if (saveButton) {
+    saveButton.addEventListener('click', saveFeatureProperties);
+  }
+
+  // Set up event listener for close button
+  const closeButton = document.getElementById('closeFeaturePropertiesBtn');
+  if (closeButton) {
+    closeButton.addEventListener('click', closeFeaturePropertiesModal);
+  }
+
+  // Close modal when clicking outside of it
+  window.addEventListener('click', function(event) {
+    const modal = document.getElementById('featurePropertiesModal');
+    if (event.target === modal) {
       closeFeaturePropertiesModal();
     }
   });
   
-  // Add global document click handler for clicks outside map
-  document.addEventListener('click', function(e) {
-    // Don't close if clicking on map, modal, or leaflet elements
-    if (e.target.closest('.leaflet-container') || 
-        e.target.closest('#featurePropertiesModal') ||
-        e.target.closest('.leaflet-marker-icon') || 
-        e.target.closest('.leaflet-interactive')) {
-      return;
+  //Added to initialize layer click handlers after a short delay
+  setTimeout(initializeLayerClickHandlers, 500);
+});
+
+
+// Function to initialize click handlers for map layers
+function initializeLayerClickHandlers() {
+  if (!window.map) {
+    console.error("Map not initialized");
+    return;
+  }
+
+  window.map.eachLayer(function(layer) {
+    // Only add click handlers to layers with features
+    if (layer.feature && typeof layer.on === 'function') {
+      // Remove existing handlers to prevent duplicates
+      layer.off('click');
+
+      // Add new click handler
+      layer.on('click', function(e) {
+        // Stop propagation to prevent map click
+        L.DomEvent.stopPropagation(e);
+
+        // Open feature editor directly
+        openFeatureEditor(layer);
+      });
     }
-    
-    closeFeaturePropertiesModal();
   });
 }
+
+// Export functions for global access
+window.openFeatureEditor = openFeatureEditor;
+window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
+window.saveFeatureProperties = saveFeatureProperties;
+window.initializeLayerClickHandlers = initializeLayerClickHandlers;
+window.createBasicPopupContent = createBasicPopupContent;
+
 
 // Add CSS for modal styling
 function addModalStyles() {
@@ -359,6 +338,10 @@ function addModalStyles() {
     .save-btn:hover {
       background: #45a049;
     }
+    
+    #munitionSection {
+      display: none;
+    }
   `;
   document.head.appendChild(styleElement);
 }
@@ -369,7 +352,4 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Add modal styles
   addModalStyles();
-  
-  // Setup feature editor after a short delay to ensure map is loaded
-  setTimeout(initFeatureEditor, 500);
 });
