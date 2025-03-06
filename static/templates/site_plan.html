@@ -178,9 +178,12 @@
             <label for="editLayerName">Layer Name:</label>
             <input type="text" id="editLayerName" style="width: 100%; padding: 5px;">
           </div>
-          <div style="display: flex; align-items: center; margin: 10px 0;">
-            <input type="checkbox" id="isQDLayer" name="isQDLayer" style="margin-right: 5px;">
-            <label for="isQDLayer">QD analysis layer (contains explosives)</label>
+          <div style="margin: 10px 0;">
+            <label for="layerType">Layer Type:</label>
+            <select id="isQDLayer" name="layerType" style="width: 100%; padding: 5px;">
+              <option value="false">Standard Layer</option>
+              <option value="true">QD Analysis Layer (contains explosives)</option>
+            </select>
           </div>
           <div style="margin-bottom: 10px;">
             <label for="layerColor">Layer Color:</label>
@@ -1146,9 +1149,9 @@
         // Fill in the form with current values
         document.getElementById("editLayerName").value = layerName;
 
-        // Set the QD analysis checkbox based on layer properties
+        // Set the QD analysis dropdown based on layer properties
         const isQDLayer = layer.properties && layer.properties.isQDAnalyzed;
-        document.getElementById("isQDLayer").checked = isQDLayer || false;
+        document.getElementById("isQDLayer").value = isQDLayer ? "true" : "false";
 
         // Set the layer color
         const layerColor = this.layerColors[layerName] || "#3388ff";
@@ -1168,7 +1171,7 @@
 
         const oldLayerName = this.currentEditingLayer;
         const newLayerName = document.getElementById("editLayerName").value.trim();
-        const isQDLayer = document.getElementById("isQDLayer").checked;
+        const isQDLayer = document.getElementById("isQDLayer").value === "true";
         const layerColor = document.getElementById("layerColor").value;
 
         // Update layer properties
