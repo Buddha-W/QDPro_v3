@@ -22,14 +22,24 @@ function closeAllPopups() {
   if (featurePropertiesModal) {
     featurePropertiesModal.style.display = 'none';
   }
+  
+  // Reset active editing layer
+  window.activeEditLayer = null;
+  editingLayer = null;
 }
 
 // Open the feature editor modal for a given layer
 function openFeatureEditor(layer) {
   console.log("Opening feature editor for layer:", layer);
 
-  // Close any existing popups first
+  // Close any existing popups and modals
   closeAllPopups();
+  
+  // If we're already editing this layer, don't reopen
+  if (window.activeEditLayer === layer && document.getElementById('featurePropertiesModal').style.display === 'block') {
+    console.log("Already editing this layer");
+    return;
+  }
 
   // Set global active editing layer
   window.activeEditLayer = layer;
@@ -212,6 +222,19 @@ function addLayerClickHandlers(layer) {
   // Add a direct click handler to the layer
   layer.on('click', function(e) {
     console.log("Layer clicked:", layer);
+    
+    // Close any existing feature properties modal first
+    const featurePropertiesModal = document.getElementById('featurePropertiesModal');
+    if (featurePropertiesModal) {
+      featurePropertiesModal.style.display = 'none';
+    }
+    
+    // Reset any previous editing state
+    if (window.activeEditLayer && window.activeEditLayer !== layer) {
+      console.log("Switching from previous layer to new layer");
+      window.activeEditLayer = null;
+      editingLayer = null;
+    }
 
     // Stop propagation to prevent map click
     L.DomEvent.stopPropagation(e);
