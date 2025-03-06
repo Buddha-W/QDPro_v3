@@ -646,8 +646,15 @@
 
             const layerInfo = {
               color: this.layerColors[layerName] || "#3388ff",
-              features: []
+              features: [],
+              properties: {}
             };
+            
+            // Save layer properties including QD analysis flag
+            if (layer.properties) {
+              layerInfo.properties = {...layer.properties};
+              console.log(`Saving layer ${layerName} properties:`, layerInfo.properties);
+            }
 
             layer.eachLayer(function(l) {
               if (l.toGeoJSON) {
@@ -767,6 +774,12 @@
             console.log(`Processing saved layer: ${layerName}`, layerData);
 
             const layer = L.featureGroup();
+            
+            // Restore layer properties
+            if (layerData.properties) {
+              layer.properties = {...layerData.properties};
+              console.log(`Restored layer ${layerName} properties:`, layer.properties);
+            }
 
             if (layerData.color) {
               this.layerColors[layerName] = layerData.color;
@@ -1170,6 +1183,8 @@
         // Set QD analysis flag
         layer.properties.isQDAnalyzed = isQDLayer;
         
+        console.log(`Layer ${oldLayerName} QD status set to: ${isQDLayer}`);
+        
         // Update layer color
         this.layerColors[oldLayerName] = layerColor;
         
@@ -1213,7 +1228,7 @@
         this.updateLayersList();
         this.updateDrawToLayerSelect();
         
-        // Save project changes
+        // Save project changes to ensure persistence
         this.saveProject();
         
         // Close the modal
