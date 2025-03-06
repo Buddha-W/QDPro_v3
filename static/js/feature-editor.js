@@ -158,13 +158,16 @@ function openFeatureEditor(layer) {
 
   // Get the modal and form
   const modal = document.getElementById('featurePropertiesModal');
-  const form = document.getElementById('featurePropertiesForm');
-
+  
+  // Check if modal exists before proceeding
   if (!modal) {
     console.error("Modal not found in the DOM");
+    // Create a temporary alert to let the user know something went wrong
+    alert("Unable to open editor - modal element not found. Please refresh the page and try again.");
     return;
   }
 
+  const form = document.getElementById('featurePropertiesForm');
   if (!form) {
     console.error("Form not found in the DOM");
     return;
