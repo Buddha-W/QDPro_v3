@@ -1,217 +1,225 @@
-// Feature Editor for QDPro
-// Provides functionality for editing feature properties
 
-// Global variables
-let currentLayer = null;
+// Feature Editor script
+let editingLayer = null;
+let previousPopup = null;
 
-// Function to handle layer clicks
-function handleLayerClick(layer) {
-  console.log("Layer clicked:", layer);
-
-  // Close any existing modal first to allow seamless switching
-  if (currentLayer && currentLayer !== layer) {
-    // Just switch to the new layer without closing the modal
-    console.log("Switching from previous layer to new layer");
-  }
-
-  // Set as current layer
-  currentLayer = layer;
-
-  // Display properties in the modal
-  displayFeatureProperties(layer);
-
-  // Show the modal
-  const modal = document.getElementById('featurePropertiesModal');
-  if (modal) {
-    modal.style.display = 'block';
-  }
-}
-
-// Function to display feature properties in the modal
-function displayFeatureProperties(layer) {
-  console.log("Displaying properties for layer:", layer);
-
-  // Get feature properties
-  const properties = layer.feature ? layer.feature.properties : {};
-
-  // Set form values
-  const form = document.getElementById('featurePropertiesForm');
-  if (form) {
-    // Populate form fields based on properties
-    for (const key in properties) {
-      const input = form.querySelector(`[name="${key}"]`);
-      if (input) {
-        if (input.type === 'checkbox') {
-          input.checked = properties[key];
-        } else {
-          input.value = properties[key];
-        }
-      }
-    }
-
-    // Show/hide explosive weight section based on has_explosive property
-    const hasExplosive = form.querySelector('[name="has_explosive"]');
-    const explosiveSection = document.getElementById('explosiveSection');
-    if (hasExplosive && explosiveSection) {
-      explosiveSection.style.display = hasExplosive.checked ? 'block' : 'none';
-    }
-  }
-}
-
-// Function to save feature properties
-function saveFeatureProperties() {
-  console.log("Saving properties for layer:", currentLayer);
-
-  if (!currentLayer) {
-    console.error("No layer selected for saving");
-    return;
-  }
-
-  // Get form values
-  const form = document.getElementById('featurePropertiesForm');
-  if (form) {
-    // Create or ensure layer has feature and properties
-    if (!currentLayer.feature) {
-      currentLayer.feature = {};
-    }
-    if (!currentLayer.feature.properties) {
-      currentLayer.feature.properties = {};
-    }
-
-    // Get all form inputs
-    const inputs = form.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-      const name = input.name;
-      let value;
-
-      if (input.type === 'checkbox') {
-        value = input.checked;
-      } else {
-        value = input.value;
-      }
-
-      // Set property
-      if (name) {
-        currentLayer.feature.properties[name] = value;
-      }
-    });
-
-    // Update popup content if it exists
-    if (currentLayer.getPopup()) {
-      const content = createBasicPopupContent(currentLayer.feature.properties);
-      currentLayer.setPopupContent(content);
-    }
-
-    // Close modal
-    closeFeaturePropertiesModal();
-
-    // Fire event to notify of changes
-    if (typeof window.onFeaturePropertiesChanged === 'function') {
-      window.onFeaturePropertiesChanged(currentLayer);
-    }
-  }
-}
-
-// Function to close the feature properties modal
-function closeFeaturePropertiesModal() {
-  const modal = document.getElementById('featurePropertiesModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-
-  // Reset the current layer
-  currentLayer = null;
-}
-
-// Make the function globally accessible
-window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
-
-// Function to create basic popup content
-function createBasicPopupContent(properties) {
-  properties = properties || {};
-  let content = `<div class="feature-popup">`;
-
-  if (properties.name) {
-    content += `<h4>${properties.name}</h4>`;
-  }
-
-  if (properties.type) {
-    content += `<p><strong>Type:</strong> ${properties.type}</p>`;
-  }
-
-  if (properties.has_explosive && properties.net_explosive_weight) {
-    content += `<p><strong>NEW:</strong> ${properties.net_explosive_weight} ${properties.unit || 'lbs'}</p>`;
-    if (properties.hazard_division) {
-      content += `<p><strong>HD:</strong> ${properties.hazard_division}</p>`;
-    }
-  }
-
-  if (properties.description) {
-    content += `<p>${properties.description}</p>`;
-  }
-
-  content += `<button class="popup-edit-btn" onclick="handleEditButtonClick(this)">Edit Properties</button>`;
-  content += `</div>`;
-
-  return content;
-}
-
-// Function to handle edit button click in popup
-function handleEditButtonClick(button) {
-  // Close any open popups
-  if (window.map) {
-    window.map.closePopup();
-  }
-
-  // Find the layer associated with this popup
-  const popup = button.closest('.leaflet-popup');
-  if (!popup || !popup._source) {
-    console.error("Cannot find layer for editing");
-    return;
-  }
-
-  // Handle the layer click
-  handleLayerClick(popup._source);
-}
-
-// Function to add click handlers to layers
+// Function to add click handlers to a layer
 function addLayerClickHandlers(layer) {
   if (!layer) return;
-
-  // Add popup with basic info
-  const properties = layer.feature ? layer.feature.properties : {};
-  const popupContent = createBasicPopupContent(properties);
-  layer.bindPopup(popupContent);
-
-  // Add direct click handler
+  
+  // Add a direct click handler to the layer
   layer.on('click', function(e) {
-    // Stop propagation to prevent map click handler
+    console.log("Layer clicked:", layer);
+    
+    // Stop propagation to prevent map click
     L.DomEvent.stopPropagation(e);
-
-    // If another layer's properties are being edited, save those first
-    if (currentLayer && currentLayer !== layer) {
-      const saveBtn = document.getElementById('savePropertiesBtn');
-      if (saveBtn) {
-        saveBtn.click();
-      } else {
-        closeFeaturePropertiesModal();
-      }
-    }
-
-    // Open this layer's properties
-    handleLayerClick(layer);
+    
+    // Close any existing modals
+    closeFeaturePropertiesModal();
+    
+    // Open the property editor for this layer
+    openFeatureEditor(layer);
   });
 }
 
-// Initialize all layer click handlers
+// Function to reset all layers to be interactive
+function resetLayerInteractivity() {
+  if (window.map) {
+    window.map.eachLayer(function(layer) {
+      if (layer.feature && typeof layer.setStyle === 'function') {
+        // Make layers interactive again
+        layer.setStyle({ interactive: true });
+      }
+    });
+  }
+}
+
+// Close all popups on the map
+function closeAllPopups() {
+  console.log("Closing all popups");
+  
+  if (window.map) {
+    window.map.closePopup();
+  }
+  
+  if (previousPopup) {
+    previousPopup.remove();
+    previousPopup = null;
+  }
+  
+  // Reset layer interactivity
+  resetLayerInteractivity();
+}
+
+// Close the feature properties modal
+function closeFeaturePropertiesModal() {
+  console.log("Closing feature properties modal");
+  
+  const featurePropertiesModal = document.getElementById('featurePropertiesModal');
+  if (featurePropertiesModal) {
+    featurePropertiesModal.style.display = 'none';
+  }
+  
+  // Reset global state
+  window.activeEditLayer = null;
+  editingLayer = null;
+  
+  // Reset layer interactivity
+  resetLayerInteractivity();
+}
+
+// Open the feature editor modal for a given layer
+function openFeatureEditor(layer) {
+  console.log("Opening feature editor for layer:", layer);
+  
+  // Set global active editing layer
+  window.activeEditLayer = layer;
+  editingLayer = layer;
+  
+  // Get properties from the layer
+  const properties = layer.feature ? (layer.feature.properties || {}) : {};
+  
+  // Get the modal and form
+  const modal = document.getElementById('featurePropertiesModal');
+  const form = document.getElementById('featurePropertiesForm');
+  
+  if (!modal || !form) {
+    console.error("Modal or form not found");
+    return;
+  }
+  
+  // Fill the form with current properties
+  const nameField = document.getElementById('name');
+  if (nameField) nameField.value = properties.name || '';
+  
+  const isFacilityCheckbox = document.getElementById('is_facility');
+  if (isFacilityCheckbox) {
+    isFacilityCheckbox.checked = properties.is_facility || false;
+  }
+  
+  const hasExplosiveCheckbox = document.getElementById('has_explosive');
+  if (hasExplosiveCheckbox) {
+    hasExplosiveCheckbox.checked = properties.has_explosive || false;
+    
+    // Show/hide explosive section
+    const explosiveSection = document.getElementById('explosiveSection');
+    if (explosiveSection) {
+      explosiveSection.style.display = hasExplosiveCheckbox.checked ? 'block' : 'none';
+    }
+  }
+  
+  const newField = document.getElementById('net_explosive_weight');
+  if (newField) newField.value = properties.net_explosive_weight || '';
+  
+  const typeField = document.getElementById('type');
+  if (typeField) typeField.value = properties.type || '';
+  
+  const descriptionField = document.getElementById('description');
+  if (descriptionField) descriptionField.value = properties.description || '';
+  
+  // Show the modal
+  modal.style.display = 'block';
+}
+
+// Save the feature properties
+function saveFeatureProperties() {
+  console.log("Saving feature properties");
+  
+  // Get the current editing layer
+  const currentEditingLayer = window.activeEditLayer;
+  if (!currentEditingLayer) {
+    console.error("No active editing layer");
+    return;
+  }
+  
+  // Initialize feature if it doesn't exist
+  if (!currentEditingLayer.feature) {
+    currentEditingLayer.feature = {
+      type: 'Feature',
+      properties: {},
+      geometry: currentEditingLayer.toGeoJSON ? currentEditingLayer.toGeoJSON().geometry : null
+    };
+  }
+  
+  // Ensure properties object exists
+  if (!currentEditingLayer.feature.properties) {
+    currentEditingLayer.feature.properties = {};
+  }
+  
+  // Get form values
+  const nameField = document.getElementById('name');
+  const isFacilityCheckbox = document.getElementById('is_facility');
+  const hasExplosiveCheckbox = document.getElementById('has_explosive');
+  const newField = document.getElementById('net_explosive_weight');
+  const typeField = document.getElementById('type');
+  const descriptionField = document.getElementById('description');
+  
+  // Update properties
+  if (nameField) currentEditingLayer.feature.properties.name = nameField.value;
+  if (isFacilityCheckbox) currentEditingLayer.feature.properties.is_facility = isFacilityCheckbox.checked;
+  if (hasExplosiveCheckbox) currentEditingLayer.feature.properties.has_explosive = hasExplosiveCheckbox.checked;
+  if (newField) currentEditingLayer.feature.properties.net_explosive_weight = newField.value;
+  if (typeField) currentEditingLayer.feature.properties.type = typeField.value;
+  if (descriptionField) currentEditingLayer.feature.properties.description = descriptionField.value;
+  
+  // Update popup content if needed
+  if (currentEditingLayer.getPopup()) {
+    const popupContent = createPopupContent(currentEditingLayer.feature.properties);
+    currentEditingLayer.setPopupContent(popupContent);
+  }
+  
+  // Close the modal
+  closeFeaturePropertiesModal();
+  
+  // Save to server if needed
+  const featureId = currentEditingLayer.feature.id || currentEditingLayer._leaflet_id;
+  
+  // Call save function if it exists
+  if (typeof saveFeatureToServer === 'function') {
+    saveFeatureToServer(currentEditingLayer);
+  }
+}
+
+// Create popup content for a feature
+function createPopupContent(properties) {
+  let content = '<div class="feature-popup">';
+  content += `<h3>${properties.name || 'Unnamed Feature'}</h3>`;
+  
+  if (properties.type) {
+    content += `<p><strong>Type:</strong> ${properties.type}</p>`;
+  }
+  
+  if (properties.description) {
+    content += `<p><strong>Description:</strong> ${properties.description}</p>`;
+  }
+  
+  if (properties.is_facility) {
+    content += `<p><strong>Facility:</strong> Yes</p>`;
+  }
+  
+  if (properties.has_explosive) {
+    content += `<p><strong>Contains Explosives:</strong> Yes</p>`;
+    
+    if (properties.net_explosive_weight) {
+      content += `<p><strong>NEW:</strong> ${properties.net_explosive_weight}</p>`;
+    }
+  }
+  
+  content += `<button onclick="openFeatureEditor(window.activeEditLayer)">Edit Properties</button>`;
+  content += '</div>';
+  
+  return content;
+}
+
+// Initialize layer click handlers
 function initializeLayerClickHandlers() {
   console.log("Initializing layer click handlers");
-
+  
   if (!window.map) {
     console.error("Map not initialized");
     return;
   }
-
+  
   // Add handlers to all existing layers
   window.map.eachLayer(function(layer) {
     // Only add handlers to feature layers (polygons, markers, etc.)
@@ -221,10 +229,13 @@ function initializeLayerClickHandlers() {
   });
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("Feature editor initialized");
-
+// Set up handlers for all layers
+function setupAllLayerEditHandlers() {
+  console.log("Setting up all layer edit handlers");
+  
+  // Initialize layer click handlers
+  initializeLayerClickHandlers();
+  
   // Set up event listener for explosive checkbox
   const hasExplosiveCheckbox = document.getElementById('has_explosive');
   if (hasExplosiveCheckbox) {
@@ -235,52 +246,46 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-
+  
   // Set up event listener for save button
   const saveButton = document.getElementById('savePropertiesBtn');
   if (saveButton) {
     saveButton.addEventListener('click', saveFeatureProperties);
   }
-
+  
   // Set up event listener for close button
   const closeButton = document.getElementById('closeFeaturePropertiesBtn');
   if (closeButton) {
     closeButton.addEventListener('click', closeFeaturePropertiesModal);
   }
   
-  // Connect the X button in the modal to the close function
-  const closeX = document.querySelector('#featurePropertiesModal .close');
-  if (closeX) {
-    closeX.addEventListener('click', closeFeaturePropertiesModal);
-  }
-
-  // Set up event listener for canceling by clicking outside
+  // Close modal when clicking outside of it
   window.addEventListener('click', function(event) {
     const modal = document.getElementById('featurePropertiesModal');
-    if (event.target === modal) {
+    if (modal && event.target === modal) {
       closeFeaturePropertiesModal();
     }
   });
-
-  // Initialize layer handlers after map is loaded
+  
+  // Set up map click event to close popups
   if (window.map) {
-    initializeLayerClickHandlers();
-  } else {
-    // Wait for map to be initialized
-    const checkMap = setInterval(function() {
-      if (window.map) {
-        initializeLayerClickHandlers();
-        clearInterval(checkMap);
-      }
-    }, 500);
+    window.map.on('click', function() {
+      closeAllPopups();
+      closeFeaturePropertiesModal();
+    });
   }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Feature editor initialized");
+  setupAllLayerEditHandlers();
 });
 
-// Export functions for global access
-window.handleLayerClick = handleLayerClick;
-window.saveFeatureProperties = saveFeatureProperties;
-window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
-window.createBasicPopupContent = createBasicPopupContent;
-window.handleEditButtonClick = handleEditButtonClick;
+// Export functions for use in other scripts
 window.addLayerClickHandlers = addLayerClickHandlers;
-window.initializeLayerClickHandlers = initializeLayerClickHandlers;
+window.openFeatureEditor = openFeatureEditor;
+window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
+window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
+window.saveFeatureProperties = saveFeatureProperties;
+window.closeAllPopups = closeAllPopups;

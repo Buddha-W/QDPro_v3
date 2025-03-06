@@ -45,7 +45,6 @@
     .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; }
     .facility-icon { text-align: center; }
     .violation-icon { text-align: center; }
-
     .facility-icon div, .violation-icon div {
       background-color: #fff;
       border-radius: 50%;
@@ -56,17 +55,14 @@
       justify-content: center;
       border: 2px solid #333;
     }
-
     .facility-icon div {
       background-color: #ffcc00;
       border-color: #cc9900;
     }
-
     .violation-icon div {
       background-color: #ff3300;
       border-color: #cc0000;
     }
-
     .analysis-summary-panel {
       position: absolute;
       bottom: 20px;
@@ -78,11 +74,9 @@
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
       max-width: 300px;
     }
-
     .analysis-popup, .qd-ring-popup, .violation-popup {
       max-width: 250px;
     }
-
     .close-btn {
       background: #f44336;
       color: white;
@@ -92,7 +86,6 @@
       cursor: pointer;
       margin-top: 10px;
     }
-
     .close-btn:hover {
       background: #d32f2f;
     }
@@ -237,48 +230,56 @@
     </div>
   </div>
 
-  <!-- Feature Properties Modal -->
-  <div id="featurePropertiesModal" class="modal" style="display: none;">
+  <!-- Edited Feature Properties Modal -->
+  <div id="featurePropertiesModal" class="modal">
     <div class="modal-content">
-      <span class="close" onclick="closeFeaturePropertiesModal()">&times;</span>
-      <h2>Edit Feature Properties</h2>
-      <form id="featurePropertiesForm">
-        <div style="margin-bottom: 10px;">
-          <label for="name">Display Name:</label>
-          <input type="text" id="name" name="name" style="width: 100%; padding: 5px;">
-        </div>
-        <div style="margin-bottom: 10px;">
-          <label>
+      <div class="modal-header">
+        <h2>Feature Properties</h2>
+        <span id="closeFeaturePropertiesBtn" class="close" onclick="closeFeaturePropertiesModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="featurePropertiesForm">
+          <div class="form-group">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" class="form-control">
+          </div>
+
+          <div class="form-group">
+            <label for="type">Type:</label>
+            <select id="type" name="type" class="form-control">
+              <option value="Building">Building</option>
+              <option value="Storage">Storage</option>
+              <option value="Boundary">Boundary</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" class="form-control"></textarea>
+          </div>
+
+          <div class="form-group">
             <input type="checkbox" id="is_facility" name="is_facility">
-            Facility
-          </label>
-        </div>
-        <div style="margin-bottom: 10px;">
-          <label>
+            <label for="is_facility">Is Facility</label>
+          </div>
+
+          <div class="form-group">
             <input type="checkbox" id="has_explosive" name="has_explosive">
-            Contains Explosives (NEW)
-          </label>
-        </div>
-        <div id="newSection" style="margin-bottom: 10px; display: none;">
-          <label for="net_explosive_weight">Net Explosive Weight (lb):</label>
-          <input type="number" id="net_explosive_weight" name="net_explosive_weight" min="0" style="width: 100%; padding: 5px;">
-        </div>
-        <div style="margin-bottom: 10px;">
-          <label for="type">Facility Type:</label>
-          <select id="type" name="type" style="width: 100%; padding: 5px;">
-            <option value="Facility">Facility</option>
-            <option value="Storage">Storage</option>
-            <option value="Administrative">Administrative</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-        <div style="margin-bottom: 10px;">
-          <label for="description">Description:</label>
-          <textarea id="description" name="description" style="width: 100%; padding: 5px; height: 60px;"></textarea>
-        </div>
-        <button type="submit" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">Save</button>
-        <button type="button" onclick="closeFeaturePropertiesModal()" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
-      </form>
+            <label for="has_explosive">Contains Explosives</label>
+          </div>
+
+          <div id="explosiveSection" class="form-group" style="display: none;">
+            <label for="net_explosive_weight">Net Explosive Weight (NEW):</label>
+            <input type="number" id="net_explosive_weight" name="net_explosive_weight" class="form-control">
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="savePropertiesBtn" class="btn btn-primary">Save</button>
+            <button type="button" class="btn btn-secondary" onclick="closeFeaturePropertiesModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -907,7 +908,7 @@
                   <textarea id="description" name="description" style="width: 100%; padding: 5px; height: 60px;"></textarea>
                 </div>
                 <button type="submit" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">Save</button>
-                <button type="button" id="cancelPropertiesBtn" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
+                <button type="button" onclick="closeFeaturePropertiesModal()" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
               </form>
             </div>
           </div>/div>
@@ -1291,7 +1292,7 @@
               feature.properties.featureId = l._leaflet_id || Math.random().toString(36).substr(2, 9);
               // Add a human-readable name for display
               feature.properties.displayName = feature.properties.name || feature.properties.facility_name || 
-                                              (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${String(feature.properties.featureId).slice(-4)}`);
+                                               (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${String(feature.properties.featureId).slice(-4)}`);
               allFeatures.push(feature);
             }
           });
@@ -1335,9 +1336,9 @@
           features.forEach(feature => {
             const featureId = feature.properties.featureId;
             const isExplosiveFacility = feature.properties.net_explosive_weight || 
-                                      feature.properties.new || 
-                                      feature.properties.type === 'Facility' || 
-                                      feature.properties.type === 'Bunker';
+                                        feature.properties.new || 
+                                        feature.properties.type === 'Facility' || 
+                                        feature.properties.type === 'Bunker';
 
             modalContent += `
               <div style="margin-left: 20px; margin-bottom: 5px;">
@@ -1945,6 +1946,3 @@
   <script src="/static/js/custom-modal.js"></script>
 </body>
 </html>
-<file_path>static/templates/site_plan.html</file_path>
-<change_summary>Complete the displayAnalysisResults function</change_summary>
-<line_number>812</line_number>
