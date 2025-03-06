@@ -392,7 +392,9 @@ async function saveFeatureProperties(featureId, properties) {
     const data = await response.json();
     if (data.status === 'success') {
       // Refresh edit handlers to ensure all features are editable
-      setTimeout(setupAllLayerEditHandlers, 300);
+      setTimeout(function() {
+        refreshAllLayerEditHandlers();
+      }, 300);
     }
     return data.status === 'success';
   } catch (error) {
@@ -404,6 +406,14 @@ async function saveFeatureProperties(featureId, properties) {
 // Function to add click handlers to layers for editing
 function addLayerClickHandlers(layer) {
   if (!layer) return;
+
+  // Skip if already has handlers attached (check with a custom property)
+  if (layer._hasClickHandlers) {
+    return;
+  }
+  
+  // Mark as having handlers
+  layer._hasClickHandlers = true;
 
   // Add a simple popup if none exists
   if (layer.bindPopup && !layer.getPopup()) {
@@ -433,7 +443,7 @@ function addLayerClickHandlers(layer) {
   layer.on('click', function(e) {
     // Store the clicked layer for potential editing
     window.lastClickedLayer = layer;
-    console.log("Layer clicked:", layer);
+    console.log("Layer clicked:", layer, "in layer:", layer.options ? layer.options.name : "unknown");
   });
 }
 // Function to ensure all features in all layers have edit capabilities
@@ -470,18 +480,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 500);
 });
-// Function specifically to ensure ES layer features are editable
-function ensureESLayerEditable() {
+// Function to ensure specific layers have editable features
+function ensureLayerFeaturesEditable(layerNames) {
   if (!window.map) return;
   
-  // Find the ES layer
+  // Process all layers in the map
   window.map.eachLayer(function(layer) {
-    if (layer.options && layer.options.name === "ES") {
-      console.log("Found ES layer, setting up edit handlers");
+    // Check if this is one of our target layers
+    if (layer.options && layer.options.name && 
+        (layerNames.includes(layer.options.name) || layerNames.length === 0)) {
+      console.log("Setting up edit handlers for layer:", layer.options.name);
+      
       // Apply edit handlers to all features in this layer
-      layer.eachLayer(function(feature) {
-        addLayerClickHandlers(feature);
-      });
+      if (layer.eachLayer) {
+        layer.eachLayer(function(feature) {
+          addLayerClickHandlers(feature);
+        });
+      }
     }
   });
 }
@@ -490,7 +505,15 @@ function ensureESLayerEditable() {
 document.addEventListener('layersLoaded', function() {
   console.log("Layers loaded event detected");
   setTimeout(function() {
-    ensureESLayerEditable();
+    // Make sure both ES and PES layers are editable, as well as any others
+    ensureLayerFeaturesEditable(['ES', 'PES']);
     setupAllLayerEditHandlers();
   }, 500);
 });
+
+// Call when layers are added or modified
+function refreshAllLayerEditHandlers() {
+  console.log("Refreshing edit handlers for all layers");
+  setupAllLayerEditHandlers();
+  ensureLayerFeaturesEditable([]);  // Empty array means all layers
+}
