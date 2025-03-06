@@ -16,8 +16,19 @@ function closeAllPopups() {
       }
     });
   }
+}
 
-  // Hide any open feature properties modal
+// Function to close the modal and reset editing state
+function closeFeaturePropertiesModal() {
+  const featurePropertiesModal = document.getElementById('featurePropertiesModal');
+  if (featurePropertiesModal) {
+    featurePropertiesModal.style.display = 'none';
+  }
+  
+  // Reset active editing layer
+  window.activeEditLayer = null;
+  editingLayer = null;
+}
 
 // Add a global document click event to track clicks that aren't on polygons
 document.addEventListener('click', function(e) {
@@ -31,26 +42,9 @@ document.addEventListener('click', function(e) {
     return;
   }
   
-  // Otherwise, reset editing state
-  window.activeEditLayer = null;
-  editingLayer = null;
-  
-  // Hide the modal
-  const featurePropertiesModal = document.getElementById('featurePropertiesModal');
-  if (featurePropertiesModal) {
-    featurePropertiesModal.style.display = 'none';
-  }
+  // Otherwise, close the modal
+  closeFeaturePropertiesModal();
 });
-
-  const featurePropertiesModal = document.getElementById('featurePropertiesModal');
-  if (featurePropertiesModal) {
-    featurePropertiesModal.style.display = 'none';
-  }
-
-  // Reset active editing layer
-  window.activeEditLayer = null;
-  editingLayer = null;
-}
 
 // Open the feature editor modal for a given layer
 function openFeatureEditor(layer) {
@@ -60,7 +54,6 @@ function openFeatureEditor(layer) {
   window.activeEditLayer = layer;
   
   // Store the active layer
-  editingLayer = layer;
   editingLayer = layer;
 
   // Get existing properties or initialize empty object
@@ -73,6 +66,9 @@ function openFeatureEditor(layer) {
     return;
   }
 
+  // Always close any existing popups before showing the modal
+  closeAllPopups();
+  
   // Display the modal
   modal.style.display = 'block';
 
@@ -240,24 +236,14 @@ function addLayerClickHandlers(layer) {
   // Add a direct click handler to the layer
   layer.on('click', function(e) {
     console.log("Layer clicked:", layer);
-
-    // Get the feature properties modal
-    const featurePropertiesModal = document.getElementById('featurePropertiesModal');
-    
-    // If we're clicking on a different layer than the currently active one
-    if (window.activeEditLayer !== layer) {
-      console.log("Switching from previous layer to new layer");
-      
-      // No need to explicitly close the modal - we'll just update its contents
-      // for the new layer. This avoids needing to click the X button.
-    }
     
     // Stop propagation to prevent map click
     L.DomEvent.stopPropagation(e);
-
-    // Open the feature editor for this layer
+    
+    // Always open the feature editor for this layer
+    // This will handle switching between polygons automatically
     openFeatureEditor(layer);
-
+    
     return false;
   });
 }
@@ -540,12 +526,11 @@ function handleFeatureFormSubmit(e) {
       }
     });
 
-  // Close the modal
-  document.getElementById('featurePropertiesModal').style.display = 'none';
-
-  // Clear active edit layer
-  window.activeEditLayer = null;
-  editingLayer = null; //Clear editingLayer
+  // Don't close the modal here - this allows users to click directly on another polygon
+  // to edit without closing/reopening the modal
+  
+  // Only reset if user explicitly closes with X button
+  // We'll keep the modal open so they can click on another polygon
 }
 
 // Save feature properties to server
