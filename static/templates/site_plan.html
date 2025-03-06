@@ -277,7 +277,7 @@
           <textarea id="description" name="description" style="width: 100%; padding: 5px; height: 60px;"></textarea>
         </div>
         <button type="submit" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">Save</button>
-        <button type="button" onclick="document.getElementById('featurePropertiesModal').style.display='none'" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
+        <button type="button" onclick="closeFeaturePropertiesModal()" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
       </form>
     </div>
   </div>
@@ -907,7 +907,7 @@
                   <textarea id="description" name="description" style="width: 100%; padding: 5px; height: 60px;"></textarea>
                 </div>
                 <button type="submit" style="padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">Save</button>
-                <button type="button" onclick="document.getElementById('featurePropertiesModal').style.display='none'" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
+                <button type="button" id="cancelPropertiesBtn" style="padding: 8px 16px; margin-left: 10px;">Cancel</button>
               </form>
             </div>
           </div>/div>
@@ -1492,8 +1492,8 @@
   <h3>${facility.facility_name || 'Unnamed Facility'}</h3>
   <p><strong>NEW:</strong> ${facility.net_explosive_weight_display || 'N/A'} ${facility.unit_display || ''}</p>
   <p><strong>Safe Distance:</strong> ${facility.safe_distance || 'N/A'} ft</p>
-  <p><strong>Analysis Status:</strong> ${facility.violations &&facility.violations.length ? facility.violations.length + ' violations found' : 'No violations'}</p>
-  <p><strong>Standard:</strong> ${facility.k_factor_type || 'Standard'} (K=${facility.k_factor_value || 'N/A'})</p>
+  <p><strong>Analysis Status:</strong> ${facility.violations &&facility.violations.length ? facility.violations.length + ' violations found' : 'No violations'}</p<p><strong>Standard:</strong> ${facility.k_factor_type || 'Standard'} (K=${facility.k_factor_value || 'N/A'})</p>
+  <button class="close-btn" onclick="QDPro.closeAnalysisPopup()">Close</button>
 </div>`)
             .addTo(this.analysisLayer);
 
@@ -1844,6 +1844,13 @@
             window.print();
           }
         });
+      },
+      closeAnalysisPopup: function() {
+        this.analysisLayer.eachLayer(layer => {
+          if (layer.closePopup) {
+            layer.closePopup();
+          }
+        });
       }
     };
 
@@ -1927,6 +1934,10 @@
     //Helper function to update location display
     function updateLocationDisplay(locationName) {
       document.getElementById('dbStatus').textContent = `Location: ${locationName}`;
+    }
+
+    function closeFeaturePropertiesModal() {
+      document.getElementById('featurePropertiesModal').style.display = 'none';
     }
 
     document.addEventListener("DOMContentLoaded", () => QDPro.init());

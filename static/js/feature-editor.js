@@ -8,6 +8,12 @@ let currentLayer = null;
 function handleLayerClick(layer) {
   console.log("Layer clicked:", layer);
 
+  // Close any existing modal first to allow seamless switching
+  if (currentLayer && currentLayer !== layer) {
+    // Just switch to the new layer without closing the modal
+    console.log("Switching from previous layer to new layer");
+  }
+
   // Set as current layer
   currentLayer = layer;
 
@@ -116,6 +122,9 @@ function closeFeaturePropertiesModal() {
   // Reset the current layer
   currentLayer = null;
 }
+
+// Make the function globally accessible
+window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
 
 // Function to create basic popup content
 function createBasicPopupContent(properties) {
@@ -237,6 +246,12 @@ document.addEventListener('DOMContentLoaded', function() {
   const closeButton = document.getElementById('closeFeaturePropertiesBtn');
   if (closeButton) {
     closeButton.addEventListener('click', closeFeaturePropertiesModal);
+  }
+  
+  // Connect the X button in the modal to the close function
+  const closeX = document.querySelector('#featurePropertiesModal .close');
+  if (closeX) {
+    closeX.addEventListener('click', closeFeaturePropertiesModal);
   }
 
   // Set up event listener for canceling by clicking outside
