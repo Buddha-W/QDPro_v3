@@ -1,4 +1,3 @@
-
 /**
  * Feature Editor for QDPro application
  * Handles editing of GeoJSON features on the map
@@ -7,10 +6,14 @@
 // Function to open a feature editor popup for a given layer
 function openFeatureEditor(layer) {
   console.log("Opening feature editor for layer:", layer);
-  
+
+  // Set global active editing layer
+  window.activeEditLayer = layer;
+  editingLayer = layer;
+
   // Get existing properties or initialize empty object
   const properties = layer.feature ? layer.feature.properties || {} : {};
-  
+
   // Create popup content
   const popupContent = document.createElement('div');
   popupContent.innerHTML = `
@@ -65,30 +68,30 @@ function openFeatureEditor(layer) {
       </div>
     </form>
   `;
-  
+
   // If layer has a popup, close it and then set new content
   if (layer.getPopup()) {
     layer.closePopup();
   }
-  
+
   // Create new popup and open it
   layer.bindPopup(popupContent, { 
     maxWidth: 500,
     className: 'feature-editor-popup'
   }).openPopup();
-  
+
   // Add event listeners after popup is opened
   setTimeout(() => {
     // Toggle explosive details visibility
     const hasExplosiveCheckbox = document.getElementById('feature-has-explosive');
     const explosiveDetails = document.getElementById('explosive-details');
-    
+
     if (hasExplosiveCheckbox && explosiveDetails) {
       hasExplosiveCheckbox.addEventListener('change', function() {
         explosiveDetails.style.display = this.checked ? 'block' : 'none';
       });
     }
-    
+
     // Save button handler
     const saveButton = document.getElementById('save-properties-btn');
     if (saveButton) {
@@ -96,7 +99,7 @@ function openFeatureEditor(layer) {
         saveFeatureProperties(layer);
       });
     }
-    
+
     // Cancel button handler
     const cancelButton = document.getElementById('cancel-properties-btn');
     if (cancelButton) {
@@ -118,7 +121,7 @@ function saveFeatureProperties(layer) {
     const unit = document.getElementById('feature-new-unit').value;
     const type = document.getElementById('feature-type').value;
     const description = document.getElementById('feature-description').value;
-    
+
     // Initialize feature if it doesn't exist
     if (!layer.feature) {
       layer.feature = {
@@ -126,11 +129,11 @@ function saveFeatureProperties(layer) {
         properties: {}
       };
     }
-    
+
     if (!layer.feature.properties) {
       layer.feature.properties = {};
     }
-    
+
     // Update properties
     layer.feature.properties.name = name;
     layer.feature.properties.is_facility = isFacility;
@@ -139,10 +142,10 @@ function saveFeatureProperties(layer) {
     layer.feature.properties.unit = unit;
     layer.feature.properties.type = type;
     layer.feature.properties.description = description;
-    
+
     // Close popup
     layer.closePopup();
-    
+
     // Create a new popup with the updated information
     const popupContent = `
       <div>
@@ -153,9 +156,9 @@ function saveFeatureProperties(layer) {
         <button class="edit-feature-btn">Edit</button>
       </div>
     `;
-    
+
     layer.bindPopup(popupContent);
-    
+
     // Add click handler to the edit button in the new popup
     layer.on('popupopen', function() {
       setTimeout(() => {
@@ -167,7 +170,7 @@ function saveFeatureProperties(layer) {
         }
       }, 100);
     });
-    
+
     // Try to save to the server if available
     try {
       const featureData = {
@@ -175,7 +178,7 @@ function saveFeatureProperties(layer) {
         properties: layer.feature.properties,
         geometry: layer.toGeoJSON().geometry
       };
-      
+
       fetch('/api/update-feature', {
         method: 'POST',
         headers: {
@@ -200,12 +203,12 @@ function saveFeatureProperties(layer) {
       console.error('Failed to save feature properties:', e);
       // Continue anyway - changes are saved to the layer object locally
     }
-    
+
     // Save the overall project state
     if (window.QDPro && typeof window.QDPro.saveProject === 'function') {
       window.QDPro.saveProject();
     }
-    
+
   } catch (error) {
     console.error('Error saving feature properties:', error);
     alert('An error occurred while saving feature properties. See console for details.');
@@ -215,7 +218,7 @@ function saveFeatureProperties(layer) {
 // Function to initialize feature editor on a map
 function initFeatureEditor(map) {
   console.log('Feature editor initialized for map:', map);
-  
+
   // Set up click handler for features
   map.on('click', function(e) {
     console.log('Map clicked at:', e.latlng);
@@ -394,7 +397,7 @@ async function saveFeatureProperties(featureId, properties) {
       // Refresh edit handlers to ensure all features are editable
       setTimeout(function() {
         refreshAllLayerEditHandlers();
-        
+
         // If we were editing a specific layer, make sure its features are editable
         if (editingLayer && editingLayer._parentLayerName) {
           ensureLayerFeaturesEditable([editingLayer._parentLayerName]);
@@ -410,16 +413,20 @@ async function saveFeatureProperties(featureId, properties) {
 
 // Function to add click handlers to layers for editing
 function addLayerClickHandlers(layer) {
-  if (!layer) return;
-
-  // Skip if already has handlers attached (check with a custom property)
-  if (layer._hasClickHandlers) {
+  // Skip if layer doesn't have a feature
+  if (!layer) {
     return;
   }
-  
+
+  // Remove existing handlers to avoid duplicates
+  if (layer._events && layer._events.click) {
+    layer.off('click');
+    layer._hasClickHandlers = false;
+  }
+
   // Mark as having handlers
   layer._hasClickHandlers = true;
-  
+
   // Save the layer group's name if available
   if (layer._map && layer._map._layers) {
     // Try to find parent layer group
@@ -433,7 +440,7 @@ function addLayerClickHandlers(layer) {
             isParent = true;
           }
         });
-        
+
         if (isParent) {
           layer._parentLayerName = mapLayer.options.name;
           console.log("Feature belongs to layer:", mapLayer.options.name);
@@ -480,7 +487,7 @@ function setupAllLayerEditHandlers() {
     console.warn("Map not available, cannot set up layer edit handlers");
     return;
   }
-  
+
   // Process all layer groups in the map
   window.map.eachLayer(function(layer) {
     // Check if it's a feature group or has features
@@ -494,7 +501,7 @@ function setupAllLayerEditHandlers() {
       addLayerClickHandlers(layer);
     }
   });
-  
+
   console.log("Edit handlers set up for all layers");
 }
 
@@ -511,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Function to ensure specific layers have editable features
 function ensureLayerFeaturesEditable(layerNames) {
   if (!window.map) return;
-  
+
   // Process all layers in the map
   window.map.eachLayer(function(layer) {
     // For all feature groups and feature layers
@@ -520,7 +527,7 @@ function ensureLayerFeaturesEditable(layerNames) {
       if (!layerNames.length || 
           (layer.options && layer.options.name && layerNames.includes(layer.options.name))) {
         console.log("Setting up edit handlers for layer:", layer.options ? layer.options.name : "unnamed layer");
-        
+
         // Apply edit handlers to all features in this layer
         layer.eachLayer(function(feature) {
           // Remove any existing handlers to prevent duplicates
@@ -551,7 +558,7 @@ document.addEventListener('layersLoaded', function() {
 // Call when layers are added or modified
 function refreshAllLayerEditHandlers() {
   console.log("Refreshing edit handlers for all layers");
-  
+
   // First, try to clear any existing handlers to prevent duplicates
   if (window.map) {
     window.map.eachLayer(function(layer) {
@@ -565,11 +572,11 @@ function refreshAllLayerEditHandlers() {
       }
     });
   }
-  
+
   // Then set up all handlers again
   setupAllLayerEditHandlers();
   ensureLayerFeaturesEditable([]);  // Empty array means all layers
-  
+
   // Dispatch custom event when editing handlers are refreshed
   document.dispatchEvent(new CustomEvent('editHandlersRefreshed'));
 }
@@ -592,5 +599,3 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 1000);
 });
-
-
