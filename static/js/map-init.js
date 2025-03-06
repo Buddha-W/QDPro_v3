@@ -287,4 +287,32 @@ function openFeatureEditor(button) {
   // Show the modal
   document.getElementById('featurePropertiesModal').style.display = 'block';
 }
+
+// Add this function to your map-init.js file if it doesn't exist already
+
+// Setup click handlers for all layers in the map
+function setupLayerClickHandlers() {
+  if (!window.map) return;
+  
+  window.map.eachLayer(function(layer) {
+    // Only add click handlers to feature layers
+    if (layer.feature && typeof layer.on === 'function') {
+      // Remove any existing click handlers to prevent duplicates
+      layer.off('click');
+      
+      // Add new click handler
+      layer.on('click', function(e) {
+        // Prevent the click from propagating to the map
+        L.DomEvent.stopPropagation(e);
+        
+        // Open the feature editor for this layer
+        openFeatureEditor(layer);
+      });
+    }
+  });
+}
+
+// Call this function when new layers are added to the map
+// You might already have code that adds layers - add this call there
+
 </script>
