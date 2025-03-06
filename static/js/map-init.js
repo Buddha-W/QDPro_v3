@@ -281,11 +281,27 @@ function openFeatureEditor(button) {
   
   // Setup event listener for the has_explosive checkbox
   document.getElementById('has_explosive').addEventListener('change', function() {
-    document.getElementById('newSection').style.display = this.checked ? 'block' : 'none';
+    document.getElementById('explosiveSection').style.display = this.checked ? 'block' : 'none';
   });
   
   // Show the modal
   document.getElementById('featurePropertiesModal').style.display = 'block';
+}
+
+// Add handler for drawn/edited features
+if (window.map) {
+  window.map.on('draw:created', function(e) {
+    const layer = e.layer;
+    window.map.addLayer(layer);
+    window.addLayerClickHandlers(layer);
+  });
+  
+  window.map.on('draw:edited', function(e) {
+    const layers = e.layers;
+    layers.eachLayer(function(layer) {
+      window.addLayerClickHandlers(layer);
+    });
+  });
 }
 
 // Add this function to your map-init.js file if it doesn't exist already

@@ -23,94 +23,87 @@ function handleLayerClick(layer) {
 
 // Function to display feature properties in the modal
 function displayFeatureProperties(layer) {
-  if (!layer || !layer.feature) return;
+  console.log("Displaying properties for layer:", layer);
 
-  const properties = layer.feature.properties || {};
+  // Get feature properties
+  const properties = layer.feature ? layer.feature.properties : {};
 
-  // Find form elements
-  const nameField = document.getElementById('featureName');
-  const typeField = document.getElementById('featureType');
-  const descField = document.getElementById('featureDescription');
-  const hasMunitionField = document.getElementById('featureHasMunition');
-  const newField = document.getElementById('featureNEW');
-  const unitField = document.getElementById('featureUnit');
-  const hdField = document.getElementById('featureHazardDivision');
+  // Set form values
+  const form = document.getElementById('featurePropertiesForm');
+  if (form) {
+    // Populate form fields based on properties
+    for (const key in properties) {
+      const input = form.querySelector(`[name="${key}"]`);
+      if (input) {
+        if (input.type === 'checkbox') {
+          input.checked = properties[key];
+        } else {
+          input.value = properties[key];
+        }
+      }
+    }
 
-  // Set values if elements exist
-  if (nameField) nameField.value = properties.name || '';
-  if (typeField) typeField.value = properties.type || '';
-  if (descField) descField.value = properties.description || '';
-  if (hasMunitionField) hasMunitionField.checked = properties.has_explosive || false;
-
-  // Handle munition section visibility
-  const munitionSection = document.getElementById('munitionSection');
-  if (munitionSection) {
-    munitionSection.style.display = hasMunitionField && hasMunitionField.checked ? 'block' : 'none';
-  }
-
-  // Set munition values if applicable
-  if (properties.has_explosive) {
-    if (newField) newField.value = properties.net_explosive_weight || '';
-    if (unitField) unitField.value = properties.unit || 'lbs';
-    if (hdField) hdField.value = properties.hazard_division || '';
+    // Show/hide explosive weight section based on has_explosive property
+    const hasExplosive = form.querySelector('[name="has_explosive"]');
+    const explosiveSection = document.getElementById('explosiveSection');
+    if (hasExplosive && explosiveSection) {
+      explosiveSection.style.display = hasExplosive.checked ? 'block' : 'none';
+    }
   }
 }
 
 // Function to save feature properties
 function saveFeatureProperties() {
+  console.log("Saving properties for layer:", currentLayer);
+
   if (!currentLayer) {
-    console.error("No active layer to save properties for");
+    console.error("No layer selected for saving");
     return;
   }
 
-  // Initialize feature if needed
-  if (!currentLayer.feature) {
-    currentLayer.feature = { type: 'Feature', properties: {} };
-  }
-
-  if (!currentLayer.feature.properties) {
-    currentLayer.feature.properties = {};
-  }
-
   // Get form values
-  const name = document.getElementById('featureName')?.value || '';
-  const type = document.getElementById('featureType')?.value || '';
-  const desc = document.getElementById('featureDescription')?.value || '';
-  const hasMunition = document.getElementById('featureHasMunition')?.checked || false;
+  const form = document.getElementById('featurePropertiesForm');
+  if (form) {
+    // Create or ensure layer has feature and properties
+    if (!currentLayer.feature) {
+      currentLayer.feature = {};
+    }
+    if (!currentLayer.feature.properties) {
+      currentLayer.feature.properties = {};
+    }
 
-  // Update properties
-  currentLayer.feature.properties.name = name;
-  currentLayer.feature.properties.type = type;
-  currentLayer.feature.properties.description = desc;
-  currentLayer.feature.properties.has_explosive = hasMunition;
+    // Get all form inputs
+    const inputs = form.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+      const name = input.name;
+      let value;
 
-  // Add munition details if applicable
-  if (hasMunition) {
-    currentLayer.feature.properties.net_explosive_weight = document.getElementById('featureNEW')?.value || '';
-    currentLayer.feature.properties.unit = document.getElementById('featureUnit')?.value || 'lbs';
-    currentLayer.feature.properties.hazard_division = document.getElementById('featureHazardDivision')?.value || '';
-  } else {
-    // Remove munition properties if not applicable
-    delete currentLayer.feature.properties.net_explosive_weight;
-    delete currentLayer.feature.properties.unit;
-    delete currentLayer.feature.properties.hazard_division;
+      if (input.type === 'checkbox') {
+        value = input.checked;
+      } else {
+        value = input.value;
+      }
+
+      // Set property
+      if (name) {
+        currentLayer.feature.properties[name] = value;
+      }
+    });
+
+    // Update popup content if it exists
+    if (currentLayer.getPopup()) {
+      const content = createBasicPopupContent(currentLayer.feature.properties);
+      currentLayer.setPopupContent(content);
+    }
+
+    // Close modal
+    closeFeaturePropertiesModal();
+
+    // Fire event to notify of changes
+    if (typeof window.onFeaturePropertiesChanged === 'function') {
+      window.onFeaturePropertiesChanged(currentLayer);
+    }
   }
-
-  // Update any attached popup
-  if (currentLayer._popup) {
-    const popupContent = createBasicPopupContent(currentLayer.feature.properties);
-    currentLayer._popup.setContent(popupContent);
-  }
-
-  // If we have updateFeatureStyle global function, use it
-  if (typeof window.updateFeatureStyle === 'function') {
-    window.updateFeatureStyle(currentLayer);
-  }
-
-  // Close modal after saving
-  closeFeaturePropertiesModal();
-
-  console.log("Saved properties for layer:", currentLayer);
 }
 
 // Function to close the feature properties modal
@@ -120,7 +113,8 @@ function closeFeaturePropertiesModal() {
     modal.style.display = 'none';
   }
 
-  // Do not clear currentLayer here so it can be referenced later if needed
+  // Reset the current layer
+  currentLayer = null;
 }
 
 // Function to create basic popup content
@@ -155,6 +149,11 @@ function createBasicPopupContent(properties) {
 
 // Function to handle edit button click in popup
 function handleEditButtonClick(button) {
+  // Close any open popups
+  if (window.map) {
+    window.map.closePopup();
+  }
+
   // Find the layer associated with this popup
   const popup = button.closest('.leaflet-popup');
   if (!popup || !popup._source) {
@@ -167,49 +166,69 @@ function handleEditButtonClick(button) {
 }
 
 // Function to add click handlers to layers
+function addLayerClickHandlers(layer) {
+  if (!layer) return;
+
+  // Add popup with basic info
+  const properties = layer.feature ? layer.feature.properties : {};
+  const popupContent = createBasicPopupContent(properties);
+  layer.bindPopup(popupContent);
+
+  // Add direct click handler
+  layer.on('click', function(e) {
+    // Stop propagation to prevent map click handler
+    L.DomEvent.stopPropagation(e);
+
+    // If another layer's properties are being edited, save those first
+    if (currentLayer && currentLayer !== layer) {
+      const saveBtn = document.getElementById('savePropertiesBtn');
+      if (saveBtn) {
+        saveBtn.click();
+      } else {
+        closeFeaturePropertiesModal();
+      }
+    }
+
+    // Open this layer's properties
+    handleLayerClick(layer);
+  });
+}
+
+// Initialize all layer click handlers
 function initializeLayerClickHandlers() {
+  console.log("Initializing layer click handlers");
+
   if (!window.map) {
     console.error("Map not initialized");
     return;
   }
 
-  console.log("Initializing layer click handlers");
-
+  // Add handlers to all existing layers
   window.map.eachLayer(function(layer) {
-    // Only add handlers to feature layers
-    if (layer.feature && typeof layer.on === 'function') {
-      // Remove existing handlers to prevent duplicates
-      layer.off('click');
-
-      // Add direct click handler
-      layer.on('click', function(e) {
-        // Stop propagation to prevent map click
-        L.DomEvent.stopPropagation(e);
-
-        // Handle the layer
-        handleLayerClick(layer);
-      });
+    // Only add handlers to feature layers (polygons, markers, etc.)
+    if (layer.feature || (layer.toGeoJSON && typeof layer.toGeoJSON === 'function')) {
+      addLayerClickHandlers(layer);
     }
   });
 }
 
-// Initialize when DOM is loaded
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("Feature editor DOM ready");
+  console.log("Feature editor initialized");
 
-  // Set up event listener for munition checkbox
-  const hasMunitionCheckbox = document.getElementById('featureHasMunition');
-  if (hasMunitionCheckbox) {
-    hasMunitionCheckbox.addEventListener('change', function() {
-      const munitionSection = document.getElementById('munitionSection');
-      if (munitionSection) {
-        munitionSection.style.display = this.checked ? 'block' : 'none';
+  // Set up event listener for explosive checkbox
+  const hasExplosiveCheckbox = document.getElementById('has_explosive');
+  if (hasExplosiveCheckbox) {
+    hasExplosiveCheckbox.addEventListener('change', function() {
+      const section = document.getElementById('explosiveSection');
+      if (section) {
+        section.style.display = this.checked ? 'block' : 'none';
       }
     });
   }
 
   // Set up event listener for save button
-  const saveButton = document.getElementById('saveFeaturePropertiesBtn');
+  const saveButton = document.getElementById('savePropertiesBtn');
   if (saveButton) {
     saveButton.addEventListener('click', saveFeatureProperties);
   }
@@ -220,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
     closeButton.addEventListener('click', closeFeaturePropertiesModal);
   }
 
-  // Close modal when clicking outside of it
+  // Set up event listener for canceling by clicking outside
   window.addEventListener('click', function(event) {
     const modal = document.getElementById('featurePropertiesModal');
     if (event.target === modal) {
@@ -228,8 +247,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Initialize layer handlers after a short delay
-  setTimeout(initializeLayerClickHandlers, 500);
+  // Initialize layer handlers after map is loaded
+  if (window.map) {
+    initializeLayerClickHandlers();
+  } else {
+    // Wait for map to be initialized
+    const checkMap = setInterval(function() {
+      if (window.map) {
+        initializeLayerClickHandlers();
+        clearInterval(checkMap);
+      }
+    }, 500);
+  }
 });
 
 // Export functions for global access
@@ -238,95 +267,5 @@ window.saveFeatureProperties = saveFeatureProperties;
 window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
 window.createBasicPopupContent = createBasicPopupContent;
 window.handleEditButtonClick = handleEditButtonClick;
+window.addLayerClickHandlers = addLayerClickHandlers;
 window.initializeLayerClickHandlers = initializeLayerClickHandlers;
-
-
-// Add CSS for modal styling
-function addModalStyles() {
-  const styleElement = document.createElement('style');
-  styleElement.textContent = `
-    .feature-properties-modal {
-      position: absolute;
-      z-index: 1000;
-      background: white;
-      border-radius: 4px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      width: 300px;
-      display: none;
-    }
-    
-    .modal-header {
-      padding: 10px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    
-    .modal-body {
-      padding: 10px;
-    }
-    
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    
-    .form-group {
-      margin-bottom: 10px;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-    }
-    
-    .form-group input[type="text"],
-    .form-group input[type="number"],
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 5px;
-      border: 1px solid #ddd;
-      border-radius: 3px;
-    }
-    
-    .form-group textarea {
-      height: 60px;
-    }
-    
-    .button-group {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 10px;
-    }
-    
-    .save-btn {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    
-    .save-btn:hover {
-      background: #45a049;
-    }
-    
-    #munitionSection {
-      display: none;
-    }
-  `;
-  document.head.appendChild(styleElement);
-}
-
-// Initialize everything when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("Feature editor initialized");
-  
-  // Add modal styles
-  addModalStyles();
-});
