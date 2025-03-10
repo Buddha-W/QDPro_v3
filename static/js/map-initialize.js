@@ -20,113 +20,85 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeMap() {
   console.log('Initializing map...');
 
-  // Create map if it doesn't exist
-  if (!window.map) {
-    // Set up the map centered on a default location
-    window.map = L.map('map', {
-      center: [38.8977, -77.0365],  // Default: Washington, DC
-      zoom: 15,
-      zoomControl: true,
-      attributionControl: true
-    });
+  // Initialize the map with a default view
+  window.map = L.map('map', {
+    center: [39.8283, -98.5795],
+    zoom: 5
+  });
 
-    // Add base layers
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      maxZoom: 19
-    }).addTo(window.map);
+  // Add the base tile layers
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(window.map);
 
-    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-      maxZoom: 19
-    });
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+  });
 
-    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
-      maxZoom: 17
-    });
+  const baseMaps = {
+    "OpenStreetMap": osmLayer,
+    "Satellite": satelliteLayer
+  };
 
-    // Set up layer control
-    const baseLayers = {
-      "OpenStreetMap": osmLayer,
-      "Satellite": satelliteLayer,
-      "Topographic": topoLayer
+  // Initialize drawn items layer
+  window.drawnItems = new L.FeatureGroup();
+  window.map.addLayer(window.drawnItems);
+
+  // Initialize the layer control
+  L.control.layers(baseMaps, {
+    "Drawn Items": window.drawnItems
+  }).addTo(window.map);
+
+  // Initialize Leaflet.Draw controls
+  const drawControl = new L.Control.Draw({
+    edit: {
+      featureGroup: window.drawnItems
+    },
+    draw: {
+      polyline: true,
+      polygon: true,
+      rectangle: true,
+      circle: true,
+      marker: true
+    }
+  });
+
+  window.map.addControl(drawControl);
+
+  // Set up event handlers for drawn items
+  window.map.on('draw:created', function(e) {
+    const layer = e.layer;
+
+    // Initialize feature properties
+    layer.feature = {
+      type: 'Feature',
+      properties: {
+        name: 'New Feature',
+        type: e.layerType,
+        description: ''
+      }
     };
 
-    // Initialize feature groups
-    window.drawnItems = new L.FeatureGroup();
-    window.map.addLayer(window.drawnItems);
+    // Add the layer to our feature group
+    window.drawnItems.addLayer(layer);
 
-    window.facilitiesLayer = new L.FeatureGroup();
-    window.map.addLayer(window.facilitiesLayer);
+    // Bind popup to the layer
+    layer.bindPopup(createPopupContent(layer));
+  });
 
-    window.reportsLayer = new L.FeatureGroup();
-    window.map.addLayer(window.reportsLayer);
-
-    const overlays = {
-      "Drawn Items": window.drawnItems,
-      "Facilities": window.facilitiesLayer,
-      "Reports": window.reportsLayer
-    };
-
-    L.control.layers(baseLayers, overlays).addTo(window.map);
-
-    // Initialize Leaflet.draw control
-    const drawControl = new L.Control.Draw({
-      edit: {
-        featureGroup: window.drawnItems
-      },
-      draw: {
-        polyline: true,
-        polygon: true,
-        rectangle: true,
-        circle: true,
-        marker: true,
-        circlemarker: false
+  window.map.on('draw:edited', function(e) {
+    console.log('Features edited:', e.layers);
+    e.layers.eachLayer(function(layer) {
+      if (layer.getPopup()) {
+        layer.setPopup(createPopupContent(layer));
       }
     });
-    window.map.addControl(drawControl);
+  });
 
-    // Set up event handlers for Leaflet.draw
-    window.map.on('draw:created', function(e) {
-      const layer = e.layer;
-      window.drawnItems.addLayer(layer);
-
-      // Set default properties
-      layer.feature = {
-        type: 'Feature',
-        properties: {
-          name: 'New ' + e.layerType.charAt(0).toUpperCase() + e.layerType.slice(1),
-          type: e.layerType,
-          description: ''
-        }
-      };
-
-      // Add click handler
-      addLayerClickHandlers(layer);
-
-      // Open properties editor
-      openFeatureEditor(layer.feature.properties, layer);
-    });
-
-    window.map.on('draw:edited', function(e) {
-      console.log('Layers edited:', e.layers);
-    });
-
-    window.map.on('draw:deleted', function(e) {
-      console.log('Layers deleted:', e.layers);
-    });
-
-    // Load saved layers if available
-    loadSavedLayers();
-
-    console.log('Map initialized successfully');
-  } else {
-    console.log('Map already initialized');
-  }
+  console.log('Map initialized successfully');
+  return window.map;
 }
 
-// Function to create a popup content for a layer
 function createPopupContent(layer) {
   const properties = layer.feature ? layer.feature.properties : {};
   const type = layer instanceof L.Marker ? 'Marker' :

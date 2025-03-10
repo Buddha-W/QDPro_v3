@@ -2,17 +2,15 @@
 <html>
 <head>
   <title>QDPro Site Plan</title>
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <!-- Leaflet.Draw CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="/static/css/modal.css">
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  <!-- Leaflet.Draw JS -->
-  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Leaflet Draw CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
+  <!-- Modal CSS -->
+  <link rel="stylesheet" href="/static/css/modal.css" />
 
   <style>
     body, html {
@@ -22,95 +20,43 @@
       font-family: Arial, sans-serif;
     }
 
-    #map-container {
-      display: flex;
+    #map {
+      height: 100%;
+      width: 100%;
+    }
+
+    .map-container {
+      position: relative;
       height: calc(100vh - 50px);
     }
 
-    #map {
-      flex: 1;
-      height: 100%;
-    }
-
-    #toolbar {
+    .navbar {
+      background-color: #2c3e50;
       height: 50px;
-      background-color: #f5f5f5;
-      border-bottom: 1px solid #ddd;
       display: flex;
       align-items: center;
-      padding: 0 10px;
+      padding: 0 20px;
+      color: white;
     }
 
-    #toolbar button {
-      margin-right: 10px;
-      padding: 5px 10px;
-      cursor: pointer;
-    }
-
-    .dropdown {
-      position: relative;
-      display: inline-block;
-      margin-right: 10px;
-    }
-
-    .dropdown-content {
-      display: none;
-      position: absolute;
-      background-color: #f9f9f9;
-      min-width: 160px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-      z-index: 1000;
-    }
-
-    .dropdown-content a {
-      color: black;
-      padding: 12px 16px;
-      text-decoration: none;
-      display: block;
-    }
-
-    .dropdown-content a:hover {
-      background-color: #f1f1f1;
-    }
-
-    .dropdown:hover .dropdown-content {
-      display: block;
-    }
-
-    /* Feature Properties Modal */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1001;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.4);
-    }
-
-    .modal-content {
-      background-color: white;
-      margin: 10% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 60%;
-      max-width: 500px;
-    }
-
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
+    .navbar-brand {
+      font-size: 20px;
       font-weight: bold;
+    }
+
+    .navbar-menu {
+      margin-left: 20px;
+    }
+
+    .navbar-menu a {
+      color: white;
+      margin-right: 15px;
+      text-decoration: none;
       cursor: pointer;
     }
 
-    .close:hover,
-    .close:focus {
-      color: black;
-      text-decoration: none;
+    .navbar-menu a:hover {
+      text-decoration: underline;
     }
 
     .form-group {
@@ -122,481 +68,70 @@
       margin-bottom: 5px;
     }
 
-    .form-control {
+    .form-group input, .form-group textarea, .form-group select {
       width: 100%;
       padding: 8px;
       box-sizing: border-box;
-      border: 1px solid #ddd;
-    }
-
-    .button-group {
-      margin-top: 20px;
-      text-align: right;
-    }
-
-    .button-group button {
-      margin-left: 10px;
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-
-    .btn-primary {
-      background-color: #007bff;
-      color: white;
-      border: none;
-    }
-
-    .btn-secondary {
-      background-color: #6c757d;
-      color: white;
-      border: none;
     }
   </style>
 </head>
 <body>
-  <!-- Toolbar -->
-  <div id="toolbar">
-    <div class="dropdown">
-      <button class="dropbtn">File</button>
-      <div class="dropdown-content">
-        <a href="#" id="newProjectButton">New Project</a>
-        <a href="#" id="loadProjectButton">Load Project</a>
-        <a href="#" id="saveProjectButton">Save Project</a>
-        <a href="#" id="exportButton">Export...</a>
-      </div>
+  <!-- Navigation Bar -->
+  <div class="navbar">
+    <div class="navbar-brand">QDPro Safety Siting</div>
+    <div class="navbar-menu">
+      <a onclick="loadProject()">Load</a>
+      <a onclick="saveProject()">Save</a>
+      <a onclick="window.drawnItems.clearLayers()">Clear</a>
     </div>
-
-    <div class="dropdown">
-      <button class="dropbtn">Edit</button>
-      <div class="dropdown-content">
-        <a href="#" id="editPropertiesButton">Edit Properties</a>
-        <a href="#" id="deleteSelectedButton">Delete Selected</a>
-      </div>
-    </div>
-
-    <div class="dropdown">
-      <button class="dropbtn">Analysis</button>
-      <div class="dropdown-content">
-        <a href="#" id="runQDButton">Run QD Analysis</a>
-        <a href="#" id="generateReportButton">Generate Report</a>
-      </div>
-    </div>
-
-    <button id="helpButton">Help</button>
   </div>
 
   <!-- Map Container -->
-  <div id="map-container">
+  <div class="map-container">
     <div id="map"></div>
   </div>
 
   <!-- Feature Properties Modal -->
   <div id="featurePropertiesModal" class="modal">
     <div class="modal-content">
-      <span class="close">&times;</span>
-      <div id="featureModalContent">
-        <!-- Content will be dynamically populated -->
+      <div class="modal-header">
+        <h2>Feature Properties</h2>
+        <span class="close" id="close-feature-btn">&times;</span>
       </div>
-    </div>
-  </div>
-
-  <!-- Facility Properties Modal -->
-  <div id="facilityPropertiesModal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <div id="facilityModalContent">
-        <!-- Content will be dynamically populated -->
-      </div>
-    </div>
-  </div>
-
-  <!-- QD Analysis Modal -->
-  <div id="qdAnalysisModal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <div id="qdAnalysisContent">
-        <h2>Quantity Distance Analysis</h2>
-        <div id="qdResults">
-          <!-- Results will be populated here -->
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="feature-name">Name:</label>
+          <input type="text" id="feature-name" name="name">
+        </div>
+        <div class="form-group">
+          <label for="feature-description">Description:</label>
+          <textarea id="feature-description" name="description" rows="4"></textarea>
         </div>
       </div>
+      <div class="modal-footer">
+        <button id="save-feature-btn" class="btn btn-primary">Save</button>
+      </div>
     </div>
   </div>
 
-  <!-- Custom JS -->
+  <!-- JavaScript Libraries -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+  <!-- Custom Scripts -->
   <script src="/static/js/map-initialize.js"></script>
   <script src="/static/js/feature-editor-initialize.js"></script>
 
   <script>
-    // Initialize modals
-    document.addEventListener('DOMContentLoaded', function() {
-      // New Project Button
-      const newProjectButton = document.getElementById('newProjectButton');
-      if (newProjectButton) {
-        newProjectButton.addEventListener('click', function() {
-          if (confirm('Start a new project? Any unsaved changes will be lost.')) {
-            // Clear all layers
-            if (window.drawnItems) {
-              window.drawnItems.clearLayers();
-            }
-            // Reset map view
-            if (window.map) {
-                window.map.setView([39.8283, -98.5795], 5);
-            }
-            console.log('New project created');
-          }
-        });
-      }
-
-      //Load Project Button
-      const loadProjectButton = document.getElementById('loadProjectButton');
-      if(loadProjectButton){
-        loadProjectButton.addEventListener('click', loadProject);
-      }
-
-      //Save Project Button
-      const saveProjectButton = document.getElementById('saveProjectButton');
-      if(saveProjectButton){
-        saveProjectButton.addEventListener('click', saveLayers);
-      }
-
-      // QD Analysis Button
-      const runQDButton = document.getElementById('runQDButton');
-      if (runQDButton) {
-        runQDButton.addEventListener('click', function() {
-          // Open QD Analysis Modal
-          const modal = document.getElementById('qdAnalysisModal');
-          if (modal) {
-            modal.style.display = 'block';
-
-            // Simulate QD Analysis
-            const qdResults = document.getElementById('qdResults');
-            if (qdResults) {
-              qdResults.innerHTML = '<p>Performing QD Analysis...</p>';
-
-              // Simulate API call/processing
-              setTimeout(function() {
-                qdResults.innerHTML = `
-                  <h3>Analysis Results</h3>
-                  <p>2 PES and 3 ES sites evaluated.</p>
-                  <p>1 potential QD violation detected.</p>
-                  <table style="width:100%; border-collapse: collapse;">
-                    <tr style="background-color: #f2f2f2;">
-                      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">From</th>
-                      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">To</th>
-                      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Required</th>
-                      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Actual</th>
-                      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Status</th>
-                    </tr>
-                    <tr>
-                      <td style="border: 1px solid #ddd; padding: 8px;">PES 1</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">ES 1</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">400m</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">520m</td>
-                      <td style="border: 1px solid #ddd; padding: 8px; color: green;">PASS</td>
-                    </tr>
-                    <tr>
-                      <td style="border: 1px solid #ddd; padding: 8px;">PES 1</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">ES 2</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">400m</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">320m</td>
-                      <td style="border: 1px solid #ddd; padding: 8px; color: red;">FAIL</td>
-                    </tr>
-                    <tr>
-                      <td style="border: 1px solid #ddd; padding: 8px;">PES 2</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">ES 3</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">300m</td>
-                      <td style="border: 1px solid #ddd; padding: 8px;">450m</td>
-                      <td style="border: 1px solid #ddd; padding: 8px; color: green;">PASS</td>
-                    </tr>
-                  </table>
-                  <div style="margin-top: 20px;">
-                    <button id="exportQDResults" style="padding: 8px 16px; background-color: #007bff; color: white; border: none; cursor: pointer;">Export Results</button>
-                  </div>
-                `;
-
-                // Add event listener to export button
-                const exportButton = document.getElementById('exportQDResults');
-                if (exportButton) {
-                  exportButton.addEventListener('click', function() {
-                    alert('Results exported!');
-                  });
-                }
-              }, 1500);
-            }
-          }
-        });
-      }
-
-      //Generate Report Button
-      const generateReportButton = document.getElementById('generateReportButton');
-      if(generateReportButton){
-        generateReportButton.addEventListener('click', generateReport);
-      }
-
-      //Help Button
-      const helpButton = document.getElementById('helpButton');
-      if(helpButton){
-        helpButton.addEventListener('click', showHelp);
-      }
-
-
-      // Close buttons for modals
-      const closeButtons = document.querySelectorAll('.modal .close');
-      closeButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-          const modal = button.closest('.modal');
-          if (modal) {
-            modal.style.display = 'none';
-          }
-        });
-      });
-
-      // Close modals when clicking outside
-      window.addEventListener('click', function(event) {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(function(modal) {
-          if (event.target === modal) {
-            modal.style.display = 'none';
-          }
-        });
-      });
-    });
-
-
-    // Function to export the project
-    function exportProject() {
-        alert('Export functionality will be implemented in a future release.');
-    }
-
-    // Function to toggle the toolbar (Not used in the new design)
-    function toggleToolbar() {
-        //This function is not needed in the new design.
-    }
-
-    // Function to reset the map view
-    function resetView() {
-        if (window.map) {
-            window.map.setView([39.8283, -98.5795], 5);
-        }
-    }
-
-    // Function to measure distance
-    function measureDistance() {
-        alert('Distance measurement will be implemented in a future release.');
-    }
-
-    // Function to calculate area
-    function calculateArea() {
-        alert('Area calculation will be implemented in a future release.');
-    }
-
-    // Function to perform QD analysis (Mostly handled by the new button)
-    function analyzeQD() {
-        //This function is largely handled by the new button.
-    }
-
-    // Function to close QD analysis modal (Handled by the close button)
-    function closeQDAnalysisModal() {
-        //This function is handled by the close button in the new design.
-    }
-
-        // Function to show help documentation
-    function showHelp() {
-        window.open('/static/docs/help.html', '_blank');
-    }
-
-    // Function to show about information
-    function showAbout() {
-        alert('QDPro v1.0\nDeveloped for explosive safety siting and quantity distance analysis.');
-    }
-
-    // Function to generate a report
-    function generateReport() {
-        const reportModal = document.getElementById('reportModal');
-        const reportData = document.getElementById('reportData');
-
-        // Example report data (This part needs to be connected to actual data)
-        reportData.innerHTML = `
-            <div class="report-header">
-                <div class="logo-section">
-                    <img src="/static/img/logo.png" alt="Logo">
-                    <h1>Site Plan Report</h1>
-                </div>
-                <div class="date-section">
-                    <p>Date: ${new Date().toLocaleDateString()}</p>
-                    <p>Report ID: SP-${Math.floor(Math.random() * 1000000)}</p>
-                </div>
-            </div>
-
-            <div class="report-section">
-                <h2>Project Summary</h2>
-                <p>This report summarizes the explosive safety site plan for the selected location.</p>
-
-                <h3>Facilities</h3>
-                <table class="results-table">
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Description</th>
-                    </tr>
-                    <tr>
-                        <td>Magazine 1</td>
-                        <td>PES</td>
-                        <td>Storage for Class 1.1 explosives</td>
-                    </tr>
-                    <tr>
-                        <td>Magazine 2</td>
-                        <td>PES</td>
-                        <td>Storage for Class 1.3 explosives</td>
-                    </tr>
-                    <tr>
-                        <td>Office Building</td>
-                        <td>ES</td>
-                        <td>Administrative facility</td>
-                    </tr>
-                    <tr>
-                        <td>Public Road</td>
-                        <td>ES</td>
-                        <td>County road with medium traffic</td>
-                    </tr>
-                </table>
-
-                <h3>QD Analysis Results</h3>
-                <table class="results-table">
-                    <tr>
-                        <th>PES</th>
-                        <th>ES</th>
-                        <th>Distance (ft)</th>
-                        <th>Required (ft)</th>
-                        <th>Status</th>
-                    </tr>
-                    <tr>
-                        <td>Magazine 1</td>
-                        <td>Office Building</td>
-                        <td>1,250</td>
-                        <td>1,200</td>
-                        <td style="color: green;">Compliant</td>
-                    </tr>
-                    <tr>
-                        <td>Magazine 1</td>
-                        <td>Public Road</td>
-                        <td>750</td>
-                        <td>800</td>
-                        <td style="color: red;">Non-Compliant</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="approval-section">
-                <div class="signature-block">
-                    <p>Prepared By:</p>
-                    <div class="signature-line">Name, Title</div>
-                </div>
-                <div class="signature-block">
-                    <p>Approved By:</p>
-                    <div class="signature-line">Name, Title</div>
-                </div>
-            </div>
-        `;
-
-        // Show the modal
-        reportModal.style.display = 'block';
-    }
-
-    // Function to close report modal
-    function closeReportModal() {
-        const modal = document.getElementById('reportModal');
-        modal.style.display = 'none';
-    }
-
-    // Function to print the report
-    function printReport() {
-        const reportContent = document.getElementById('reportContent').innerHTML;
-        const printWindow = window.open('', '', 'width=900,height=600');
-        printWindow.document.open();
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Site Plan Report</title>
-                <link rel="stylesheet" href="/static/css/print.css">
-                <style>
-                    body {
-                        font-family: Arial, sans-serif;
-                        padding: 20px;
-                    }
-                    .results-table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin: 20px 0;
-                    }
-                    .results-table th, .results-table td {
-                        padding: 8px;
-                        border: 1px solid #ddd;
-                    }
-                    .results-table th {
-                        background-color: #f2f2f2;
-                    }
-                    .signature-line {
-                        border-top: 1px solid #000;
-                        margin-top: 50px;
-                        padding-top: 5px;
-                    }
-                    .approval-section {
-                        display: flex;
-                        justify-content: space-between;
-                        margin-top: 50px;
-                    }
-                    .signature-block {
-                        width: 45%;
-                    }
-                </style>
-            </head>
-            <body>
-                ${reportContent}
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
-    }
-
-    // Function to save layers (Needs implementation)
-    function saveLayers() {
-      alert("Save Layers Functionality needs to be implemented");
-    }
-
-
     // Function to load project (Needs implementation)
     function loadProject() {
       alert("Load Project Functionality needs to be implemented");
     }
 
-    // Function to delete selected feature (Needs implementation)
-    function deleteSelectedFeature() {
-        alert("Delete Selected Feature Functionality needs to be implemented");
+    // Function to save layers (Needs implementation)
+    function saveProject() {
+      alert("Save Layers Functionality needs to be implemented");
     }
-
-    // Add report modal
-    // Report Modal
-    let reportModal = document.createElement('div');
-    reportModal.id = 'reportModal';
-    reportModal.className = 'modal';
-    reportModal.innerHTML = `
-        <div class="modal-content report-modal-content">
-            <span class="close" onclick="closeReportModal()">&times;</span>
-            <div id="reportContent">
-                <h2>Site Plan Report</h2>
-                <div id="reportData">
-                    <!-- Will be populated with report data -->
-                </div>
-                <button onclick="printReport()" class="btn">Print Report</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(reportModal);
-
   </script>
 </body>
 </html>

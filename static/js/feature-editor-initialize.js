@@ -5,8 +5,7 @@
 
 // Feature editor state
 window.featureEditor = {
-  activeFeature: null,
-  drawnItems: null
+  activeFeature: null
 };
 
 /**
@@ -26,7 +25,7 @@ function initializeFeatureEditor() {
     window.map.addLayer(window.drawnItems);
   }
 
-  // Set up Leaflet.Draw controls (removed from edited code, restoring from original)
+  // Set up Leaflet.Draw controls (restored from original)
   const drawControl = new L.Control.Draw({
     edit: {
       featureGroup: window.drawnItems
@@ -41,6 +40,7 @@ function initializeFeatureEditor() {
   });
 
   window.map.addControl(drawControl);
+
 
   // Handle newly created features (from original code)
   window.map.on('draw:created', function(e) {
@@ -66,7 +66,7 @@ function initializeFeatureEditor() {
     openFeatureEditor(layer.feature.properties, layer);
   });
 
-  // Set up edit handlers for features (from edited code)
+  // Set up edit handlers for features
   window.map.on('draw:edited', function(e) {
     console.log('Features edited:', e.layers);
   });
@@ -82,25 +82,154 @@ function initializeFeatureEditor() {
  * Add click handlers to a layer for property editing
  */
 function addLayerClickHandlers(layer) {
+  if (!layer) return;
+
   layer.on('click', function(e) {
-    // Stop propagation to prevent map click
     L.DomEvent.stopPropagation(e);
 
-    // Check if layer has feature properties
+    // Open the feature editor for this layer
     if (layer.feature && layer.feature.properties) {
       openFeatureEditor(layer.feature.properties, layer);
     } else {
-      // Create default properties if none exist
-      layer.feature = {
-        type: 'Feature',
-        properties: {
-          name: 'Unnamed Feature',
-          type: 'Generic',
-          description: ''
-        }
-      };
-      openFeatureEditor(layer.feature.properties, layer);
+      openFeatureEditor({}, layer);
     }
+  });
+}
+
+/**
+ * Open feature editor modal with properties
+ */
+function openFeatureEditor(properties, layer) {
+  console.log('Opening feature editor for:', properties);
+
+  // Store the active layer for later reference
+  window.featureEditor.activeFeature = layer;
+
+  // Get the modal
+  const modal = document.getElementById('featurePropertiesModal');
+  if (!modal) {
+    console.error('Feature properties modal not found');
+    return;
+  }
+
+  // Set up form fields
+  document.getElementById('feature-name').value = properties.name || '';
+  document.getElementById('feature-description').value = properties.description || '';
+
+  // Display the modal
+  modal.style.display = 'block';
+}
+
+/**
+ * Save feature properties from the modal
+ */
+function saveFeatureProperties() {
+  const layer = window.featureEditor.activeFeature;
+  if (!layer) {
+    console.error('No active feature to save');
+    return;
+  }
+
+  // Initialize feature and properties if they don't exist
+  if (!layer.feature) {
+    layer.feature = { type: 'Feature', properties: {} };
+  }
+
+  // Get values from form
+  const name = document.getElementById('feature-name').value;
+  const description = document.getElementById('feature-description').value;
+
+  // Update feature properties
+  layer.feature.properties.name = name;
+  layer.feature.properties.description = description;
+
+  // Update popup if it exists
+  if (layer.getPopup()) {
+    layer.setPopup(createPopupContent(layer));
+  } else {
+    layer.bindPopup(createPopupContent(layer));
+  }
+
+  // Close the modal
+  closeFeatureEditor();
+
+  console.log('Feature properties saved:', layer.feature.properties);
+}
+
+/**
+ * Close the feature editor modal
+ */
+function closeFeatureEditor() {
+  const modal = document.getElementById('featurePropertiesModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  window.featureEditor.activeFeature = null;
+}
+
+/**
+ * Load project data from the server
+ */
+function loadProject() {
+  console.log('Loading project...');
+  fetch('/api/load')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Project loaded:', data);
+
+    // Clear existing layers
+    window.drawnItems.clearLayers();
+
+    // Add loaded features to the map
+    if (data.layers && data.layers.features) {
+      data.layers.features.forEach(feature => {
+        const layer = L.geoJSON(feature).addTo(window.drawnItems);
+        // Add click handlers
+        layer.eachLayer(addLayerClickHandlers);
+      });
+    }
+  })
+  .catch(error => {
+    console.error('Error loading project:', error);
+  });
+}
+
+/**
+ * Save project data to the server
+ */
+function saveProject() {
+  console.log('Saving project...');
+
+  // Collect all features from drawn items
+  const features = [];
+  window.drawnItems.eachLayer(layer => {
+    if (layer.feature) {
+      features.push(layer.toGeoJSON());
+    }
+  });
+
+  // Create GeoJSON feature collection
+  const featureCollection = {
+    type: 'FeatureCollection',
+    features: features
+  };
+
+  // Send data to server
+  fetch('/api/save', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ layers: featureCollection })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Project saved:', data);
+    alert('Project saved successfully!');
+  })
+  .catch(error => {
+    console.error('Error saving project:', error);
+    alert('Error saving project: ' + error.message);
   });
 }
 
@@ -206,9 +335,7 @@ function openFeatureEditor(properties, layer) {
 
   // Set up event handlers
   document.getElementById('featureType').addEventListener('change', toggleExplosiveSection);
-  document.getElementById('saveFeatureProperties').addEventListener('click', function() {
-    saveFeatureProperties(layer);
-  });
+  document.getElementById('saveFeatureProperties').addEventListener('click', saveFeatureProperties);
   document.getElementById('cancelFeatureProperties').addEventListener('click', closeFeaturePropertiesModal);
 
   // Close modal when clicking on the X or outside the modal
@@ -223,6 +350,7 @@ function openFeatureEditor(properties, layer) {
     }
   };
 }
+
 
 /**
  * Toggle the explosive properties section based on feature type
@@ -241,8 +369,8 @@ function toggleExplosiveSection() {
 /**
  * Save the feature properties from the form
  */
-function saveFeatureProperties(layer) {
-  console.log('Saving feature properties for layer:', layer);
+function saveFeatureProperties() {
+  console.log('Saving feature properties for layer:', window.featureEditor.activeFeature);
 
   // Get values from form
   const name = document.getElementById('featureName').value;
@@ -250,6 +378,7 @@ function saveFeatureProperties(layer) {
   const description = document.getElementById('featureDescription').value;
 
   // Update the layer's feature properties
+  const layer = window.featureEditor.activeFeature;
   if (!layer.feature) {
     layer.feature = { type: 'Feature', properties: {} };
   }
@@ -325,7 +454,6 @@ function loadProject() {
     // Don't alert here as it might be annoying on first load
   });
 }
-
 
 /**
  * Save the current project to the server
@@ -552,11 +680,21 @@ function closeFacilityModal() {
   window.currentFacilityLayer = null;
 }
 
+
 // QDPro Feature Editor Initialization
 // Handles feature editing, properties, and related UI
 
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Feature editor initializer loaded');
+
+  // Wait for map to be initialized
+  const waitForMap = setInterval(function() {
+    if (window.map) {
+      clearInterval(waitForMap);
+      initializeFeatureEditor();
+      setupAllLayerEditHandlers(); //Call this after map is initialized
+    }
+  }, 100);
 
   // Set up event listeners for the feature editor
   setupFeatureEditorListeners();
@@ -597,3 +735,4 @@ window.handleFacilityTypeChange = handleFacilityTypeChange;
 window.closeFacilityModal = closeFacilityModal;
 window.saveFacilityProperties = saveFacilityProperties;
 window.setupFeatureEditorListeners = setupFeatureEditorListeners;
+window.closeFeatureEditor = closeFeatureEditor;
