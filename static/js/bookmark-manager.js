@@ -1,4 +1,3 @@
-
 // Bookmark Manager
 // This file contains functions for managing map bookmarks
 
@@ -14,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
       link.href = '/static/css/custom-modal.css';
       document.head.appendChild(link);
     }
-    
+
     // Create the openCustomModal function if it doesn't exist
     if (typeof openCustomModal !== 'function') {
       window.openCustomModal = function(message, defaultValue = '', callback) {
@@ -24,29 +23,29 @@ document.addEventListener('DOMContentLoaded', function() {
           modalContainer = document.createElement('div');
           modalContainer.id = 'custom-prompt-modal';
           modalContainer.className = 'modal-overlay';
-          
+
           const modalContent = document.createElement('div');
           modalContent.className = 'modal-content';
-          
+
           const modalTitle = document.createElement('h3');
           modalTitle.id = 'modal-prompt-message';
-          
+
           const modalInput = document.createElement('input');
           modalInput.id = 'modal-prompt-input';
           modalInput.type = 'text';
-          
+
           const buttonContainer = document.createElement('div');
           buttonContainer.style.display = 'flex';
           buttonContainer.style.justifyContent = 'flex-end';
           buttonContainer.style.marginTop = '15px';
-          
+
           const cancelButton = document.createElement('button');
           cancelButton.textContent = 'Cancel';
           cancelButton.onclick = () => {
             modalContainer.style.display = 'none';
             if (callback) callback(null);
           };
-          
+
           const okButton = document.createElement('button');
           okButton.textContent = 'OK';
           okButton.style.marginLeft = '10px';
@@ -55,26 +54,26 @@ document.addEventListener('DOMContentLoaded', function() {
             modalContainer.style.display = 'none';
             if (callback) callback(value);
           };
-          
+
           buttonContainer.appendChild(cancelButton);
           buttonContainer.appendChild(okButton);
-          
+
           modalContent.appendChild(modalTitle);
           modalContent.appendChild(modalInput);
           modalContent.appendChild(buttonContainer);
           modalContainer.appendChild(modalContent);
-          
+
           document.body.appendChild(modalContainer);
         }
-        
+
         // Set modal content
         document.getElementById('modal-prompt-message').textContent = message;
         document.getElementById('modal-prompt-input').value = defaultValue;
-        
+
         // Show modal
         modalContainer.style.display = 'flex';
         document.getElementById('modal-prompt-input').focus();
-        
+
         // Also add keyboard support for Enter and Escape
         const input = document.getElementById('modal-prompt-input');
         input.addEventListener('keydown', function(e) {
@@ -99,16 +98,16 @@ if (typeof window.QDProEditor === 'undefined') {
 // Initialize bookmark manager after document is loaded
 document.addEventListener('DOMContentLoaded', function() {
   console.log("Bookmark manager initializing...");
-  
+
   // Create a custom event for map ready status
   window.mapReadyEvent = new CustomEvent('mapReady');
-  
+
   // Function to dispatch event when map is ready
   function notifyMapReady() {
     console.log("Dispatching mapReady event");
     document.dispatchEvent(window.mapReadyEvent);
   }
-  
+
   // Check if map exists every second until it's ready
   const mapReadyCheck = setInterval(() => {
     if (window.isMapReady && window.isMapReady()) {
@@ -117,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
       notifyMapReady();
     }
   }, 1000);
-  
+
   // Also expose the notification function
   window.notifyMapReady = notifyMapReady;
 });
@@ -138,7 +137,7 @@ function toggleBookmarksDropdown() {
     console.error("Bookmarks dropdown element not found");
     return;
   }
-  
+
   if (dropdown.style.display === 'block') {
     dropdown.style.display = 'none';
   } else {
@@ -154,7 +153,7 @@ function createBookmarkSimple() {
     if (typeof window.isMapReady === 'function') {
       if (!window.isMapReady()) {
         console.log("Map not ready according to isMapReady check, waiting...");
-        
+
         // Instead of immediately failing, wait and retry
         setTimeout(() => {
           console.log("Retrying bookmark creation after delay...");
@@ -166,14 +165,14 @@ function createBookmarkSimple() {
       // Fallback checks if isMapReady is not available
       if (!window.map) {
         console.log("Map not initialized yet, waiting...");
-        
+
         setTimeout(() => {
           console.log("Retrying bookmark creation after delay...");
           createBookmarkSimple();
         }, 1500);
         return;
       }
-      
+
       // Try to patch methods if they're missing
       if (typeof window.map.getCenter !== 'function') {
         console.log("Patching missing getCenter method");
@@ -181,7 +180,7 @@ function createBookmarkSimple() {
           return window.map._lastCenter || L.latLng(39.8283, -98.5795);
         };
       }
-      
+
       if (typeof window.map.getZoom !== 'function') {
         console.log("Patching missing getZoom method");
         window.map.getZoom = function() {
@@ -189,23 +188,23 @@ function createBookmarkSimple() {
         };
       }
     }
-    
+
     // Use custom modal instead of prompt()
     if (typeof openCustomModal === 'function') {
       openCustomModal("Enter a name for this view:", "", function(name) {
         if (!name || name.trim() === '') return;
-        
+
         const center = window.map.getCenter();
         const zoom = window.map.getZoom();
-        
+
         const bookmark = {
           center: [center.lat, center.lng],
           zoom: zoom,
           created: new Date().toISOString()
         };
-        
+
         saveBookmarkToStorage(name, bookmark);
-        
+
         // Check if the function exists before calling it
         if (typeof updateBookmarksDropdown === 'function') {
           updateBookmarksDropdown();
@@ -214,7 +213,7 @@ function createBookmarkSimple() {
         } else {
           console.warn("updateBookmarksDropdown function not found");
         }
-        
+
         console.log(`Bookmark "${name}" created successfully`);
       });
       return; // Return early since the callback will handle the rest
@@ -222,18 +221,18 @@ function createBookmarkSimple() {
       console.error("Custom modal function not found, trying to use alert");
       const name = window.prompt("Enter a name for this view:");
       if (!name || name.trim() === '') return;
-      
+
       const center = window.map.getCenter();
       const zoom = window.map.getZoom();
-    
+
     const bookmark = {
         center: [center.lat, center.lng],
         zoom: zoom,
         created: new Date().toISOString()
       };
-      
+
       saveBookmarkToStorage(name, bookmark);
-      
+
       // Check if the function exists before calling it
       if (typeof updateBookmarksDropdown === 'function') {
         updateBookmarksDropdown();
@@ -242,7 +241,7 @@ function createBookmarkSimple() {
       } else {
         console.warn("updateBookmarksDropdown function not found");
       }
-      
+
       console.log(`Bookmark "${name}" created successfully`);
     }
   } catch (error) {
@@ -260,7 +259,7 @@ function saveBookmark(name, view) {
       zoom: view.zoom,
       created: new Date().toISOString()
     };
-    
+
     saveBookmarkToStorage(name, bookmark);
     updateBookmarksDropdown();
     console.log(`Bookmark "${name}" saved`);
@@ -291,15 +290,15 @@ async function updateBookmarksDropdown() {
       console.error("Bookmarks dropdown element not found");
       return;
     }
-    
+
     // Get bookmarks
     const bookmarks = await loadBookmarksFromServer();
-    
+
     // Clear current dropdown items
     while (dropdown.firstChild) {
       dropdown.removeChild(dropdown.firstChild);
     }
-    
+
     // Add bookmarks to dropdown
     Object.keys(bookmarks).forEach(name => {
       const item = document.createElement('div');
@@ -308,14 +307,14 @@ async function updateBookmarksDropdown() {
       item.addEventListener('click', () => loadBookmark(name));
       dropdown.appendChild(item);
     });
-    
+
     // Add "Create New" option
     const createNew = document.createElement('div');
     createNew.className = 'dropdown-item create-new';
     createNew.textContent = '+ Create New Bookmark';
     createNew.addEventListener('click', createBookmark);
     dropdown.appendChild(createNew);
-    
+
   } catch (e) {
     console.error("Error updating bookmarks dropdown:", e);
   }
@@ -326,7 +325,7 @@ async function saveBookmarkToStorage(name, bookmark) {
   try {
     // Try to save to server first
     const locationId = window.QDPro?.currentLocationId;
-    
+
     if (locationId) {
       const response = await fetch('/api/bookmarks', {
         method: 'POST',
@@ -339,7 +338,7 @@ async function saveBookmarkToStorage(name, bookmark) {
           bookmark_data: bookmark
         })
       });
-      
+
       if (response.ok) {
         console.log(`Bookmark "${name}" saved to server for location ${locationId}`);
         return;
@@ -347,7 +346,7 @@ async function saveBookmarkToStorage(name, bookmark) {
         console.warn(`Failed to save bookmark to server, using location-specific localStorage`);
       }
     }
-    
+
     // Fallback to localStorage with location-specific key
     const storageKey = locationId ? `mapBookmarks_location_${locationId}` : 'mapBookmarks_default';
     const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -356,7 +355,7 @@ async function saveBookmarkToStorage(name, bookmark) {
     console.log(`Bookmark "${name}" saved to localStorage with key ${storageKey}`);
   } catch (e) {
     console.error(`Error saving bookmark:`, e);
-    
+
     // Final fallback - force save to location-specific localStorage
     try {
       const locationId = window.QDPro?.currentLocationId;
@@ -374,14 +373,14 @@ async function saveBookmarkToStorage(name, bookmark) {
 async function loadBookmarksFromServer() {
   try {
     const locationId = window.QDPro?.currentLocationId;
-    
+
     // If no location ID is available, use localStorage with location-specific storage key
     if (!locationId) {
       console.log("No location ID available, using location-specific localStorage");
       const storageKey = 'mapBookmarks_default';
       return JSON.parse(localStorage.getItem(storageKey) || '{}');
     }
-    
+
     const response = await fetch(`/api/bookmarks?location_id=${locationId}`);
     if (response.ok) {
       const data = await response.json();
@@ -405,20 +404,20 @@ async function loadBookmarksFromServer() {
 async function loadBookmark(name) {
   try {
     console.log("Loading bookmark:", name);
-    
+
     // Initialize the map forcibly if needed
     if (!window.map || typeof window.map.setView !== 'function') {
       console.log("Map not fully initialized. Attempting to initialize it...");
-      
+
       // Force initialization of the map if Leaflet is available
       if (typeof L !== 'undefined') {
         console.log("Leaflet is available, attempting to initialize map");
-        
+
         // Check if map container exists
         const mapContainer = document.getElementById('map');
         if (mapContainer) {
           console.log("Map container found, checking if we can initialize map");
-          
+
           // Try to initialize the map if it doesn't exist
           if (!window.map) {
             try {
@@ -428,12 +427,12 @@ async function loadBookmark(name) {
                 zoom: 4,
                 zoomControl: true
               });
-              
+
               // Add a base layer
               L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
               }).addTo(window.map);
-              
+
               console.log("Map created successfully");
             } catch (e) {
               console.error("Failed to create map:", e);
@@ -442,16 +441,16 @@ async function loadBookmark(name) {
           // If map exists but is missing methods, patch them
           else if (typeof window.map.setView !== 'function') {
             console.log("Patching existing map with missing methods");
-            
+
             window.map.setView = function(center, zoom) {
               console.log("Using patched setView method:", center, zoom);
               return window.map;
             };
-            
+
             window.map.getCenter = function() {
               return L.latLng(39.8283, -98.5795);
             };
-            
+
             window.map.getZoom = function() {
               return 4;
             };
@@ -460,14 +459,14 @@ async function loadBookmark(name) {
           console.error("Map container not found");
         }
       }
-      
+
       // Still proceed with normal waiting process as a fallback
       let attempts = 0;
       const waitForMap = () => {
         return new Promise((resolve, reject) => {
           const checkMap = setInterval(() => {
             attempts++;
-            
+
             // First check if we have a map object
             if (window.map) {
               // Then check if isMapReady function exists and use it
@@ -487,7 +486,7 @@ async function loadBookmark(name) {
                 return;
               }
             }
-            
+
             // More diagnostic information
             if (attempts % 5 === 0) {
               console.log(`Still waiting for map initialization (attempt ${attempts})`);
@@ -495,7 +494,7 @@ async function loadBookmark(name) {
               if (window.map) {
                 console.log(`Map type: ${typeof window.map}`);
                 console.log(`setView method exists: ${typeof window.map.setView === 'function'}`);
-                
+
                 // Try to repair map if possible
                 if (typeof L !== 'undefined' && typeof window.map.setView !== 'function') {
                   console.log("Attempting to repair map methods on attempt", attempts);
@@ -510,7 +509,7 @@ async function loadBookmark(name) {
                 }
               }
             }
-            
+
             // Shorter timeout - only wait 5 seconds instead of 10
             if (attempts > 25) { // 5 seconds max wait
               clearInterval(checkMap);
@@ -519,22 +518,22 @@ async function loadBookmark(name) {
           }, 200);
         });
       };
-      
+
       try {
         await waitForMap();
       } catch (err) {
         console.error("Map initialization timed out. Cannot load bookmark.", err);
-        
+
         // Try to force map initialization if it didn't happen automatically
         if (window.map && typeof L !== 'undefined') {
           console.log("Attempting to recover map functionality...");
-          
+
           try {
             // Try to apply the isMapReady function's patches if it exists
             if (typeof window.isMapReady === 'function') {
               window.isMapReady();
             }
-            
+
             // Manual patching as a last resort
             if (typeof window.map.setView !== 'function') {
               console.log("Manually patching missing setView method");
@@ -549,7 +548,7 @@ async function loadBookmark(name) {
                 return window.map;
               };
             }
-            
+
             // Also patch flyTo if missing
             if (typeof window.map.flyTo !== 'function') {
               console.log("Manually patching missing flyTo method");
@@ -570,7 +569,7 @@ async function loadBookmark(name) {
                 }
               };
             }
-            
+
             console.log("Recovery attempt completed - proceeding with bookmark load");
           } catch (recoveryErr) {
             console.error("Map recovery failed:", recoveryErr);
@@ -587,7 +586,7 @@ async function loadBookmark(name) {
     // First try to load from server
     const locationId = window.QDPro?.currentLocationId;
     let bookmark = null;
-    
+
     if (locationId) {
       try {
         console.log(`Attempting to load bookmark "${name}" for location ${locationId} from server`);
@@ -601,33 +600,35 @@ async function loadBookmark(name) {
         console.warn(`Error loading bookmark from server:`, e);
       }
     }
-    
+
     // If not found on server or no location ID, try location-specific localStorage first
     if (!bookmark) {
       console.log("Bookmark not found on server, checking location-specific localStorage");
       const storageKey = locationId ? `mapBookmarks_location_${locationId}` : 'mapBookmarks_default';
       const locationBookmarks = JSON.parse(localStorage.getItem(storageKey) || '{}');
       bookmark = locationBookmarks[name];
-      
+
       if (bookmark) {
-        console.log(`Bookmark "${name}" found in location-specific storage (${storageKey})`);
+        console.log(`Bookmark "${name}" found in location-specific storage (${storageKey}):`, bookmark);
       } else {
         // Fall back to legacy storage as last resort
         console.log("Checking legacy localStorage as last resort");
         const legacyBookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
         bookmark = legacyBookmarks[name];
-        
+
         if (bookmark) {
-          console.log(`Bookmark "${name}" found in legacy storage`);
+          console.log(`Bookmark "${name}" found in legacy storage:`, bookmark);
+        } else {
+          console.error(`Bookmark "${name}" not found in either server or localStorage`);
         }
       }
     }
-    
+
     if (!bookmark) {
       console.error(`Bookmark "${name}" not found`);
       return;
     }
-    
+
     // Double check that map is ready before attempting to set view
     if (window.map && typeof window.map.setView === 'function') {
       // Verify bookmark data
@@ -638,7 +639,7 @@ async function loadBookmark(name) {
           // Create a proper Leaflet LatLng object
           const center = L.latLng(bookmark.center[0], bookmark.center[1]);
           const zoom = parseInt(bookmark.zoom);
-          
+
           // Check if flyTo is available, otherwise use setView
           if (typeof window.map.flyTo === 'function') {
             // Use flyTo for smoother animation to the bookmarked location
@@ -685,7 +686,7 @@ async function deleteBookmark(name) {
   try {
     // First try to delete from server
     const locationId = window.QDPro?.currentLocationId;
-    
+
     if (locationId) {
       try {
         const response = await fetch(`/api/bookmarks/${encodeURIComponent(name)}`, {
@@ -697,7 +698,7 @@ async function deleteBookmark(name) {
             location_id: locationId
           })
         });
-        
+
         if (response.ok) {
           console.log(`Bookmark "${name}" deleted from server`);
           updateBookmarksDropdown();
@@ -709,7 +710,7 @@ async function deleteBookmark(name) {
         console.warn(`Error deleting bookmark from server:`, e);
       }
     }
-    
+
     // Fallback to localStorage
     const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
     if (bookmarks[name]) {
@@ -717,7 +718,7 @@ async function deleteBookmark(name) {
       localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
       console.log(`Bookmark "${name}" deleted from localStorage`);
     }
-    
+
     updateBookmarksDropdown();
   } catch (e) {
     console.error(`Error deleting bookmark:`, e);
@@ -727,19 +728,19 @@ async function deleteBookmark(name) {
 // Update the bookmarks dropdown menu
 function updateBookmarksDropdown() {
   console.log("updateBookmarksDropdown called");
-  
+
   const dropdown = document.getElementById('bookmarksDropdown');
   if (!dropdown) {
     console.error("Bookmarks dropdown element not found");
     return;
   }
-  
+
   // Clear existing items
   dropdown.innerHTML = '';
-  
+
   // Make sure the dropdown is visible
   dropdown.style.display = 'block';
-  
+
   // Add proper styling to make it visible
   dropdown.style.backgroundColor = '#fff';
   dropdown.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
@@ -748,7 +749,7 @@ function updateBookmarksDropdown() {
   dropdown.style.padding = '5px 0';
   dropdown.style.zIndex = '3000';
   dropdown.style.position = 'absolute';
-  
+
   // Create a header
   const header = document.createElement('div');
   header.style.padding = '10px';
@@ -757,7 +758,7 @@ function updateBookmarksDropdown() {
   header.style.backgroundColor = '#f5f5f5';
   header.textContent = 'Saved Views';
   dropdown.appendChild(header);
-  
+
   // Load bookmarks from server or fallback to localStorage
   loadBookmarksFromServer().then(bookmarks => {
     // Check if we have any bookmarks
@@ -780,7 +781,7 @@ function updateBookmarksDropdown() {
         item.style.alignItems = 'center';
         item.style.borderBottom = '1px solid #eee';
         item.style.transition = 'background-color 0.2s';
-        
+
         // Add hover effect
         item.addEventListener('mouseover', function() {
           this.style.backgroundColor = '#f0f0f0';
@@ -788,14 +789,14 @@ function updateBookmarksDropdown() {
         item.addEventListener('mouseout', function() {
           this.style.backgroundColor = '';
         });
-        
+
         const nameSpan = document.createElement('span');
         nameSpan.textContent = name;
         nameSpan.style.flex = '1';
         nameSpan.style.overflow = 'hidden';
         nameSpan.style.textOverflow = 'ellipsis';
         nameSpan.style.whiteSpace = 'nowrap';
-        
+
         const deleteBtn = document.createElement('button');
         deleteBtn.innerHTML = '&times;';
         deleteBtn.style.marginLeft = '8px';
@@ -806,17 +807,17 @@ function updateBookmarksDropdown() {
         deleteBtn.style.fontSize = '16px';
         deleteBtn.style.cursor = 'pointer';
         deleteBtn.title = 'Delete bookmark';
-        
+
         item.appendChild(nameSpan);
         item.appendChild(deleteBtn);
-        
+
         // Add event listeners
         nameSpan.addEventListener('click', function(e) {
           e.stopPropagation();
           loadBookmark(name);
           dropdown.style.display = 'none';
         });
-        
+
         // Make the whole item clickable except for the delete button
         item.addEventListener('click', function(e) {
           if (e.target !== deleteBtn) {
@@ -824,16 +825,16 @@ function updateBookmarksDropdown() {
             dropdown.style.display = 'none';
           }
         });
-        
+
         deleteBtn.addEventListener('click', function(e) {
           e.stopPropagation();
           deleteBookmark(name);
         });
-        
+
         dropdown.appendChild(item);
       });
     }
-    
+
     // Add option to create new bookmark
     const addNewItem = document.createElement('div');
     addNewItem.style.padding = '10px';
@@ -844,7 +845,7 @@ function updateBookmarksDropdown() {
     addNewItem.style.textAlign = 'center';
     addNewItem.style.borderTop = bookmarkKeys.length > 0 ? '1px solid #ccc' : 'none';
     addNewItem.textContent = '+ Add New Bookmark';
-    
+
     // Add hover effect
     addNewItem.addEventListener('mouseover', function() {
       this.style.backgroundColor = '#e8f5e9';
@@ -852,12 +853,12 @@ function updateBookmarksDropdown() {
     addNewItem.addEventListener('mouseout', function() {
       this.style.backgroundColor = '#f5f5f5';
     });
-    
+
     addNewItem.addEventListener('click', function() {
       dropdown.style.display = 'none';
       createBookmark();
     });
-    
+
     dropdown.appendChild(addNewItem);
   });
 }
@@ -869,16 +870,16 @@ function toggleBookmarksDropdown() {
     console.error("Bookmarks dropdown element not found");
     return;
   }
-  
+
   const isVisible = dropdown.style.display === 'block';
-  
+
   // Hide any other open dropdowns
   document.querySelectorAll('.base-layer-dropdown').forEach(dd => {
     if (dd.id !== 'bookmarksDropdown') {
       dd.style.display = 'none';
     }
   });
-  
+
   if (isVisible) {
     dropdown.style.display = 'none';
   } else {
@@ -890,7 +891,7 @@ function toggleBookmarksDropdown() {
       dropdown.style.top = (rect.bottom + 5) + 'px';
       dropdown.style.left = rect.left + 'px';
     }
-    
+
     // Update and show the dropdown
     updateBookmarksDropdown();
     dropdown.style.display = 'block';
@@ -918,7 +919,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.toggleBookmarksDropdown = toggleBookmarksDropdown;
   window.updateBookmarksDropdown = updateBookmarksDropdown;
   window.clearBookmarksCache = clearBookmarksCache;
-  
+
   // Also add to QDProEditor namespace
   window.QDProEditor.createBookmark = createBookmark;
   window.QDProEditor.saveBookmarkToStorage = saveBookmarkToStorage;
@@ -927,13 +928,13 @@ document.addEventListener('DOMContentLoaded', function() {
   window.QDProEditor.toggleBookmarksDropdown = toggleBookmarksDropdown;
   window.QDProEditor.updateBookmarksDropdown = updateBookmarksDropdown;
   window.QDProEditor.clearBookmarksCache = clearBookmarksCache;
-  
+
   // Listen for location changes
   document.addEventListener('locationChanged', function(e) {
     console.log("Location changed event detected, clearing bookmarks cache");
     clearBookmarksCache();
   });
-  
+
   console.log("Bookmark functions initialized and exposed globally");
 });
 

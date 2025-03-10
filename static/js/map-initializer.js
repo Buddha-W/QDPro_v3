@@ -4,57 +4,57 @@
  */
 
 // Check if map is ready for use
-window.isMapReady = function() {
-  // Check if map exists and has required methods
-  const mapExists = window.map !== undefined;
-  const hasSetView = typeof window.map?.setView === 'function';
-  const hasGetCenter = typeof window.map?.getCenter === 'function';
-  const hasGetZoom = typeof window.map?.getZoom === 'function';
-  const hasFlyTo = typeof window.map?.flyTo === 'function';
-
-  // If map exists but methods are missing, try to patch them
-  if (mapExists && (!hasSetView || !hasGetCenter || !hasGetZoom || !hasFlyTo)) {
-    console.log("Map exists but missing methods, attempting to patch");
-
-    if (!hasSetView && typeof L !== 'undefined') {
-      window.map.setView = function(center, zoom) {
-        console.log("Using patched setView method:", center, zoom);
-        return window.map;
-      };
-    }
-
-    if (!hasGetCenter && window.map._lastCenter) {
-      window.map.getCenter = function() {
-        return window.map._lastCenter;
-      };
-    } else if (!hasGetCenter) {
-      window.map.getCenter = function() {
-        return L.latLng(39.8283, -98.5795); // Default to center of US
-      };
-    }
-
-    if (!hasGetZoom && window.map._zoom) {
-      window.map.getZoom = function() {
-        return window.map._zoom;
-      };
-    } else if (!hasGetZoom) {
-      window.map.getZoom = function() {
-        return 4; // Default zoom level
-      };
-    }
-
-    if (!hasFlyTo && hasSetView) {
-      window.map.flyTo = function(center, zoom, options) {
-        console.log("Using patched flyTo method (falls back to setView)");
-        return window.map.setView(center, zoom);
-      };
-    }
+function isMapReady() {
+  if (!window.map) {
+    console.log("Map is not yet initialized");
+    return false;
   }
 
-  return mapExists && 
-         (typeof window.map.setView === 'function' || typeof window.map.flyTo === 'function') &&
-         typeof window.map.getCenter === 'function';
-};
+  // Check for required methods
+  if (typeof window.map.setView !== 'function') {
+    console.log("Map is missing essential methods");
+
+    // Try to patch essential methods if Leaflet is available
+    if (typeof L !== 'undefined') {
+      console.log("Attempting to patch missing map methods");
+
+      if (typeof window.map.setView !== 'function') {
+        window.map.setView = function(center, zoom) {
+          console.log("Using patched setView method:", center, zoom);
+          // Try to update internal properties
+          if (window.map._zoom !== undefined) window.map._zoom = zoom;
+          if (window.map._lastCenter !== undefined) window.map._lastCenter = L.latLng(center);
+          return window.map;
+        };
+      }
+
+      if (typeof window.map.flyTo !== 'function') {
+        window.map.flyTo = function(center, zoom, options) {
+          console.log("Using patched flyTo method:", center, zoom);
+          return window.map.setView(center, zoom);
+        };
+      }
+
+      if (typeof window.map.getCenter !== 'function') {
+        window.map.getCenter = function() {
+          return window.map._lastCenter || L.latLng(39.8283, -98.5795);
+        };
+      }
+
+      if (typeof window.map.getZoom !== 'function') {
+        window.map.getZoom = function() {
+          return window.map._zoom || 4;
+        };
+      }
+
+      return true; // Return true after patching
+    }
+
+    return false;
+  }
+
+  return true;
+}
 
 // Function to try initializing map
 window.initializeMap = function() {
