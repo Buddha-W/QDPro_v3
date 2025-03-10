@@ -636,33 +636,55 @@ async function loadBookmark(name) {
           !isNaN(bookmark.center[0]) && !isNaN(bookmark.center[1]) && 
           !isNaN(bookmark.zoom)) {
         try {
-          // Create a proper Leaflet LatLng object
-          const center = L.latLng(bookmark.center[0], bookmark.center[1]);
-          const zoom = parseInt(bookmark.zoom);
-
-          // Check if flyTo is available, otherwise use setView
-          if (typeof window.map.flyTo === 'function') {
-            // Use flyTo for smoother animation to the bookmarked location
-            window.map.flyTo(center, zoom, {
-              duration: 1.5,  // Animation duration in seconds
-              easeLinearity: 0.25
-            });
-            console.log(`Loaded bookmark "${name}" successfully with flyTo:`, center, zoom);
-          } else if (typeof window.map.setView === 'function') {
-            // Fall back to setView if flyTo is not available
-            window.map.setView(center, zoom);
-            console.log(`Loaded bookmark "${name}" successfully with setView:`, center, zoom);
+          // Ensure bookmark center is properly formatted
+          let center;
+          if (Array.isArray(bookmark.center) && bookmark.center.length === 2) {
+            center = L.latLng(bookmark.center[0], bookmark.center[1]);
+          } else if (bookmark.center && typeof bookmark.center === 'object' && 
+                    (bookmark.center.lat !== undefined && bookmark.center.lng !== undefined)) {
+            center = L.latLng(bookmark.center.lat, bookmark.center.lng);
           } else {
-            // Last resort attempt - try to directly set properties
-            console.warn("Neither flyTo nor setView available. Attempting direct property setting");
-            if (window.map._zoom) window.map._zoom = zoom;
-            if (window.map._lastCenter) window.map._lastCenter = center;
-            if (window.map.options) {
-              window.map.options.center = center;
-              window.map.options.zoom = zoom;
-            }
-            console.log(`Attempted to load bookmark "${name}" by direct property setting:`, center, zoom);
+            console.error("Invalid bookmark center format:", bookmark.center);
+            throw new Error("Invalid bookmark center format");
           }
+
+          const zoom = parseInt(bookmark.zoom);
+          console.log(`Setting view to: ${center.lat}, ${center.lng}, zoom: ${zoom}`);
+
+          // Force timeout to ensure map is ready
+          setTimeout(() => {
+            try {
+              // Check if flyTo is available, otherwise use setView
+              if (typeof window.map.flyTo === 'function') {
+                // Use flyTo for smoother animation to the bookmarked location
+                window.map.flyTo(center, zoom, {
+                  duration: 1.5,  // Animation duration in seconds
+                  easeLinearity: 0.25
+                });
+                console.log(`Applied bookmark "${name}" with flyTo:`, center, zoom);
+              } else if (typeof window.map.setView === 'function') {
+                // Fall back to setView if flyTo is not available
+                window.map.setView(center, zoom);
+                console.log(`Applied bookmark "${name}" with setView:`, center, zoom);
+              } else {
+                // Last resort attempt - try to directly set properties
+                console.warn("Neither flyTo nor setView available. Attempting direct property setting");
+                if (window.map._zoom) window.map._zoom = zoom;
+                if (window.map._lastCenter) window.map._lastCenter = center;
+                if (window.map.options) {
+                  window.map.options.center = center;
+                  window.map.options.zoom = zoom;
+                }
+                // Force a map invalidate size if available
+                if (typeof window.map.invalidateSize === 'function') {
+                  window.map.invalidateSize(true);
+                }
+                console.log(`Applied bookmark "${name}" by direct property setting:`, center, zoom);
+              }
+            } catch (err) {
+              console.error("Error applying bookmark view:", err);
+            }
+          }, 300); // Short delay to ensure map is ready
         } catch (viewError) {
           console.error("Error setting map view:", viewError);
           alert("Error loading bookmark: Invalid map coordinates");
@@ -906,7 +928,7 @@ function clearBookmarksCache() {
   if (dropdown) {
     dropdown.innerHTML = '';
     dropdown.style.display = 'none';
-  }
+  }  }
 }
 
 // When document is loaded, make sure bookmark functions are available globally
