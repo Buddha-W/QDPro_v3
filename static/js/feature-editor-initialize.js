@@ -26,7 +26,7 @@ function initializeFeatureEditor() {
     window.map.addLayer(window.drawnItems);
   }
 
-  // Set up Leaflet.Draw controls (restored from original)
+  // Set up Leaflet.Draw controls
   const drawControl = new L.Control.Draw({
     edit: {
       featureGroup: window.drawnItems
@@ -42,8 +42,7 @@ function initializeFeatureEditor() {
 
   window.map.addControl(drawControl);
 
-
-  // Handle newly created features (from original code)
+  // Handle newly created features
   window.map.on('draw:created', function(e) {
     const layer = e.layer;
 
@@ -98,31 +97,48 @@ function addLayerClickHandlers(layer) {
 }
 
 /**
- * Open feature editor modal with properties
+ * Set up event handlers for buttons and UI elements
  */
-function openFeatureEditor(properties, layer) {
-  console.log('Opening feature editor for:', properties);
+function setupEventHandlers() {
+  // Add event listener for save button
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'save-feature-button') {
+      saveFeatureProperties();
+    }
+  });
 
-  // Store the active layer for later reference
-  window.featureEditor.activeFeature = layer;
+  // Add event listener for close button
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'close-feature-button') {
+      closeFeatureEditor();
+    }
+  });
 
-  // Get the modal
-  const modal = document.getElementById('featurePropertiesModal');
-  if (!modal) {
-    console.error('Feature properties modal not found');
-    return;
-  }
+  // File menu event listeners
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'newProject') {
+      console.log('New project action');
+      if (window.drawnItems) {
+        window.drawnItems.clearLayers();
+      }
+      if (window.facilitiesLayer) window.facilitiesLayer.clearLayers(); 
+      if (window.arcsLayer) window.arcsLayer.clearLayers(); 
+    }
 
-  // Set up form fields
-  document.getElementById('feature-name').value = properties.name || '';
-  document.getElementById('feature-description').value = properties.description || '';
+    if (e.target && e.target.id === 'saveProject') {
+      console.log('Save project action');
+      saveProject();
+    }
 
-  // Display the modal
-  modal.style.display = 'block';
+    if (e.target && e.target.id === 'loadProject') {
+      console.log('Load project action');
+      loadProject();
+    }
+  });
 }
 
 /**
- * Save feature properties from the modal
+ * Save the properties of the active feature
  */
 function saveFeatureProperties() {
   const layer = window.featureEditor.activeFeature;
@@ -177,343 +193,11 @@ function loadProject() {
   .then(response => response.json())
   .then(data => {
     console.log('Project loaded:', data);
-
-    // Clear existing layers
-    window.drawnItems.clearLayers();
-
-    // Add loaded features to the map
-    if (data.layers && data.layers.features) {
-      data.layers.features.forEach(feature => {
-        const layer = L.geoJSON(feature).addTo(window.drawnItems);
-        // Add click handlers
-        layer.eachLayer(addLayerClickHandlers);
-      });
-    }
-  })
-  .catch(error => {
-    console.error('Error loading project:', error);
-  });
-}
-
-/**
- * Save project data to the server
- */
-function saveProject() {
-  console.log('Saving project...');
-
-  // Collect all features from drawn items
-  const features = [];
-  window.drawnItems.eachLayer(layer => {
-    if (layer.feature) {
-      features.push(layer.toGeoJSON());
-    }
-  });
-
-  // Create GeoJSON feature collection
-  const featureCollection = {
-    type: 'FeatureCollection',
-    features: features
-  };
-
-  // Send data to server
-  fetch('/api/save', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ layers: featureCollection })
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Project saved:', data);
-    alert('Project saved successfully!');
-  })
-  .catch(error => {
-    console.error('Error saving project:', error);
-    alert('Error saving project: ' + error.message);
-  });
-}
-
-/**
- * Set up click handlers for all layers in all feature groups
- */
-function setupAllLayerEditHandlers() {
-  console.log('Setting up click handlers for all layers...');
-
-  // Handle drawn items
-  if (window.drawnItems) {
-    window.drawnItems.eachLayer(function(layer) {
-      addLayerClickHandlers(layer);
-    });
-  }
-
-  // You can add more feature groups here if needed
-}
-
-//From Edited Code
-function setupEventHandlers() {
-  // Setup File > New handler
-  document.getElementById('newProject').addEventListener('click', function() {
-    if (confirm('Create new project? This will clear all current data.')) {
-      window.drawnItems.clearLayers();
-      if (window.facilitiesLayer) window.facilitiesLayer.clearLayers(); // Check if facilitiesLayer exists
-      if (window.arcsLayer) window.arcsLayer.clearLayers(); //Check if arcsLayer exists
-    }
-  });
-
-  // Setup File > Save handler
-  document.getElementById('saveProject').addEventListener('click', function() {
-    saveProject();
-  });
-
-  // Setup File > Load handler
-  document.getElementById('loadProject').addEventListener('click', function() {
-    loadProject();
-  });
-}
-
-//New function from edited code.  Handles simplified popup
-function openFacilityEditPopup(layer) {
-  console.log('Opening edit popup for layer:', layer);
-
-  // Get existing properties or initialize new ones
-  const props = layer.properties || {};
-
-  // Create popup content
-  const popupContent = document.createElement('div');
-  popupContent.className = 'feature-edit-popup';
-
-  // Add facility name input
-  const nameLabel = document.createElement('label');
-  nameLabel.textContent = 'Facility Name:';
-  popupContent.appendChild(nameLabel);
-
-  const nameInput = document.createElement('input');
-  nameInput.type = 'text';
-  nameInput.value = props.name || '';
-  popupContent.appendChild(nameInput);
-
-  // Add facility type dropdown
-  const typeLabel = document.createElement('label');
-  typeLabel.textContent = 'Facility Type:';
-  popupContent.appendChild(typeLabel);
-
-  const typeSelect = document.createElement('select');
-  const types = ['PES', 'ES', 'Other'];
-  types.forEach(type => {
-    const option = document.createElement('option');
-    option.value = type;
-    option.textContent = type;
-    if (props.type === type) {
-      option.selected = true;
-    }
-    typeSelect.appendChild(option);
-  });
-  popupContent.appendChild(typeSelect);
-
-  // Add save button
-  const saveButton = document.createElement('button');
-  saveButton.textContent = 'Save';
-  saveButton.addEventListener('click', function() {
-    // Save properties to layer
-    layer.properties = {
-      name: nameInput.value,
-      type: typeSelect.value
-    };
-
-    // Close popup
-    layer.closePopup();
-  });
-  popupContent.appendChild(saveButton);
-
-  // Bind popup to layer
-  layer.bindPopup(popupContent).openPopup();
-}
-
-
-// Rest of the original code (functions from line 252 onwards) remains here:
-
-/**
- * Open the feature properties editor
- */
-function openFeatureEditor(properties, layer) {
-  console.log('Opening feature editor for properties:', properties);
-
-  // Get the modal
-  const modal = document.getElementById('featurePropertiesModal');
-  if (!modal) {
-    console.error('Feature properties modal not found');
-    return;
-  }
-
-  // Get the content container
-  const content = document.getElementById('featureModalContent');
-  if (!content) {
-    console.error('Feature modal content container not found');
-    return;
-  }
-
-  // Determine the feature type
-  let featureType = 'Generic';
-  if (layer instanceof L.Marker) featureType = 'Marker';
-  else if (layer instanceof L.Polygon) featureType = 'Polygon';
-  else if (layer instanceof L.Polyline) featureType = 'Polyline';
-  else if (layer instanceof L.Rectangle) featureType = 'Rectangle';
-  else if (layer instanceof L.Circle) featureType = 'Circle';
-
-  // Create form content
-  content.innerHTML = `
-    <h2>Edit Feature Properties</h2>
-    <form id="featurePropertiesForm">
-      <div class="form-group">
-        <label for="featureName">Name:</label>
-        <input type="text" id="featureName" value="${properties.name || ''}" class="form-control">
-      </div>
-
-      <div class="form-group">
-        <label for="featureType">Type:</label>
-        <select id="featureType" class="form-control">
-          <option value="Generic" ${properties.type === 'Generic' ? 'selected' : ''}>Generic</option>
-          <option value="Building" ${properties.type === 'Building' ? 'selected' : ''}>Building</option>
-          <option value="Road" ${properties.type === 'Road' ? 'selected' : ''}>Road</option>
-          <option value="Boundary" ${properties.type === 'Boundary' ? 'selected' : ''}>Boundary</option>
-          <option value="Facility" ${properties.type === 'Facility' ? 'selected' : ''}>Facility</option>
-          <option value="PES" ${properties.type === 'PES' ? 'selected' : ''}>PES (Potential Explosion Site)</option>
-          <option value="ES" ${properties.type === 'ES' ? 'selected' : ''}>ES (Exposed Site)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="featureDescription">Description:</label>
-        <textarea id="featureDescription" class="form-control">${properties.description || ''}</textarea>
-      </div>
-
-      <div id="explosiveProperties" style="display: ${properties.type === 'PES' || properties.type === 'ES' ? 'block' : 'none'}">
-        <h3>Explosive Properties</h3>
-
-        <div class="form-group">
-          <label for="netExplosiveWeight">Net Explosive Weight (kg):</label>
-          <input type="number" id="netExplosiveWeight" value="${properties.netExplosiveWeight || 0}" class="form-control">
-        </div>
-
-        <div class="form-group">
-          <label for="hazardDivision">Hazard Division:</label>
-          <select id="hazardDivision" class="form-control">
-            <option value="1.1" ${properties.hazardDivision === '1.1' ? 'selected' : ''}>1.1 - Mass Explosion</option>
-            <option value="1.2" ${properties.hazardDivision === '1.2' ? 'selected' : ''}>1.2 - Projection</option>
-            <option value="1.3" ${properties.hazardDivision === '1.3' ? 'selected' : ''}>1.3 - Fire & Minor Blast</option>
-            <option value="1.4" ${properties.hazardDivision === '1.4' ? 'selected' : ''}>1.4 - Moderate Fire</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="button-group">
-        <button type="button" id="saveFeatureProperties" class="btn btn-primary">Save</button>
-        <button type="button" id="cancelFeatureProperties" class="btn btn-secondary">Cancel</button>
-      </div>
-    </form>
-  `;
-
-  // Show the modal
-  modal.style.display = 'block';
-
-  // Set up event handlers
-  document.getElementById('featureType').addEventListener('change', toggleExplosiveSection);
-  document.getElementById('saveFeatureProperties').addEventListener('click', saveFeatureProperties);
-  document.getElementById('cancelFeatureProperties').addEventListener('click', closeFeaturePropertiesModal);
-
-  // Close modal when clicking on the X or outside the modal
-  const closeBtn = modal.querySelector('.close');
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeFeaturePropertiesModal);
-  }
-
-  window.onclick = function(event) {
-    if (event.target === modal) {
-      closeFeaturePropertiesModal();
-    }
-  };
-}
-
-
-
-/**
- * Toggle the explosive properties section based on feature type
- */
-function toggleExplosiveSection() {
-  const featureType = document.getElementById('featureType').value;
-  const explosiveProperties = document.getElementById('explosiveProperties');
-
-  if (featureType === 'PES' || featureType === 'ES') {
-    explosiveProperties.style.display = 'block';
-  } else {
-    explosiveProperties.style.display = 'none';
-  }
-}
-
-/**
- * Save the feature properties from the form
- */
-function saveFeatureProperties() {
-  console.log('Saving feature properties for layer:', window.featureEditor.activeFeature);
-
-  // Get values from form
-  const name = document.getElementById('featureName').value;
-  const type = document.getElementById('featureType').value;
-  const description = document.getElementById('featureDescription').value;
-
-  // Update the layer's feature properties
-  const layer = window.featureEditor.activeFeature;
-  if (!layer.feature) {
-    layer.feature = { type: 'Feature', properties: {} };
-  }
-
-  layer.feature.properties.name = name;
-  layer.feature.properties.type = type;
-  layer.feature.properties.description = description;
-
-  // Add explosive properties if applicable
-  if (type === 'PES' || type === 'ES') {
-    layer.feature.properties.netExplosiveWeight = document.getElementById('netExplosiveWeight').value;
-    layer.feature.properties.hazardDivision = document.getElementById('hazardDivision').value;
-  }
-
-  // Update the layer's popup if it has one
-  if (layer.getPopup()) {
-    layer.setPopupContent(createPopupContent(layer));
-    layer.getPopup().update();
-  }
-
-  // Close the modal
-  closeFeaturePropertiesModal();
-}
-
-/**
- * Close the feature properties modal
- */
-function closeFeaturePropertiesModal() {
-  const modal = document.getElementById('featurePropertiesModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-/**
- * Load a project from the server
- */
-function loadProject() {
-  console.log('Loading project...');
-  fetch('/api/load')
-  .then(response => response.json())
-  .then(data => {
-    console.log('Project loaded:', data);
-
     // Clear existing layers
     if (window.drawnItems) {
       window.drawnItems.clearLayers();
     }
-
-    // Add the loaded layers to the map
+    // Add the loaded layers to the map.  This part needs adjustment depending on the structure of data
     if (data.layers && Array.isArray(data.layers)) {
       data.layers.forEach(layerData => {
         try {
@@ -523,8 +207,6 @@ function loadProject() {
               addLayerClickHandlers(layer);
             }
           });
-
-          // Add the layer to drawnItems
           layer.eachLayer(function(l) {
             window.drawnItems.addLayer(l);
           });
@@ -536,13 +218,70 @@ function loadProject() {
   })
   .catch(error => {
     console.error('Error loading project:', error);
-    // Don't alert here as it might be annoying on first load
   });
 }
 
+function closeFacilityModal() {
+  const modal = document.getElementById('facilityPropertiesModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  window.currentFacilityLayer = null;
+}
+
+// QDPro Feature Editor Initialization
+// Handles feature editing, properties, and related UI
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Feature editor initializer loaded');
+
+  // Wait for map to be initialized
+  const waitForMap = setInterval(function() {
+    if (window.map) {
+      clearInterval(waitForMap);
+      initializeFeatureEditor();
+      setupAllLayerEditHandlers(); //Call this after map is initialized
+    }
+  }, 100);
+
+  // Set up event listeners for the feature editor
+  setupFeatureEditorListeners();
+});
+
 /**
- * Save the current project to the server
+ * Set up event listeners for the feature editor UI
  */
+function setupFeatureEditorListeners() {
+  // If needed in the future
+}
+
+/**
+ * Set up click handlers for all layers that have features
+ */
+function setupAllLayerEditHandlers() {
+  if (!window.map) {
+    console.error('Map is not initialized');
+    return;
+  }
+
+  window.map.eachLayer(function(layer) {
+    if (layer.feature) {
+      addLayerClickHandlers(layer);
+    }
+
+    // If this is a layer group, process its sub-layers
+    if (layer.eachLayer) {
+      layer.eachLayer(function(sublayer) {
+        if (sublayer.feature) {
+          addLayerClickHandlers(sublayer);
+        }
+      });
+    }
+  });
+
+  console.log('All layer edit handlers set up');
+}
+
 function saveProject() {
   console.log('Saving project...');
 
@@ -591,234 +330,21 @@ function saveProject() {
   });
 }
 
-/**
- * Function to handle facility type selection
- */
-function handleFacilityTypeChange() {
-  const facilityType = document.getElementById('facilityType').value;
-  const pesFieldsContainer = document.getElementById('pesFields');
-  const esFieldsContainer = document.getElementById('esFields');
 
-  if (facilityType === 'PES') {
-    pesFieldsContainer.style.display = 'block';
-    esFieldsContainer.style.display = 'none';
-  } else if (facilityType === 'ES') {
-    pesFieldsContainer.style.display = 'none';
-    esFieldsContainer.style.display = 'block';
-  } else {
-    pesFieldsContainer.style.display = 'none';
-    esFieldsContainer.style.display = 'none';
-  }
+function createPopupContent(layer) {
+  // This function needs to be implemented based on your actual popup content requirements
+  return "Popup content for layer: " + layer.feature.properties.name;
 }
-
-/**
- * Function to open facility edit popup for a specific layer
- */
-function openFacilityEditPopup(layer) {
-  console.log('Opening facility edit popup for layer:', layer);
-
-  // Get existing properties or initialize empty object
-  const properties = layer.properties || {};
-
-  // Get the modal
-  const modal = document.getElementById('facilityPropertiesModal');
-  if (!modal) {
-    console.error('Facility properties modal not found');
-    return;
-  }
-
-  const content = document.getElementById('facilityModalContent');
-  if (!content) {
-    console.error('Facility modal content container not found');
-    return;
-  }
-
-  // Create form content based on current properties
-  content.innerHTML = `
-    <h2>Edit Facility Properties</h2>
-    <form id="facilityPropertiesForm">
-      <div class="form-group">
-        <label for="facilityName">Facility Name:</label>
-        <input type="text" id="facilityName" value="${properties.name || ''}" class="form-control">
-      </div>
-
-      <div class="form-group">
-        <label for="facilityType">Facility Type:</label>
-        <select id="facilityType" class="form-control" onchange="handleFacilityTypeChange()">
-          <option value="Other" ${properties.type !== 'PES' && properties.type !== 'ES' ? 'selected' : ''}>Other</option>
-          <option value="PES" ${properties.type === 'PES' ? 'selected' : ''}>PES (Potential Explosion Site)</option>
-          <option value="ES" ${properties.type === 'ES' ? 'selected' : ''}>ES (Exposed Site)</option>
-        </select>
-      </div>
-
-      <div id="pesFields" style="display: ${properties.type === 'PES' ? 'block' : 'none'}">
-        <h3>PES Details</h3>
-        <div class="form-group">
-          <label for="newWeight">Net Explosive Weight:</label>
-          <input type="number" id="newWeight" value="${properties.newWeight || ''}" class="form-control">
-        </div>
-        <div class="form-group">
-          <label for="hazardDivision">Hazard Division:</label>
-          <select id="hazardDivision" class="form-control">
-            <option value="1.1" ${properties.hazardDivision === '1.1' ? 'selected' : ''}>1.1 - Mass Detonation</option>
-            <option value="1.2" ${properties.hazardDivision === '1.2' ? 'selected' : ''}>1.2 - Fragment Producing</option>
-            <option value="1.3" ${properties.hazardDivision === '1.3' ? 'selected' : ''}>1.3 - Mass Fire</option>
-            <option value="1.4" ${properties.hazardDivision === '1.4' ? 'selected' : ''}>1.4 - Moderate Fire</option>
-          </select>
-        </div>
-      </div>
-
-      <div id="esFields" style="display: ${properties.type === 'ES' ? 'block' : 'none'}">
-        <h3>ES Details</h3>
-        <div class="form-group">
-          <label for="esType">ES Type:</label>
-          <select id="esType" class="form-control">
-            <option value="IB" ${properties.esType === 'IB' ? 'selected' : ''}>IB - Inhabited Building</option>
-            <option value="PTR" ${properties.esType === 'PTR' ? 'selected' : ''}>PTR - Public Traffic Route</option>
-            <option value="AGM" ${properties.esType === 'AGM' ? 'selected' : ''}>AGM - Above Ground Magazine</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="personnelCount">Personnel Count:</label>
-          <input type="number" id="personnelCount" value="${properties.personnelCount || ''}" class="form-control">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="facilityDescription">Description:</label>
-        <textarea id="facilityDescription" class="form-control">${properties.description || ''}</textarea>
-      </div>
-
-      <div class="form-buttons">
-        <button type="button" onclick="saveFacilityProperties('${layer.id}')">Save</button>
-        <button type="button" onclick="closeFacilityModal()">Cancel</button>
-      </div>
-    </form>
-  `;
-
-  // Store the current layer being edited
-  window.currentFacilityLayer = layer;
-
-  // Show the modal
-  modal.style.display = 'block';
-}
-
-/**
- * Function to save facility properties
- */
-function saveFacilityProperties(layerId) {
-  const layer = window.currentFacilityLayer;
-  if (!layer) {
-    console.error('No layer found for editing facility properties');
-    return;
-  }
-
-  // Get values from form
-  const name = document.getElementById('facilityName').value;
-  const type = document.getElementById('facilityType').value;
-  const description = document.getElementById('facilityDescription').value;
-
-  // Create properties object
-  const properties = {
-    name: name,
-    type: type,
-    description: description
-  };
-
-  // Add type-specific properties
-  if (type === 'PES') {
-    properties.newWeight = document.getElementById('newWeight').value;
-    properties.hazardDivision = document.getElementById('hazardDivision').value;
-  } else if (type === 'ES') {
-    properties.esType = document.getElementById('esType').value;
-    properties.personnelCount = document.getElementById('personnelCount').value;
-  }
-
-  // Store properties on the layer
-  layer.properties = properties;
-
-  // Update popup content
-  //  Assuming createPopupContent function exists elsewhere to update the popup
-  if (typeof createPopupContent === 'function') {
-    if (layer.getPopup()) {
-      layer.setPopupContent(createPopupContent(layer));
-    } else {
-      layer.bindPopup(createPopupContent(layer));
-    }
-  }
-
-
-  // Close the modal
-  closeFacilityModal();
-
-  console.log('Saved facility properties for layer:', layer);
-}
-
-/**
- * Function to close the facility modal
- */
-function closeFacilityModal() {
-  const modal = document.getElementById('facilityPropertiesModal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-  window.currentFacilityLayer = null;
-}
-
-
-// QDPro Feature Editor Initialization
-// Handles feature editing, properties, and related UI
-
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Feature editor initializer loaded');
-
-  // Wait for map to be initialized
-  const waitForMap = setInterval(function() {
-    if (window.map) {
-      clearInterval(waitForMap);
-      initializeFeatureEditor();
-      setupAllLayerEditHandlers(); //Call this after map is initialized
-    }
-  }, 100);
-
-  // Set up event listeners for the feature editor
-  setupFeatureEditorListeners();
-});
-
-/**
- * Set up event listeners for the feature editor UI
- */
-function setupFeatureEditorListeners() {
-  console.log('Setting up feature editor listeners');
-
-  // Listen for the load project button
-  const loadProjectButton = document.getElementById('loadProjectButton');
-  if (loadProjectButton) {
-    loadProjectButton.addEventListener('click', loadProject);
-  }
-
-  // Listen for the save project button
-  const saveProjectButton = document.getElementById('saveProjectButton');
-  if (saveProjectButton) {
-    saveProjectButton.addEventListener('click', saveProject);
-  }
-}
-
 
 // Make functions available globally
 window.initializeFeatureEditor = initializeFeatureEditor;
 window.openFeatureEditor = openFeatureEditor;
 window.saveFeatureProperties = saveFeatureProperties;
-window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
-window.toggleExplosiveSection = toggleExplosiveSection;
+window.closeFeatureEditor = closeFeatureEditor;
 window.loadProject = loadProject;
 window.saveProject = saveProject;
 window.addLayerClickHandlers = addLayerClickHandlers;
 window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
-window.openFacilityEditPopup = openFacilityEditPopup;
-window.handleFacilityTypeChange = handleFacilityTypeChange;
-window.closeFacilityModal = closeFacilityModal;
-window.saveFacilityProperties = saveFacilityProperties;
 window.setupFeatureEditorListeners = setupFeatureEditorListeners;
-window.closeFeatureEditor = closeFeatureEditor;
-window.setupEventHandlers = setupEventHandlers; //Add this to make setupEventHandlers available globally.
+window.setupEventHandlers = setupEventHandlers;
+window.closeFacilityModal = closeFacilityModal;
