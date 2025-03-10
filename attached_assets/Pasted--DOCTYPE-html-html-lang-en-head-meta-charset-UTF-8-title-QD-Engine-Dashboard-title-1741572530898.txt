@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QD Engine Dashboard</title>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 600px; width: 100%; }
+  </style>
+</head>
+<body>
+  <h1>QD Engine Dashboard</h1>
+  <div id="map"></div>
+  <!-- This button is optional if you want a test trigger -->
+  <button id="editButton">Test Edit Polygon</button>
+  <script>
+    // Global map variable
+    let map;
+
+    // Initialize the map first
+    function initMap() {
+      map = L.map('map').setView([40.7128, -74.0060], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+    }
+    initMap();
+
+    // -----------------------------
+    // FIX: Define openFeatureEditor globally
+    // -----------------------------
+    function openFeatureEditor(layerData) {
+      if (!layerData || !layerData.name) {
+        console.error("Invalid layer data:", layerData);
+        return;
+      }
+      // For now, simply show an alert; replace with your actual editing UI later.
+      alert("Editing polygon: " + layerData.name);
+    }
+
+    // -----------------------------
+    // Example project data to simulate localStorage (replace with your real saved project)
+    // -----------------------------
+    const sampleProjectData = {
+      layers: [
+        {
+          name: "Polygon A",
+          coordinates: [
+            [40.7128, -74.0060],
+            [40.7228, -74.0160],
+            [40.7328, -74.0060]
+          ]
+        },
+        {
+          name: "Polygon B",
+          coordinates: [
+            [41.7128, -75.0060],
+            [41.7228, -75.0160],
+            [41.7328, -75.0060]
+          ]
+        }
+      ]
+    };
+    localStorage.setItem("savedProject", JSON.stringify(sampleProjectData));
+
+    // -----------------------------
+    // Clear all polygon layers from the map
+    // -----------------------------
+    function clearLayers() {
+      if (!map) {
+        console.error("Map is not initialized.");
+        return;
+      }
+      map.eachLayer(layer => {
+        // Remove only polygons (do not remove the base tile layer)
+        if (layer instanceof L.Polygon) {
+          map.removeLayer(layer);
+        }
+      });
+    }
+
+    // -----------------------------
+    // Load the project from localStorage and attach click handlers
+    // -----------------------------
+    function loadProject() {
+      clearLayers();
+      const projectData = JSON.parse(localStorage.getItem("savedProject"));
+      if (!projectData || !projectData.layers) {
+        console.error("No project data found.");
+        return;
+      }
+      projectData.layers.forEach(layerData => {
+        let polygonLayer = L.polygon(layerData.coordinates).addTo(map);
+        // When the polygon is clicked, call openFeatureEditor with the layer's data
+        polygonLayer.on("click", function() {
+          openFeatureEditor(layerData);
+        });
+      });
+      console.log("Project loaded successfully.");
+    }
+    loadProject();
+
+    // -----------------------------
+    // Test button: When clicked, calls openFeatureEditor with sample data.
+    // -----------------------------
+    document.getElementById("editButton").addEventListener("click", function() {
+      openFeatureEditor({ name: "Test Polygon" });
+    });
+  </script>
+</body>
+</html>
