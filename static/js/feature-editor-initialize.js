@@ -121,8 +121,8 @@ function setupEventHandlers() {
       if (window.drawnItems) {
         window.drawnItems.clearLayers();
       }
-      if (window.facilitiesLayer) window.facilitiesLayer.clearLayers(); 
-      if (window.arcsLayer) window.arcsLayer.clearLayers(); 
+      if (window.facilitiesLayer) window.facilitiesLayer.clearLayers();
+      if (window.arcsLayer) window.arcsLayer.clearLayers();
     }
 
     if (e.target && e.target.id === 'saveProject') {
@@ -190,35 +190,41 @@ function closeFeatureEditor() {
 function loadProject() {
   console.log('Loading project...');
   fetch('/api/load')
-  .then(response => response.json())
-  .then(data => {
-    console.log('Project loaded:', data);
-    // Clear existing layers
-    if (window.drawnItems) {
+    .then(response => response.json())
+    .then(data => {
+      console.log('Project loaded:', data);
+
+      // Clear existing layers
       window.drawnItems.clearLayers();
-    }
-    // Add the loaded layers to the map.  This part needs adjustment depending on the structure of data
-    if (data.layers && Array.isArray(data.layers)) {
-      data.layers.forEach(layerData => {
-        try {
-          const layer = L.geoJSON(layerData, {
-            onEachFeature: function(feature, layer) {
-              // Add click handler
-              addLayerClickHandlers(layer);
+
+      // Add features to map
+      if (data.features && data.features.length > 0) {
+        const geoJsonLayer = L.geoJSON(data.features, {
+          onEachFeature: function(feature, layer) {
+            window.drawnItems.addLayer(layer);
+
+            // Bind popup if properties exist
+            if (feature.properties) {
+              layer.bindPopup(createPopupContent(layer));
             }
-          });
-          layer.eachLayer(function(l) {
-            window.drawnItems.addLayer(l);
-          });
-        } catch (error) {
-          console.error('Error adding layer:', error, layerData);
-        }
-      });
-    }
-  })
-  .catch(error => {
-    console.error('Error loading project:', error);
-  });
+
+            // Add click event for editing
+            layer.on('click', function() {
+              if (window.editMode) {
+                openFeatureEditor(layer);
+              }
+            });
+          }
+        });
+
+        console.log(`Loaded ${data.features.length} features`);
+      } else {
+        console.log('No features found in project');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading project:', error);
+    });
 }
 
 function closeFacilityModal() {
@@ -314,20 +320,20 @@ function saveProject() {
     },
     body: JSON.stringify(data)
   })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    return response.json();
-  })
-  .then(result => {
-    console.log('Project saved:', result);
-    alert('Project saved successfully!');
-  })
-  .catch(error => {
-    console.error('Error saving project:', error);
-    alert('Error saving project: ' + error.message);
-  });
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(result => {
+      console.log('Project saved:', result);
+      alert('Project saved successfully!');
+    })
+    .catch(error => {
+      console.error('Error saving project:', error);
+      alert('Error saving project: ' + error.message);
+    });
 }
 
 
@@ -348,3 +354,37 @@ window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
 window.setupFeatureEditorListeners = setupFeatureEditorListeners;
 window.setupEventHandlers = setupEventHandlers;
 window.closeFacilityModal = closeFacilityModal;
+
+
+/**
+ * Create a new layer for drawing
+ */
+function createNewLayer() {
+  const layerName = prompt('Enter layer name:');
+  if (!layerName) return;
+
+  // Add to layer select dropdown
+  const layerSelect = document.getElementById('draw-to-layer');
+  const option = document.createElement('option');
+  option.value = layerName;
+  option.text = layerName;
+  layerSelect.add(option);
+
+  // Select the new layer
+  layerSelect.value = layerName;
+
+  // Create a new feature group for this layer
+  window.layers = window.layers || {};
+  window.layers[layerName] = new L.FeatureGroup();
+  window.map.addLayer(window.layers[layerName]);
+
+  console.log(`Created new layer: ${layerName}`);
+}
+
+// Add event listener for the new layer button
+document.addEventListener('DOMContentLoaded', function() {
+  const newLayerBtn = document.getElementById('new-layer-btn');
+  if (newLayerBtn) {
+    newLayerBtn.addEventListener('click', createNewLayer);
+  }
+});

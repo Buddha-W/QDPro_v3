@@ -1,87 +1,361 @@
 // QDPro Map Initialization 
 // Handles core map functionality
 
-// Global state from edited code
+// Global state from edited code and original code
 window.map = null;
 window.drawnItems = null;
+window.facilitiesLayer = null;
+window.arcsLayer = null;
+window.featureEditor = {};
+window.editMode = false;
 
 
-// Initialize the map when the DOM is loaded
+// Initialize the map when the page loads
 document.addEventListener('DOMContentLoaded', function() {
-  initMap();
-  initializeMapErrorHandling();
+    console.log('Initializing map...');
+    initMap();
+    initializeMapErrorHandling();
 });
 
-// Map Initialization Script for QDPro (combined with edited initMap)
-// This script handles setting up the Leaflet map and basic controls
-
-// Initialize map and related components
+// Initialize the map with base layers and controls (combined from original and edited code)
 function initMap() {
-  console.log('Initializing map...');
-
-  // Create map if it doesn't exist (from edited code)
-  if (!window.map) {
+    // Create the map centered at a default location (adjust as needed)
     window.map = L.map('map', {
-      center: [39.73, -104.99], // From edited code, potentially needs adjustment based on project needs.
-      zoom: 16, // From edited code
-      zoomControl: true,
-      drawControl: false // From edited code
+        center: [39.8283, -98.5795], // Center of the US, can be adjusted
+        zoom: 4
     });
 
-    // Add base tile layer (from edited code, improved attribution)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(window.map);
+    // Add OpenStreetMap base layer (from edited code, improved attribution)
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
 
-    // Initialize drawn items layer (from edited code)
+    // Add satellite imagery base layer (from edited code)
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    });
+
+    // Add topographic base layer (from edited code)
+    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+    });
+
+    // Define base layers (from edited code)
+    const baseLayers = {
+        "OpenStreetMap": osmLayer,
+        "Satellite": satelliteLayer,
+        "Topographic": topoLayer
+    };
+
+    // Add drawn items layer group (from edited and original code)
     window.drawnItems = new L.FeatureGroup();
     window.map.addLayer(window.drawnItems);
 
-
-    // Add base layers (from original code)
-    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      crossOrigin: "anonymous"
-    });
-
-    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-      crossOrigin: "anonymous"
-    });
-
-    // Create layer groups for drawn items (from original code)
     window.facilitiesLayer = new L.FeatureGroup();
-    window.arcsLayer = new L.FeatureGroup();
-
-    // Add layers to map (from original code)
-    window.drawnItems.addTo(map);
     window.facilitiesLayer.addTo(map);
+    window.arcsLayer = new L.FeatureGroup();
     window.arcsLayer.addTo(map);
 
-    // Setup base layers and overlays (from original code)
+
+    // Initialize the draw control (from edited code)
+    const drawControl = new L.Control.Draw({
+        position: 'topleft',
+        draw: {
+            polyline: false,
+            polygon: true,
+            circle: true,
+            rectangle: true,
+            marker: true,
+            circlemarker: false
+        },
+        edit: {
+            featureGroup: window.drawnItems
+        }
+    });
+
+    // Add the draw control to the map (from edited code)
+    window.map.addControl(drawControl);
+
+    // Handle the created event when a shape is drawn (from edited code)
+    window.map.on('draw:created', function(e) {
+        const layer = e.layer;
+
+        // Create a GeoJSON feature (from edited code)
+        layer.feature = {
+            type: 'Feature',
+            properties: {
+                name: 'New Feature',
+                description: ''
+            }
+        };
+
+        // Add to the drawn items layer (from edited code)
+        window.drawnItems.addLayer(layer);
+
+        // Bind popup with edit button (from edited code)
+        layer.bindPopup(createPopupContent(layer));
+
+        // Add click event for editing when in edit mode (from edited code)
+        layer.on('click', function() {
+            if (window.editMode) {
+                openFeatureEditor(layer);
+            }
+        });
+
+        // Open the feature editor for the new shape (from edited code)
+        openFeatureEditor(layer);
+    });
+
+    // Handle edited shapes (from edited code)
+    window.map.on('draw:edited', function(e) {
+        const layers = e.layers;
+        layers.eachLayer(function(layer) {
+            // Update popup after edit (from edited code)
+            if (layer.getPopup()) {
+                layer.setPopup(createPopupContent(layer));
+            }
+        });
+    });
+
+    // Set up custom layer controls (from edited code)
+    setupLayerControls(baseLayers);
+
+    // Set up custom drawing tools (from edited code)
+    setupDrawingTools();
+
+    console.log('Map initialized successfully');
+    document.dispatchEvent(new Event('map-initialized'));
+
+     // Setup base layers and overlays (from original code)
     const baseLayers = {
       "OpenStreetMap": osmLayer,
-      "Satellite": satelliteLayer
+      "Satellite": satelliteLayer,
+      "Topographic": topoLayer
     };
-
+    
     const overlays = {
       "Drawn Items": window.drawnItems,
       "Facilities": window.facilitiesLayer,
       "Arcs": window.arcsLayer
     };
-
+    
     // Add layer control (from original code)
     L.control.layers(baseLayers, overlays).addTo(map);
-
+    
     // Initialize draw controls (from original code)
     initializeDrawControls();
-
+    
     // Setup layer click handlers (from original code)
     setupLayerClickHandlers();
 
-    console.log('Map initialized successfully');
-    document.dispatchEvent(new Event('map-initialized'));
-  }
+    // Load initial data (from edited code)
+    loadInitialData();
+}
+
+// Create popup content with properties and edit button (from edited code)
+function createPopupContent(layer) {
+    const properties = layer.feature?.properties || {};
+    const name = properties.name || 'Unnamed Feature';
+    const description = properties.description || '';
+
+    let popupContent = `<div class="feature-popup">
+                           <h4>${name}</h4>`;
+
+    if (description) {
+        popupContent += `<p>${description}</p>`;
+    }
+
+    popupContent += `<button class="btn btn-sm btn-primary edit-feature-btn" 
+                       onclick="openFeatureEditor(window.drawnItems.getLayer(${window.drawnItems.getLayerId(layer)}))">
+                       Edit Properties
+                    </button>
+                    </div>`;
+
+    return popupContent;
+}
+
+// Open the feature editor for a layer (from edited code)
+function openFeatureEditor(layer) {
+    console.log('Opening feature editor for layer:', layer);
+
+    // Get properties or set defaults (from edited code)
+    const properties = layer.feature?.properties || {};
+    const name = properties.name || '';
+    const description = properties.description || '';
+
+    // Set values in the form (from edited code)
+    document.getElementById('feature-name').value = name;
+    document.getElementById('feature-description').value = description;
+
+    // Set the active feature (from edited code)
+    window.featureEditor.activeFeature = layer;
+
+    // Show the modal (from edited code)
+    const modal = document.getElementById('featurePropertiesModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+// Set up custom layer controls (from edited code)
+function setupLayerControls(baseLayers) {
+    // Add base layer controls to the right panel (from edited code)
+    const baseLayersDiv = document.getElementById('base-layers-control');
+    baseLayersDiv.innerHTML = '<div class="panel-header">Base Maps</div>';
+
+    for (const [name, layer] of Object.entries(baseLayers)) {
+        const layerControl = document.createElement('div');
+        layerControl.className = 'form-check';
+
+        const layerInput = document.createElement('input');
+        layerInput.className = 'form-check-input';
+        layerInput.type = 'radio';
+        layerInput.name = 'baseLayerRadio';
+        layerInput.id = `baseLayer-${name}`;
+        layerInput.checked = (name === 'OpenStreetMap'); // Default selection
+
+        layerInput.addEventListener('change', function() {
+            if (this.checked) {
+                // Remove all base layers (from edited code)
+                for (const baseLayer of Object.values(baseLayers)) {
+                    window.map.removeLayer(baseLayer);
+                }
+                // Add the selected base layer (from edited code)
+                window.map.addLayer(layer);
+            }
+        });
+
+        const layerLabel = document.createElement('label');
+        layerLabel.className = 'form-check-label';
+        layerLabel.htmlFor = `baseLayer-${name}`;
+        layerLabel.textContent = name;
+
+        layerControl.appendChild(layerInput);
+        layerControl.appendChild(layerLabel);
+        baseLayersDiv.appendChild(layerControl);
+    }
+}
+
+// Set up custom drawing tools (from edited code)
+function setupDrawingTools() {
+    // Reference to drawing tool buttons (from edited code)
+    const polygonTool = document.getElementById('polygon-tool');
+    const rectangleTool = document.getElementById('rectangle-tool');
+    const circleTool = document.getElementById('circle-tool');
+    const markerTool = document.getElementById('marker-tool');
+    const deleteTool = document.getElementById('delete-tool');
+    const editTool = document.getElementById('edit-tool');
+
+    // Initialize edit mode flag (from edited code)
+    window.editMode = false;
+
+    // Polygon tool click handler (from edited code)
+    polygonTool.addEventListener('click', function() {
+        resetActiveTools();
+        this.classList.add('active');
+        new L.Draw.Polygon(window.map).enable();
+    });
+
+    // Rectangle tool click handler (from edited code)
+    rectangleTool.addEventListener('click', function() {
+        resetActiveTools();
+        this.classList.add('active');
+        new L.Draw.Rectangle(window.map).enable();
+    });
+
+    // Circle tool click handler (from edited code)
+    circleTool.addEventListener('click', function() {
+        resetActiveTools();
+        this.classList.add('active');
+        new L.Draw.Circle(window.map).enable();
+    });
+
+    // Marker tool click handler (from edited code)
+    markerTool.addEventListener('click', function() {
+        resetActiveTools();
+        this.classList.add('active');
+        new L.Draw.Marker(window.map).enable();
+    });
+
+    // Delete tool click handler (from edited code)
+    deleteTool.addEventListener('click', function() {
+        resetActiveTools();
+        this.classList.add('active');
+
+        // Enter delete mode (from edited code)
+        window.drawnItems.eachLayer(function(layer) {
+            layer.on('click', deleteFeature);
+        });
+
+        // Set cursor to indicate delete mode (from edited code)
+        document.getElementById('map').style.cursor = 'crosshair';
+    });
+
+    // Edit tool click handler (from edited code)
+    editTool.addEventListener('click', function() {
+        resetActiveTools();
+        this.classList.add('active');
+
+        // Toggle edit mode (from edited code)
+        window.editMode = !window.editMode;
+        if (window.editMode) {
+            this.classList.add('btn-primary');
+            this.classList.remove('btn-outline-secondary');
+            document.getElementById('map').style.cursor = 'pointer';
+        } else {
+            this.classList.remove('btn-primary');
+            this.classList.add('btn-outline-secondary');
+            document.getElementById('map').style.cursor = '';
+        }
+    });
+}
+
+// Reset all active tool buttons (from edited code)
+function resetActiveTools() {
+    const toolButtons = document.querySelectorAll('.tool-button');
+    toolButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Exit delete mode (from edited code)
+    window.drawnItems.eachLayer(function(layer) {
+        layer.off('click', deleteFeature);
+    });
+
+    // Reset cursor (from edited code)
+    document.getElementById('map').style.cursor = '';
+
+    // Reset edit mode (from edited code)
+    window.editMode = false;
+    const editTool = document.getElementById('edit-tool');
+    if (editTool) {
+        editTool.classList.remove('btn-primary');
+        editTool.classList.add('btn-outline-secondary');
+    }
+}
+
+// Delete a feature when clicked (from edited code)
+function deleteFeature(e) {
+    const layer = e.target;
+    if (confirm('Are you sure you want to delete this feature?')) {
+        window.drawnItems.removeLayer(layer);
+    }
+}
+
+// Load initial data from the server (from edited code)
+function loadInitialData() {
+    fetch('/api/db_status')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Database status:', data);
+            if (data.status === 'connected') {
+                console.log('Database connected, loading project data...');
+                loadProject();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking database status:', error);
+        });
 }
 
 
@@ -171,37 +445,27 @@ function loadProjectData(data) {
 }
 
 
-// Function from edited code, improved handling of different layer types
-function createPopupContent(layer) {
-  const props = layer.feature.properties;
-  let content = `<div><strong>${props.name || 'Unnamed Feature'}</strong>`;
-
-  if (props.description) {
-    content += `<p>${props.description}</p>`;
-  }
-
-  content += `<button onclick="openEditPopup(${layer._leaflet_id})">Edit Properties</button></div>`;
-  return content;
-}
-
 // Function from edited code, uses the improved modal
-function openFeatureEditor(properties, layer) {
-  const modal = document.getElementById('featurePropertiesModal');
-  if (!modal) {
-    console.error('Feature properties modal not found in the DOM');
-    return;
-  }
+function openFeatureEditor(layer) {
+  console.log('Opening feature editor for layer:', layer);
 
-  // Set active feature for later reference (from edited code)
-  window.featureEditor = window.featureEditor || {};
+  // Get properties or set defaults
+  const properties = layer.feature?.properties || {};
+  const name = properties.name || '';
+  const description = properties.description || '';
+
+  // Set values in the form
+  document.getElementById('feature-name').value = name;
+  document.getElementById('feature-description').value = description;
+
+  // Set the active feature for later reference
   window.featureEditor.activeFeature = layer;
 
-  // Populate form fields (from edited code)
-  document.getElementById('feature-name').value = properties.name || '';
-  document.getElementById('feature-description').value = properties.description || '';
-
-  // Show the modal (from edited code)
-  modal.style.display = 'block';
+  // Show the modal
+  const modal = document.getElementById('featurePropertiesModal');
+  if (modal) {
+    modal.style.display = 'block';
+  }
 }
 
 // Function from edited code
@@ -221,17 +485,17 @@ function saveLayers() {
 
   const layers = [];
   window.drawnItems.eachLayer(function(layer) {
-    // Convert layer to GeoJSON (from edited code)
+    // Convert layer to GeoJSON
     const geoJSON = layer.toGeoJSON();
     layers.push(geoJSON);
   });
 
-  // Prepare data for saving (from edited code)
+  // Prepare data for saving
   const data = {
     layers: layers
   };
 
-  // Send data to server (from edited code)
+  // Send data to server
   fetch('/api/save', {
     method: 'POST',
     headers: {
@@ -257,34 +521,34 @@ function loadSavedLayers() {
   .then(data => {
     console.log('Loaded data:', data);
 
-    // Clear existing layers (from edited code)
+    // Clear existing layers
     if (window.drawnItems) {
       window.drawnItems.clearLayers();
     }
 
-    // Add loaded layers to the map (from edited code)
+    // Add loaded layers to the map
     if (data.layers && data.layers.length > 0) {
       data.layers.forEach(function(geoJSON) {
         const layer = L.geoJSON(geoJSON);
         layer.eachLayer(function(l) {
           window.drawnItems.addLayer(l);
 
-          // Ensure the layer has a feature property (from edited code)
+          // Ensure the layer has a feature property
           if (!l.feature) {
             l.feature = geoJSON;
           }
 
-          // Add click handlers for editing (from edited code)
+          // Add click handlers for editing
           addLayerClickHandlers(l);
 
-          // Add popup if it has properties (from edited code)
+          // Add popup if it has properties
           if (l.feature.properties) {
             l.bindPopup(createPopupContent(l));
           }
         });
       });
 
-      // Fit map to show all layers (from edited code)
+      // Fit map to show all layers
       window.map.fitBounds(window.drawnItems.getBounds());
     }
   })
@@ -301,7 +565,7 @@ function addLayerClickHandlers(layer) {
   layer.on('click', function(e) {
     L.DomEvent.stopPropagation(e);
 
-    // Open the feature editor for this layer (from edited code)
+    // Open the feature editor for this layer
     if (layer.feature && layer.feature.properties) {
       openFeatureEditor(layer.feature.properties, layer);
     } else {
@@ -370,27 +634,36 @@ function saveFeatureProperties(layerId) {
       return;
     }
 
-    // Get values from form (from original code)  -  Note: Assumes the IDs are consistent with the edited code
+    // Get values from form
     const name = document.getElementById('feature-name').value;
     const description = document.getElementById('feature-description').value;
-    //const type = document.getElementById('featureType').value; //removed type, as it is not used anymore
 
-    // Update layer properties (from original code)
+    // Update layer properties
     targetLayer.feature.properties = {
       name: name,
-      description: description,
-      //type: type //removed type, as it is not used anymore
+      description: description
     };
 
-    // Update popup content (from original code)
+    // Update popup content
     if (targetLayer.getPopup()) {
       targetLayer.setPopupContent(createPopupContent(targetLayer));
     } else {
       targetLayer.bindPopup(createPopupContent(targetLayer));
     }
 
-    // Close the modal (from original code)
+    // Close the modal
     closeModal();
 
     console.log('Saved properties for layer:', targetLayer);
   }
+
+// Placeholder for loadProject function (implementation needed based on project specifics)
+function loadProject() {
+    fetch('/api/loadProject')
+        .then(response => response.json())
+        .then(data => loadProjectData(data))
+        .catch(error => {
+            console.error('Error loading project:', error);
+            alert('Error loading project. See console for details.');
+        });
+}
