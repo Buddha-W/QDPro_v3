@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QD Engine Dashboard</title>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 600px; width: 100%; }
+  </style>
+  <!-- Global function defined in the head ensures it's available for inline onclick handlers -->
+  <script>
+    // Force global availability by attaching to window
+    window.openFeatureEditor = function(layerData) {
+      if (!layerData || !layerData.name) {
+        console.error("Invalid layer data:", layerData);
+        return;
+      }
+      // For now, display an alert; later you can replace with a modal or editor UI
+      alert("Editing polygon: " + layerData.name);
+    };
+  </script>
+</head>
+<body>
+  <h1>QD Engine Dashboard</h1>
+  <!-- The map container -->
+  <div id="map"></div>
+  <!-- Example inline Edit Properties button in case you're using one -->
+  <button onclick="window.openFeatureEditor({name: 'Inline Test Polygon'})">
+    Edit Properties (Inline)
+  </button>
+  <script>
+    // Global map variable
+    let map;
+
+    // Initialize the map
+    function initMap() {
+      map = L.map('map').setView([40.7128, -74.0060], 5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+    }
+    initMap();
+
+    // Sample project data stored in localStorage for simulation
+    const sampleProjectData = {
+      layers: [
+        {
+          name: "Polygon A",
+          coordinates: [
+            [40.7128, -74.0060],
+            [40.7228, -74.0160],
+            [40.7328, -74.0060]
+          ]
+        },
+        {
+          name: "Polygon B",
+          coordinates: [
+            [41.7128, -75.0060],
+            [41.7228, -75.0160],
+            [41.7328, -75.0060]
+          ]
+        }
+      ]
+    };
+    localStorage.setItem("savedProject", JSON.stringify(sampleProjectData));
+
+    // Clear existing polygon layers (but not the base tile layer)
+    function clearLayers() {
+      if (!map) {
+        console.error("Map is not initialized.");
+        return;
+      }
+      map.eachLayer(layer => {
+        // Only remove polygons (leave the tile layer intact)
+        if (layer instanceof L.Polygon) {
+          map.removeLayer(layer);
+        }
+      });
+    }
+
+    // Load project data from localStorage and add polygons with click handlers
+    function loadProject() {
+      clearLayers();
+      const projectData = JSON.parse(localStorage.getItem("savedProject"));
+      if (!projectData || !projectData.layers) {
+        console.error("No project data found.");
+        return;
+      }
+      projectData.layers.forEach(layerData => {
+        const polygonLayer = L.polygon(layerData.coordinates).addTo(map);
+        // Attach click handler; using window.openFeatureEditor ensures we reference the global function
+        polygonLayer.on("click", () => window.openFeatureEditor(layerData));
+      });
+      console.log("Project loaded successfully.");
+    }
+    loadProject();
+  </script>
+</body>
+</html>
