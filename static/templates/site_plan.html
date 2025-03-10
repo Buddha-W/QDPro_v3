@@ -357,7 +357,11 @@
           }
         });
         document.getElementById("baseLayerTool").addEventListener("click", () => this.toggleBaseLayerDropdown());
-        document.getElementById("bookmarksTool").addEventListener("click", () => this.toggleBookmarksDropdown());
+        document.getElementById("bookmarksTool").addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.toggleBookmarksDropdown();
+        });
         document.getElementById("zoomInBtn").addEventListener("click", () => this.map.zoomIn());
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.map.zoomOut());
         document.getElementById("drawMarker").addEventListener("click", () => this.activateTool("marker", "drawMarker"));
@@ -561,8 +565,12 @@
             bookmarksDropdown.style.minWidth = "200px";
             
             // Update the bookmarks dropdown
-            if (typeof updateBookmarksDropdown === 'function') {
+            if (typeof window.updateBookmarksDropdown === 'function') {
+              window.updateBookmarksDropdown();
+            } else if (typeof updateBookmarksDropdown === 'function') {
               updateBookmarksDropdown();
+            } else {
+              console.error("updateBookmarksDropdown function not found");
             }
             
             // Show the dropdown

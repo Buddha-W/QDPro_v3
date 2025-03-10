@@ -594,6 +594,7 @@ function createBookmark() {
   // Create a modal to name the bookmark
   const modal = document.createElement('div');
   modal.className = 'modal';
+  modal.id = 'bookmarkModal';
   modal.style = 'display: block; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
 
   const modalContent = `
@@ -670,8 +671,12 @@ function loadBookmark(name) {
   const bookmark = bookmarks[name];
   
   // Set map view to the bookmarked position
-  window.map.setView(bookmark.center, bookmark.zoom);
-  console.log(`Loaded bookmark "${name}"`);
+  if (window.map) {
+    window.map.setView(bookmark.center, bookmark.zoom);
+    console.log(`Loaded bookmark "${name}"`);
+  } else {
+    console.error("Map not available to load bookmark");
+  }
 }
 
 function deleteBookmark(name) {
@@ -712,13 +717,14 @@ function updateBookmarksDropdown() {
   // Make sure the dropdown is visible
   dropdown.style.display = 'block';
   
-  // Add a proper heading and styling to make it visible
+  // Add proper styling to make it visible
   dropdown.style.backgroundColor = '#fff';
   dropdown.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
   dropdown.style.borderRadius = '4px';
   dropdown.style.minWidth = '200px';
   dropdown.style.padding = '5px 0';
   dropdown.style.zIndex = '3000';
+  dropdown.style.position = 'absolute';
   
   // Get bookmarks from storage
   const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
