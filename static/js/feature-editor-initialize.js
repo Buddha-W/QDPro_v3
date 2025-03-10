@@ -813,46 +813,55 @@ function createBookmark() {
     }
     
     // Continue with bookmark creation now that we've verified map is available
+    const currentView = {
+      center: window.map.getCenter(),
+      zoom: window.map.getZoom()
+    };
 
-  const currentView = {
-    center: window.map.getCenter(),
-    zoom: window.map.getZoom()
-  };
+    // Create a modal to name the bookmark
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'bookmarkModal';
+    modal.style = 'display: block; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
 
-  // Create a modal to name the bookmark
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.id = 'bookmarkModal';
-  modal.style = 'display: block; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
-
-  const modalContent = `
-    <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
-      <h2>Save Bookmark</h2>
-      <div style="margin-bottom: 15px;">
-        <label for="bookmarkName">Bookmark Name:</label>
-        <input type="text" id="bookmarkName" style="width: 100%; padding: 5px; margin-top: 5px;" placeholder="Enter a name for this view">
+    const modalContent = `
+      <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+        <h2>Save Bookmark</h2>
+        <div style="margin-bottom: 15px;">
+          <label for="bookmarkName">Bookmark Name:</label>
+          <input type="text" id="bookmarkName" style="width: 100%; padding: 5px; margin-top: 5px;" placeholder="Enter a name for this view">
+        </div>
+        <div style="display: flex; justify-content: flex-end;">
+          <button id="cancelBookmarkBtn" style="padding: 8px 15px; margin-right: 10px;">Cancel</button>
+          <button id="saveBookmarkBtn" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none;">Save</button>
+        </div>
       </div>
-      <div style="display: flex; justify-content: flex-end;">
-        <button id="cancelBookmarkBtn" style="padding: 8px 15px; margin-right: 10px;">Cancel</button>
-        <button id="saveBookmarkBtn" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none;">Save</button>
-      </div>
-    </div>
-  `;
+    `;
 
-  modal.innerHTML = modalContent;
-  document.body.appendChild(modal);
-  }, 500); // Half-second delay to ensure map is loaded
+    modal.innerHTML = modalContent;
+    document.body.appendChild(modal);
 
-  // Focus on input field
-  setTimeout(() => {
+    // Focus on input field - moved inside setTimeout to ensure elements exist
     const input = document.getElementById('bookmarkName');
     if (input) input.focus();
-  }, 100);
 
-  // Add event listeners
-  document.getElementById('cancelBookmarkBtn').addEventListener('click', function() {
-    document.body.removeChild(modal);
-  });
+    // Add event listeners - moved inside setTimeout to ensure elements exist
+    document.getElementById('cancelBookmarkBtn').addEventListener('click', function() {
+      document.body.removeChild(modal);
+    });
+
+    document.getElementById('saveBookmarkBtn').addEventListener('click', function() {
+      const bookmarkName = document.getElementById('bookmarkName').value.trim();
+      if (bookmarkName) {
+        saveBookmark(bookmarkName, currentView);
+        document.body.removeChild(modal);
+      } else {
+        alert('Please enter a name for the bookmark');
+      }
+    });
+    
+  }, 500); // Half-second delay to ensure map is loaded
+}
 
   document.getElementById('saveBookmarkBtn').addEventListener('click', function() {
     const bookmarkName = document.getElementById('bookmarkName').value.trim();

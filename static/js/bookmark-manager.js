@@ -53,6 +53,25 @@ function createBookmarkSimple() {
   }
 }
 
+// Function to save a bookmark
+function saveBookmark(name, view) {
+  try {
+    // Format the bookmark data
+    const bookmark = {
+      center: [view.center.lat, view.center.lng],
+      zoom: view.zoom,
+      created: new Date().toISOString()
+    };
+    
+    saveBookmarkToStorage(name, bookmark);
+    updateBookmarksDropdown();
+    console.log(`Bookmark "${name}" saved`);
+  } catch (error) {
+    console.error("Error saving bookmark:", error);
+    alert("Error saving bookmark: " + error.message);
+  }
+}
+
 // For backwards compatibility - redirects to the appropriate function
 function createBookmark() {
   // Use the main createBookmark function from feature-editor-initialize.js if it exists,
