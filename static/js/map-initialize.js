@@ -151,13 +151,6 @@ function setupAllLayerEditHandlers() {
   }
 }
 
-// Make functions globally available
-window.initMap = initMap;
-window.polygonClickHandler = polygonClickHandler;
-window.addLayerClickHandlers = addLayerClickHandlers;
-window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
-
-
 // Sample project data for testing
 const sampleProjectData = {
   layers: [
@@ -210,17 +203,22 @@ function clearLayers() {
   console.log("Layers cleared");
 }
 
-// Initialize when the document is ready
+// QDPro Map Initialization Script
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("Map initialization module loaded");
+  console.log('Map initializer loaded');
 
-  // Initialize the map
-  initMap();
+  // Initialize map if not already done
+  if (!window.map) {
+    initializeMap();
+  }
+
+  // Set up error handling for map components
+  setupMapErrorHandling();
 
   // Ensure we have sample data
   ensureSampleData();
 
-  // Add edit button functionality if present
+    // Add edit button functionality if present
   const editButton = document.getElementById('editButton');
   if (editButton) {
     editButton.addEventListener('click', function() {
@@ -242,31 +240,6 @@ document.addEventListener('DOMContentLoaded', function() {
     loadProject();
   }, 300);
 
-  // Make functions globally available
-  window.initMap = initMap;
-  window.loadProject = loadProject;
-  window.clearLayers = clearLayers;
-
-  //added from edited snippet
-  console.log("Map initialization script loaded");
-
-  // Initialize the map if not already done
-  if (!window.map) {
-    console.log("Creating map instance");
-
-    // Create map centered on default location
-    window.map = L.map('map', {
-      center: [39.8283, -98.5795], // Center of the US
-      zoom: 5
-    });
-
-    // Add base map layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(window.map);
-
-    console.log("Map initialized successfully");
-  }
 
   // Setup click handlers for all layers
   setupAllLayerEditHandlers();
@@ -316,6 +289,121 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+
+// Initialize Leaflet.Draw controls
+function initializeDrawControls() {
+  // Create draw control
+  window.drawControl = new L.Control.Draw({
+    draw: {
+      polyline: true,
+      polygon: {
+        allowIntersection: false,
+        drawError: {
+          color: '#e1e100',
+          message: '<strong>Error:</strong> Shape edges cannot cross!'
+        },
+        shapeOptions: {
+          color: '#3388ff'
+        }
+      },
+      circle: true,
+      rectangle: true,
+      marker: true
+    },
+    edit: {
+      featureGroup: window.drawnItems,
+      remove: true
+    }
+  });
+  window.map.addControl(window.drawControl);
+
+  // Set up event listeners for draw events
+  window.map.on(L.Draw.Event.CREATED, function(event) {
+    const layer = event.layer;
+    window.drawnItems.addLayer(layer);
+
+    // Open edit popup for the newly created layer
+    if (typeof openEditPopup === 'function') {
+      openEditPopup(layer);
+    }
+  });
+}
+
+// Set up error handling for map components
+function setupMapErrorHandling() {
+  // Handle issues with Leaflet Draw
+  if (L && L.Draw) {
+    // Fix for draw handlers
+    const checkForDrawErrors = function() {
+      if (window.map && window.drawControl) {
+        try {
+          // Ensure handlers are properly initialized
+          if (!window.drawControl._toolbars.draw._modes.polygon.handler) {
+            console.warn('Reinitializing draw controls due to missing handlers');
+            window.map.removeControl(window.drawControl);
+            initializeDrawControls();
+          }
+        } catch (e) {
+          console.error('Error checking draw handlers:', e);
+        }
+      }
+    };
+
+    // Check periodically
+    setInterval(checkForDrawErrors, 5000);
+  }
+}
+
+// Helper to show error notifications if not defined elsewhere
+function showErrorNotification(message, source, line) {
+  // Skip if already defined in error-detector.js
+  if (window.showErrorNotificationDefined) return;
+
+  console.error(`Error: ${message} in ${source}:${line}`);
+
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.style.position = 'fixed';
+  notification.style.bottom = '20px';
+  notification.style.right = '20px';
+  notification.style.backgroundColor = '#f44336';
+  notification.style.color = 'white';
+  notification.style.padding = '15px';
+  notification.style.borderRadius = '5px';
+  notification.style.zIndex = '9999';
+  notification.textContent = `Error: ${message}`;
+
+  // Add close button
+  const closeButton = document.createElement('span');
+  closeButton.style.marginLeft = '15px';
+  closeButton.style.fontWeight = 'bold';
+  closeButton.style.cursor = 'pointer';
+  closeButton.textContent = '✕';
+  closeButton.onclick = function() {
+    document.body.removeChild(notification);
+  };
+  notification.appendChild(closeButton);
+
+  // Add to body
+  document.body.appendChild(notification);
+
+  // Auto remove after 10 seconds
+  setTimeout(function() {
+    if (document.body.contains(notification)) {
+      document.body.removeChild(notification);
+    }
+  }, 10000);
+}
+
+// Make functions globally available
+window.initMap = initMap;
+window.polygonClickHandler = polygonClickHandler;
+window.addLayerClickHandlers = addLayerClickHandlers;
+window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
+window.initializeMap = initializeMap;
+window.initializeDrawControls = initializeDrawControls;
+window.setupMapErrorHandling = setupMapErrorHandling;
+window.showErrorNotification = showErrorNotification;
 
 // Make sure we add the CSS for the modal
 const modalCss = document.createElement('style');
@@ -403,84 +491,14 @@ modalCss.textContent = `
 }
 `;
 document.head.appendChild(modalCss);
-/**
- * QDPro Map Initializer
- * Handles map initialization and common error recovery
- */
 
-// Initialize the map when the DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Map initializer loaded');
-  
-  // Initialize the map if it doesn't exist yet
-  if (!window.map && document.getElementById('map')) {
-    try {
-      initializeMap();
-    } catch (e) {
-      console.error('Error initializing map:', e);
-      showErrorNotification('Failed to initialize map: ' + e.message);
-    }
-  }
-  
-  // Set up error handling for Leaflet components
-  initializeMapErrorHandling();
-});
-
-// Function to initialize the map
-function initializeMap() {
-  console.log('Initializing map...');
-  
-  // Create map in the 'map' div with default settings
-  window.map = L.map('map', {
-    center: [39.8283, -98.5795], // Center of the US
-    zoom: 5,
-    zoomControl: true,
-    attributionControl: true
-  });
-  
-  // Add the default OpenStreetMap tile layer
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19
-  }).addTo(window.map);
-  
-  console.log('Map initialized successfully');
-  
-  // Setup layer click handlers
-  if (typeof setupLayerClickHandlers === 'function') {
-    setupLayerClickHandlers();
-  }
-}
-
-// Map error handling functions
-function initializeMapErrorHandling() {
-  if (L && L.Draw) {
-    // Fix for draw handlers
-    const checkForDrawErrors = function() {
-      if (window.map && window.map._renderer && !window.map._renderer._bounds) {
-        console.warn('Renderer bounds missing, attempting to fix');
-        try {
-          window.map._renderer._bounds = L.bounds(
-            L.point(0, 0),
-            L.point(window.map.getSize().x, window.map.getSize().y)
-          );
-        } catch (e) {
-          console.error('Failed to fix renderer bounds:', e);
-        }
-      }
-    };
-    
-    // Add periodic check for renderer issues
-    setInterval(checkForDrawErrors, 5000);
-  }
-}
 
 // Global handler for layer clicks
 window.handleLayerClick = function(layer) {
   console.log('Layer clicked:', layer);
   if (layer.feature && layer.feature.properties) {
     console.log('Feature properties:', layer.feature.properties);
-    
+
     // Open appropriate editor based on feature type
     if (typeof openEditPopup === 'function') {
       openEditPopup(layer);
@@ -491,7 +509,7 @@ window.handleLayerClick = function(layer) {
 // Helper to show error notifications
 function showErrorNotification(message, source, line) {
   console.error(message, source, line);
-  
+
   // Use built-in notification function if available
   if (typeof window.showErrorNotification === 'function') {
     window.showErrorNotification(message, source, line);
@@ -507,9 +525,9 @@ function showErrorNotification(message, source, line) {
     notification.style.borderRadius = '5px';
     notification.style.zIndex = '5000';
     notification.textContent = message;
-    
+
     document.body.appendChild(notification);
-    
+
     // Remove after 5 seconds
     setTimeout(function() {
       notification.remove();
