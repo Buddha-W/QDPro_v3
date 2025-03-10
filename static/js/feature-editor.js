@@ -1,10 +1,8 @@
 // Global variables for feature editing
 let map;
 let activeEditingLayer = null;
-let selectedFeatureProps = null;
 
 // Ensure openFeatureEditor is defined on window immediately
-// This declaration at the top ensures the function is available globally
 window.openFeatureEditor = function(layerData) {
   console.log("Opening feature editor for", layerData);
   const modal = document.getElementById('featurePropertiesModal');
@@ -17,8 +15,10 @@ window.openFeatureEditor = function(layerData) {
 
     // Populate form fields if available
     const nameField = document.getElementById('feature_name');
-    if (nameField && layerData && layerData.feature && layerData.feature.properties) {
-      nameField.value = layerData.feature.properties.name || '';
+    if (nameField && layerData && layerData.properties) {
+      nameField.value = layerData.properties.name || '';
+    } else if (nameField && layerData && layerData.name) {
+      nameField.value = layerData.name || '';
     }
   } else {
     console.error("Feature properties modal not found");
@@ -42,18 +42,18 @@ function initFeatureEditor(mapInstance) {
 /**
  * Close the feature properties modal
  */
-window.closeFeaturePropertiesModal = function() {
+function closeFeaturePropertiesModal() {
   const modal = document.getElementById('featurePropertiesModal');
   if (modal) {
     modal.style.display = 'none';
   }
   window.activeEditingLayer = null;
-};
+}
 
 /**
  * Save the edited feature properties
  */
-window.saveFeatureProperties = function() {
+function saveFeatureProperties() {
   console.log("Saving feature properties");
   if (!window.activeEditingLayer) {
     console.error("No active editing layer");
@@ -61,11 +61,16 @@ window.saveFeatureProperties = function() {
   }
 
   const nameField = document.getElementById('feature_name');
-  if (nameField && window.activeEditingLayer.feature) {
-    if (!window.activeEditingLayer.feature.properties) {
-      window.activeEditingLayer.feature.properties = {};
+  if (nameField) {
+    if (window.activeEditingLayer.feature) {
+      if (!window.activeEditingLayer.feature.properties) {
+        window.activeEditingLayer.feature.properties = {};
+      }
+      window.activeEditingLayer.feature.properties.name = nameField.value;
+    } else if (typeof window.activeEditingLayer === 'object') {
+      // Handle direct property objects
+      window.activeEditingLayer.name = nameField.value;
     }
-    window.activeEditingLayer.feature.properties.name = nameField.value;
 
     // Update the layer's popup if it has one
     if (window.activeEditingLayer.getPopup) {
@@ -76,216 +81,86 @@ window.saveFeatureProperties = function() {
     }
   }
 
-  window.closeFeaturePropertiesModal();
-};
+  closeFeaturePropertiesModal();
+}
 
 /**
- * Toggle the explosive section visibility
+ * Toggle the visibility of the explosive section
  */
-window.toggleExplosiveSection = function() {
-  const hasExplosive = document.getElementById('has_explosive');
+function toggleExplosiveSection() {
+  const checkbox = document.getElementById('has_explosive');
   const explosiveSection = document.getElementById('explosiveSection');
 
-  if (hasExplosive && explosiveSection) {
-    explosiveSection.style.display = hasExplosive.checked ? 'block' : 'none';
+  if (checkbox && explosiveSection) {
+    explosiveSection.style.display = checkbox.checked ? 'block' : 'none';
   }
-};
-
-// Export functions for module use
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    initFeatureEditor,
-    openFeatureEditor: window.openFeatureEditor,
-    closeFeaturePropertiesModal: window.closeFeaturePropertiesModal,
-    saveFeatureProperties: window.saveFeatureProperties,
-    toggleExplosiveSection: window.toggleExplosiveSection
-  };
-}
-
-// Initialize on DOM content loaded
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("Feature editor script loaded");
-});
-
-
-/**
- * Create the feature properties modal if it doesn't exist
- */
-function createFeaturePropertiesModal() {
-  console.log("Creating feature properties modal");
-
-  // Check if modal already exists
-  if (document.getElementById('featurePropertiesModal')) {
-    console.log("Modal already exists, skipping creation");
-    return;
-  }
-
-  // Create modal container
-  const modal = document.createElement('div');
-  modal.id = 'featurePropertiesModal';
-  modal.className = 'modal';
-
-  // Create modal content
-  const modalContent = document.createElement('div');
-  modalContent.className = 'modal-content';
-
-  // Create form
-  const form = document.createElement('form');
-  form.id = 'featurePropertiesForm';
-
-  // Create form contents
-  form.innerHTML = `
-    <h3>Feature Properties</h3>
-    <div class="form-group">
-      <label for="feature_name">Name:</label>
-      <input type="text" id="feature_name" name="feature_name" required>
-    </div>
-    <div class="form-group">
-      <label for="type">Type:</label>
-      <select id="type" name="type">
-        <option value="Polygon">Polygon</option>
-        <option value="Marker">Marker</option>
-        <option value="Line">Line</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="description">Description:</label>
-      <textarea id="description" name="description"></textarea>
-    </div>
-    <div class="form-group">
-      <label for="is_facility">Is Facility:</label>
-      <input type="checkbox" id="is_facility" name="is_facility">
-    </div>
-    <div class="form-group">
-      <label for="has_explosive">Has Explosive:</label>
-      <input type="checkbox" id="has_explosive" name="has_explosive" onchange="toggleExplosiveSection()">
-    </div>
-    <div id="explosiveSection" style="display:none;">
-      <div class="form-group">
-        <label for="net_explosive_weight">Net Explosive Weight (lbs):</label>
-        <input type="number" id="net_explosive_weight" name="net_explosive_weight" min="0">
-      </div>
-      <div class="form-group">
-        <label for="hazard_division">Hazard Division:</label>
-        <select id="hazard_division" name="hazard_division">
-          <option value="1.1">1.1 - Mass Detonation</option>
-          <option value="1.2">1.2 - Non-mass Detonation, Fragment Producing</option>
-          <option value="1.3">1.3 - Mass Fire, Minor Blast or Fragment</option>
-          <option value="1.4">1.4 - Moderate Fire, No Blast or Fragment</option>
-        </select>
-      </div>
-    </div>
-    <div class="button-group">
-      <button type="button" onclick="saveFeatureProperties()">Save</button>
-      <button type="button" onclick="closeFeaturePropertiesModal()">Cancel</button>
-    </div>
-  `;
-
-  // Add form to modal content
-  modalContent.appendChild(form);
-  modal.appendChild(modalContent);
-
-  // Add modal to document body
-  document.body.appendChild(modal);
-
-  console.log("Feature properties modal created successfully");
 }
 
 /**
- * Add click handlers to a layer
- * @param {L.Layer} layer - The layer to add click handlers to
+ * Add click handlers to a layer for feature editing
+ * @param {L.Layer} layer - The Leaflet layer
  */
 function addLayerClickHandlers(layer) {
-  if (!layer) {
-    console.error("Cannot add click handlers to undefined layer");
-    return;
-  }
+  if (!layer) return;
 
   layer.on('click', function(e) {
     L.DomEvent.stopPropagation(e);
+
+    // Set this as the active editing layer
     activeEditingLayer = layer;
 
-    // Use layer's feature properties if available
+    // Open the feature editor for this layer
     if (layer.feature && layer.feature.properties) {
       window.openFeatureEditor(layer.feature.properties);
     } else {
-      // Default properties if none exist
-      window.openFeatureEditor({
-        name: "New Feature",
-        type: "Polygon",
-        description: ""
-      });
+      window.openFeatureEditor(layer);
     }
   });
 }
 
 /**
- * Setup click handlers for all existing layers
+ * Set up click handlers for all layers that have features
  */
 function setupAllLayerEditHandlers() {
-  if (!window.map) {
-    console.error("Map not initialized, cannot set up layer handlers");
+  if (!map) {
+    console.error('Map is not initialized');
     return;
   }
 
-  window.map.eachLayer(function(layer) {
-    if (layer instanceof L.Path) {
+  map.eachLayer(function(layer) {
+    if (layer.feature) {
       addLayerClickHandlers(layer);
     }
 
-    // Handle layer groups
+    // If this is a layer group, process its sub-layers
     if (layer.eachLayer) {
       layer.eachLayer(function(sublayer) {
-        if (sublayer instanceof L.Path) {
+        if (sublayer.feature) {
           addLayerClickHandlers(sublayer);
         }
       });
     }
   });
 
-  console.log("Layer edit handlers set up");
+  console.log('All layer edit handlers set up');
 }
 
 /**
- * Save the current project to localStorage
- */
-function saveProject() {
-  if (!window.map) {
-    console.error("Map not initialized, cannot save project");
-    return;
-  }
-
-  const projectData = {
-    layers: []
-  };
-
-  window.map.eachLayer(function(layer) {
-    if (layer instanceof L.Path && layer.feature) {
-      projectData.layers.push(layer.feature.properties);
-    }
-  });
-
-  localStorage.setItem("savedProject", JSON.stringify(projectData));
-  console.log("Project saved with", projectData.layers.length, "layers");
-}
-
-
-
-/**
- * Setup map click handler to deactivate editing
+ * Set up map click handler to deselect active layers
  */
 function setupMapClickHandler() {
   if (!map) {
-    console.error("Map is not initialized, cannot setup map click handler");
+    console.error('Map is not initialized');
     return;
   }
 
   map.on('click', function() {
-    // Deactivate any active editing when clicking on the map
+    // Close any open modal on map click
+    closeFeaturePropertiesModal();
     activeEditingLayer = null;
   });
 
-  console.log("Map click handler set up");
+  console.log('Map click handler set up');
 }
 
 /**
@@ -293,20 +168,18 @@ function setupMapClickHandler() {
  */
 function clearLayers() {
   if (!map) {
-    console.error("Map is not initialized.");
+    console.error('Map is not initialized');
     return;
   }
 
   map.eachLayer(function(layer) {
-    // Only remove feature layers, not base layers
-    if (layer instanceof L.Polygon ||
-        layer instanceof L.Polyline ||
-        layer instanceof L.Marker) {
+    // Remove only polygon layers (but keep the base tile layer)
+    if (layer instanceof L.Polygon || layer instanceof L.Marker) {
       map.removeLayer(layer);
     }
   });
 
-  console.log("All layers cleared");
+  console.log('All polygon layers cleared');
 }
 
 /**
@@ -334,16 +207,91 @@ function loadProject() {
     };
 
     // Add click handler to open feature editor
-    polygonLayer.on('click', function(e) {
-      L.DomEvent.stopPropagation(e);
-      activeEditingLayer = polygonLayer;
-      window.openFeatureEditor(polygonLayer.feature.properties);
-    });
+    addLayerClickHandlers(polygonLayer);
   });
 
   console.log('Project loaded successfully.');
 }
 
+/**
+ * Save project data to localStorage
+ */
+function saveProject() {
+  const layers = [];
+
+  map.eachLayer(function(layer) {
+    if (layer instanceof L.Polygon) {
+      const layerData = {
+        name: layer.feature?.properties?.name || 'Unnamed Feature',
+        coordinates: []
+      };
+
+      // Get coordinates
+      if (layer.getLatLngs) {
+        const latLngs = layer.getLatLngs();
+        if (latLngs && latLngs.length > 0) {
+          // Handle potential nested arrays in polygons
+          let coordinates = latLngs;
+          if (Array.isArray(latLngs[0]) && latLngs[0].length > 0) {
+            coordinates = latLngs[0];  // First ring of coordinates
+          }
+
+          layerData.coordinates = coordinates.map(latLng => [latLng.lat, latLng.lng]);
+        }
+      }
+
+      layers.push(layerData);
+    }
+  });
+
+  localStorage.setItem("savedProject", JSON.stringify({ layers }));
+  console.log('Project saved successfully.');
+}
+
+/**
+ * Create the feature properties modal if it doesn't exist
+ */
+function createFeaturePropertiesModal() {
+  let modal = document.getElementById('featurePropertiesModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'featurePropertiesModal';
+    modal.className = 'modal';
+    modal.style.display = 'none';
+
+    const modalContent = `
+      <div class="modal-content">
+        <span class="close" onclick="closeFeaturePropertiesModal()">&times;</span>
+        <h2>Feature Properties</h2>
+        <form id="featurePropertiesForm">
+          <div class="form-group">
+            <label for="feature_name">Name:</label>
+            <input type="text" id="feature_name" name="name">
+          </div>
+          <div class="form-group">
+            <button type="button" onclick="saveFeatureProperties()">Save</button>
+            <button type="button" onclick="closeFeaturePropertiesModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    modal.innerHTML = modalContent;
+    document.body.appendChild(modal);
+    console.log('Feature properties modal created');
+  }
+}
+
+// Make functions globally available
+window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
+window.saveFeatureProperties = saveFeatureProperties;
+window.toggleExplosiveSection = toggleExplosiveSection;
+window.addLayerClickHandlers = addLayerClickHandlers;
+window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
+window.setupMapClickHandler = setupMapClickHandler;
+window.clearLayers = clearLayers;
+window.loadProject = loadProject;
+window.saveProject = saveProject;
 
 // Initialize when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -368,16 +316,13 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 100);
 });
 
-// Make functions globally available (updated to reflect changes)
-window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
-window.saveFeatureProperties = saveFeatureProperties;
-window.toggleExplosiveSection = toggleExplosiveSection;
-window.addLayerClickHandlers = addLayerClickHandlers;
-window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
-window.setupMapClickHandler = setupMapClickHandler;
-window.clearLayers = clearLayers;
-window.loadProject = loadProject;
-window.saveProject = saveProject;
-
-
-console.log("Feature editor module loaded");
+// Export for module systems if needed
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    initFeatureEditor,
+    openFeatureEditor: window.openFeatureEditor,
+    closeFeaturePropertiesModal,
+    saveFeatureProperties,
+    toggleExplosiveSection
+  };
+}
