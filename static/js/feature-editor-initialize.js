@@ -448,7 +448,7 @@ function saveProject() {
   });
 
   // Send data to server
-  fetch('/api/save_project', {
+  fetch('/api/save', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -470,7 +470,7 @@ function saveProject() {
 
 function loadProject() {
   console.log('Loading project...');
-  fetch('/api/load_project')
+  fetch('/api/load')
   .then(response => response.json())
   .then(data => {
     console.log('Project loaded:', data);
