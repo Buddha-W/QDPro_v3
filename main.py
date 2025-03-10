@@ -582,6 +582,161 @@ async def analyze_location(request: Request):
         other_features = []
 
         for feature in features:
+
+# Bookmark API endpoints
+@app.get("/api/bookmarks")
+async def get_bookmarks(location_id: Optional[int] = None):
+    """Get all bookmarks for a location"""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        if location_id:
+            cur.execute("""
+                SELECT name, bookmark_data FROM map_bookmarks 
+                WHERE location_id = %s AND is_active = TRUE
+            """, (location_id,))
+        else:
+            cur.execute("""
+                SELECT name, bookmark_data FROM map_bookmarks 
+                WHERE is_active = TRUE
+            """)
+            
+        rows = cur.fetchall()
+        bookmarks = {}
+        
+        for row in rows:
+            name, data = row
+            bookmarks[name] = data
+            
+        return {"bookmarks": bookmarks}
+    except Exception as e:
+        logger.error(f"Error getting bookmarks: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
+@app.get("/api/bookmarks/{name}")
+async def get_bookmark(name: str, location_id: Optional[int] = None):
+    """Get a specific bookmark"""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        if location_id:
+            cur.execute("""
+                SELECT bookmark_data FROM map_bookmarks 
+                WHERE name = %s AND location_id = %s AND is_active = TRUE
+            """, (name, location_id))
+        else:
+            cur.execute("""
+                SELECT bookmark_data FROM map_bookmarks 
+                WHERE name = %s AND is_active = TRUE
+            """, (name,))
+            
+        row = cur.fetchone()
+        
+        if not row:
+            return JSONResponse(status_code=404, content={"error": f"Bookmark '{name}' not found"})
+            
+        return {"bookmark": row[0]}
+    except Exception as e:
+        logger.error(f"Error getting bookmark: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
+@app.post("/api/bookmarks")
+async def save_bookmark(request: Request):
+    """Save a bookmark"""
+    try:
+        data = await request.json()
+        name = data.get("name")
+        location_id = data.get("location_id")
+        bookmark_data = data.get("bookmark_data")
+        
+        if not name or not bookmark_data:
+            return JSONResponse(status_code=400, content={"error": "Name and bookmark_data are required"})
+        
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        # Check if bookmark already exists
+        if location_id:
+            cur.execute("""
+                SELECT id FROM map_bookmarks 
+                WHERE name = %s AND location_id = %s AND is_active = TRUE
+            """, (name, location_id))
+        else:
+            cur.execute("""
+                SELECT id FROM map_bookmarks 
+                WHERE name = %s AND location_id IS NULL AND is_active = TRUE
+            """, (name,))
+            
+        row = cur.fetchone()
+        
+        if row:
+            # Update existing bookmark
+            bookmark_id = row[0]
+            cur.execute("""
+                UPDATE map_bookmarks 
+                SET bookmark_data = %s 
+                WHERE id = %s
+            """, (json.dumps(bookmark_data), bookmark_id))
+        else:
+            # Create new bookmark
+            if location_id:
+                cur.execute("""
+                    INSERT INTO map_bookmarks (name, location_id, bookmark_data, is_active)
+                    VALUES (%s, %s, %s, TRUE)
+                """, (name, location_id, json.dumps(bookmark_data)))
+            else:
+                cur.execute("""
+                    INSERT INTO map_bookmarks (name, bookmark_data, is_active)
+                    VALUES (%s, %s, TRUE)
+                """, (name, json.dumps(bookmark_data)))
+        
+        conn.commit()
+        return {"status": "success", "message": f"Bookmark '{name}' saved successfully"}
+    except Exception as e:
+        logger.error(f"Error saving bookmark: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
+@app.delete("/api/bookmarks/{name}")
+async def delete_bookmark(name: str, request: Request):
+    """Delete a bookmark"""
+    try:
+        data = await request.json()
+        location_id = data.get("location_id")
+        
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        if location_id:
+            cur.execute("""
+                UPDATE map_bookmarks SET is_active = FALSE
+                WHERE name = %s AND location_id = %s
+            """, (name, location_id))
+        else:
+            cur.execute("""
+                UPDATE map_bookmarks SET is_active = FALSE
+                WHERE name = %s AND location_id IS NULL
+            """, (name,))
+        
+        conn.commit()
+        return {"status": "success", "message": f"Bookmark '{name}' deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting bookmark: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
             properties = feature.get("properties", {})
             try:
                 # Convert explosive weight safely with proper error handling
@@ -934,6 +1089,36 @@ def init_db():
             if not location_id_exists:
                 cur.execute("ALTER TABLE map_layers ADD COLUMN location_id INTEGER")
                 print("Added location_id column to map_layers table")
+
+        # Check if map_bookmarks table exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'map_bookmarks')")
+        map_bookmarks_exists = cur.fetchone()[0]
+
+        if not map_bookmarks_exists:
+            # Create map_bookmarks table if it doesn't exist
+            cur.execute("""
+                CREATE TABLE map_bookmarks (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    location_id INTEGER,
+                    bookmark_data JSONB NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    is_active BOOLEAN DEFAULT TRUE
+                )
+            """)
+            print("Created map_bookmarks table")
+            
+            # Add composite unique constraint for name and location_id
+            try:
+                cur.execute("""
+                    ALTER TABLE map_bookmarks 
+                    ADD CONSTRAINT map_bookmarks_name_location_key 
+                    UNIQUE (name, location_id)
+                """)
+                print("Added unique constraint for bookmark name and location_id")
+            except psycopg2.Error as constraint_error:
+                conn.rollback()
+                print(f"Could not add constraint to bookmarks table: {constraint_error}")
 
         # Force run db init now - drop and recreate tables if needed
         if map_layers_exists:

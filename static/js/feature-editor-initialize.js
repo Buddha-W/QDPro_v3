@@ -603,9 +603,6 @@ window.updateBookmarksDropdown = function() {
   dropdown.style.zIndex = '3000';
   dropdown.style.position = 'absolute';
   
-  // Get bookmarks from storage
-  const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-  
   // Create a header
   const header = document.createElement('div');
   header.style.padding = '10px';
@@ -615,117 +612,146 @@ window.updateBookmarksDropdown = function() {
   header.textContent = 'Saved Views';
   dropdown.appendChild(header);
   
-  // Check if we have any bookmarks
-  const bookmarkKeys = Object.keys(bookmarks);
-  if (bookmarkKeys.length === 0) {
-    const noBookmarks = document.createElement('div');
-    noBookmarks.style.padding = '10px';
-    noBookmarks.style.fontStyle = 'italic';
-    noBookmarks.style.color = '#666';
-    noBookmarks.textContent = 'No bookmarks saved yet';
-    dropdown.appendChild(noBookmarks);
-  } else {
-    // Add each bookmark
-    bookmarkKeys.forEach(name => {
-      const item = document.createElement('div');
-      item.style.padding = '8px 10px';
-      item.style.cursor = 'pointer';
-      item.style.display = 'flex';
-      item.style.justifyContent = 'space-between';
-      item.style.alignItems = 'center';
-      item.style.borderBottom = '1px solid #eee';
-      item.style.transition = 'background-color 0.2s';
-      
-      // Add hover effect
-      item.addEventListener('mouseover', function() {
-        this.style.backgroundColor = '#f0f0f0';
-      });
-      item.addEventListener('mouseout', function() {
-        this.style.backgroundColor = '';
-      });
-      
-      const nameSpan = document.createElement('span');
-      nameSpan.textContent = name;
-      nameSpan.style.flex = '1';
-      nameSpan.style.overflow = 'hidden';
-      nameSpan.style.textOverflow = 'ellipsis';
-      nameSpan.style.whiteSpace = 'nowrap';
-      
-      const deleteBtn = document.createElement('button');
-      deleteBtn.innerHTML = '&times;';
-      deleteBtn.style.marginLeft = '8px';
-      deleteBtn.style.background = 'none';
-      deleteBtn.style.border = 'none';
-      deleteBtn.style.color = '#f44336';
-      deleteBtn.style.fontWeight = 'bold';
-      deleteBtn.style.fontSize = '16px';
-      deleteBtn.style.cursor = 'pointer';
-      deleteBtn.title = 'Delete bookmark';
-      
-      item.appendChild(nameSpan);
-      item.appendChild(deleteBtn);
-      
-      // Add event listeners
-      nameSpan.addEventListener('click', function(e) {
-        e.stopPropagation();
-        loadBookmark(name);
-        dropdown.style.display = 'none';
-      });
-      
-      // Make the whole item clickable except for the delete button
-      item.addEventListener('click', function(e) {
-        if (e.target !== deleteBtn) {
+  // Load bookmarks from server or fallback to localStorage
+  loadBookmarksFromServer().then(bookmarks => {
+    // Check if we have any bookmarks
+    const bookmarkKeys = Object.keys(bookmarks);
+    if (bookmarkKeys.length === 0) {
+      const noBookmarks = document.createElement('div');
+      noBookmarks.style.padding = '10px';
+      noBookmarks.style.fontStyle = 'italic';
+      noBookmarks.style.color = '#666';
+      noBookmarks.textContent = 'No bookmarks saved yet';
+      dropdown.appendChild(noBookmarks);
+    } else {
+      // Add each bookmark
+      bookmarkKeys.forEach(name => {
+        const item = document.createElement('div');
+        item.style.padding = '8px 10px';
+        item.style.cursor = 'pointer';
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.alignItems = 'center';
+        item.style.borderBottom = '1px solid #eee';
+        item.style.transition = 'background-color 0.2s';
+        
+        // Add hover effect
+        item.addEventListener('mouseover', function() {
+          this.style.backgroundColor = '#f0f0f0';
+        });
+        item.addEventListener('mouseout', function() {
+          this.style.backgroundColor = '';
+        });
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+        nameSpan.style.flex = '1';
+        nameSpan.style.overflow = 'hidden';
+        nameSpan.style.textOverflow = 'ellipsis';
+        nameSpan.style.whiteSpace = 'nowrap';
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '&times;';
+        deleteBtn.style.marginLeft = '8px';
+        deleteBtn.style.background = 'none';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.color = '#f44336';
+        deleteBtn.style.fontWeight = 'bold';
+        deleteBtn.style.fontSize = '16px';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.title = 'Delete bookmark';
+        
+        item.appendChild(nameSpan);
+        item.appendChild(deleteBtn);
+        
+        // Add event listeners
+        nameSpan.addEventListener('click', function(e) {
+          e.stopPropagation();
           loadBookmark(name);
           dropdown.style.display = 'none';
-        }
+        });
+        
+        // Make the whole item clickable except for the delete button
+        item.addEventListener('click', function(e) {
+          if (e.target !== deleteBtn) {
+            loadBookmark(name);
+            dropdown.style.display = 'none';
+          }
+        });
+        
+        deleteBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          deleteBookmark(name);
+        });
+        
+        dropdown.appendChild(item);
       });
-      
-      deleteBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        deleteBookmark(name);
-      });
-      
-      dropdown.appendChild(item);
-    });
-  }
-  
-  // Add option to create new bookmark
-  const addNewItem = document.createElement('div');
-  addNewItem.style.padding = '10px';
-  addNewItem.style.cursor = 'pointer';
-  addNewItem.style.color = '#4CAF50';
-  addNewItem.style.fontWeight = 'bold';
-  addNewItem.style.backgroundColor = '#f5f5f5';
-  addNewItem.style.textAlign = 'center';
-  addNewItem.style.borderTop = bookmarkKeys.length > 0 ? '1px solid #ccc' : 'none';
-  addNewItem.textContent = '+ Add New Bookmark';
-  
-  // Add hover effect
-  addNewItem.addEventListener('mouseover', function() {
-    this.style.backgroundColor = '#e8f5e9';
-  });
-  addNewItem.addEventListener('mouseout', function() {
-    this.style.backgroundColor = '#f5f5f5';
-  });
-  
-  addNewItem.addEventListener('click', function() {
-    dropdown.style.display = 'none';
-    createBookmark();
-  });
-  
-  dropdown.appendChild(addNewItem);
-  
-  // Add event listener to close dropdown when clicking outside
-  document.addEventListener('click', function closeDropdown(e) {
-    if (!dropdown.contains(e.target) && e.target.id !== 'bookmarksTool') {
-      dropdown.style.display = 'none';
-      document.removeEventListener('click', closeDropdown);
     }
+    
+    // Add option to create new bookmark
+    const addNewItem = document.createElement('div');
+    addNewItem.style.padding = '10px';
+    addNewItem.style.cursor = 'pointer';
+    addNewItem.style.color = '#4CAF50';
+    addNewItem.style.fontWeight = 'bold';
+    addNewItem.style.backgroundColor = '#f5f5f5';
+    addNewItem.style.textAlign = 'center';
+    addNewItem.style.borderTop = bookmarkKeys.length > 0 ? '1px solid #ccc' : 'none';
+    addNewItem.textContent = '+ Add New Bookmark';
+    
+    // Add hover effect
+    addNewItem.addEventListener('mouseover', function() {
+      this.style.backgroundColor = '#e8f5e9';
+    });
+    addNewItem.addEventListener('mouseout', function() {
+      this.style.backgroundColor = '#f5f5f5';
+    });
+    
+    addNewItem.addEventListener('click', function() {
+      dropdown.style.display = 'none';
+      createBookmark();
+    });
+    
+    dropdown.appendChild(addNewItem);
+    
+    // Add event listener to close dropdown when clicking outside
+    document.addEventListener('click', function closeDropdown(e) {
+      if (!dropdown.contains(e.target) && e.target.id !== 'bookmarksTool') {
+        dropdown.style.display = 'none';
+        document.removeEventListener('click', closeDropdown);
+      }
+    });
   });
 }
 
 // Make updateBookmarksDropdown available globally 
 window.updateBookmarksDropdown = updateBookmarksDropdown;
+
+// Load bookmarks from server, with fallback to localStorage
+async function loadBookmarksFromServer() {
+  try {
+    const locationId = QDPro?.currentLocationId;
+    
+    // If no location ID is available, use localStorage
+    if (!locationId) {
+      console.log("No location ID available, using localStorage");
+      return JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+    }
+    
+    const response = await fetch(`/api/bookmarks?location_id=${locationId}`);
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Loaded bookmarks from server:", data.bookmarks);
+      return data.bookmarks || {};
+    } else {
+      console.warn("Failed to load bookmarks from server, using localStorage");
+      return JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+    }
+  } catch (e) {
+    console.error("Error loading bookmarks:", e);
+    return JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+  }
+}
 
 function createBookmark() {
   if (!window.map) {
@@ -791,65 +817,134 @@ function createBookmark() {
   });
 }
 
-function saveBookmarkToStorage(name, view) {
-  // Get existing bookmarks
-  let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-  
-  // Add new bookmark
-  bookmarks[name] = {
-    center: [view.center.lat, view.center.lng],
-    zoom: view.zoom,
-    created: new Date().toISOString()
-  };
-  
-  // Save back to localStorage
-  localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
-  console.log(`Bookmark "${name}" saved`);
+async function saveBookmarkToStorage(name, view) {
+  // Save bookmark both to localStorage (for fallback) and server
+  try {
+    // Get existing bookmarks from localStorage
+    let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+    
+    // Create bookmark object
+    const bookmarkData = {
+      center: [view.center.lat, view.center.lng],
+      zoom: view.zoom,
+      created: new Date().toISOString()
+    };
+    
+    // Add to localStorage
+    bookmarks[name] = bookmarkData;
+    localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
+    
+    // Now save to server if possible
+    const locationId = QDPro?.currentLocationId;
+    if (locationId) {
+      const response = await fetch('/api/bookmarks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          location_id: locationId,
+          bookmark_data: bookmarkData
+        })
+      });
+      
+      if (response.ok) {
+        console.log(`Bookmark "${name}" saved to server`);
+      } else {
+        console.warn(`Failed to save bookmark "${name}" to server, but it's available in localStorage`);
+      }
+    } else {
+      console.log(`Bookmark "${name}" saved to localStorage only (no location ID available)`);
+    }
+  } catch (e) {
+    console.error(`Error saving bookmark:`, e);
+    alert(`Error saving bookmark: ${e.message}`);
+  }
 }
 
-function loadBookmark(name) {
-  // Get bookmarks from storage
-  const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-  
-  if (!bookmarks[name]) {
-    console.error(`Bookmark "${name}" not found`);
-    return;
-  }
-  
-  const bookmark = bookmarks[name];
-  
-  // Set map view to the bookmarked position
-  if (window.map) {
-    window.map.setView(bookmark.center, bookmark.zoom);
-    console.log(`Loaded bookmark "${name}"`);
-  } else {
-    console.error("Map not available to load bookmark");
+async function loadBookmark(name) {
+  try {
+    // First try to load from server
+    const locationId = QDPro?.currentLocationId;
+    let bookmark = null;
+    
+    if (locationId) {
+      try {
+        const response = await fetch(`/api/bookmarks/${encodeURIComponent(name)}?location_id=${locationId}`);
+        if (response.ok) {
+          const data = await response.json();
+          bookmark = data.bookmark;
+        }
+      } catch (e) {
+        console.warn(`Error loading bookmark from server:`, e);
+      }
+    }
+    
+    // If not found on server or no location ID, fall back to localStorage
+    if (!bookmark) {
+      const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+      bookmark = bookmarks[name];
+    }
+    
+    if (!bookmark) {
+      console.error(`Bookmark "${name}" not found`);
+      return;
+    }
+    
+    // Set map view to the bookmarked position
+    if (window.map) {
+      window.map.setView(bookmark.center, bookmark.zoom);
+      console.log(`Loaded bookmark "${name}"`);
+    } else {
+      console.error("Map not available to load bookmark");
+    }
+  } catch (e) {
+    console.error(`Error loading bookmark:`, e);
   }
 }
 
-function deleteBookmark(name) {
-  // Get existing bookmarks
-  let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-  
-  if (!bookmarks[name]) {
-    console.error(`Bookmark "${name}" not found`);
-    return;
+async function deleteBookmark(name) {
+  try {
+    // Confirm deletion
+    if (!confirm(`Are you sure you want to delete the bookmark "${name}"?`)) {
+      return;
+    }
+    
+    // Delete from localStorage
+    let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+    if (bookmarks[name]) {
+      delete bookmarks[name];
+      localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
+    }
+    
+    // Delete from server if possible
+    const locationId = QDPro?.currentLocationId;
+    if (locationId) {
+      const response = await fetch(`/api/bookmarks/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          location_id: locationId
+        })
+      });
+      
+      if (response.ok) {
+        console.log(`Bookmark "${name}" deleted from server`);
+      } else {
+        console.warn(`Failed to delete bookmark "${name}" from server, but it's removed from localStorage`);
+      }
+    } else {
+      console.log(`Bookmark "${name}" deleted from localStorage only (no location ID available)`);
+    }
+    
+    // Update bookmarks dropdown
+    updateBookmarksDropdown();
+  } catch (e) {
+    console.error(`Error deleting bookmark:`, e);
   }
-  
-  // Confirm deletion
-  if (!confirm(`Are you sure you want to delete the bookmark "${name}"?`)) {
-    return;
-  }
-  
-  // Delete the bookmark
-  delete bookmarks[name];
-  
-  // Save back to localStorage
-  localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
-  console.log(`Bookmark "${name}" deleted`);
-  
-  // Update bookmarks dropdown
-  updateBookmarksDropdown();
 }
 
 // Function to toggle bookmarks dropdown
