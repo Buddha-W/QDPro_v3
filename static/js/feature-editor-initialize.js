@@ -2,6 +2,43 @@
  * Feature Editor Initialization Module
  * This script handles initialization of the feature properties editor
  * and ensures all feature editing functions are properly exposed globally
+
+// Global handler for edit button clicks to ensure first-click response
+function handleEditButtonClick(button) {
+  console.log("Edit button clicked via direct onclick handler");
+  
+  // Find the popup and associated layer
+  const popup = button.closest('.leaflet-popup');
+  if (popup && popup._source) {
+    const layer = popup._source;
+    
+    // Store layer globally for immediate access
+    window.activeEditingLayer = layer;
+    
+    // Close popup
+    if (layer.closePopup) {
+      layer.closePopup();
+    }
+    
+    // Open feature editor with minimal delay
+    setTimeout(function() {
+      if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
+        window.QDProEditor.openFeatureEditor(layer);
+      } else if (typeof window.openFeatureEditor === 'function') {
+        window.openFeatureEditor(layer);
+      } else if (typeof openFeatureEditor === 'function') {
+        openFeatureEditor(layer);
+      } else {
+        console.error("Feature editor function not found in global handler!");
+        alert("Error: Could not open editor. Please refresh the page.");
+      }
+    }, 10);
+  }
+  
+  return false;
+}
+
+
  */
 
 // Initialize the module when DOM is ready
@@ -289,43 +326,47 @@ function addLayerClickHandlers(layer) {
   // Bind the popup to the layer
   layer.bindPopup(popupContent);
 
-  // Add popup open event handler
+  // Add popup open event handler - improved handling
   layer.on('popupopen', function() {
     console.log("Popup opened, setting up edit button handler");
 
-    // Find and set up the edit button with appropriate handler
+    // Find and set up the edit button with appropriate handler immediately
+    // Reduced timeout for more immediate response
     setTimeout(function() {
       const popupContainer = document.querySelector('.leaflet-popup-content');
       if (popupContainer) {
         const editButton = popupContainer.querySelector('.edit-properties-btn');
         if (editButton) {
-          // Clean previous handlers by cloning and replacing
-          const newEditButton = editButton.cloneNode(true);
-          editButton.parentNode.replaceChild(newEditButton, editButton);
-
-          // Add the event handler using the global editor module
-          newEditButton.addEventListener('click', function(e) {
+          // Add direct onclick attribute for more reliable click handling
+          editButton.setAttribute('onclick', 'handleEditButtonClick(this)');
+          
+          // Also add standard event listener as backup
+          editButton.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log("Edit button clicked from popup");
+            console.log("Edit button clicked from popup via event listener");
+            
+            // Store the layer globally for immediate access
+            window.activeEditingLayer = layer;
             
             // Close the popup first to prevent UI issues
             if (layer.closePopup) {
               layer.closePopup();
             }
             
-            // Use a timeout to ensure the popup is closed before opening the editor
+            // Call editor function with minimal delay
             setTimeout(function() {
-              // Try to use the QDProEditor module first
               if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
                 window.QDProEditor.openFeatureEditor(layer);
               } else if (typeof window.openFeatureEditor === 'function') {
                 window.openFeatureEditor(layer);
+              } else if (typeof openFeatureEditor === 'function') {
+                openFeatureEditor(layer);
               } else {
                 console.error("Feature editor function not found!");
                 alert("Error: Could not open editor. Please refresh the page.");
               }
-            }, 50);
+            }, 10);
             
             return false;
           });
@@ -333,7 +374,7 @@ function addLayerClickHandlers(layer) {
           console.warn("Edit button not found in popup");
         }
       }
-    }, 10);
+    }, 5);
   });
 }
 

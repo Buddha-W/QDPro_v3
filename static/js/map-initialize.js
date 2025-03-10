@@ -96,24 +96,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const layer = popup._source;
         console.log("Found layer for edit button:", layer);
         
-        // Close the popup first to prevent UI issues
+        // Store layer in global variable for immediate access
+        window.activeEditingLayer = layer;
+        
+        // Close the popup immediately
         if (layer.closePopup) {
           layer.closePopup();
         }
         
-        // Use the centralized QDProEditor module
-        if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-          setTimeout(function() {
+        // Use immediately available openFeatureEditor function with minimal delay
+        setTimeout(function() {
+          if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
             window.QDProEditor.openFeatureEditor(layer);
-          }, 50); // Small timeout to ensure popup is fully closed first
-        } else if (typeof window.openFeatureEditor === 'function') {
-          setTimeout(function() {
+          } else if (typeof window.openFeatureEditor === 'function') {
             window.openFeatureEditor(layer);
-          }, 50);
-        } else {
-          console.error("Editor function not available - critical error");
-          alert("Critical error: Editor function not found. Please refresh the page and try again.");
-        }
+          } else if (typeof openFeatureEditor === 'function') {
+            openFeatureEditor(layer);
+          } else {
+            console.error("Editor function not available - critical error");
+            alert("Critical error: Editor function not found. Please refresh the page and try again.");
+          }
+        }, 10); // Reduced timeout for faster response
       }
       return false;
     }
