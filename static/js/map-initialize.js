@@ -206,6 +206,43 @@ document.addEventListener('DOMContentLoaded', function() {
 // Make initMap available globally
 window.initMap = initMap;
 
+// Make a global function to force open the editor from any context
+window.forceOpenEditor = function(element) {
+  console.log("Global force open editor called");
+  
+  // Get the current active layer from globals
+  const layer = window.lastClickedLayer;
+  
+  if (!layer) {
+    console.error("No layer available to edit!");
+    return;
+  }
+  
+  // Close any open popups
+  if (window.map) {
+    window.map.closePopup();
+  }
+  
+  // Reset QDProEditor state if it exists
+  if (window.QDProEditor) {
+    window.QDProEditor.isEditorOpen = false;
+  }
+  
+  // Use a short delay to ensure clean state
+  setTimeout(function() {
+    console.log("Force opening editor for layer:", layer._leaflet_id);
+    
+    // Try QDProEditor first
+    if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
+      window.QDProEditor.openFeatureEditor(layer);
+    } 
+    // Fall back to global function
+    else if (typeof window.openFeatureEditor === 'function') {
+      window.openFeatureEditor(layer);
+    }
+  }, 50);
+};
+
 // Make sure openFeatureEditor is available globally
 if (typeof window.openFeatureEditor !== 'function') {
   window.openFeatureEditor = function(layer) {

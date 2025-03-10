@@ -6,20 +6,20 @@
 // Global handler for edit button clicks to ensure first-click response
 function handleEditButtonClick(button) {
   console.log("Edit button clicked via direct onclick handler");
-  
+
   // Find the popup and associated layer
   const popup = button.closest('.leaflet-popup');
   if (popup && popup._source) {
     const layer = popup._source;
-    
+
     // Store layer globally for immediate access
     window.activeEditingLayer = layer;
     window.lastClickedLayer = layer;
-    
+
     // Check if editor is currently open and force close it first
     if (window.QDProEditor && window.QDProEditor.isEditorOpen) {
       window.QDProEditor.closeFeatureEditor();
-      
+
       // Use a short delay to ensure clean state before opening new editor
       setTimeout(function() {
         openEditorForLayer(layer);
@@ -28,7 +28,7 @@ function handleEditButtonClick(button) {
       openEditorForLayer(layer);
     }
   }
-  
+
   return false;
 }
 
@@ -38,12 +38,12 @@ function openEditorForLayer(layer) {
   if (layer.closePopup) {
     layer.closePopup();
   }
-  
+
   // Force close any popups on the map
   if (window.map) {
     window.map.closePopup();
   }
-  
+
   // Select the right editor function
   if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
     window.QDProEditor.openFeatureEditor(layer);
@@ -272,21 +272,21 @@ function closeFeaturePropertiesModal() {
   if (modal) {
     modal.style.display = 'none';
   }
-  
+
   // Reset active editing layer
   window.activeEditingLayer = null;
   window.lastClickedLayer = null;
-  
+
   // Reset popup state to allow immediate editing of another feature
   if (window.map) {
     // Close any open popups
     window.map.closePopup();
-    
+
     // Remove any lingering popup DOM elements
     document.querySelectorAll('.leaflet-popup').forEach(popup => {
       popup.remove();
     });
-    
+
     // Force complete state reset
     document.querySelectorAll('.edit-properties-btn').forEach(btn => {
       // Remove and recreate edit buttons to clear event listeners
@@ -295,7 +295,7 @@ function closeFeaturePropertiesModal() {
         btn.parentNode.replaceChild(newBtn, btn);
       }
     });
-    
+
     // Clear any internal flag in map layers that might prevent re-clicking
     window.map.eachLayer(function(layer) {
       if (layer.feature) {
@@ -305,13 +305,13 @@ function closeFeaturePropertiesModal() {
         if (layer._editPending) delete layer._editPending;
       }
     });
-    
+
     console.log("Modal closed, popup state fully reset");
   }
-  
+
   // Dispatch custom event for other components to respond to
   document.dispatchEvent(new CustomEvent('editor-closed'));
-  
+
   // Force map to refresh its state
   setTimeout(function() {
     if (window.map) {
@@ -386,82 +386,48 @@ function saveFeatureProperties() {
 function addLayerClickHandlers(layer) {
   console.log("Adding click handlers to layer");
 
-  // Get properties for popup content
+  // Add a popup with properties
   const properties = layer.feature ? layer.feature.properties : {};
   const popupContent = `
     <div>
       <h3>${properties.name || 'Unnamed Feature'}</h3>
       <p>Type: ${properties.type || 'Unknown'}</p>
       ${properties.net_explosive_weight ? `<p>NEW: ${properties.net_explosive_weight} lbs</p>` : ''}
-      ${properties.description ? `<p>${properties.description}</p>` : ''}
-      <button class="edit-properties-btn">Edit Properties</button>
+      <button class="edit-properties-btn" onclick="window.forceOpenEditor(this)">Edit Properties</button>
     </div>
   `;
 
-  // Bind the popup to the layer
   layer.bindPopup(popupContent);
 
-  // Add popup open event handler - improved handling
+  // Add click handler with debugging
   layer.on('popupopen', function() {
-    console.log("Popup opened, setting up edit button handler");
-    
-    // Store current layer reference for direct access
+    console.log('Popup opened for layer:', layer._leaflet_id);
+    layer._popupOpen = true;
+
+    // Store layer as last clicked layer
     window.lastClickedLayer = layer;
-    
-    // Process immediately but use a tiny delay to ensure DOM is ready
-    setTimeout(function() {
-      const popupContainer = document.querySelector('.leaflet-popup-content');
-      if (popupContainer) {
-        const editButton = popupContainer.querySelector('.edit-properties-btn');
-        if (editButton) {
-          // First, remove any existing event listeners to prevent duplicates
-          const newButton = editButton.cloneNode(true);
-          editButton.parentNode.replaceChild(newButton, editButton);
-          
-          // Add direct onclick attribute for more reliable click handling
-          newButton.setAttribute('onclick', 'handleEditButtonClick(this)');
-          
-          // Add a completely direct click handler for maximum reliability
-          newButton.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log("Edit button clicked via direct handler");
-            
-            // Force clear any existing editor state
-            if (window.QDProEditor) {
-              if (window.QDProEditor.isEditorOpen) {
-                window.QDProEditor.closeFeatureEditor();
-              }
-            }
-            
-            // Use the most recently stored layer reference
-            const targetLayer = window.lastClickedLayer || layer;
-            
-            // Force close popup first
-            if (targetLayer.closePopup) {
-              targetLayer.closePopup();
-            }
-            
-            // Open the editor after a minimal delay to ensure clean state
-            setTimeout(function() {
-              if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-                window.QDProEditor.openFeatureEditor(targetLayer);
-              } else if (typeof window.openFeatureEditor === 'function') {
-                window.openFeatureEditor(targetLayer);
-              } else {
-                console.error("Feature editor function not found!");
-                alert("Error: Could not open editor. Please refresh the page.");
-              }
-            }, 10);
-            
-            return false;
-          };
-        } else {
-          console.warn("Edit button not found in popup");
+
+    setTimeout(() => {
+      const editBtn = document.querySelector('.edit-properties-btn');
+      if (editBtn) {
+        // Remove previous handlers to prevent duplication
+        const newBtn = editBtn.cloneNode(true);
+        if (editBtn.parentNode) {
+          editBtn.parentNode.replaceChild(newBtn, editBtn);
         }
+
+        // Add direct onclick attribute for maximum reliability
+        newBtn.setAttribute('onclick', 'window.forceOpenEditor(this)');
+        console.log('Edit button handler setup completed');
       }
-    }, 0);
+    }, 50);
+  });
+
+  // Add additional click handler directly on the layer
+  layer.on('click', function(e) {
+    console.log('Layer clicked directly:', layer._leaflet_id);
+    // Store the layer for reference
+    window.lastClickedLayer = layer;
   });
 }
 
@@ -490,6 +456,7 @@ window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
 window.saveFeatureProperties = saveFeatureProperties;
 window.addLayerClickHandlers = addLayerClickHandlers;
 window.setupMapClickHandler = setupMapClickHandler;
+window.forceOpenEditor = handleEditButtonClick; // Added for direct editor opening
 
 // Also expose directly on the window object for IE compatibility
 try {
@@ -510,6 +477,7 @@ window.addEventListener('load', function() {
   window.saveFeatureProperties = saveFeatureProperties;
   window.addLayerClickHandlers = addLayerClickHandlers;
   window.setupMapClickHandler = setupMapClickHandler;
+  window.forceOpenEditor = handleEditButtonClick; // Added for direct editor opening
 
   // Add a direct reference for popups to use
   document.openFeatureEditor = openFeatureEditor;

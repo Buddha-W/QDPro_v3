@@ -54,52 +54,76 @@ window.QDProEditor = {
 
     // Reset flags to allow immediate editing of another feature
     this.isEditorOpen = false;
-    
+
     // Store the previously active layer before clearing it
     const previousLayer = this.activeEditingLayer;
-    
+
     // Reset active editing layer immediately
     this.activeEditingLayer = null;
-    
+
     // Force close any active popups on the map
     if (window.map) {
       window.map.closePopup();
     }
-    
+
     // Reset any layer-specific popup states
     // This is critical to allowing immediate re-editing of features
     document.querySelectorAll('.leaflet-popup').forEach(popup => {
       popup.remove();
     });
-    
-    // Reset all other state flags that might interfere with new popups
+
     window.lastClickedLayer = null;
     window.activeEditingLayer = null;
-    
-    // Clear any editing flags on all layers to allow immediate re-editing
+
+    // Force reset all click states on all layers
     if (window.map) {
       window.map.eachLayer(function(layer) {
         if (layer.feature) {
-          // Clear any state that might prevent re-clicking
+          // Remove any state that might prevent clicking
           if (layer._editingActive) delete layer._editingActive;
           if (layer._wasClicked) delete layer._wasClicked;
+          if (layer._popupOpen) delete layer._popupOpen;
           if (layer._popupClosed) delete layer._popupClosed;
+          if (layer._editPending) delete layer._editPending;
         }
       });
     }
-    
+
     console.log("QDProEditor: Editor fully closed, ready for new interactions");
-    
+
     // Dispatch a custom event to notify the system the editor is fully closed
     document.dispatchEvent(new CustomEvent('editor-closed'));
-    
+
     // Force a brief delay to ensure the DOM is updated before allowing new clicks
     setTimeout(function() {
-      if (window.map) {
-        // Invalidate the map size to force a redraw
-        window.map.invalidateSize();
-      }
+      console.log("Reset complete, ready for new interactions");
     }, 10);
+  },
+
+  // Force open the editor for a layer
+  forceOpenEditor: function(btn) {
+    console.log("Force open editor called");
+
+    // Get the active layer
+    const layer = window.lastClickedLayer;
+    if (!layer) {
+      console.error("No layer to edit!");
+      return;
+    }
+
+    // Close any open popups
+    if (window.map) {
+      window.map.closePopup();
+    }
+
+    // Reset editor state
+    this.isEditorOpen = false;
+
+    // Open the editor after a short delay
+    setTimeout(() => {
+      console.log("Opening editor for layer:", layer._leaflet_id);
+      this.openFeatureEditor(layer);
+    }, 50);
   },
 
   saveFeatureProperties: function() {
@@ -175,6 +199,11 @@ window.closeFeaturePropertiesModal = function() {
 window.saveFeatureProperties = function() {
   window.QDProEditor.saveFeatureProperties();
 };
+
+window.forceOpenEditor = function(btn) {
+  window.QDProEditor.forceOpenEditor(btn);
+};
+
 
 // Handle has_explosive checkbox to show/hide explosive section
 function setupExplosiveSectionToggle() {

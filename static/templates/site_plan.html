@@ -285,6 +285,20 @@
   </div>
 
   <script>
+    // Initialize global state tracking
+    window.initEditorState = function() {
+      window.editorReady = true;
+      window.editorClosed = true;
+      window.lastClickedLayer = null;
+      window.activeEditingLayer = null;
+      console.log("Editor state tracking initialized");
+    };
+    
+    // Run on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      window.initEditorState();
+    });
+  
     window.toggleMenu = function(element, menuId) {
       const dropdown = document.getElementById(menuId);
       document.querySelectorAll(".menu-dropdown").forEach(dd => {
