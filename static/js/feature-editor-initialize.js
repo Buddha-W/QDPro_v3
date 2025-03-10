@@ -727,14 +727,55 @@ function updateBookmarksDropdown() {
 // Make updateBookmarksDropdown available globally 
 window.updateBookmarksDropdown = updateBookmarksDropdown;
 
+// Make createBookmark available globally
+window.createBookmark = createBookmark;
+
 // Ensure map is initialized before attempting to update bookmarks
 function ensureMapInitialized() {
   if (!window.map) {
     console.warn("Map not initialized. Some features might not work properly.");
     return false;
   }
+  
+  // Add getCenter method if it doesn't exist (sometimes happens with custom map implementations)
+  if (typeof window.map.getCenter !== 'function' && window.map._lastCenter) {
+    window.map.getCenter = function() {
+      return window.map._lastCenter;
+    };
+  }
+  
+  // Add getZoom method if it doesn't exist
+  if (typeof window.map.getZoom !== 'function' && window.map._zoom) {
+    window.map.getZoom = function() {
+      return window.map._zoom;
+    };
+  }
+  
   return true;
 }
+
+// Store map center and zoom whenever they change
+function trackMapState() {
+  if (window.map && typeof window.map.on === 'function') {
+    window.map.on('moveend', function() {
+      if (typeof window.map.getCenter === 'function') {
+        window.map._lastCenter = window.map.getCenter();
+        window.map._zoom = window.map.getZoom();
+      }
+    });
+  }
+}
+
+// Initialize tracking when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait for map to be initialized
+  const mapCheckInterval = setInterval(function() {
+    if (window.map) {
+      trackMapState();
+      clearInterval(mapCheckInterval);
+    }
+  }, 500);
+});
 
 // Load bookmarks from server, with fallback to localStorage
 async function loadBookmarksFromServer() {
@@ -763,11 +804,15 @@ async function loadBookmarksFromServer() {
 }
 
 function createBookmark() {
-  if (!window.map || typeof window.map.getCenter !== 'function') {
-    console.error("Map not properly initialized. Cannot create bookmark.");
-    alert("Map not ready. Please try again in a moment.");
-    return;
-  }
+  // Add a delay to ensure map is fully initialized
+  setTimeout(() => {
+    if (!window.map || typeof window.map.getCenter !== 'function') {
+      console.error("Map not properly initialized. Cannot create bookmark.");
+      alert("Map not ready. Please try again in a moment.");
+      return;
+    }
+    
+    // Continue with bookmark creation now that we've verified map is available
 
   const currentView = {
     center: window.map.getCenter(),
@@ -796,6 +841,7 @@ function createBookmark() {
 
   modal.innerHTML = modalContent;
   document.body.appendChild(modal);
+  }, 500); // Half-second delay to ensure map is loaded
 
   // Focus on input field
   setTimeout(() => {
