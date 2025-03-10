@@ -138,6 +138,38 @@ function toggleBookmarksDropdown() {
     return;
   }
 
+  const isVisible = dropdown.style.display === 'block';
+
+  // Hide any other open dropdowns
+  document.querySelectorAll('.base-layer-dropdown').forEach(dd => {
+    if (dd.id !== 'bookmarksDropdown') {
+      dd.style.display = 'none';
+    }
+  });
+
+  if (isVisible) {
+    dropdown.style.display = 'none';
+  } else {
+    // Position the dropdown
+    const button = document.getElementById('bookmarksTool');
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      dropdown.style.position = 'absolute';
+      dropdown.style.top = (rect.bottom + 5) + 'px';
+      dropdown.style.left = rect.left + 'px';
+    }
+
+    // Update and show the dropdown
+    updateBookmarksDropdown();
+  }
+}
+function toggleBookmarksDropdown() {
+  const dropdown = document.getElementById('bookmarksDropdown');
+  if (!dropdown) {
+    console.error("Bookmarks dropdown element not found");
+    return;
+  }
+
   if (dropdown.style.display === 'block') {
     dropdown.style.display = 'none';
   } else {
@@ -818,6 +850,147 @@ function updateBookmarksDropdown() {
         nameSpan.style.overflow = 'hidden';
         nameSpan.style.textOverflow = 'ellipsis';
         nameSpan.style.whiteSpace = 'nowrap';
+        
+        item.appendChild(nameSpan);
+        
+        // Add load button
+        const loadBtn = document.createElement('button');
+        loadBtn.textContent = 'Load';
+        loadBtn.style.marginRight = '5px';
+        loadBtn.style.padding = '3px 8px';
+        loadBtn.style.backgroundColor = '#4CAF50';
+        loadBtn.style.color = 'white';
+        loadBtn.style.border = 'none';
+        loadBtn.style.borderRadius = '3px';
+        loadBtn.style.cursor = 'pointer';
+        
+        loadBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          dropdown.style.display = 'none';
+          loadBookmark(name);
+        });
+        
+        item.appendChild(loadBtn);
+        
+        // Add delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.style.padding = '3px 8px';
+        deleteBtn.style.backgroundColor = '#f44336';
+        deleteBtn.style.color = 'white';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.borderRadius = '3px';
+        deleteBtn.style.cursor = 'pointer';
+        
+        deleteBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (confirm(`Are you sure you want to delete the bookmark "${name}"?`)) {
+            deleteBookmark(name);
+          }
+        });
+        
+        item.appendChild(deleteBtn);
+        dropdown.appendChild(item);
+      });
+    }
+
+    // Add option to create new bookmark
+    const addNewItem = document.createElement('div');
+    addNewItem.style.padding = '10px';
+    addNewItem.style.cursor = 'pointer';
+    addNewItem.style.color = '#4CAF50';
+    addNewItem.style.fontWeight = 'bold';
+    addNewItem.style.backgroundColor = '#f5f5f5';
+    addNewItem.style.textAlign = 'center';
+    addNewItem.style.borderTop = bookmarkKeys.length > 0 ? '1px solid #ccc' : 'none';
+    addNewItem.textContent = '+ Add New Bookmark';
+
+    // Add hover effect
+    addNewItem.addEventListener('mouseover', function() {
+      this.style.backgroundColor = '#e8f5e9';
+    });
+    addNewItem.addEventListener('mouseout', function() {
+      this.style.backgroundColor = '#f5f5f5';
+    });
+
+    addNewItem.addEventListener('click', function() {
+      dropdown.style.display = 'none';
+      createBookmark();
+    });
+
+    dropdown.appendChild(addNewItem);
+  });
+}
+function updateBookmarksDropdown() {
+  console.log("updateBookmarksDropdown called");
+
+  const dropdown = document.getElementById('bookmarksDropdown');
+  if (!dropdown) {
+    console.error("Bookmarks dropdown element not found");
+    return;
+  }
+
+  // Clear existing items
+  dropdown.innerHTML = '';
+
+  // Make sure the dropdown is visible
+  dropdown.style.display = 'block';
+
+  // Add proper styling to make it visible
+  dropdown.style.backgroundColor = '#fff';
+  dropdown.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+  dropdown.style.borderRadius = '4px';
+  dropdown.style.minWidth = '200px';
+  dropdown.style.padding = '5px 0';
+  dropdown.style.zIndex = '3000';
+  dropdown.style.position = 'absolute';
+
+  // Create a header
+  const header = document.createElement('div');
+  header.style.padding = '10px';
+  header.style.fontWeight = 'bold';
+  header.style.borderBottom = '1px solid #ccc';
+  header.style.backgroundColor = '#f5f5f5';
+  header.textContent = 'Saved Views';
+  dropdown.appendChild(header);
+
+  // Load bookmarks from server or fallback to localStorage
+  loadBookmarksFromServer().then(bookmarks => {
+    // Check if we have any bookmarks
+    const bookmarkKeys = Object.keys(bookmarks);
+    if (bookmarkKeys.length === 0) {
+      const noBookmarks = document.createElement('div');
+      noBookmarks.style.padding = '10px';
+      noBookmarks.style.fontStyle = 'italic';
+      noBookmarks.style.color = '#666';
+      noBookmarks.textContent = 'No bookmarks saved yet';
+      dropdown.appendChild(noBookmarks);
+    } else {
+      // Add each bookmark
+      bookmarkKeys.forEach(name => {
+        const item = document.createElement('div');
+        item.style.padding = '8px 10px';
+        item.style.cursor = 'pointer';
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.alignItems = 'center';
+        item.style.borderBottom = '1px solid #eee';
+        item.style.transition = 'background-color 0.2s';
+
+        // Add hover effect
+        item.addEventListener('mouseover', function() {
+          this.style.backgroundColor = '#f0f0f0';
+        });
+        item.addEventListener('mouseout', function() {
+          this.style.backgroundColor = '';
+        });
+
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = name;
+        nameSpan.style.flex = '1';
+        nameSpan.style.overflow = 'hidden';
+        nameSpan.style.textOverflow = 'ellipsis';
+        nameSpan.style.whiteSpace = 'nowrap';
 
         const deleteBtn = document.createElement('button');
         deleteBtn.innerHTML = '&times;';
@@ -932,6 +1105,13 @@ function clearBookmarksCache() {
 }
 
 // When document is loaded, make sure bookmark functions are available globally
+// Ensure these functions are available globally
+window.toggleBookmarksDropdown = toggleBookmarksDropdown;
+window.updateBookmarksDropdown = updateBookmarksDropdown;
+window.loadBookmark = loadBookmark;
+window.deleteBookmark = deleteBookmark;
+window.createBookmark = createBookmark;
+window.saveBookmarkToStorage = saveBookmarkToStorage;
 document.addEventListener('DOMContentLoaded', function() {
   // Expose bookmark functions globally
   window.createBookmark = createBookmark;
