@@ -85,14 +85,14 @@ window.QDProEditor = {
         }
       } catch (e) {
         console.warn('Error closing popups:', e);
-      } finally {
-        //Ensure popup is closed regardless of errors
-        document.querySelectorAll('.leaflet-popup').forEach(popup => {
-          popup.remove();
-        });
       }
     }
 
+    // Reset any layer-specific popup states
+    // This is critical to allowing immediate re-editing of features
+    document.querySelectorAll('.leaflet-popup').forEach(popup => {
+      popup.remove();
+    });
 
     window.lastClickedLayer = null;
     window.activeEditingLayer = null;
@@ -233,118 +233,48 @@ window.QDProEditor = {
   },
   runQDAnalysis: function() {
     console.log("QDProEditor: Running QD Analysis");
-
-    // Check if QDPro exists and has analyzeLocation function
     if (typeof QDPro !== 'undefined' && typeof QDPro.analyzeLocation === 'function') {
       try {
-        // Show loading indicator
-        const loadingDiv = document.createElement('div');
-        loadingDiv.id = 'qd-analysis-loading';
-        loadingDiv.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; z-index:9999; border-radius:5px; box-shadow:0 0 10px rgba(0,0,0,0.3);';
-        loadingDiv.innerHTML = '<h3>Running QD Analysis...</h3><p>Please wait while we process the data.</p>';
-        document.body.appendChild(loadingDiv);
-
-        // Clear any previous analysis data
-        if (QDPro.analysisLayer) {
-          QDPro.map.removeLayer(QDPro.analysisLayer);
-          QDPro.analysisLayer = null;
-        }
-
-        // Run the analysis with a timeout for error handling
-        const analysisPromise = new Promise((resolve, reject) => {
-          try {
-            QDPro.analyzeLocation();
-            console.log("QD Analysis started via QDPro.analyzeLocation");
-
-            // Check for analysis results periodically
-            let checkCount = 0;
-            const maxChecks = 20; // 10 seconds total (20 * 500ms)
-
-            const checkInterval = setInterval(() => {
-              if (QDPro.analysisLayer) {
-                clearInterval(checkInterval);
-                resolve();
-              } else if (checkCount >= maxChecks) {
-                clearInterval(checkInterval);
-                reject(new Error("Analysis timed out. No results generated."));
-              }
-              checkCount++;
-            }, 500);
-          } catch (e) {
-            reject(e);
+        QDPro.analyzeLocation();
+        console.log("QD Analysis started via QDPro.analyzeLocation");
+        
+        // Wait for analysis to complete, then show detailed report
+        setTimeout(() => {
+          if (QDPro.analysisLayer) {
+            this.displayDetailedReport();
           }
-        });
-
-        // Handle the analysis promise
-        analysisPromise
-          .then(() => {
-            // Remove loading indicator
-            document.body.removeChild(document.getElementById('qd-analysis-loading'));
-
-            // Show detailed report if analysis layer exists
-            if (QDPro.analysisLayer) {
-              this.displayDetailedReport();
-            } else {
-              console.warn("Analysis completed but no layer was created");
-            }
-          })
-          .catch(error => {
-            // Remove loading indicator
-            if (document.getElementById('qd-analysis-loading')) {
-              document.body.removeChild(document.getElementById('qd-analysis-loading'));
-            }
-
-            console.error("Error running QD analysis:", error);
-
-            // Show detailed error message
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff0f0; padding:20px; z-index:9999; border-radius:5px; box-shadow:0 0 10px rgba(0,0,0,0.3); max-width:500px;';
-            errorDiv.innerHTML = `
-              <h3 style="color:#d32f2f;">QD Analysis Error</h3>
-              <p>${error.message}</p>
-              <p style="margin-top:15px;font-size:14px;color:#666;">Possible causes:</p>
-              <ul style="font-size:14px;color:#666;">
-                <li>Missing or invalid feature data</li>
-                <li>No explosive weights defined on features</li>
-                <li>Server connection issue</li>
-                <li>Internal calculation error</li>
-              </ul>
-              <button onclick="this.parentNode.remove()" style="margin-top:15px;padding:8px 12px;background:#d32f2f;color:white;border:none;border-radius:4px;cursor:pointer;">Close</button>
-            `;
-            document.body.appendChild(errorDiv);
-          });
-
+        }, 1000);
       } catch (error) {
-        console.error("Error initiating QD analysis:", error);
-        alert("Failed to start QD analysis: " + error.message);
+        console.error("Error running QD analysis:", error);
+        alert("Error running QD analysis: " + error.message);
       }
     } else {
       console.error("QDPro.analyzeLocation is not available");
       alert("QD Analysis functionality not available. Please check the console for details.");
     }
   },
-
+  
   displayDetailedReport: function() {
     console.log("Displaying detailed QD analysis report");
-
+    
     // Check if analysis results exist
     if (!QDPro.currentAnalysisResults) {
       alert("No analysis results available. Please run the analysis first.");
       return;
     }
-
+    
     // Create a comprehensive report modal
     const reportModal = document.createElement('div');
     reportModal.className = 'modal';
     reportModal.id = 'detailedAnalysisReport';
     reportModal.style = 'display: block; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
-
+    
     // Get analysis data
     const analysis = QDPro.currentAnalysisResults;
     const totalFacilities = analysis.total_facilities || 0;
     const totalViolations = analysis.total_violations || 0;
     const facilitiesAnalyzed = analysis.facilities_analyzed || [];
-
+    
     // Build detailed HTML content for the report
     let reportContent = `
       <div style="background-color: #fff; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 900px; max-height: 80vh; overflow-y: auto;">
@@ -359,7 +289,7 @@ window.QDProEditor = {
             </button>
           </div>
         </div>
-
+        
         <div style="padding: 15px; background-color: #f9f9f9; border-radius: 4px; margin-bottom: 20px;">
           <h3 style="margin-top: 0; color: #4CAF50;">Analysis Summary</h3>
           <div style="display: flex; flex-wrap: wrap;">
@@ -374,7 +304,7 @@ window.QDProEditor = {
           </div>
         </div>
     `;
-
+    
     if (facilitiesAnalyzed.length === 0) {
       reportContent += `
         <div style="padding: 15px; background-color: #fff0f0; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #f44336;">
@@ -391,12 +321,12 @@ window.QDProEditor = {
     } else {
       // Add details for each facility analyzed
       reportContent += `<h3 style="color: #333;">Analyzed Facilities</h3>`;
-
+      
       facilitiesAnalyzed.forEach((facility, index) => {
         const hasViolations = facility.violations && facility.violations.length > 0;
         const safeDistance = facility.safe_distance || 0;
         const new_value = facility.net_explosive_weight || 0;
-
+        
         reportContent += `
           <div style="padding: 15px; background-color: ${hasViolations ? '#fff8f8' : '#f8fff8'}; 
             border-radius: 4px; margin-bottom: 15px; border-left: 4px solid ${hasViolations ? '#f44336' : '#4CAF50'};">
@@ -404,7 +334,7 @@ window.QDProEditor = {
               ${facility.facility_name || `Facility ${index + 1}`}
               ${hasViolations ? ' (VIOLATIONS FOUND)' : ' (COMPLIANT)'}
             </h4>
-
+            
             <div style="display: flex; flex-wrap: wrap;">
               <div style="flex: 1; min-width: 250px; margin-right: 15px;">
                 <p><strong>Net Explosive Weight:</strong> ${new_value} ${facility.unit || 'lbs'}</p>
@@ -417,14 +347,14 @@ window.QDProEditor = {
                 <p><strong>Standards Reference:</strong> ${facility.standards_reference || 'DoD 6055.09-M'}</p>
               </div>
             </div>
-
+            
             <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 4px;">
               <h5 style="margin-top: 0;">K-Factor Calculation</h5>
               <p><code>Safe Distance = K × ∛NEW</code></p>
               <p><code>Safe Distance = ${facility.k_factor_value || 40} × ∛${new_value} = ${safeDistance.toFixed(2)} ft</code></p>
             </div>
         `;
-
+        
         // Show violations if any
         if (hasViolations) {
           reportContent += `
@@ -441,7 +371,7 @@ window.QDProEditor = {
                 </thead>
                 <tbody>
           `;
-
+          
           facility.violations.forEach(violation => {
             reportContent += `
               <tr>
@@ -452,7 +382,7 @@ window.QDProEditor = {
               </tr>
             `;
           });
-
+          
           reportContent += `
                 </tbody>
               </table>
@@ -465,18 +395,18 @@ window.QDProEditor = {
             </div>
           `;
         }
-
+        
         reportContent += `</div>`;
       });
     }
-
+    
     // Add recommendations section
     reportContent += `
       <div style="padding: 15px; background-color: #f9f9f9; border-radius: 4px; margin-top: 20px;">
         <h3 style="margin-top: 0; color: #333;">Recommendations</h3>
         <ul>
     `;
-
+    
     if (totalViolations > 0) {
       reportContent += `
         <li>Review all highlighted violations and assess the risk level for each.</li>
@@ -491,26 +421,26 @@ window.QDProEditor = {
         <li>Maintain current safety protocols and documentation.</li>
       `;
     }
-
+    
     reportContent += `
         </ul>
       </div>
-
+      
       <div style="margin-top: 30px; font-size: 0.8em; text-align: center; color: #777; border-top: 1px solid #eee; padding-top: 15px;">
         <p>Generated by QDPro Analysis Engine • ${new Date().toLocaleDateString()}</p>
       </div>
     </div>
     `;
-
+    
     // Set the modal content
     reportModal.innerHTML = reportContent;
     document.body.appendChild(reportModal);
-
+    
     // Add event listeners
     document.getElementById('closeReportBtn').addEventListener('click', function() {
       document.body.removeChild(reportModal);
     });
-
+    
     document.getElementById('printReportBtn').addEventListener('click', function() {
       window.print();
     });
