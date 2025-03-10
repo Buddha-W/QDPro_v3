@@ -306,3 +306,21 @@ function saveFeatureProperties() {
 window.openFeatureEditor = openFeatureEditor;
 window.saveFeatureProperties = saveFeatureProperties;
 window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
+
+
+// Add Layer Click Handlers (This function needs to be defined elsewhere and likely calls openFeatureEditor)
+function addLayerClickHandlers(layer) {
+  layer.on('popupopen', function(e) {
+    setTimeout(() => {
+      const popup = e.popup;
+      if (popup && popup._contentNode) {
+        const editBtn = popup._contentNode.querySelector('.edit-properties-btn');
+        if (editBtn) {
+          editBtn.addEventListener('click', function() {
+            openFeatureEditor(layer);
+          });
+        }
+      }
+    }, 100);
+  });
+}
