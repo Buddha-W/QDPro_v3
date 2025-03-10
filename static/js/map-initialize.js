@@ -1,50 +1,32 @@
-
-/**
- * Map Initialization Module
- * Handles map creation and initial setup
- */
-
-// Global map variable
+// Global map variable (accessible through window.map)
 let map;
 
 /**
  * Initialize the Leaflet map
  */
 function initMap() {
-  console.log('Initializing map...');
-  
-  // Create the map only if it doesn't exist and the container exists
-  if (!map && document.getElementById('map')) {
-    // Default view centered on US
-    map = L.map('map').setView([39.8283, -98.5795], 4);
-    
-    // Add the OpenStreetMap tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-    }).addTo(map);
-    
-    // Make map available globally
-    window.map = map;
-    
-    console.log('Map initialized successfully');
-    
-    // Initialize the feature editor with the map
-    if (typeof initFeatureEditor === 'function') {
-      initFeatureEditor(map);
-    }
-    
-    // Load saved project if available
-    loadSavedProject();
-  } else if (map) {
-    console.log('Map already initialized');
-  } else {
-    console.error('Map container not found in DOM');
-  }
+  console.log("Initializing map...");
+
+  // Create the map and set initial view
+  map = L.map('map').setView([40.7128, -74.0060], 5);
+
+  // Add the base tile layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  // Make the map globally accessible
+  window.map = map;
+
+  console.log("Map initialized successfully");
+
+  // After map is initialized, try to load any saved project
+  loadSavedProject();
 }
 
 /**
- * Load saved project from localStorage
+ * Load a saved project from localStorage
  */
 function loadSavedProject() {
   try {
@@ -52,7 +34,7 @@ function loadSavedProject() {
     if (savedProject) {
       const projectData = JSON.parse(savedProject);
       console.log('Found saved project in localStorage');
-      
+
       // Use the loadProject function from feature-editor.js
       if (typeof window.loadProject === 'function') {
         window.loadProject(projectData);
@@ -70,10 +52,10 @@ function loadSavedProject() {
 // Initialize map when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Map initialization script loaded');
-  
+
   // Initialize the map
   initMap();
-  
+
   // Add resize handler to ensure map displays correctly
   window.addEventListener('resize', function() {
     if (map) {

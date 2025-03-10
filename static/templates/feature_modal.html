@@ -46,3 +46,62 @@
     </div>
   </div>
 </div>
+<!-- Feature Properties Modal -->
+<div id="featurePropertiesModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Edit Feature Properties</h2>
+      <span class="close" onclick="closeFeaturePropertiesModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="featurePropertiesForm">
+        <div class="form-group">
+          <label for="featureName">Name:</label>
+          <input type="text" id="featureName" name="name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="featureType">Type:</label>
+          <select id="featureType" name="type">
+            <option value="Polygon">Polygon</option>
+            <option value="Point">Point</option>
+            <option value="Line">Line</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="featureDescription">Description:</label>
+          <textarea id="featureDescription" name="description" rows="4"></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="has_explosive" name="has_explosive">
+            Contains Explosives
+          </label>
+        </div>
+        
+        <div id="explosiveSection" style="display:none;">
+          <div class="form-group">
+            <label for="explosiveClass">Explosive Class:</label>
+            <select id="explosiveClass" name="explosive_class">
+              <option value="1.1">1.1 - Mass Explosion Hazard</option>
+              <option value="1.2">1.2 - Projection Hazard</option>
+              <option value="1.3">1.3 - Fire Hazard</option>
+              <option value="1.4">1.4 - Minor Hazard</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="netExplosiveWeight">Net Explosive Weight (kg):</label>
+            <input type="number" id="netExplosiveWeight" name="net_explosive_weight" min="0">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeFeaturePropertiesModal()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="saveFeatureProperties()">Save</button>
+    </div>
+  </div>
+</div>
