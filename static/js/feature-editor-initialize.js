@@ -806,9 +806,17 @@ async function loadBookmarksFromServer() {
 function createBookmark() {
   // Add a delay to ensure map is fully initialized
   setTimeout(() => {
-    if (!window.map || typeof window.map.getCenter !== 'function') {
+    // Enhanced map initialization check
+    if (!window.map) {
       console.error("Map not properly initialized. Cannot create bookmark.");
       alert("Map not ready. Please try again in a moment.");
+      return;
+    }
+    
+    // Secondary check for map methods
+    if (typeof window.map.getCenter !== 'function' || typeof window.map.getZoom !== 'function') {
+      console.error("Map methods not available. Cannot create bookmark.");
+      alert("Map is still initializing. Please try again in a moment.");
       return;
     }
     
@@ -863,24 +871,9 @@ function createBookmark() {
   }, 500); // Half-second delay to ensure map is loaded
 }
 
-  document.getElementById('saveBookmarkBtn').addEventListener('click', function() {
-    const bookmarkName = document.getElementById('bookmarkName').value.trim();
-    if (bookmarkName) {
-      try {
-        saveBookmarkToStorage(bookmarkName, currentView);
-        // Ensure updateBookmarksDropdown is called with proper context
-        if (typeof window.updateBookmarksDropdown === 'function') {
-          window.updateBookmarksDropdown();
-        }
-        document.body.removeChild(modal);
-      } catch (error) {
-        console.error("Error saving bookmark:", error);
-        alert("Error saving bookmark: " + error.message);
-      }
-    } else {
-      alert("Please enter a name for the bookmark.");
-    }
-  });
+  // Removed standalone event listener outside of setTimeout
+  // This was causing the "Cannot read properties of null" error
+  // All event listeners should be inside the setTimeout after the elements are created
 }
 
 async function saveBookmarkToStorage(name, view) {

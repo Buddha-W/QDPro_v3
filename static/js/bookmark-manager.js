@@ -26,15 +26,22 @@ function toggleBookmarksDropdown() {
 // Create bookmark from current map view
 function createBookmarkSimple() {
   try {
-    // Check if map is properly initialized
-    if (!window.map || typeof window.map.getCenter !== 'function') {
+    // Enhanced check for map initialization
+    if (!window.map) {
       console.error("Map not properly initialized. Cannot create bookmark.");
       alert("Map not ready. Please try again in a moment.");
       return;
     }
     
+    // Secondary check for map methods
+    if (typeof window.map.getCenter !== 'function' || typeof window.map.getZoom !== 'function') {
+      console.error("Map methods not available. Cannot create bookmark.");
+      alert("Map is still initializing. Please try again in a moment.");
+      return;
+    }
+    
     const name = prompt("Enter a name for this view:");
-    if (!name) return;
+    if (!name || name.trim() === '') return;
     
     const center = window.map.getCenter();
     const zoom = window.map.getZoom();
@@ -46,7 +53,17 @@ function createBookmarkSimple() {
     };
     
     saveBookmarkToStorage(name, bookmark);
-    updateBookmarksDropdown();
+    
+    // Check if the function exists before calling it
+    if (typeof updateBookmarksDropdown === 'function') {
+      updateBookmarksDropdown();
+    } else if (typeof window.updateBookmarksDropdown === 'function') {
+      window.updateBookmarksDropdown();
+    } else {
+      console.warn("updateBookmarksDropdown function not found");
+    }
+    
+    console.log(`Bookmark "${name}" created successfully`);
   } catch (error) {
     console.error("Error creating bookmark:", error);
     alert("Error creating bookmark: " + error.message);
