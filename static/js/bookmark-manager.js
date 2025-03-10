@@ -7,6 +7,19 @@ if (typeof window.QDProEditor === 'undefined') {
   window.QDProEditor = {};
 }
 
+// Initialize bookmark manager after document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Bookmark manager initializing...");
+  
+  // Check if map exists every second until it's ready
+  const mapReadyCheck = setInterval(() => {
+    if (window.isMapReady && window.isMapReady()) {
+      console.log("Map is ready for bookmarks");
+      clearInterval(mapReadyCheck);
+    }
+  }, 1000);
+});
+
 // Toggle bookmarks dropdown visibility
 function toggleBookmarksDropdown() {
   const dropdown = document.getElementById('bookmarksDropdown');
@@ -26,16 +39,32 @@ function toggleBookmarksDropdown() {
 // Create bookmark from current map view
 function createBookmarkSimple() {
   try {
-    // Enhanced check for map initialization
+    // Enhanced check for map initialization with retry mechanism
     if (!window.map) {
-      console.error("Map not properly initialized. Cannot create bookmark.");
-      alert("Map not ready. Please try again in a moment.");
+      console.log("Map not initialized yet, waiting...");
+      
+      // Instead of immediately failing, wait and retry for the map to initialize
+      setTimeout(() => {
+        console.log("Retrying bookmark creation after delay...");
+        if (window.map) {
+          createBookmarkSimple();
+        } else {
+          console.error("Map not properly initialized after retry. Cannot create bookmark.");
+          alert("Map not ready. Please try again in a moment.");
+        }
+      }, 1000);
       return;
     }
     
-    // Secondary check for map methods
-    if (typeof window.map.getCenter !== 'function' || typeof window.map.getZoom !== 'function') {
-      console.error("Map methods not available. Cannot create bookmark.");
+    // Enhanced secondary check with better error details
+    if (typeof window.map.getCenter !== 'function') {
+      console.error("Map getCenter method not available. Map type:", typeof window.map);
+      alert("Map is still initializing. Please try again in a moment.");
+      return;
+    }
+    
+    if (typeof window.map.getZoom !== 'function') {
+      console.error("Map getZoom method not available. Map type:", typeof window.map);
       alert("Map is still initializing. Please try again in a moment.");
       return;
     }

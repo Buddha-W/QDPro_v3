@@ -803,11 +803,18 @@ async function loadBookmarksFromServer() {
   }
 }
 
+// Global function to check if map is ready for operations
+window.isMapReady = function() {
+  return window.map && 
+         typeof window.map.getCenter === 'function' && 
+         typeof window.map.getZoom === 'function';
+};
+
 function createBookmark() {
   // Add a delay to ensure map is fully initialized
   setTimeout(() => {
-    // Enhanced map initialization check
-    if (!window.map) {
+    // Use the global map ready check
+    if (!window.isMapReady()) {
       console.error("Map not properly initialized. Cannot create bookmark.");
       alert("Map not ready. Please try again in a moment.");
       return;
