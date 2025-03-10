@@ -579,7 +579,7 @@ window.addEventListener('load', function() {
   // Add a direct reference for popups to use
 
 // Bookmark management functions
-window.updateBookmarksDropdown = function() {
+function updateBookmarksDropdown() {
   console.log("updateBookmarksDropdown called");
   
   const dropdown = document.getElementById('bookmarksDropdown');
@@ -730,7 +730,7 @@ window.updateBookmarksDropdown = updateBookmarksDropdown;
 // Load bookmarks from server, with fallback to localStorage
 async function loadBookmarksFromServer() {
   try {
-    const locationId = QDPro?.currentLocationId;
+    const locationId = window.QDPro?.currentLocationId;
     
     // If no location ID is available, use localStorage
     if (!locationId) {
@@ -948,7 +948,7 @@ async function deleteBookmark(name) {
 }
 
 // Function to toggle bookmarks dropdown
-window.toggleBookmarksDropdown = function() {
+function toggleBookmarksDropdown() {
   const dropdown = document.getElementById('bookmarksDropdown');
   if (!dropdown) {
     console.error("Bookmarks dropdown element not found");
@@ -981,6 +981,9 @@ window.toggleBookmarksDropdown = function() {
   }
 }
 
+// Make sure it's available globally
+window.toggleBookmarksDropdown = toggleBookmarksDropdown;
+
 // Make sure all bookmark functions are properly exposed to the global scope
 window.createBookmark = createBookmark;
 window.saveBookmarkToStorage = saveBookmarkToStorage;
@@ -991,11 +994,27 @@ window.updateBookmarksDropdown = updateBookmarksDropdown;
 
 // Add a direct global reference when the document loads
 document.addEventListener('DOMContentLoaded', function() {
-  // Ensure function references are available globally
+  // Extra safety - ensure function references are available globally
   window.updateBookmarksDropdown = updateBookmarksDropdown;
   window.toggleBookmarksDropdown = toggleBookmarksDropdown;
+  
+  // Define on global window
+  if (typeof window.QDProEditor === 'undefined') {
+    window.QDProEditor = {};
+  }
+  
+  // Add to QDProEditor namespace for additional reliability
+  window.QDProEditor.updateBookmarksDropdown = updateBookmarksDropdown;
+  window.QDProEditor.toggleBookmarksDropdown = toggleBookmarksDropdown;
+  
   console.log("Bookmark functions exposed globally");
 });
+
+// Expose globally for other scripts to use
+if (typeof window !== 'undefined') {
+  window.updateBookmarksDropdown = updateBookmarksDropdown;
+  window.toggleBookmarksDropdown = toggleBookmarksDropdown;
+}
 
   document.openFeatureEditor = openFeatureEditor;
 });
