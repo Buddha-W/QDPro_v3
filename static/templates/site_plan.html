@@ -3,16 +3,17 @@
 <head>
   <title>QDPro – Working Example with Persistence</title>
 
-  <!-- Add this at the right position in your head section - adjust line number as needed -->
-  <script src="/static/js/feature-editor.js"></script>
+  <!-- Load Leaflet JavaScript with defer to ensure proper loading order -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js" defer></script>
+
+  <!-- Load feature editor early to ensure global functions are available -->
+  <script src="/static/js/feature-editor.js" defer></script>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" crossorigin="anonymous"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js" crossorigin="anonymous"></script>
   <script src="/static/js/popup-handler.js"></script>
-  <script src="/static/js/feature-editor.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; height: 100vh; overflow: hidden; }
@@ -1497,7 +1498,7 @@
   <h3>${facility.facility_name || 'Unnamed Facility'}</h3>
   <p><strong>NEW:</strong> ${facility.net_explosive_weight_display || 'N/A'} ${facility.unit_display || ''}</p>
   <p><strong>Safe Distance:</strong> ${facility.safe_distance || 'N/A'} ft</p>
-  <p><strong>Analysis Status:</strong> ${facility.violations &&facility.violations.length ? facility.violations.length + ' violations found' : 'No violations'}</p<p><strong>Standard:</strong> ${facility.k_factor_type || 'Standard'} (K=${facility.k_factor_value || 'N/A'})</p>
+  <p><strong>Analysis Status:</strong> ${facility.violations &&facility.violations.length ? facility.violations.length + ' violations found' : 'No violations'}</p<p><strong>Standard:</strong> ${facility.k_factor_type || 'Standard'} (K=${facility.k_factor_value || 'N/A`)
   <button class="close-btn" onclick="QDPro.closeAnalysisPopup()">Close</button>
 </div>`)            .addTo(this.analysisLayer);
 

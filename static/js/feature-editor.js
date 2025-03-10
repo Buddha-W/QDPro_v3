@@ -4,9 +4,25 @@ let activeEditingLayer = null;
 let selectedFeatureProps = null;
 
 // Ensure openFeatureEditor is defined on window immediately
+// This declaration at the top ensures the function is available globally
 window.openFeatureEditor = function(layerData) {
   console.log("Opening feature editor for", layerData);
-  // Implementation will be defined below
+  const modal = document.getElementById('featurePropertiesModal');
+  if (modal) {
+    console.log("Opening modal for", layerData);
+    modal.style.display = 'block';
+    
+    // Store the active layer for later use
+    window.activeEditingLayer = layerData;
+    
+    // Populate form fields if available
+    const nameField = document.getElementById('feature_name');
+    if (nameField && layerData && layerData.feature && layerData.feature.properties) {
+      nameField.value = layerData.feature.properties.name || '';
+    }
+  } else {
+    console.error("Feature properties modal not found");
+  }
 };
 
 /**
