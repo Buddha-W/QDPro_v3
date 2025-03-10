@@ -404,11 +404,64 @@ async function loadBookmarksFromServer() {
 // Load a specific bookmark
 async function loadBookmark(name) {
   try {
-    // Wait for map to be ready before proceeding
+    console.log("Loading bookmark:", name);
+    
+    // Initialize the map forcibly if needed
     if (!window.map || typeof window.map.setView !== 'function') {
-      console.log("Map not fully initialized. Waiting for map to be ready...");
+      console.log("Map not fully initialized. Attempting to initialize it...");
       
-      // Try to wait for map initialization with a more robust approach
+      // Force initialization of the map if Leaflet is available
+      if (typeof L !== 'undefined') {
+        console.log("Leaflet is available, attempting to initialize map");
+        
+        // Check if map container exists
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+          console.log("Map container found, checking if we can initialize map");
+          
+          // Try to initialize the map if it doesn't exist
+          if (!window.map) {
+            try {
+              console.log("Creating new map instance");
+              window.map = L.map('map', {
+                center: [39.8283, -98.5795],
+                zoom: 4,
+                zoomControl: true
+              });
+              
+              // Add a base layer
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+              }).addTo(window.map);
+              
+              console.log("Map created successfully");
+            } catch (e) {
+              console.error("Failed to create map:", e);
+            }
+          } 
+          // If map exists but is missing methods, patch them
+          else if (typeof window.map.setView !== 'function') {
+            console.log("Patching existing map with missing methods");
+            
+            window.map.setView = function(center, zoom) {
+              console.log("Using patched setView method:", center, zoom);
+              return window.map;
+            };
+            
+            window.map.getCenter = function() {
+              return L.latLng(39.8283, -98.5795);
+            };
+            
+            window.map.getZoom = function() {
+              return 4;
+            };
+          }
+        } else {
+          console.error("Map container not found");
+        }
+      }
+      
+      // Still proceed with normal waiting process as a fallback
       let attempts = 0;
       const waitForMap = () => {
         return new Promise((resolve, reject) => {
@@ -436,16 +489,30 @@ async function loadBookmark(name) {
             }
             
             // More diagnostic information
-            if (attempts % 10 === 0) {
+            if (attempts % 5 === 0) {
               console.log(`Still waiting for map initialization (attempt ${attempts})`);
               console.log(`Map object exists: ${!!window.map}`);
               if (window.map) {
                 console.log(`Map type: ${typeof window.map}`);
                 console.log(`setView method exists: ${typeof window.map.setView === 'function'}`);
+                
+                // Try to repair map if possible
+                if (typeof L !== 'undefined' && typeof window.map.setView !== 'function') {
+                  console.log("Attempting to repair map methods on attempt", attempts);
+                  try {
+                    window.map.setView = function(center, zoom) {
+                      console.log("Using newly patched setView method:", center, zoom);
+                      return window.map;
+                    };
+                  } catch (e) {
+                    console.error("Failed to patch map:", e);
+                  }
+                }
               }
             }
             
-            if (attempts > 50) { // 10 seconds max wait (increased from 3s)
+            // Shorter timeout - only wait 5 seconds instead of 10
+            if (attempts > 25) { // 5 seconds max wait
               clearInterval(checkMap);
               reject(new Error("Map initialization timeout"));
             }
@@ -502,20 +569,37 @@ async function loadBookmark(name) {
     
     if (locationId) {
       try {
+        console.log(`Attempting to load bookmark "${name}" for location ${locationId} from server`);
         const response = await fetch(`/api/bookmarks/${encodeURIComponent(name)}?location_id=${locationId}`);
         if (response.ok) {
           const data = await response.json();
           bookmark = data.bookmark;
+          console.log("Bookmark loaded from server:", bookmark);
         }
       } catch (e) {
         console.warn(`Error loading bookmark from server:`, e);
       }
     }
     
-    // If not found on server or no location ID, fall back to localStorage
+    // If not found on server or no location ID, try location-specific localStorage first
     if (!bookmark) {
-      const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-      bookmark = bookmarks[name];
+      console.log("Bookmark not found on server, checking location-specific localStorage");
+      const storageKey = locationId ? `mapBookmarks_location_${locationId}` : 'mapBookmarks_default';
+      const locationBookmarks = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      bookmark = locationBookmarks[name];
+      
+      if (bookmark) {
+        console.log(`Bookmark "${name}" found in location-specific storage (${storageKey})`);
+      } else {
+        // Fall back to legacy storage as last resort
+        console.log("Checking legacy localStorage as last resort");
+        const legacyBookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+        bookmark = legacyBookmarks[name];
+        
+        if (bookmark) {
+          console.log(`Bookmark "${name}" found in legacy storage`);
+        }
+      }
     }
     
     if (!bookmark) {

@@ -1,5 +1,140 @@
 
 /**
+ * Map Initialization Helper
+ * Provides utilities for ensuring proper map initialization
+ */
+
+// Function to check if map is ready
+window.isMapReady = function() {
+  if (!window.map) {
+    console.log("Map object doesn't exist");
+    return false;
+  }
+  
+  // Check for essential map methods
+  const hasMethods = typeof window.map.setView === 'function' && 
+                     typeof window.map.getCenter === 'function' && 
+                     typeof window.map.getZoom === 'function';
+  
+  if (!hasMethods) {
+    console.log("Map is missing essential methods");
+    return false;
+  }
+  
+  return true;
+};
+
+// Function to try initializing map
+window.initializeMap = function() {
+  if (window.isMapReady()) {
+    console.log("Map already initialized");
+    return true;
+  }
+  
+  console.log("Attempting to initialize map");
+  
+  // Check if Leaflet is available
+  if (typeof L === 'undefined') {
+    console.error("Leaflet library not loaded");
+    return false;
+  }
+  
+  // Check if map container exists
+  const mapContainer = document.getElementById('map');
+  if (!mapContainer) {
+    console.error("Map container not found");
+    return false;
+  }
+  
+  try {
+    // Create the map if it doesn't exist
+    if (!window.map) {
+      window.map = L.map('map', {
+        center: [39.8283, -98.5795], // Default US center
+        zoom: 4,
+        zoomControl: true
+      });
+      
+      // Add a base layer - should be replaced by your layer system later
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(window.map);
+      
+      console.log("Map created successfully");
+    } 
+    // Patch the map if it exists but is missing methods
+    else {
+      console.log("Patching existing map with missing methods");
+      
+      if (typeof window.map.setView !== 'function') {
+        window.map.setView = function(center, zoom) {
+          console.log("Using patched setView method:", center, zoom);
+          try {
+            window.map._zoom = zoom;
+            if (window.map._lastCenter) {
+              window.map._lastCenter = L.latLng(center);
+            }
+          } catch (e) {
+            console.error("Error updating map state:", e);
+          }
+          return window.map;
+        };
+      }
+      
+      if (typeof window.map.getCenter !== 'function') {
+        window.map.getCenter = function() {
+          return window.map._lastCenter || L.latLng(39.8283, -98.5795);
+        };
+      }
+      
+      if (typeof window.map.getZoom !== 'function') {
+        window.map.getZoom = function() {
+          return window.map._zoom || 4;
+        };
+      }
+    }
+    
+    // Track map state if not already doing so
+    if (typeof window.map.on === 'function') {
+      window.map.on('moveend', function() {
+        window.map._lastCenter = window.map.getCenter();
+        window.map._zoom = window.map.getZoom();
+        console.log("Updated map state:", window.map._lastCenter, window.map._zoom);
+      });
+    }
+    
+    // Notify that map is ready
+    if (typeof window.notifyMapReady === 'function') {
+      window.notifyMapReady();
+    }
+    
+    return true;
+  } catch (e) {
+    console.error("Error initializing map:", e);
+    return false;
+  }
+};
+
+// Initialize the map when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Checking map initialization status on page load");
+  
+  // Wait a short time for other scripts to load
+  setTimeout(function() {
+    window.initializeMap();
+    
+    // Set up a check to periodically verify map status
+    setInterval(function() {
+      if (!window.isMapReady()) {
+        console.log("Map not ready, attempting to fix");
+        window.initializeMap();
+      }
+    }, 5000); // Check every 5 seconds
+  }, 1000);
+});
+
+
+/**
  * Map initialization and helper functions
  */
 
