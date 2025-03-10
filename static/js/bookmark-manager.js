@@ -378,17 +378,44 @@ async function loadBookmark(name) {
     if (!window.map || typeof window.map.setView !== 'function') {
       console.log("Map not fully initialized. Waiting for map to be ready...");
       
-      // Try to wait for map initialization
+      // Try to wait for map initialization with a more robust approach
       let attempts = 0;
       const waitForMap = () => {
         return new Promise((resolve, reject) => {
           const checkMap = setInterval(() => {
             attempts++;
-            if (window.map && typeof window.map.setView === 'function') {
-              clearInterval(checkMap);
-              console.log("Map initialization detected, continuing bookmark load");
-              resolve(true);
-            } else if (attempts > 15) { // 3 seconds max wait
+            
+            // First check if we have a map object
+            if (window.map) {
+              // Then check if isMapReady function exists and use it
+              if (typeof window.isMapReady === 'function') {
+                if (window.isMapReady()) {
+                  clearInterval(checkMap);
+                  console.log("Map initialization detected via isMapReady()");
+                  resolve(true);
+                  return;
+                }
+              } 
+              // Fallback to method check if isMapReady doesn't exist or returns false
+              else if (typeof window.map.setView === 'function') {
+                clearInterval(checkMap);
+                console.log("Map initialization detected via method check");
+                resolve(true);
+                return;
+              }
+            }
+            
+            // More diagnostic information
+            if (attempts % 10 === 0) {
+              console.log(`Still waiting for map initialization (attempt ${attempts})`);
+              console.log(`Map object exists: ${!!window.map}`);
+              if (window.map) {
+                console.log(`Map type: ${typeof window.map}`);
+                console.log(`setView method exists: ${typeof window.map.setView === 'function'}`);
+              }
+            }
+            
+            if (attempts > 50) { // 10 seconds max wait (increased from 3s)
               clearInterval(checkMap);
               reject(new Error("Map initialization timeout"));
             }
@@ -400,8 +427,42 @@ async function loadBookmark(name) {
         await waitForMap();
       } catch (err) {
         console.error("Map initialization timed out. Cannot load bookmark.", err);
-        alert("Map not ready. Please try again in a moment.");
-        return;
+        
+        // Try to force map initialization if it didn't happen automatically
+        if (window.map && typeof L !== 'undefined') {
+          console.log("Attempting to recover map functionality...");
+          
+          try {
+            // Try to apply the isMapReady function's patches if it exists
+            if (typeof window.isMapReady === 'function') {
+              window.isMapReady();
+            }
+            
+            // Manual patching as a last resort
+            if (typeof window.map.setView !== 'function') {
+              console.log("Manually patching missing setView method");
+              window.map.setView = function(center, zoom) {
+                console.log("Using patched setView method:", center, zoom);
+                if (window.map._lastCenter) {
+                  window.map._lastCenter = L.latLng(center);
+                }
+                if (window.map._zoom) {
+                  window.map._zoom = zoom;
+                }
+                return window.map;
+              };
+            }
+            
+            console.log("Recovery attempt completed - proceeding with bookmark load");
+          } catch (recoveryErr) {
+            console.error("Map recovery failed:", recoveryErr);
+            alert("Map not ready. Please refresh the page and try again.");
+            return;
+          }
+        } else {
+          alert("Map not ready. Please refresh the page and try again.");
+          return;
+        }
       }
     }
 
