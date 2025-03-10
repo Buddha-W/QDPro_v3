@@ -235,78 +235,43 @@ window.QDProEditor = {
     console.log("QDProEditor: Running QD Analysis");
     if (typeof QDPro !== 'undefined' && typeof QDPro.analyzeLocation === 'function') {
       try {
-        // Add detailed status feedback
-        const statusElement = document.getElementById('dbStatus');
-        if (statusElement) {
-          statusElement.textContent = "Running QD analysis...";
-        }
+        // Show loading indicator
+        alert("Starting QD Analysis... This might take a moment.");
 
-        // Create a status element if it doesn't exist
-        if (!document.getElementById('statusMessage')) {
-          const messageDiv = document.createElement('div');
-          messageDiv.id = 'statusMessage';
-          messageDiv.style.position = 'fixed';
-          messageDiv.style.bottom = '20px';
-          messageDiv.style.left = '20px';
-          messageDiv.style.padding = '10px 20px';
-          messageDiv.style.backgroundColor = '#ffc107';
-          messageDiv.style.color = '#000';
-          messageDiv.style.borderRadius = '4px';
-          messageDiv.style.zIndex = '3000';
-          messageDiv.style.display = 'none';
-          document.body.appendChild(messageDiv);
-        }
+        // Add detailed debugging
+        console.log("Current location ID:", QDPro.currentLocationId);
+        console.log("Available layers:", Object.keys(QDPro.layers));
 
-        // Show status message
-        function showStatus(message, type) {
-          const statusMsg = document.getElementById('statusMessage');
-          if (statusMsg) {
-            statusMsg.textContent = message;
-            statusMsg.style.backgroundColor = type === 'error' ? '#f44336' : 
-                                             type === 'success' ? '#4CAF50' : '#ffc107';
-            statusMsg.style.color = type === 'error' ? '#fff' : '#000';
-            statusMsg.style.display = 'block';
-
-            // Auto-hide after 5 seconds unless it's an error
-            if (type !== 'error') {
-              setTimeout(() => {
-                statusMsg.style.display = 'none';
-              }, 5000);
+        // Count features with explosives
+        let explosiveFeatures = 0;
+        Object.keys(QDPro.layers).forEach(layerName => {
+          QDPro.layers[layerName].eachLayer(layer => {
+            if (layer.feature && 
+                layer.feature.properties && 
+                layer.feature.properties.net_explosive_weight) {
+              explosiveFeatures++;
+              console.log("Found explosive feature:", {
+                id: layer._leaflet_id,
+                name: layer.feature.properties.name,
+                NEW: layer.feature.properties.net_explosive_weight
+              });
             }
-          }
-        }
+          });
+        });
+        console.log(`Found ${explosiveFeatures} features with explosives`);
 
-        showStatus("Starting QD analysis...", "info");
-
-        // Add a timeout to prevent infinite waiting
-        let analysisTimeout = setTimeout(() => {
-          showStatus("Analysis is taking longer than expected, please wait...", "info");
-        }, 3000);
-
-        // Call analysis with proper error handling
-        QDPro.analyzeLocation().catch(error => {
-          clearTimeout(analysisTimeout);
+        // Run analysis with promise handling
+        QDPro.analyzeLocation().then(result => {
+          console.log("QD Analysis completed successfully:", result);
+        }).catch(error => {
           console.error("Error running QD analysis:", error);
-          showStatus("Error running QD analysis: " + error.message, "error");
-
-          // Reset status in the header
-          if (statusElement) {
-            statusElement.textContent = QDPro.currentLocationName ? 
-              `Location: ${QDPro.currentLocationName}` : "No location loaded";
-          }
+          alert("Error running QD analysis: " + (error.message || "Unknown error"));
         });
 
         console.log("QD Analysis started via QDPro.analyzeLocation");
-
-        // Wait for analysis to complete, then show detailed report
-        setTimeout(() => {
-          if (QDPro.analysisLayer) {
-            this.displayDetailedReport();
-          }
-        }, 1000);
       } catch (error) {
-        console.error("Error running QD analysis:", error);
-        alert("Error running QD analysis: " + error.message);
+        console.error("Error initializing QD analysis:", error);
+        alert("Error initializing QD analysis: " + error.message);
       }
     } else {
       console.error("QDPro.analyzeLocation is not available");

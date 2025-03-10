@@ -675,18 +675,35 @@ QD engine calculation steps:
             
     def extract_facility_data(self, feature: Dict) -> Dict:
         """Extract facility data from a GeoJSON feature for QD analysis"""
+        # Log input for debugging
+        logger.debug(f"Extracting facility data from feature: {feature.get('id', 'unknown')}")
+        
+        # Validate feature structure
+        if not isinstance(feature, dict):
+            logger.error(f"Invalid feature type: {type(feature)}")
+            raise ValueError(f"Feature must be a dictionary, got {type(feature)}")
+            
+        if 'geometry' not in feature:
+            logger.error(f"Feature missing geometry: {feature.get('id', 'unknown')}")
+            raise ValueError(f"Feature missing geometry field: {feature.get('id', 'unknown')}")
+            
         properties = feature.get("properties", {})
+        logger.debug(f"Feature properties: {properties}")
         
         # Get explosive weight - convert to float if possible
         new_value = 0
         try:
             new_str = properties.get("net_explosive_weight", "0")
+            logger.debug(f"Raw NEW value: {new_str}, type: {type(new_str)}")
+            
             if isinstance(new_str, (int, float)):
                 new_value = float(new_str)
             elif isinstance(new_str, str) and new_str.strip():
                 new_value = float(new_str)
-        except (ValueError, TypeError):
-            logger.warning(f"Invalid NEW value for feature {feature.get('id')}: {properties.get('net_explosive_weight')}")
+                
+            logger.debug(f"Converted NEW value: {new_value}")
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid NEW value for feature {feature.get('id')}: {properties.get('net_explosive_weight')} - Error: {str(e)}")
             new_value = 0
             
         # Get unit type with fallback

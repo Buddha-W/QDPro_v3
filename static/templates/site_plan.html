@@ -1287,46 +1287,94 @@
         return newLayer;
       },
       analyzeLocation: async function() {
-        // Add debug information
-        console.log("Starting analyzeLocation function");
-        
-        if (!this.currentLocationId) {
-          console.warn("No location selected for analysis");
-          alert("Please open a location before running analysis");
-          return;
-        }
-        
-        console.log("Current location ID:", this.currentLocationId);
-        console.log("Current location name:", this.currentLocationName);
-        
-        // Get all selectable features from all layers
-        const allFeatures = [];
-        
-        // Debug information about available layers
-        console.log("Available layers for analysis:", Object.keys(this.layers).length);
-        Object.entries(this.layers).forEach(([layerName, layer]) => {
-          layer.eachLayer(l => {
-            if (l.toGeoJSON) {
-              const feature = l.toGeoJSON();
-              // Make sure to preserve properties
-              if (l.feature && l.feature.properties) {
-                feature.properties = {...feature.properties, ...l.feature.properties};
-              }
-              // Add layer name and ID for reference
-              feature.properties.layerName = layerName;
-              feature.properties.featureId = l._leaflet_id || Math.random().toString(36).substr(2, 9);
-              // Add a human-readable name for display
-              feature.properties.displayName = feature.properties.name || feature.properties.facility_name || 
-                                               (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${String(feature.properties.featureId).slice(-4)}`);
-              allFeatures.push(feature);
+        try {
+          // Add debug information
+          console.log("Starting analyzeLocation function");
+          
+          if (!this.currentLocationId) {
+            console.warn("No location selected for analysis");
+            alert("Please open a location before running analysis");
+            return;
+          }
+          
+          console.log("Current location ID:", this.currentLocationId);
+          console.log("Current location name:", this.currentLocationName);
+          
+          // Get all selectable features from all layers
+          const allFeatures = [];
+          
+          // Debug information about available layers
+          console.log("Available layers for analysis:", Object.keys(this.layers).length);
+          
+          // Detailed validation for each layer and feature
+          Object.entries(this.layers).forEach(([layerName, layer]) => {
+            console.log(`Processing layer: ${layerName}, has ${layer.getLayers ? layer.getLayers().length : 'unknown'} features`);
+            
+            if (!layer.eachLayer) {
+              console.error(`Layer ${layerName} does not have eachLayer method!`);
+              return;
             }
+            
+            layer.eachLayer(l => {
+              try {
+                if (!l) {
+                  console.error("Found null layer in", layerName);
+                  return;
+                }
+                
+                if (!l.toGeoJSON) {
+                  console.error(`Layer in ${layerName} does not have toGeoJSON method:`, l);
+                  return;
+                }
+                
+                const feature = l.toGeoJSON();
+                
+                // Validate GeoJSON
+                if (!feature || !feature.type || !feature.geometry) {
+                  console.error(`Invalid GeoJSON from layer in ${layerName}:`, feature);
+                  return;
+                }
+                
+                // Make sure to preserve properties
+                if (l.feature && l.feature.properties) {
+                  feature.properties = {...feature.properties, ...l.feature.properties};
+                }
+                
+                // Ensure properties object exists
+                if (!feature.properties) {
+                  feature.properties = {};
+                }
+                
+                // Add layer name and ID for reference
+                feature.properties.layerName = layerName;
+                feature.properties.featureId = l._leaflet_id || Math.random().toString(36).substr(2, 9);
+                
+                // Add a human-readable name for display
+                feature.properties.displayName = feature.properties.name || feature.properties.facility_name || 
+                                               (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${String(feature.properties.featureId).slice(-4)}`);
+                
+                // Log explosive features for debugging
+                if (feature.properties.net_explosive_weight) {
+                  console.log(`Found explosive feature in ${layerName}:`, {
+                    id: feature.properties.featureId,
+                    name: feature.properties.displayName,
+                    NEW: feature.properties.net_explosive_weight,
+                    geometry_type: feature.geometry.type
+                  });
+                }
+                
+                allFeatures.push(feature);
+              } catch (layerError) {
+                console.error(`Error processing layer in ${layerName}:`, layerError);
+              }
+            });
           });
-        });
 
-        if (allFeatures.length === 0) {
-          alert("No shapes to analyze. Please draw some shapes first.");
-          return;
-        }
+          console.log(`Total features collected for analysis: ${allFeatures.length}`);
+          if (allFeatures.length === 0) {
+            alert("No shapes to analyze. Please draw some shapes first.");
+            return;
+          }
 
         // Create a selection modal for choosing features to analyze
         const modal = document.createElement('div');
@@ -1461,35 +1509,62 @@
               feature_count: requestPayload.features.length
             });
 
-            // Call the backend API with improved error handling
+            // Call the backend API with comprehensive error handling
             console.log("Sending request to /api/analyze-location");
-            const response = await fetch("/api/analyze-location", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(requestPayload)
+            console.log("Request payload summary:", {
+              location_id: requestPayload.location_id,
+              features_count: requestPayload.features.length,
+              explosive_features: requestPayload.features.filter(f => 
+                f.properties && f.properties.net_explosive_weight && 
+                parseFloat(f.properties.net_explosive_weight) > 0
+              ).length
             });
             
-            console.log("Response status:", response.status);
-            
-            if (!response.ok) {
-              let errorDetail = response.statusText;
+            try {
+              const response = await fetch("/api/analyze-location", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestPayload)
+              });
               
-              // Try to get detailed error message from response
-              try {
-                const errorJson = await response.json();
-                if (errorJson.detail) {
-                  errorDetail = errorJson.detail;
+              console.log("Response status:", response.status);
+              
+              if (!response.ok) {
+                let errorDetail = response.statusText;
+                let errorData = null;
+                
+                // Try to get detailed error message from response
+                try {
+                  errorData = await response.json();
+                  console.error("Server error response:", errorData);
+                  
+                  if (errorData.detail) {
+                    errorDetail = errorData.detail;
+                  } else if (errorData.error) {
+                    errorDetail = errorData.error;
+                  } else if (errorData.message) {
+                    errorDetail = errorData.message;
+                  }
+                } catch (e) {
+                  console.warn("Could not parse error response:", e);
+                  // Try to get text response if JSON parsing fails
+                  try {
+                    const textResponse = await response.text();
+                    console.error("Server error text:", textResponse);
+                    if (textResponse) {
+                      errorDetail = textResponse.substring(0, 200); // Limit length
+                    }
+                  } catch (textError) {
+                    console.warn("Could not get error response text:", textError);
+                  }
                 }
-              } catch (e) {
-                console.warn("Could not parse error response:", e);
+                
+                throw new Error(`Analysis failed: ${errorDetail}`);
               }
-              
-              throw new Error(`Analysis failed: ${errorDetail}`);
-            }
 
-            console.log("Successfully received response, parsing JSON");
-            const result = await response.json();
-            console.log("Analysis results:", result);
+              console.log("Successfully received response, parsing JSON");
+              const result = await response.json();
+              console.log("Analysis results:", result);
 
             // Display results on the map
             self.displayAnalysisResults(result);
