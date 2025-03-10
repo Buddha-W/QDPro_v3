@@ -27,7 +27,7 @@ localPort = 8080
 externalPort = 80
 
 [workflows]
-runButton = "Run FastAPI App"
+runButton = "Run QDPro"
 
 [[workflows.workflow]]
 name = "QDPro Development"
@@ -71,6 +71,14 @@ args = "python -m uvicorn main:app --host 0.0.0.0 --port 3000 --reload"
 
 [[workflows.workflow]]
 name = "Run FastAPI App"
+author = 39096588
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+
+[[workflows.workflow]]
+name = "Run QDPro"
 author = 39096588
 
 [[workflows.workflow.tasks]]
