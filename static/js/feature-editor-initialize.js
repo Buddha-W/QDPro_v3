@@ -201,3 +201,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 100);
 });
+/**
+ * Feature Editor Initialization Helper
+ * This script ensures that feature editor functions are available globally
+ */
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Feature editor initialization helper running");
+  
+  // Ensure the openFeatureEditor function is available globally
+  if (typeof window.openFeatureEditor !== 'function') {
+    console.warn("openFeatureEditor not found, creating fallback");
+    window.openFeatureEditor = function(layerData) {
+      console.log("Opening feature editor (fallback) for:", layerData);
+      // Implement fallback behavior if needed
+      const modal = document.getElementById('featurePropertiesModal');
+      if (modal) {
+        modal.style.display = 'block';
+        
+        // Set active editing layer
+        window.activeEditingLayer = layerData;
+        
+        // Populate form fields if available
+        const nameField = document.getElementById('feature_name');
+        if (nameField && layerData && layerData.feature && layerData.feature.properties) {
+          nameField.value = layerData.feature.properties.name || '';
+        }
+      } else {
+        console.error("Feature properties modal not found");
+      }
+    };
+  }
+  
+  // Ensure the closeFeaturePropertiesModal function is available globally
+  if (typeof window.closeFeaturePropertiesModal !== 'function') {
+    console.warn("closeFeaturePropertiesModal not found, creating fallback");
+    window.closeFeaturePropertiesModal = function() {
+      const modal = document.getElementById('featurePropertiesModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+      window.activeEditingLayer = null;
+    };
+  }
+  
+  console.log("Feature editor initialization helper complete");
+});

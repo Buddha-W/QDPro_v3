@@ -3,6 +3,12 @@ let map;
 let activeEditingLayer = null;
 let selectedFeatureProps = null;
 
+// Ensure openFeatureEditor is defined on window immediately
+window.openFeatureEditor = function(layerData) {
+  console.log("Opening feature editor for", layerData);
+  // Implementation will be defined below
+};
+
 /**
  * Initialize feature editor with the map instance
  * @param {L.Map} mapInstance - The Leaflet map instance
@@ -21,6 +27,7 @@ function initFeatureEditor(mapInstance) {
  * Open the feature editor for a selected layer
  * @param {Object} layerData - Data associated with the layer
  */
+// Redefine the implementation of the already-declared window.openFeatureEditor
 window.openFeatureEditor = function(layerData) {
   console.log("Opening feature editor for", layerData);
 
