@@ -9,7 +9,7 @@ let map;
 /**
  * Initialize the Leaflet map
  */
-function initMap() {
+function initializeMap() {
   console.log('Initializing map...');
 
   // Create map if it doesn't exist
@@ -30,40 +30,192 @@ function initMap() {
 }
 
 /**
- * Load a saved project from localStorage
+ * Set up error handling for map components
+ */
+function setupMapErrorHandling() {
+  // Add global error handler for map interaction
+  if (map) {
+    map.on('error', function(e) {
+      console.error('Map error:', e.error);
+      showErrorNotification('Map error: ' + e.error.message);
+    });
+  }
+}
+
+/**
+ * Sample data used for testing
+ */
+function ensureSampleData() {
+  if (!localStorage.getItem('savedProject')) {
+    const sampleProject = {
+      layers: [
+        {
+          name: 'Example Area',
+          coordinates: [
+            [40.7128, -74.0060],
+            [40.7200, -74.0100],
+            [40.7150, -74.0200]
+          ]
+        }
+      ]
+    };
+    localStorage.setItem('savedProject', JSON.stringify(sampleProject));
+    console.log('Sample data created');
+  }
+}
+
+/**
+ * Load a project from the server API
  */
 function loadProject() {
-  if (typeof window.clearLayers !== 'function') {
-    console.error('clearLayers function not available');
-    return;
-  }
+  console.log('Loading project from API...');
+  fetch('/api/load')
+    .then(response => response.json())
+    .then(data => {
+      console.log('Project loaded:', data);
 
-  window.clearLayers();
+      if (data.features && data.features.length > 0) {
+        // Clear existing features
+        if (window.featureEditor && window.featureEditor.drawnItems) {
+          window.featureEditor.drawnItems.clearLayers();
+        } else {
+          clearLayers();
+        }
 
-  const projectData = JSON.parse(localStorage.getItem('savedProject'));
-  if (!projectData || !projectData.layers) {
-    console.error('No valid project data found');
-    return;
-  }
-
-  projectData.layers.forEach(layer => {
-    // Create polygon from coordinates
-    const polygonLayer = L.polygon(layer.coordinates).addTo(map);
-
-    // Set feature properties
-    polygonLayer.feature = {
-      type: 'Feature',
-      properties: {
-        name: layer.name,
-        ...layer // spread any other properties
+        // Add features to map
+        data.features.forEach(feature => {
+          try {
+            const layer = L.geoJSON(feature).addTo(map);
+            if (typeof window.addLayerClickHandlers === 'function') {
+              layer.eachLayer(l => window.addLayerClickHandlers(l));
+            }
+          } catch (err) {
+            console.error('Error adding feature:', err);
+          }
+        });
       }
-    };
+    })
+    .catch(error => {
+      console.error('Error loading project:', error);
+      // Fall back to localStorage
+      loadFromLocalStorage();
+    });
+}
 
-    // Add click handler to open the feature editor
-    polygonClickHandler(polygonLayer, layer);
+/**
+ * Load project from localStorage as fallback
+ */
+function loadFromLocalStorage() {
+  try {
+    const savedProject = localStorage.getItem('savedProject');
+    if (savedProject) {
+      const project = JSON.parse(savedProject);
+      if (project.layers && project.layers.length > 0) {
+        project.layers.forEach(layer => {
+          if (layer.coordinates) {
+            const polygon = L.polygon(layer.coordinates).addTo(map);
+            polygon.feature = {
+              type: 'Feature',
+              properties: {
+                name: layer.name
+              }
+            };
+            if (typeof window.addLayerClickHandlers === 'function') {
+              window.addLayerClickHandlers(polygon);
+            }
+          }
+        });
+      }
+    }
+  } catch (e) {
+    console.error('Error loading from localStorage:', e);
+  }
+}
+
+/**
+ * Clear all layers except the base tile layer
+ */
+function clearLayers() {
+  if (!map) {
+    console.error("Map is not initialized");
+    return;
+  }
+
+  map.eachLayer(layer => {
+    // Only remove polygons (leave the tile layer intact)
+    if (layer instanceof L.Polygon) {
+      map.removeLayer(layer);
+    }
   });
 
-  console.log('Project loaded successfully');
+  console.log("Layers cleared");
+}
+
+/**
+ * Set up layer edit handlers
+ */
+function setupAllLayerEditHandlers() {
+  if (map) {
+    map.eachLayer(layer => {
+      if (layer instanceof L.Polygon || layer instanceof L.Marker) {
+        if (typeof window.addLayerClickHandlers === 'function') {
+          window.addLayerClickHandlers(layer);
+        }
+      }
+    });
+  }
+}
+
+// Initialize the map on document load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Map initializer loaded');
+
+  // Initialize map if not already done
+  if (!window.map) {
+    initializeMap();
+  }
+
+  // Set up error handling for map components
+  setupMapErrorHandling();
+
+  // Ensure we have sample data
+  ensureSampleData();
+
+  // Add edit button functionality if present
+  const editButton = document.getElementById('editButton');
+  if (editButton) {
+    editButton.addEventListener('click', function() {
+      if (typeof window.openFeatureEditor === 'function') {
+        window.openFeatureEditor({
+          name: "Test Feature",
+          type: "Polygon",
+          description: "This is a test feature"
+        });
+      } else {
+        console.error("openFeatureEditor function not found");
+        alert("Cannot test editor: openFeatureEditor not loaded");
+      }
+    });
+  }
+
+  // Load project data after a short delay to ensure all scripts are loaded
+  setTimeout(function() {
+    loadProject();
+  }, 300);
+
+  // Setup click handlers for all layers
+  setupAllLayerEditHandlers();
+});
+
+// Helper to show error notifications if not defined elsewhere
+function showErrorNotification(message) {
+  console.error(message);
+
+  if (typeof window.showNotification === 'function') {
+    window.showNotification('error', message);
+  } else {
+    alert(message);
+  }
 }
 
 /**
@@ -114,43 +266,6 @@ function addLayerClickHandlers(layer) {
   });
 }
 
-/**
- * Setup click handlers for all existing layers
- */
-function setupAllLayerEditHandlers() {
-  console.log("Setting up all layer edit handlers");
-
-  // Check if drawn items layer collection exists
-  if (window.drawnItems) {
-    window.drawnItems.eachLayer(function(layer) {
-      addLayerClickHandlers(layer);
-    });
-  } else {
-    console.warn("drawnItems layer collection not found");
-  }
-
-  // If we have feature groups or other collections, process them too
-  if (window.map) {
-    window.map.eachLayer(function(layer) {
-      // Check if this is a feature layer or group
-      if (layer.feature || layer.eachLayer) {
-        if (layer.feature) {
-          addLayerClickHandlers(layer);
-        }
-
-        // If this is a layer group, process its sub-layers
-        if (layer.eachLayer) {
-          layer.eachLayer(function(sublayer) {
-            if (sublayer.feature) {
-              addLayerClickHandlers(sublayer);
-            }
-          });
-        }
-      }
-    });
-  }
-}
-
 // Sample project data for testing
 const sampleProjectData = {
   layers: [
@@ -177,12 +292,6 @@ const sampleProjectData = {
   ]
 };
 
-function ensureSampleData() {
-  if (!localStorage.getItem("savedProject")) {
-    localStorage.setItem("savedProject", JSON.stringify(sampleProjectData));
-    console.log("Sample project data created");
-  }
-}
 
 /**
  * Clear all polygon layers but keep the base map
@@ -203,200 +312,8 @@ function clearLayers() {
   console.log("Layers cleared");
 }
 
-// QDPro Map Initialization Script
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Map initializer loaded');
-
-  // Initialize map if not already done
-  if (!window.map) {
-    initializeMap();
-  }
-
-  // Set up error handling for map components
-  setupMapErrorHandling();
-
-  // Ensure we have sample data
-  ensureSampleData();
-
-    // Add edit button functionality if present
-  const editButton = document.getElementById('editButton');
-  if (editButton) {
-    editButton.addEventListener('click', function() {
-      if (typeof window.openFeatureEditor === 'function') {
-        window.openFeatureEditor({
-          name: "Test Feature",
-          type: "Polygon",
-          description: "This is a test feature"
-        });
-      } else {
-        console.error("openFeatureEditor function not found");
-        alert("Cannot test editor: openFeatureEditor not loaded");
-      }
-    });
-  }
-
-  // Load project data after a short delay to ensure all scripts are loaded
-  setTimeout(function() {
-    loadProject();
-  }, 300);
-
-
-  // Setup click handlers for all layers
-  setupAllLayerEditHandlers();
-
-  // Map click event to close modal when clicking outside
-  window.map.on('click', function(e) {
-    // Only close if clicking on the map background, not a feature
-    if (e.originalEvent && !e.originalEvent.target.closest('.leaflet-interactive')) {
-      if (typeof window.closeFeaturePropertiesModal === 'function') {
-        window.closeFeaturePropertiesModal();
-      }
-    }
-  });
-
-  // Setup draw create event
-  if (window.map.editControl) {
-    window.map.on('draw:created', function(e) {
-      const layer = e.layer;
-
-      // Initialize feature properties
-      layer.feature = {
-        type: 'Feature',
-        properties: {
-          name: 'New Feature',
-          type: 'Polygon',
-          description: ''
-        },
-        geometry: layer.toGeoJSON().geometry
-      };
-
-      // Add layer to map
-      window.drawnItems.addLayer(layer);
-
-      // Add click handlers
-      addLayerClickHandlers(layer);
-
-      // Open feature editor
-      if (typeof window.openFeatureEditor === 'function') {
-        window.openFeatureEditor(layer.feature.properties);
-      }
-    });
-  }
-
-  // Load any saved layers
-  if (typeof loadProject === 'function') {
-    loadProject();
-  }
-});
-
-
-// Initialize Leaflet.Draw controls
-function initializeDrawControls() {
-  // Create draw control
-  window.drawControl = new L.Control.Draw({
-    draw: {
-      polyline: true,
-      polygon: {
-        allowIntersection: false,
-        drawError: {
-          color: '#e1e100',
-          message: '<strong>Error:</strong> Shape edges cannot cross!'
-        },
-        shapeOptions: {
-          color: '#3388ff'
-        }
-      },
-      circle: true,
-      rectangle: true,
-      marker: true
-    },
-    edit: {
-      featureGroup: window.drawnItems,
-      remove: true
-    }
-  });
-  window.map.addControl(window.drawControl);
-
-  // Set up event listeners for draw events
-  window.map.on(L.Draw.Event.CREATED, function(event) {
-    const layer = event.layer;
-    window.drawnItems.addLayer(layer);
-
-    // Open edit popup for the newly created layer
-    if (typeof openEditPopup === 'function') {
-      openEditPopup(layer);
-    }
-  });
-}
-
-// Set up error handling for map components
-function setupMapErrorHandling() {
-  // Handle issues with Leaflet Draw
-  if (L && L.Draw) {
-    // Fix for draw handlers
-    const checkForDrawErrors = function() {
-      if (window.map && window.drawControl) {
-        try {
-          // Ensure handlers are properly initialized
-          if (!window.drawControl._toolbars.draw._modes.polygon.handler) {
-            console.warn('Reinitializing draw controls due to missing handlers');
-            window.map.removeControl(window.drawControl);
-            initializeDrawControls();
-          }
-        } catch (e) {
-          console.error('Error checking draw handlers:', e);
-        }
-      }
-    };
-
-    // Check periodically
-    setInterval(checkForDrawErrors, 5000);
-  }
-}
-
-// Helper to show error notifications if not defined elsewhere
-function showErrorNotification(message, source, line) {
-  // Skip if already defined in error-detector.js
-  if (window.showErrorNotificationDefined) return;
-
-  console.error(`Error: ${message} in ${source}:${line}`);
-
-  // Create notification element
-  const notification = document.createElement('div');
-  notification.style.position = 'fixed';
-  notification.style.bottom = '20px';
-  notification.style.right = '20px';
-  notification.style.backgroundColor = '#f44336';
-  notification.style.color = 'white';
-  notification.style.padding = '15px';
-  notification.style.borderRadius = '5px';
-  notification.style.zIndex = '9999';
-  notification.textContent = `Error: ${message}`;
-
-  // Add close button
-  const closeButton = document.createElement('span');
-  closeButton.style.marginLeft = '15px';
-  closeButton.style.fontWeight = 'bold';
-  closeButton.style.cursor = 'pointer';
-  closeButton.textContent = '✕';
-  closeButton.onclick = function() {
-    document.body.removeChild(notification);
-  };
-  notification.appendChild(closeButton);
-
-  // Add to body
-  document.body.appendChild(notification);
-
-  // Auto remove after 10 seconds
-  setTimeout(function() {
-    if (document.body.contains(notification)) {
-      document.body.removeChild(notification);
-    }
-  }, 10000);
-}
-
 // Make functions globally available
-window.initMap = initMap;
+window.initMap = initializeMap;
 window.polygonClickHandler = polygonClickHandler;
 window.addLayerClickHandlers = addLayerClickHandlers;
 window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
@@ -404,6 +321,7 @@ window.initializeMap = initializeMap;
 window.initializeDrawControls = initializeDrawControls;
 window.setupMapErrorHandling = setupMapErrorHandling;
 window.showErrorNotification = showErrorNotification;
+
 
 // Make sure we add the CSS for the modal
 const modalCss = document.createElement('style');
@@ -534,3 +452,194 @@ function showErrorNotification(message, source, line) {
     }, 5000);
   }
 }
+
+// Initialize Leaflet.Draw controls
+function initializeDrawControls() {
+  // Create draw control
+  window.drawControl = new L.Control.Draw({
+    draw: {
+      polyline: true,
+      polygon: {
+        allowIntersection: false,
+        drawError: {
+          color: '#e1e100',
+          message: '<strong>Error:</strong> Shape edges cannot cross!'
+        },
+        shapeOptions: {
+          color: '#3388ff'
+        }
+      },
+      circle: true,
+      rectangle: true,
+      marker: true
+    },
+    edit: {
+      featureGroup: window.drawnItems,
+      remove: true
+    }
+  });
+  window.map.addControl(window.drawControl);
+
+  // Set up event listeners for draw events
+  window.map.on(L.Draw.Event.CREATED, function(event) {
+    const layer = event.layer;
+    window.drawnItems.addLayer(layer);
+
+    // Open edit popup for the newly created layer
+    if (typeof openEditPopup === 'function') {
+      openEditPopup(layer);
+    }
+  });
+}
+
+// Set up error handling for map components
+function setupMapErrorHandling() {
+  // Handle issues with Leaflet Draw
+  if (L && L.Draw) {
+    // Fix for draw handlers
+    const checkForDrawErrors = function() {
+      if (window.map && window.drawControl) {
+        try {
+          // Ensure handlers are properly initialized
+          if (!window.drawControl._toolbars.draw._modes.polygon.handler) {
+            console.warn('Reinitializing draw controls due to missing handlers');
+            window.map.removeControl(window.drawControl);
+            initializeDrawControls();
+          }
+        } catch (e) {
+          console.error('Error checking draw handlers:', e);
+        }
+      }
+    };
+
+    // Check periodically
+    setInterval(checkForDrawErrors, 5000);
+  }
+}
+
+// Helper to show error notifications if not defined elsewhere
+function showErrorNotification(message, source, line) {
+  // Skip if already defined in error-detector.js
+  if (window.showErrorNotificationDefined) return;
+
+  console.error(`Error: ${message} in ${source}:${line}`);
+
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.style.position = 'fixed';
+  notification.style.bottom = '20px';
+  notification.style.right = '20px';
+  notification.style.backgroundColor = '#f44336';
+  notification.style.color = 'white';
+  notification.style.padding = '15px';
+  notification.style.borderRadius = '5px';
+  notification.style.zIndex = '9999';
+  notification.textContent = `Error: ${message}`;
+
+  // Add close button
+  const closeButton = document.createElement('span');
+  closeButton.style.marginLeft = '15px';
+  closeButton.style.fontWeight = 'bold';
+  closeButton.style.cursor = 'pointer';
+  closeButton.textContent = '✕';
+  closeButton.onclick = function() {
+    document.body.removeChild(notification);
+  };
+  notification.appendChild(closeButton);
+
+  // Add to body
+  document.body.appendChild(notification);
+
+  // Auto remove after 10 seconds
+  setTimeout(function() {
+    if (document.body.contains(notification)) {
+      document.body.removeChild(notification);
+    }
+  }, 10000);
+}
+
+//QDPro Map Initialization Script
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Map initializer loaded');
+
+  // Initialize map if not already done
+  if (!window.map) {
+    initializeMap();
+  }
+
+  // Set up error handling for map components
+  setupMapErrorHandling();
+
+  // Ensure we have sample data
+  ensureSampleData();
+
+    // Add edit button functionality if present
+  const editButton = document.getElementById('editButton');
+  if (editButton) {
+    editButton.addEventListener('click', function() {
+      if (typeof window.openFeatureEditor === 'function') {
+        window.openFeatureEditor({
+          name: "Test Feature",
+          type: "Polygon",
+          description: "This is a test feature"
+        });
+      } else {
+        console.error("openFeatureEditor function not found");
+        alert("Cannot test editor: openFeatureEditor not loaded");
+      }
+    });
+  }
+
+  // Load project data after a short delay to ensure all scripts are loaded
+  setTimeout(function() {
+    loadProject();
+  }, 300);
+
+
+  // Setup click handlers for all layers
+  setupAllLayerEditHandlers();
+
+  // Map click event to close modal when clicking outside
+  window.map.on('click', function(e) {
+    // Only close if clicking on the map background, not a feature
+    if (e.originalEvent && !e.originalEvent.target.closest('.leaflet-interactive')) {
+      if (typeof window.closeFeaturePropertiesModal === 'function') {
+        window.closeFeaturePropertiesModal();
+      }
+    }
+  });
+
+  // Setup draw create event
+  if (window.map.editControl) {
+    window.map.on('draw:created', function(e) {
+      const layer = e.layer;
+
+      // Initialize feature properties
+      layer.feature = {
+        type: 'Feature',
+        properties: {
+          name: 'New Feature',
+          type: 'Polygon',
+          description: ''
+        },
+        geometry: layer.toGeoJSON().geometry
+      };
+
+      // Add layer to map
+      window.drawnItems.addLayer(layer);
+
+      // Add click handlers
+      addLayerClickHandlers(layer);
+
+      // Open feature editor
+      if (typeof window.openFeatureEditor === 'function') {
+        window.openFeatureEditor(layer.feature.properties);
+      }
+    });
+  }
+
+  // Load any saved layers
+  if (typeof loadProject === 'function') {
+    loadProject();
+  }
+});

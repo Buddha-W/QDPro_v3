@@ -1,530 +1,345 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>QDPro Site Plan</title>
+    <title>QDPro - Explosive Site Planning</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" crossorigin=""/>
-  <link rel="stylesheet" href="/static/css/modal.css" />
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="anonymous" />
 
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: Arial, sans-serif;
-    }
-    #map {
-      height: 600px;
-      width: 100%;
-    }
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.4);
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 15% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 50%;
-      border-radius: 5px;
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .form-group {
-      margin-bottom: 15px;
-    }
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-    }
-    .form-group input, .form-group textarea, .form-group select {
-      width: 100%;
-      padding: 8px;
-      box-sizing: border-box;
-    }
-    button {
-      padding: 8px 16px;
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-right: 5px;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    nav.main-toolbar {
-      position: fixed; top: 0; left: 0; right: 0;
-      height: 40px; background: #f1f1f1; border-bottom: 1px solid #ccc;
-      display: flex; align-items: center; z-index: 3000; padding: 0 10px;
-      white-space: nowrap;
-    }
-    .menu-item { padding: 0 15px; font-size: 14px; display: flex; align-items: center; cursor: pointer; position: relative; }
-    .menu-item:hover { background: #e9ecef; }
-    .menu-dropdown { display: none; position: fixed; background: white; min-width: 150px; border: 1px solid #ccc; border-radius: 4px; z-index: 3500; }
-    .menu-dropdown-item { padding: 8px 12px; font-size: 14px; cursor: pointer; }
-    .menu-dropdown-item:hover { background: #f0f0f0; }
-    #dbStatus { margin-left: auto; }
-    .toolbar { position: fixed; top: 40px; left: 0; right: 0; height: 40px; background: #fff; border-bottom: 1px solid #ccc; display: flex; align-items: center; z-index: 2900; padding: 0 10px; }
-    .tool-group { display: flex; align-items: center; margin-right: 10px; }
-    .tool-button { padding: 6px; margin: 0 2px; border: 1px solid transparent; border-radius: 3px; background: #fff; color: #666; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; }
-    .tool-button:hover { background: #f0f0f0; border-color: #ccc; }
-    .tool-button.active { background: #e6f2ff; border-color: #99ccff; color: #0066cc; }
-    #map { position: fixed; top: 80px; left: 0; right: 0; bottom: 0; z-index: 1000; background: #eee; }
-    .left-panel { position: fixed; top: 80px; left: 0; width: 300px; height: calc(100vh - 80px); background: white; border-right: 1px solid #ccc; transform: translateX(-300px); transition: transform 0.3s ease; z-index: 1500; display: flex; flex-direction: column; }
-    .left-panel.visible { transform: translateX(0); }
-    .panel-header { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ccc; font-weight: bold; }
-    .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
-    .base-layer-dropdown { position: fixed; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2800; display: none; }
-    .modal-overlay { display: none; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; }
-    .modal-overlay.visible { display: flex; }
-    .modal-content { background: #fff; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; }
-    .modal-content h2 { margin-bottom: 15px; }
-    .modal-content input, .modal-content select, .modal-content textarea { width: 100%; padding: 5px; margin-top: 5px; margin-bottom: 10px; }
-    .modal-content button { margin: 5px; }
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
-    .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; }
-    .facility-icon { text-align: center; }
-    .violation-icon { text-align: center; }
-    .facility-icon div, .violation-icon div {
-      background-color: #fff;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid #333;
-    }
-    .facility-icon div {
-      background-color: #ffcc00;
-      border-color: #cc9900;
-    }
-    .violation-icon div {
-      background-color: #ff3300;
-      border-color: #cc0000;
-    }
-    .analysis-summary-panel {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1000;
-      background: white;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      max-width: 300px;
-    }
-    .analysis-popup, .qd-ring-popup, .violation-popup {
-      max-width: 250px;
-    }
-    .close-btn {
-      background: #f44336;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    .close-btn:hover {
-      background: #d32f2f;
-    }
-    .status-message {
-      padding: 10px;
-      border-radius: 5px;
-      margin-bottom: 10px;
-    }
-    .status-message.info {
-      background-color: #e6f2ff;
-      border: 1px solid #99ccff;
-      color: #0066cc;
-    }
-    .status-message.success {
-      background-color: #d4edda;
-      border: 1px solid #c3e6cb;
-      color: #155724;
-    }
-    .status-message.error {
-      background-color: #f8d7da;
-      border: 1px solid #f5c6cb;
-      color: #721c24;
-    }
-  </style>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin="anonymous"></script>
+
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
+    <!-- Leaflet Draw JS -->
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+    <link rel="stylesheet" href="/static/css/modal.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #header {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
+        .menu-bar {
+            display: flex;
+            gap: 10px;
+        }
+        .menu-item {
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .menu-item:hover {
+            background-color: #555;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%;
+            border-radius: 5px;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .feature-properties-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .button-group {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .primary-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .secondary-button {
+            background-color: #f44336;
+            color: white;
+        }
+    </style>
 </head>
 <body>
-  <nav class="main-toolbar">
-    <div class="menu-item" onclick="toggleMenu(this, 'fileMenu')">File
-      <div class="menu-dropdown" id="fileMenu">
-        <div class="menu-dropdown-item" onclick="showNewLocationModal()">New Location</div>
-        <div class="menu-dropdown-item" onclick="showSwitchLocationModal()">Switch Location</div>
-        <div class="menu-dropdown-item" onclick="saveProject()">Save Project</div>
-        <div class="menu-dropdown-item" onclick="loadProject()">Load Project</div>
-      </div>
-    </div>
-    <div class="menu-item" onclick="toggleMenu(this, 'editMenu')">Edit
-      <div class="menu-dropdown" id="editMenu">
-        <div class="menu-dropdown-item">Cut</div>
-        <div class="menu-dropdown-item">Copy</div>
-        <div class="menu-dropdown-item">Paste</div>
-      </div>
-    </div>
-    <div class="menu-item" onclick="toggleMenu(this, 'viewMenu')">View
-      <div class="menu-dropdown" id="viewMenu">
-        <div class="menu-dropdown-item">Layers</div>
-        <div class="menu-dropdown-item">Base Maps</div>
-      </div>
-    </div>
-    <div class="menu-item" onclick="toggleMenu(this, 'toolsMenu')">Tools
-      <div class="menu-dropdown" id="toolsMenu">
-        <div class="menu-dropdown-item" onclick="showMeasurementTool()">QD Calculator</div>
-        <div class="menu-dropdown-item" onclick="clearMeasurements()">Measure</div>
-        <div class="menu-dropdown-item" onclick="QDPro.analyzeLocation()">Analyze Location</div>
-      </div>
-    </div>
-    <div class="menu-item" onclick="toggleMenu(this, 'helpMenu')">Help
-      <div class="menu-dropdown" id="helpMenu">
-        <div class="menu-dropdown-item">Documentation</div>
-        <div class="menu-dropdown-item">About</div>
-      </div>
-    </div>
-    <div id="dbStatus">No location selected</div>
-  </nav>
-
-  <div class="toolbar">
-    <div class="tool-group">
-      <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel"><i class="fas fa-bars"></i></button>
-      <button id="baseLayerTool" class="tool-button" title="Base Layers"><i class="fas fa-layer-group"></i></button>
-    </div>
-    <div class="tool-group">
-      <button id="zoomInBtn" class="tool-button" title="Zoom In"><i class="fas fa-search-plus"></i></button>
-      <button id="zoomOutBtn" class="tool-button" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
-    </div>
-    <div class="tool-group">
-      <button id="selectTool" class="tool-button" title="Select Features"><i class="fas fa-mouse-pointer"></i></button>
-      <button id="panTool" class="tool-button active" title="Pan Map"><i class="fas fa-hand-paper"></i></button>
-    </div>
-    <div class="tool-group">
-      <button id="drawMarker" class="tool-button" title="Add Point"><i class="fas fa-map-marker-alt"></i></button>
-      <button id="drawPolygon" class="tool-button" title="Draw Polygon"><i class="fas fa-draw-polygon"></i></button>
-      <button id="drawRectangle" class="tool-button" title="Draw Rectangle"><i class="fas fa-square"></i></button>
-      <button id="drawCircle" class="tool-button" title="Draw Circle"><i class="fas fa-circle"></i></button>
-      <button id="drawPolyline" class="tool-button" title="Draw Line"><i class="fas fa-minus"></i></button>
-    </div>
-  </div>
-
-  <div class="left-panel" id="leftPanel">
-    <div class="panel-header">Layers Panel</div>
-    <div class="panel-content">
-      <div class="layer-select-container">
-        <label for="drawToLayer"><strong>Draw to Layer:</strong></label>
-        <select id="drawToLayer" style="width: 100%; margin-top: 5px; padding: 5px;"></select>
-        <button onclick="showAddLayerModal()" style="margin-top: 10px; width: 100%;">Add New Layer</button>
-      </div>
-      <div id="layersList" style="margin-top:20px;">
-        <h4>Available Layers</h4>
-        <ul id="availableLayers" style="list-style: none; padding: 0; margin: 0;"></ul>
-      </div>
-      <div id="layerEditModal" class="modal-overlay">
-        <div class="modal-content">
-          <h2>Edit Layer</h2>
-          <div style="margin-bottom: 10px;">
-            <label for="editLayerName">Layer Name:</label>
-            <input type="text" id="editLayerName" style="width: 100%; padding: 5px;">
-          </div>
-          <div style="margin: 10px 0;">
-            <label for="layerType">Layer Type:</label>
-            <select id="isQDLayer" name="layerType" style="width: 100%; padding: 5px;">
-              <option value="false">Non-QD</option>
-              <option value="true">QD Analysis Layer (contains explosives)</option>
-            </select>
-          </div>
-          <div style="margin-bottom: 10px;">
-            <label for="layerColor">Layer Color:</label>
-            <input type="color" id="layerColor" style="width: 100%; padding: 5px;">
-          </div>
-          <hr style="margin: 10px 0; border-top: 1px solid #ddd;">
-          <div style="text-align:right;">
-            <button onclick="closeLayerEditModal()" style="margin-right:10px;">Cancel</button>
-            <button onclick="saveLayerEdits()">Save</button>
-          </div>
+    <div id="header">
+        <h1>QDPro</h1>
+        <div class="menu-bar">
+            <div class="menu-item" id="fileMenuButton">File</div>
+            <div class="menu-item" id="editMenuButton">Edit</div>
+            <div class="menu-item" id="viewMenuButton">View</div>
+            <div class="menu-item" id="helpMenuButton">Help</div>
+            <button id="testButton">Test Feature Editor</button>
         </div>
-      </div>
-      <div id="layerControl" style="margin-top:20px;"></div>
     </div>
-  </div>
 
-  <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
-  <div id="map"></div>
+    <div id="map"></div>
 
-  <div id="newLocationModal" class="modal-overlay">
-    <div class="modal-content">
-      <h2>Create New Location</h2>
-      <input type="text" id="newLocationName" placeholder="Enter location name"/>
-      <div style="text-align:right;">
-        <button onclick="closeNewLocationModal()" style="margin-right:10px;">Cancel</button>
-        <button onclick="createNewLocation()">Create</button>
-      </div>
+    <!-- File Modal -->
+    <div id="fileModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeFileModal">&times;</span>
+            <h2>File Operations</h2>
+            <div class="button-group">
+                <button class="button primary-button" id="newProjectButton">New Project</button>
+                <button class="button primary-button" id="saveProjectButton">Save Project</button>
+                <button class="button primary-button" id="loadProjectButton">Load Project</button>
+            </div>
+        </div>
     </div>
-  </div>
-  <div id="switchLocationModal" class="modal-overlay">
-    <div class="modal-content">
-      <h2>Switch Location</h2>
-      <div id="locationList" style="margin:10px 0; max-height:200px; overflow-y:auto;"></div>
-      <div style="text-align:right;">
-        <button onclick="closeSwitchLocationModal()">Close</button>
-      </div>
+
+    <!-- Feature Properties Modal -->
+    <div id="featurePropertiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeFeaturePropertiesModal">&times;</span>
+            <h2>Feature Properties</h2>
+            <form id="featurePropertiesForm" class="feature-properties-form">
+                <div class="form-group">
+                    <label for="featureName">Name</label>
+                    <input type="text" id="featureName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="featureType">Type</label>
+                    <select id="featureType" name="type">
+                        <option value="Polygon">Polygon</option>
+                        <option value="Point">Point</option>
+                        <option value="LineString">Line</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="featureDescription">Description</label>
+                    <textarea id="featureDescription" name="description" rows="4"></textarea>
+                </div>
+                <div class="button-group">
+                    <button type="submit" class="button primary-button">Save</button>
+                    <button type="button" id="deleteFeatureButton" class="button secondary-button">Delete</button>
+                </div>
+            </form>
+        </div>
     </div>
-  </div>
-  <div id="addLayerModal" class="modal-overlay">
-    <div class="modal-content">
-      <h2>Add New Layer</h2>
-      <input type="text" id="newLayerName" placeholder="Layer Name"/>
-      <select id="newLayerType">
-        <option value="facility">Facility</option>
-        <option value="boundary">Boundary</option>
-      </select>
-      <div style="text-align:right;">
-        <button onclick="closeAddLayerModal()" style="margin-right:10px;">Cancel</button>
-        <button onclick="createNewLayer()">Create</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- Edited Feature Properties Modal -->
-  <div id="featurePropertiesModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Feature Properties</h2>
-        <span id="closeFeaturePropertiesBtn" class="close" onclick="closeFeaturePropertiesModal()">&times;</span>
-      </div>
-      <div class="modal-body">
-        <form id="featurePropertiesForm">
-          <div class="form-group">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" class="form-control">
-          </div>
+    <script src="/static/js/error-detector.js"></script>
+    <script src="/static/js/map-initialize.js"></script>
+    <script src="/static/js/feature-editor-initialize.js"></script>
+    <script src="/static/js/ui-controls.js"></script>
 
-          <div class="form-group">
-            <label for="type">Type:</label>
-            <select id="type" name="type" class="form-control">
-              <option value="Building">Building</option>
-              <option value="Storage">Storage</option>
-              <option value="Boundary">Boundary</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="description">Description:</label>
-            <textarea id="description" name="description" class="form-control"></textarea>
-          </div>
-
-          <div class="form-group">
-            <input type="checkbox" id="is_facility" name="is_facility">
-            <label for="is_facility">Is Facility</label>
-          </div>
-
-          <div class="form-group">
-            <input type="checkbox" id="has_explosive" name="has_explosive">
-            <label for="has_explosive">Contains Explosives</label>
-          </div>
-
-          <div id="explosiveSection" class="form-group" style="display: none;">
-            <label for="net_explosive_weight">Net Explosive Weight (NEW):</label>
-            <input type="number" id="net_explosive_weight" name="net_explosive_weight" class="form-control">
-          </div>
-
-          <div class="form-actions">
-            <button type="button" id="savePropertiesBtn" class="btn btn-primary">Save</button>
-            <button type="button" class="btn btn-secondary" onclick="closeFeaturePropertiesModal()">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    window.toggleMenu = function(element, menuId) {
-      const dropdown = document.getElementById(menuId);
-      document.querySelectorAll(".menu-dropdown").forEach(dd => {
-        if (dd.id !== menuId) { dd.style.display = "none"; dd.parentElement.classList.remove("active"); }
-      });
-      const isVisible = dropdown.style.display === "block";
-      dropdown.style.display = isVisible ? "none" : "block";
-      element.classList.toggle("active", !isVisible);
-      if (!isVisible) {
-        const rect = element.getBoundingClientRect();
-        dropdown.style.top = rect.bottom + "px";
-        dropdown.style.left = rect.left + "px";
-      }
-    };
-
-    const QDPro = { /* ... rest of QDPro object from original code ... */ };
-
-    function setStatusMessage(message, type) { /* ... setStatusMessage function from original code ... */ }
-
-    function clearAllLayers() { /* ... clearAllLayers function from original code ... */ }
-
-
-    function showNewLocationModal() { QDPro.showNewLocationModal(); }
-    function closeNewLocationModal() { QDPro.closeNewLocationModal(); }
-    function createNewLocation() { QDPro.createNewLocation(); }
-    function showSwitchLocationModal() { QDPro.showSwitchLocationModal(); }
-    function closeSwitchLocationModal() { QDPro.closeSwitchLocationModal(); }
-    function showAddLayerModal() { QDPro.showAddLayerModal(); }
-    function closeAddLayerModal() { QDPro.closeAddLayerModal(); }
-    function createNewLayer() { QDPro.createNewLayer(); }
-    function saveProject() { QDPro.saveProject(); }
-    function loadProject() { QDPro.loadProject(); }
-
-    function showLayerEditModal(layerName) { QDPro.showLayerEditModal(layerName); }
-    function closeLayerEditModal() { QDPro.closeLayerEditModal(); }
-    function saveLayerEdits() { QDPro.saveLayerEdits(); }
-
-    // Initialize status display
-    document.getElementById('dbStatus').textContent = "No location loaded";
-
-    // Load last used location if available
-    (async function loadLastLocation() {
-      const lastLocationId = localStorage.getItem('lastLocationId');
-      if (lastLocationId) {
-        try {
-          console.log("Loading last used location:", lastLocationId);
-          await QDPro.switchToLocation(parseInt(lastLocationId, 10));
-          console.log("Last location loaded successfully");
-        } catch (error) {
-          console.error("Failed to load last location:", error);
-          document.getElementById('dbStatus').textContent = "No location loaded";
-        }
-      }
-    })();
-
-    // Add database connection status check
-    async function checkDatabaseConnection() {
-      try {
-        const response = await fetch('/api/db_status');
-        if (response.ok) {
-          // Only update if no location is currently displayed
-          const currentStatus = document.getElementById('dbStatus').textContent;
-          if (!currentStatus.includes("Location:")) {
-            document.getElementById('dbStatus').textContent = "Database connection successful";
-          }
-        } else {
-          document.getElementById('dbStatus').textContent = "Database connection failed";
-        }
-      } catch (e) {
-        document.getElementById('dbStatus').textContent = "Database connection error";
-      }
-    }
-
-    // Check database connection on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      setTimeout(checkDatabaseConnection, 1000);
-    });
-
-    //Helper function to update location display
-    function updateLocationDisplay(locationName) {
-      document.getElementById('dbStatus').textContent = `Location: ${locationName}`;
-    }
-
-    function closeFeaturePropertiesModal() {
-      document.getElementById('featurePropertiesModal').style.display = 'none';
-    }
-
-    document.addEventListener("DOMContentLoaded", () => QDPro.init());
-  </script>
-  <script src="/static/js/custom-modal.js"></script>
-  <script src="https://kit.fontawesome.com/a076d05399.js"></script>
-  <!-- Test buttons -->
-  <div>
-    <button id="testButton">Test Feature Editor</button>
-    <button onclick="loadProject()">Load Project</button>
-    <button onclick="saveProject()">Save Project</button>
-  </div>
-
-  <!-- Leaflet Draw Plugin -->
-  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-
-  <!-- Application Scripts -->
-  <script src="/static/js/error-detector.js"></script>
-  <script src="/static/js/map-initialize.js"></script>
-  <script src="/static/js/feature-editor-initialize.js"></script>
-  <script src="/static/js/ui-controls.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-  <script>
-    // Create a sample project to test with
-    document.addEventListener('DOMContentLoaded', function() {
-      // Wait for map to be initialized
-      const waitForMap = setInterval(function() {
-        if (window.map) {
-          clearInterval(waitForMap);
-
-          // Create a sample polygon
-          const coords = [
-            [51.509, -0.08],
-            [51.503, -0.06],
-            [51.51, -0.047]
-          ];
-
-          const polygon = L.polygon(coords).addTo(window.map);
-          polygon.feature = {
-            type: 'Feature',
-            properties: {
-              name: 'Test Polygon'
-            }
-          };
-
-          // Add click handler
-          if (typeof window.addLayerClickHandlers === 'function') {
-            window.addLayerClickHandlers(polygon);
-          } else {
-            console.error('addLayerClickHandlers function not available');
-            // Fallback
-            polygon.on('click', function() {
-              window.openFeatureEditor(polygon.feature.properties);
-            });
-          }
-
-          // Center the map on the polygon
-          window.map.fitBounds(polygon.getBounds());
-
-          // Test button
-          document.getElementById('testButton').addEventListener('click', function() {
-            window.openFeatureEditor(polygon.feature.properties);
+    <script>
+        //Preserving original Javascript functions and adding event listeners for the new modals
+        window.toggleMenu = function(element, menuId) {
+          const dropdown = document.getElementById(menuId);
+          document.querySelectorAll(".menu-dropdown").forEach(dd => {
+            if (dd.id !== menuId) { dd.style.display = "none"; dd.parentElement.classList.remove("active"); }
           });
+          const isVisible = dropdown.style.display === "block";
+          dropdown.style.display = isVisible ? "none" : "block";
+          element.classList.toggle("active", !isVisible);
+          if (!isVisible) {
+            const rect = element.getBoundingClientRect();
+            dropdown.style.top = rect.bottom + "px";
+            dropdown.style.left = rect.left + "px";
+          }
+        };
 
-          // Save to localStorage for testing load
-          const sampleProject = {
-            layers: [
-              {
-                name: 'Test Polygon',
-                coordinates: coords
+        const QDPro = { /* ... rest of QDPro object from original code ... */ };
+
+        function setStatusMessage(message, type) { /* ... setStatusMessage function from original code ... */ }
+
+        function clearAllLayers() { /* ... clearAllLayers function from original code ... */ }
+
+
+        function showNewLocationModal() { QDPro.showNewLocationModal(); }
+        function closeNewLocationModal() { QDPro.closeNewLocationModal(); }
+        function createNewLocation() { QDPro.createNewLocation(); }
+        function showSwitchLocationModal() { QDPro.showSwitchLocationModal(); }
+        function closeSwitchLocationModal() { QDPro.closeSwitchLocationModal(); }
+        function showAddLayerModal() { QDPro.showAddLayerModal(); }
+        function closeAddLayerModal() { QDPro.closeAddLayerModal(); }
+        function createNewLayer() { QDPro.createNewLayer(); }
+        function saveProject() { QDPro.saveProject(); }
+        function loadProject() { QDPro.loadProject(); }
+
+        function showLayerEditModal(layerName) { QDPro.showLayerEditModal(layerName); }
+        function closeLayerEditModal() { QDPro.closeLayerEditModal(); }
+        function saveLayerEdits() { QDPro.saveLayerEdits(); }
+
+        // Initialize status display
+        document.getElementById('dbStatus').textContent = "No location loaded";
+
+        // Load last used location if available
+        (async function loadLastLocation() {
+          const lastLocationId = localStorage.getItem('lastLocationId');
+          if (lastLocationId) {
+            try {
+              console.log("Loading last used location:", lastLocationId);
+              await QDPro.switchToLocation(parseInt(lastLocationId, 10));
+              console.log("Last location loaded successfully");
+            } catch (error) {
+              console.error("Failed to load last location:", error);
+              document.getElementById('dbStatus').textContent = "No location loaded";
+            }
+          }
+        })();
+
+        // Add database connection status check
+        async function checkDatabaseConnection() {
+          try {
+            const response = await fetch('/api/db_status');
+            if (response.ok) {
+              // Only update if no location is currently displayed
+              const currentStatus = document.getElementById('dbStatus').textContent;
+              if (!currentStatus.includes("Location:")) {
+                document.getElementById('dbStatus').textContent = "Database connection successful";
               }
-            ]
-          };
-          localStorage.setItem('savedProject', JSON.stringify(sampleProject));
-
-          console.log('Test setup complete');
+            } else {
+              document.getElementById('dbStatus').textContent = "Database connection failed";
+            }
+          } catch (e) {
+            document.getElementById('dbStatus').textContent = "Database connection error";
+          }
         }
-      }, 100);
-    });
-  </script>
+
+        // Check database connection on page load
+        document.addEventListener('DOMContentLoaded', function() {
+          setTimeout(checkDatabaseConnection, 1000);
+        });
+
+        //Helper function to update location display
+        function updateLocationDisplay(locationName) {
+          document.getElementById('dbStatus').textContent = `Location: ${locationName}`;
+        }
+
+        function closeFeaturePropertiesModal() {
+          document.getElementById('featurePropertiesModal').style.display = 'none';
+        }
+
+        document.addEventListener("DOMContentLoaded", () => QDPro.init());
+
+
+        //Adding event listeners to new modals
+        document.getElementById('fileMenuButton').addEventListener('click', () => {
+            document.getElementById('fileModal').style.display = 'block';
+        });
+        document.getElementById('closeFileModal').addEventListener('click', () => {
+            document.getElementById('fileModal').style.display = 'none';
+        });
+        document.getElementById('closeFeaturePropertiesModal').addEventListener('click', closeFeaturePropertiesModal);
+
+        // Create a sample project to test with
+        document.addEventListener('DOMContentLoaded', function() {
+          // Wait for map to be initialized
+          const waitForMap = setInterval(function() {
+            if (window.map) {
+              clearInterval(waitForMap);
+
+              // Create a sample polygon
+              const coords = [
+                [51.509, -0.08],
+                [51.503, -0.06],
+                [51.51, -0.047]
+              ];
+
+              const polygon = L.polygon(coords).addTo(window.map);
+              polygon.feature = {
+                type: 'Feature',
+                properties: {
+                  name: 'Test Polygon'
+                }
+              };
+
+              // Add click handler
+              if (typeof window.addLayerClickHandlers === 'function') {
+                window.addLayerClickHandlers(polygon);
+              } else {
+                console.error('addLayerClickHandlers function not available');
+                // Fallback
+                polygon.on('click', function() {
+                  window.openFeatureEditor(polygon.feature.properties);
+                });
+              }
+
+              // Center the map on the polygon
+              window.map.fitBounds(polygon.getBounds());
+
+              // Test button
+              document.getElementById('testButton').addEventListener('click', function() {
+                window.openFeatureEditor(polygon.feature.properties);
+              });
+
+              // Save to localStorage for testing load
+              const sampleProject = {
+                layers: [
+                  {
+                    name: 'Test Polygon',
+                    coordinates: coords
+                  }
+                ]
+              };
+              localStorage.setItem('savedProject', JSON.stringify(sampleProject));
+
+              console.log('Test setup complete');
+            }
+          }, 100);
+        });
+    </script>
+    <script src="/static/js/custom-modal.js"></script>
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+    
 </body>
 </html>
