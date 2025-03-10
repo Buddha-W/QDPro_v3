@@ -237,6 +237,13 @@ window.QDProEditor = {
       try {
         QDPro.analyzeLocation();
         console.log("QD Analysis started via QDPro.analyzeLocation");
+        
+        // Wait for analysis to complete, then show detailed report
+        setTimeout(() => {
+          if (QDPro.analysisLayer) {
+            this.displayDetailedReport();
+          }
+        }, 1000);
       } catch (error) {
         console.error("Error running QD analysis:", error);
         alert("Error running QD analysis: " + error.message);
@@ -245,6 +252,198 @@ window.QDProEditor = {
       console.error("QDPro.analyzeLocation is not available");
       alert("QD Analysis functionality not available. Please check the console for details.");
     }
+  },
+  
+  displayDetailedReport: function() {
+    console.log("Displaying detailed QD analysis report");
+    
+    // Check if analysis results exist
+    if (!QDPro.currentAnalysisResults) {
+      alert("No analysis results available. Please run the analysis first.");
+      return;
+    }
+    
+    // Create a comprehensive report modal
+    const reportModal = document.createElement('div');
+    reportModal.className = 'modal';
+    reportModal.id = 'detailedAnalysisReport';
+    reportModal.style = 'display: block; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
+    
+    // Get analysis data
+    const analysis = QDPro.currentAnalysisResults;
+    const totalFacilities = analysis.total_facilities || 0;
+    const totalViolations = analysis.total_violations || 0;
+    const facilitiesAnalyzed = analysis.facilities_analyzed || [];
+    
+    // Build detailed HTML content for the report
+    let reportContent = `
+      <div style="background-color: #fff; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 900px; max-height: 80vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; margin-bottom: 20px;">
+          <h2 style="margin: 0; color: #333;">Quantity Distance Analysis Report</h2>
+          <div>
+            <button id="printReportBtn" style="background-color: #4CAF50; color: white; padding: 8px 12px; margin-right: 10px; border: none; cursor: pointer; border-radius: 4px;">
+              <i class="fas fa-print"></i> Print Report
+            </button>
+            <button id="closeReportBtn" style="background-color: #f44336; color: white; padding: 8px 12px; border: none; cursor: pointer; border-radius: 4px;">
+              <i class="fas fa-times"></i> Close
+            </button>
+          </div>
+        </div>
+        
+        <div style="padding: 15px; background-color: #f9f9f9; border-radius: 4px; margin-bottom: 20px;">
+          <h3 style="margin-top: 0; color: #4CAF50;">Analysis Summary</h3>
+          <div style="display: flex; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 250px; margin-right: 15px;">
+              <p><strong>Location:</strong> ${QDPro.currentLocationName || 'Unknown Location'}</p>
+              <p><strong>Analysis Time:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+            <div style="flex: 1; min-width: 250px;">
+              <p><strong>Total Facilities Analyzed:</strong> ${totalFacilities}</p>
+              <p><strong>Total Violations Found:</strong> ${totalViolations}</p>
+            </div>
+          </div>
+        </div>
+    `;
+    
+    if (facilitiesAnalyzed.length === 0) {
+      reportContent += `
+        <div style="padding: 15px; background-color: #fff0f0; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #f44336;">
+          <h3 style="margin-top: 0; color: #f44336;">No Analysis Data Available</h3>
+          <p>There are no facilities with explosive materials to analyze. Please ensure that you have:</p>
+          <ol>
+            <li>Added at least one facility with explosive content</li>
+            <li>Set the "Contains Explosives" property to true</li>
+            <li>Provided a valid Net Explosive Weight (NEW) value</li>
+          </ol>
+          <p>You can edit any polygon on the map by clicking on it and selecting "Edit Properties" from the popup.</p>
+        </div>
+      `;
+    } else {
+      // Add details for each facility analyzed
+      reportContent += `<h3 style="color: #333;">Analyzed Facilities</h3>`;
+      
+      facilitiesAnalyzed.forEach((facility, index) => {
+        const hasViolations = facility.violations && facility.violations.length > 0;
+        const safeDistance = facility.safe_distance || 0;
+        const new_value = facility.net_explosive_weight || 0;
+        
+        reportContent += `
+          <div style="padding: 15px; background-color: ${hasViolations ? '#fff8f8' : '#f8fff8'}; 
+            border-radius: 4px; margin-bottom: 15px; border-left: 4px solid ${hasViolations ? '#f44336' : '#4CAF50'};">
+            <h4 style="margin-top: 0; color: ${hasViolations ? '#f44336' : '#4CAF50'};">
+              ${facility.facility_name || `Facility ${index + 1}`}
+              ${hasViolations ? ' (VIOLATIONS FOUND)' : ' (COMPLIANT)'}
+            </h4>
+            
+            <div style="display: flex; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 250px; margin-right: 15px;">
+                <p><strong>Net Explosive Weight:</strong> ${new_value} ${facility.unit || 'lbs'}</p>
+                <p><strong>Location:</strong> ${facility.facility_latitude ? 
+                  `Lat: ${facility.facility_latitude.toFixed(6)}, Lng: ${facility.facility_longitude.toFixed(6)}` : 
+                  'Unknown'}</p>
+              </div>
+              <div style="flex: 1; min-width: 250px;">
+                <p><strong>Safe Distance Required:</strong> ${safeDistance.toFixed(2)} ft</p>
+                <p><strong>Standards Reference:</strong> ${facility.standards_reference || 'DoD 6055.09-M'}</p>
+              </div>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 4px;">
+              <h5 style="margin-top: 0;">K-Factor Calculation</h5>
+              <p><code>Safe Distance = K × ∛NEW</code></p>
+              <p><code>Safe Distance = ${facility.k_factor_value || 40} × ∛${new_value} = ${safeDistance.toFixed(2)} ft</code></p>
+            </div>
+        `;
+        
+        // Show violations if any
+        if (hasViolations) {
+          reportContent += `
+            <div style="margin-top: 15px;">
+              <h5 style="color: #f44336;">Safety Violations (${facility.violations.length})</h5>
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Feature</th>
+                    <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Actual Distance (ft)</th>
+                    <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Required Distance (ft)</th>
+                    <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">Shortfall (ft)</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+          
+          facility.violations.forEach(violation => {
+            reportContent += `
+              <tr>
+                <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${violation.feature_name || 'Unknown Feature'}</td>
+                <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${violation.distance.toFixed(2)}</td>
+                <td style="padding: 8px; text-align: left; border: 1px solid #ddd;">${violation.required.toFixed(2)}</td>
+                <td style="padding: 8px; text-align: left; border: 1px solid #ddd; color: #f44336;">${violation.deficiency.toFixed(2)}</td>
+              </tr>
+            `;
+          });
+          
+          reportContent += `
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          reportContent += `
+            <div style="margin-top: 15px; padding: 10px; background-color: #f0fff0; border-radius: 4px;">
+              <p style="color: #4CAF50; margin: 0;"><strong>✓ No safety violations detected for this facility</strong></p>
+            </div>
+          `;
+        }
+        
+        reportContent += `</div>`;
+      });
+    }
+    
+    // Add recommendations section
+    reportContent += `
+      <div style="padding: 15px; background-color: #f9f9f9; border-radius: 4px; margin-top: 20px;">
+        <h3 style="margin-top: 0; color: #333;">Recommendations</h3>
+        <ul>
+    `;
+    
+    if (totalViolations > 0) {
+      reportContent += `
+        <li>Review all highlighted violations and assess the risk level for each.</li>
+        <li>Consider relocating explosive materials to maintain proper safety distances.</li>
+        <li>Implement administrative controls for areas that cannot be physically modified.</li>
+        <li>Consult safety officer for waiver requirements where violations cannot be resolved.</li>
+      `;
+    } else {
+      reportContent += `
+        <li>All analyzed facilities meet safety distance requirements.</li>
+        <li>Continue to monitor any new construction or changes to facility usage.</li>
+        <li>Maintain current safety protocols and documentation.</li>
+      `;
+    }
+    
+    reportContent += `
+        </ul>
+      </div>
+      
+      <div style="margin-top: 30px; font-size: 0.8em; text-align: center; color: #777; border-top: 1px solid #eee; padding-top: 15px;">
+        <p>Generated by QDPro Analysis Engine • ${new Date().toLocaleDateString()}</p>
+      </div>
+    </div>
+    `;
+    
+    // Set the modal content
+    reportModal.innerHTML = reportContent;
+    document.body.appendChild(reportModal);
+    
+    // Add event listeners
+    document.getElementById('closeReportBtn').addEventListener('click', function() {
+      document.body.removeChild(reportModal);
+    });
+    
+    document.getElementById('printReportBtn').addEventListener('click', function() {
+      window.print();
+    });
   },
   showMeasurementTool: function() {
     console.log("QDProEditor: Showing Measurement Tool");

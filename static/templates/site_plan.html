@@ -1469,6 +1469,9 @@
           this.map.removeLayer(this.analysisLayer);
         }
 
+        // Store the current analysis results for detailed reporting
+        this.currentAnalysisResults = analysis;
+
         // Create a new layer for analysis results
         this.analysisLayer = L.featureGroup().addTo(this.map);
 
@@ -1695,7 +1698,10 @@
           <p><strong>Total Facilities:</strong> ${analysis.total_facilities || 0}</p>
           <p><strong>Total Violations:</strong> ${analysis.total_violations || 0}</p>
           <p><strong>Analysis Timestamp:</strong> ${new Date(analysis.timestamp || Date.now()).toLocaleString()}</p>
-          <button id="closeAnalysisBtn" class="close-btn">Close Analysis</button>
+          <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
+            <button id="viewDetailedReportBtn" class="btn" style="background-color: #4CAF50; color: white; border: none; padding: 8px 12px; cursor: pointer; flex: 1;">View Detailed Report</button>
+            <button id="closeAnalysisBtn" class="close-btn" style="flex: 1;">Close Analysis</button>
+          </div>
         `;
 
         document.body.appendChild(summaryPanel);
@@ -1707,6 +1713,16 @@
             this.analysisLayer = null;
           }
           document.body.removeChild(summaryPanel);
+        });
+        
+        // Handle view detailed report button
+        document.getElementById('viewDetailedReportBtn').addEventListener('click', () => {
+          if (window.QDProEditor && typeof window.QDProEditor.displayDetailedReport === 'function') {
+            window.QDProEditor.displayDetailedReport();
+          } else {
+            console.error("Detailed report function not available");
+            alert("Detailed reporting functionality is not available. Please check the console for details.");
+          }
         });
       },
       showAnalysisReportModal: function(analysis) {
