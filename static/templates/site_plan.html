@@ -1,0 +1,550 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QDPro Site Plan</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+    <!-- Leaflet Draw CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" crossorigin="anonymous" />
+    <!-- Custom Modal CSS -->
+    <link rel="stylesheet" href="/static/css/modal.css">
+    <!-- Main page styles -->
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+        }
+        
+        #container {
+            display: flex;
+            height: 100%;
+        }
+        
+        #toolbar {
+            width: 250px;
+            background: #f5f5f5;
+            padding: 10px;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+        
+        #map-container {
+            flex: 1;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .toolbar-section {
+            margin-bottom: 20px;
+        }
+        
+        .toolbar-section h2 {
+            margin-top: 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #ddd;
+            font-size: 16px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            background: #1a252f;
+        }
+        
+        .menu-bar {
+            background: #2c3e50;
+            color: white;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .dropdown {
+            position: relative;
+            display: inline-block;
+            margin-right: 15px;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+        
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        
+        .dropdown-btn {
+            background: none;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Menu Bar -->
+    <div class="menu-bar">
+        <div class="dropdown">
+            <button class="dropdown-btn">File</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="newProject()">New</a>
+                <a href="#" onclick="loadProject()">Open</a>
+                <a href="#" onclick="saveLayers()">Save</a>
+                <a href="#" onclick="exportProject()">Export</a>
+            </div>
+        </div>
+        
+        <div class="dropdown">
+            <button class="dropdown-btn">Edit</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="window.map.editTools.startPolygon()">Draw Polygon</a>
+                <a href="#" onclick="window.map.editTools.startRectangle()">Draw Rectangle</a>
+                <a href="#" onclick="window.map.editTools.startMarker()">Add Marker</a>
+                <a href="#" onclick="deleteSelectedFeature()">Delete Selected</a>
+            </div>
+        </div>
+        
+        <div class="dropdown">
+            <button class="dropdown-btn">View</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="toggleToolbar()">Toggle Toolbar</a>
+                <a href="#" onclick="resetView()">Reset View</a>
+            </div>
+        </div>
+        
+        <div class="dropdown">
+            <button class="dropdown-btn">Tools</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="measureDistance()">Measure Distance</a>
+                <a href="#" onclick="calculateArea()">Calculate Area</a>
+                <a href="#" onclick="analyzeQD()">QD Analysis</a>
+            </div>
+        </div>
+        
+        <div class="dropdown">
+            <button class="dropdown-btn">Help</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="showHelp()">Documentation</a>
+                <a href="#" onclick="showAbout()">About</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div id="container">
+        <!-- Toolbar -->
+        <div id="toolbar">
+            <div class="toolbar-section">
+                <h2>Project</h2>
+                <button id="newButton" class="btn">New Project</button>
+                <button id="saveButton" class="btn">Save Project</button>
+                <button id="loadButton" class="btn">Load Project</button>
+                <button id="exportButton" class="btn">Export</button>
+            </div>
+            
+            <div class="toolbar-section">
+                <h2>Drawing Tools</h2>
+                <button id="drawPolygonButton" class="btn">Draw Polygon</button>
+                <button id="drawRectangleButton" class="btn">Draw Rectangle</button>
+                <button id="drawCircleButton" class="btn">Draw Circle</button>
+                <button id="addMarkerButton" class="btn">Add Marker</button>
+                <button id="deleteButton" class="btn">Delete Selected</button>
+            </div>
+            
+            <div class="toolbar-section">
+                <h2>Analysis</h2>
+                <button id="qdAnalysisButton" class="btn">QD Analysis</button>
+                <button id="generateReportButton" class="btn">Generate Report</button>
+            </div>
+            
+            <div class="toolbar-section">
+                <h2>Layers</h2>
+                <div id="layersList">
+                    <!-- Layer list will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Container -->
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <!-- Feature Properties Modal -->
+    <div id="featurePropertiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalContent">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Facility Properties Modal -->
+    <div id="facilityPropertiesModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeFacilityModal()">&times;</span>
+            <div id="facilityModalContent">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- QD Analysis Modal -->
+    <div id="qdAnalysisModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeQDAnalysisModal()">&times;</span>
+            <div id="qdAnalysisContent">
+                <h2>Quantity Distance Analysis</h2>
+                <div id="qdResults">
+                    <!-- Will be populated with QD results -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content report-modal-content">
+            <span class="close" onclick="closeReportModal()">&times;</span>
+            <div id="reportContent">
+                <h2>Site Plan Report</h2>
+                <div id="reportData">
+                    <!-- Will be populated with report data -->
+                </div>
+                <button onclick="printReport()" class="btn">Print Report</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <!-- Leaflet Draw JS -->
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js" crossorigin="anonymous"></script>
+    <!-- Map initialization -->
+    <script src="/static/js/map-initialize.js"></script>
+    <!-- Feature editor initialization -->
+    <script src="/static/js/feature-editor-initialize.js"></script>
+    <!-- UI Controls -->
+    <script src="/static/js/ui-controls.js"></script>
+    <!-- Error Detector -->
+    <script src="/static/js/error-detector.js"></script>
+    
+    <script>
+        // Function to create a new project
+        function newProject() {
+            if (confirm('Are you sure you want to create a new project? Any unsaved changes will be lost.')) {
+                // Clear all layers
+                if (window.drawnItems) {
+                    window.drawnItems.clearLayers();
+                }
+                
+                // Reset map view
+                if (window.map) {
+                    window.map.setView([39.8283, -98.5795], 5);
+                }
+                
+                console.log('New project created');
+            }
+        }
+        
+        // Function to export the project
+        function exportProject() {
+            alert('Export functionality will be implemented in a future release.');
+        }
+        
+        // Function to toggle the toolbar
+        function toggleToolbar() {
+            const toolbar = document.getElementById('toolbar');
+            if (toolbar.style.display === 'none') {
+                toolbar.style.display = 'block';
+            } else {
+                toolbar.style.display = 'none';
+            }
+            
+            // Trigger a resize event to update the map
+            if (window.map) {
+                window.map.invalidateSize();
+            }
+        }
+        
+        // Function to reset the map view
+        function resetView() {
+            if (window.map) {
+                window.map.setView([39.8283, -98.5795], 5);
+            }
+        }
+        
+        // Function to measure distance
+        function measureDistance() {
+            alert('Distance measurement will be implemented in a future release.');
+        }
+        
+        // Function to calculate area
+        function calculateArea() {
+            alert('Area calculation will be implemented in a future release.');
+        }
+        
+        // Function to perform QD analysis
+        function analyzeQD() {
+            const qdModal = document.getElementById('qdAnalysisModal');
+            const qdResults = document.getElementById('qdResults');
+            
+            // Example QD analysis results
+            qdResults.innerHTML = `
+                <h3>Analysis Results</h3>
+                <p>Analysis completed for 3 PES and 5 ES locations.</p>
+                <table class="results-table">
+                    <tr>
+                        <th>PES</th>
+                        <th>ES</th>
+                        <th>Distance (ft)</th>
+                        <th>Required (ft)</th>
+                        <th>Status</th>
+                    </tr>
+                    <tr>
+                        <td>Magazine 1</td>
+                        <td>Office Building</td>
+                        <td>1,250</td>
+                        <td>1,200</td>
+                        <td style="color: green;">Compliant</td>
+                    </tr>
+                    <tr>
+                        <td>Magazine 1</td>
+                        <td>Public Road</td>
+                        <td>750</td>
+                        <td>800</td>
+                        <td style="color: red;">Non-Compliant</td>
+                    </tr>
+                    <tr>
+                        <td>Magazine 2</td>
+                        <td>Office Building</td>
+                        <td>1,500</td>
+                        <td>1,200</td>
+                        <td style="color: green;">Compliant</td>
+                    </tr>
+                </table>
+            `;
+            
+            // Show the modal
+            qdModal.style.display = 'block';
+        }
+        
+        // Function to close QD analysis modal
+        function closeQDAnalysisModal() {
+            const modal = document.getElementById('qdAnalysisModal');
+            modal.style.display = 'none';
+        }
+        
+        // Function to show help documentation
+        function showHelp() {
+            window.open('/static/docs/help.html', '_blank');
+        }
+        
+        // Function to show about information
+        function showAbout() {
+            alert('QDPro v1.0\nDeveloped for explosive safety siting and quantity distance analysis.');
+        }
+        
+        // Function to generate a report
+        function generateReport() {
+            const reportModal = document.getElementById('reportModal');
+            const reportData = document.getElementById('reportData');
+            
+            // Example report data
+            reportData.innerHTML = `
+                <div class="report-header">
+                    <div class="logo-section">
+                        <img src="/static/img/logo.png" alt="Logo">
+                        <h1>Site Plan Report</h1>
+                    </div>
+                    <div class="date-section">
+                        <p>Date: ${new Date().toLocaleDateString()}</p>
+                        <p>Report ID: SP-${Math.floor(Math.random() * 1000000)}</p>
+                    </div>
+                </div>
+                
+                <div class="report-section">
+                    <h2>Project Summary</h2>
+                    <p>This report summarizes the explosive safety site plan for the selected location.</p>
+                    
+                    <h3>Facilities</h3>
+                    <table class="results-table">
+                        <tr>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>Magazine 1</td>
+                            <td>PES</td>
+                            <td>Storage for Class 1.1 explosives</td>
+                        </tr>
+                        <tr>
+                            <td>Magazine 2</td>
+                            <td>PES</td>
+                            <td>Storage for Class 1.3 explosives</td>
+                        </tr>
+                        <tr>
+                            <td>Office Building</td>
+                            <td>ES</td>
+                            <td>Administrative facility</td>
+                        </tr>
+                        <tr>
+                            <td>Public Road</td>
+                            <td>ES</td>
+                            <td>County road with medium traffic</td>
+                        </tr>
+                    </table>
+                    
+                    <h3>QD Analysis Results</h3>
+                    <table class="results-table">
+                        <tr>
+                            <th>PES</th>
+                            <th>ES</th>
+                            <th>Distance (ft)</th>
+                            <th>Required (ft)</th>
+                            <th>Status</th>
+                        </tr>
+                        <tr>
+                            <td>Magazine 1</td>
+                            <td>Office Building</td>
+                            <td>1,250</td>
+                            <td>1,200</td>
+                            <td style="color: green;">Compliant</td>
+                        </tr>
+                        <tr>
+                            <td>Magazine 1</td>
+                            <td>Public Road</td>
+                            <td>750</td>
+                            <td>800</td>
+                            <td style="color: red;">Non-Compliant</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="approval-section">
+                    <div class="signature-block">
+                        <p>Prepared By:</p>
+                        <div class="signature-line">Name, Title</div>
+                    </div>
+                    <div class="signature-block">
+                        <p>Approved By:</p>
+                        <div class="signature-line">Name, Title</div>
+                    </div>
+                </div>
+            `;
+            
+            // Show the modal
+            reportModal.style.display = 'block';
+        }
+        
+        // Function to close report modal
+        function closeReportModal() {
+            const modal = document.getElementById('reportModal');
+            modal.style.display = 'none';
+        }
+        
+        // Function to print the report
+        function printReport() {
+            const reportContent = document.getElementById('reportContent').innerHTML;
+            const printWindow = window.open('', '', 'width=900,height=600');
+            printWindow.document.open();
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Site Plan Report</title>
+                    <link rel="stylesheet" href="/static/css/print.css">
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            padding: 20px;
+                        }
+                        .results-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin: 20px 0;
+                        }
+                        .results-table th, .results-table td {
+                            padding: 8px;
+                            border: 1px solid #ddd;
+                        }
+                        .results-table th {
+                            background-color: #f2f2f2;
+                        }
+                        .signature-line {
+                            border-top: 1px solid #000;
+                            margin-top: 50px;
+                            padding-top: 5px;
+                        }
+                        .approval-section {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-top: 50px;
+                        }
+                        .signature-block {
+                            width: 45%;
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${reportContent}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+        
+        // Set up toolbar button event listeners once DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Project buttons
+            document.getElementById('newButton').addEventListener('click', newProject);
+            document.getElementById('saveButton').addEventListener('click', saveLayers);
+            document.getElementById('loadButton').addEventListener('click', loadProject);
+            document.getElementById('exportButton').addEventListener('click', exportProject);
+            
+            // Analysis buttons
+            document.getElementById('qdAnalysisButton').addEventListener('click', analyzeQD);
+            document.getElementById('generateReportButton').addEventListener('click', generateReport);
+        });
+    </script>
+</body>
+</html>
