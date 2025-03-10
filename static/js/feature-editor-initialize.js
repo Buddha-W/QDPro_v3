@@ -308,17 +308,37 @@ window.saveFeatureProperties = saveFeatureProperties;
 window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
 
 
-// Add Layer Click Handlers (This function needs to be defined elsewhere and likely calls openFeatureEditor)
+// Add Layer Click Handlers for editing properties
 function addLayerClickHandlers(layer) {
+  // First bind the popup with proper content
+  const properties = layer.feature ? layer.feature.properties : {};
+  const popupContent = `
+    <div>
+      <h3>${properties.name || 'Unnamed Feature'}</h3>
+      <p>Type: ${properties.type || 'Unknown'}</p>
+      ${properties.net_explosive_weight ? `<p>NEW: ${properties.net_explosive_weight} lbs</p>` : ''}
+      ${properties.description ? `<p>${properties.description}</p>` : ''}
+      <button class="edit-properties-btn">Edit Properties</button>
+    </div>
+  `;
+  
+  layer.bindPopup(popupContent);
+  
+  // Then add the click handler for the popup
   layer.on('popupopen', function(e) {
+    console.log('Popup opened, attaching edit button handler');
     setTimeout(() => {
       const popup = e.popup;
       if (popup && popup._contentNode) {
         const editBtn = popup._contentNode.querySelector('.edit-properties-btn');
         if (editBtn) {
+          console.log('Edit button found, attaching click handler');
           editBtn.addEventListener('click', function() {
+            console.log('Edit button clicked, opening feature editor');
             openFeatureEditor(layer);
           });
+        } else {
+          console.warn('Edit button not found in popup');
         }
       }
     }, 100);
