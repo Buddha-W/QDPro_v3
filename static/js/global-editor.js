@@ -1,22 +1,34 @@
 
 /**
- * Global Feature Editor Module
- * This ensures all editor functions are available globally across all scripts
+ * QDPro Editor Module
+ * Global module that centralizes feature editing functionality
  */
 
-// Create global namespace to store all editor functions
+// Create a namespace for the QD Editor to prevent global scope pollution
 window.QDProEditor = {
-  // Main feature editor function that opens the properties modal
+  activeEditingLayer: null,
+  
+  /**
+   * Open the feature editor for a layer
+   * @param {L.Layer} layer - The layer to edit
+   */
   openFeatureEditor: function(layer) {
-    console.log("QDProEditor: Opening feature editor for layer:", layer);
+    console.log("QDProEditor.openFeatureEditor called with layer:", layer);
     
-    // Store reference to the layer being edited
-    window.activeEditingLayer = layer;
+    // Store reference to the editing layer
+    this.activeEditingLayer = layer;
     
-    // Get feature properties
+    // Get the modal element
+    const modal = document.getElementById('featurePropertiesModal');
+    if (!modal) {
+      console.error("Feature properties modal not found");
+      return;
+    }
+    
+    // Get feature properties or initialize empty object
     const properties = layer.feature ? layer.feature.properties : {};
     
-    // Populate the form
+    // Populate form fields
     const nameField = document.getElementById('name');
     if (nameField) nameField.value = properties.name || '';
     
@@ -30,48 +42,43 @@ window.QDProEditor = {
     if (isFacilityField) isFacilityField.checked = properties.is_facility || false;
     
     const hasExplosiveField = document.getElementById('has_explosive');
-    if (hasExplosiveField) {
-      hasExplosiveField.checked = properties.has_explosive || false;
-      
-      // Toggle explosive section visibility
-      const explosiveSection = document.getElementById('explosiveSection');
-      if (explosiveSection) {
-        explosiveSection.style.display = hasExplosiveField.checked ? 'block' : 'none';
-      }
-    }
+    if (hasExplosiveField) hasExplosiveField.checked = properties.has_explosive || false;
     
-    // Set explosive weight if applicable
-    const newField = document.getElementById('net_explosive_weight');
-    if (newField) newField.value = properties.net_explosive_weight || '';
+    // Show/hide explosive weight section
+    const explosiveSection = document.getElementById('explosiveSection');
+    if (explosiveSection) {
+      explosiveSection.style.display = properties.has_explosive ? 'block' : 'none';
+      
+      const newField = document.getElementById('net_explosive_weight');
+      if (newField) newField.value = properties.net_explosive_weight || '';
+    }
     
     // Show the modal
-    const modal = document.getElementById('featurePropertiesModal');
-    if (modal) {
-      modal.style.display = 'block';
-    } else {
-      console.error("Feature properties modal not found");
-      alert("Error: Feature properties modal not found. Please refresh the page.");
-    }
+    modal.style.display = 'block';
   },
   
-  // Close the feature properties modal
-  closeFeaturePropertiesModal: function() {
+  /**
+   * Close the feature properties modal
+   */
+  closeFeatureEditor: function() {
     const modal = document.getElementById('featurePropertiesModal');
     if (modal) {
       modal.style.display = 'none';
     }
-    window.activeEditingLayer = null;
+    this.activeEditingLayer = null;
   },
   
-  // Save feature properties from the form
+  /**
+   * Save the feature properties
+   */
   saveFeatureProperties: function() {
-    const layer = window.activeEditingLayer;
+    const layer = this.activeEditingLayer;
     if (!layer) {
-      console.error("No active layer to save properties");
+      console.error("No active editing layer to save properties for");
       return;
     }
     
-    // Ensure feature and properties objects exist
+    // Ensure the feature and properties objects exist
     if (!layer.feature) {
       layer.feature = { type: 'Feature', properties: {} };
     }
@@ -114,7 +121,7 @@ window.QDProEditor = {
     }
     
     // Close the modal
-    this.closeFeaturePropertiesModal();
+    this.closeFeatureEditor();
     
     // Save the project to persist changes
     if (typeof QDPro !== 'undefined' && QDPro.saveProject) {
@@ -125,26 +132,24 @@ window.QDProEditor = {
   }
 };
 
-// Make functions directly available in global scope for backward compatibility
-window.openFeatureEditor = window.QDProEditor.openFeatureEditor;
-window.closeFeaturePropertiesModal = window.QDProEditor.closeFeaturePropertiesModal;
-window.saveFeatureProperties = window.QDProEditor.saveFeatureProperties;
+// Create direct global references to maintain backward compatibility
+window.openFeatureEditor = function(layer) {
+  window.QDProEditor.openFeatureEditor(layer);
+};
 
-// Ensure these are available after DOM content is loaded too
+window.closeFeaturePropertiesModal = function() {
+  window.QDProEditor.closeFeatureEditor();
+};
+
+window.saveFeatureProperties = function() {
+  window.QDProEditor.saveFeatureProperties();
+};
+
+// Add event handlers when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("Global editor functions ensured to be available");
-  window.openFeatureEditor = window.QDProEditor.openFeatureEditor;
-  window.closeFeaturePropertiesModal = window.QDProEditor.closeFeaturePropertiesModal;
-  window.saveFeatureProperties = window.QDProEditor.saveFeatureProperties;
+  console.log("Global editor module loaded");
   
-  // Create direct references on document for IE compatibility
-  document.openFeatureEditor = window.QDProEditor.openFeatureEditor;
-  document.closeFeaturePropertiesModal = window.QDProEditor.closeFeaturePropertiesModal;
-  document.saveFeatureProperties = window.QDProEditor.saveFeatureProperties;
-});
-
-// Set up has_explosive checkbox event listener if it exists
-document.addEventListener('DOMContentLoaded', function() {
+  // Set up form event handlers
   const hasExplosiveCheckbox = document.getElementById('has_explosive');
   if (hasExplosiveCheckbox) {
     hasExplosiveCheckbox.addEventListener('change', function() {
@@ -154,6 +159,29 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+  
+  // Set up modal buttons
+  const saveBtn = document.getElementById('savePropertiesBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function() {
+      window.QDProEditor.saveFeatureProperties();
+    });
+  }
+  
+  const closeBtn = document.getElementById('closeFeaturePropertiesBtn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      window.QDProEditor.closeFeatureEditor();
+    });
+  }
+  
+  const cancelBtn = document.getElementById('cancelPropertiesBtn');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function() {
+      window.QDProEditor.closeFeatureEditor();
+    });
+  }
+  
+  // Ensure the editor is properly initialized
+  console.log("Feature editor event handlers set up");
 });
-
-console.log("Global editor module loaded and initialized");

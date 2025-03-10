@@ -96,20 +96,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const layer = popup._source;
         console.log("Found layer for edit button:", layer);
         
-        // Use the QDProEditor module which is guaranteed to be global
+        // Close the popup first to prevent UI issues
+        if (layer.closePopup) {
+          layer.closePopup();
+        }
+        
+        // Use the centralized QDProEditor module
         if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-          window.QDProEditor.openFeatureEditor(layer);
+          setTimeout(function() {
+            window.QDProEditor.openFeatureEditor(layer);
+          }, 50); // Small timeout to ensure popup is fully closed first
         } else if (typeof window.openFeatureEditor === 'function') {
-          window.openFeatureEditor(layer);
+          setTimeout(function() {
+            window.openFeatureEditor(layer);
+          }, 50);
         } else {
           console.error("Editor function not available - critical error");
           alert("Critical error: Editor function not found. Please refresh the page and try again.");
-          // Force a direct implementation as last resort
-          const modal = document.getElementById('featurePropertiesModal');
-          if (modal) {
-            window.activeEditingLayer = layer;
-            modal.style.display = 'block';
-          }
         }
       }
       return false;

@@ -303,20 +303,30 @@ function addLayerClickHandlers(layer) {
           const newEditButton = editButton.cloneNode(true);
           editButton.parentNode.replaceChild(newEditButton, editButton);
 
-          // Add the event handler
+          // Add the event handler using the global editor module
           newEditButton.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log("Edit button clicked, calling openFeatureEditor");
-            // Call the function directly first, falling back to window
-            if (typeof openFeatureEditor === 'function') {
-              openFeatureEditor(layer);
-            } else if (typeof window.openFeatureEditor === 'function') {
-              window.openFeatureEditor(layer);
-            } else {
-              console.error("openFeatureEditor function not found!");
-              alert("Error: Could not open editor. Please refresh the page.");
+            console.log("Edit button clicked from popup");
+            
+            // Close the popup first to prevent UI issues
+            if (layer.closePopup) {
+              layer.closePopup();
             }
+            
+            // Use a timeout to ensure the popup is closed before opening the editor
+            setTimeout(function() {
+              // Try to use the QDProEditor module first
+              if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
+                window.QDProEditor.openFeatureEditor(layer);
+              } else if (typeof window.openFeatureEditor === 'function') {
+                window.openFeatureEditor(layer);
+              } else {
+                console.error("Feature editor function not found!");
+                alert("Error: Could not open editor. Please refresh the page.");
+              }
+            }, 50);
+            
             return false;
           });
         } else {
