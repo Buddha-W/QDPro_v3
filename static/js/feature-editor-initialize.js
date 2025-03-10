@@ -727,6 +727,15 @@ function updateBookmarksDropdown() {
 // Make updateBookmarksDropdown available globally 
 window.updateBookmarksDropdown = updateBookmarksDropdown;
 
+// Ensure map is initialized before attempting to update bookmarks
+function ensureMapInitialized() {
+  if (!window.map) {
+    console.warn("Map not initialized. Some features might not work properly.");
+    return false;
+  }
+  return true;
+}
+
 // Load bookmarks from server, with fallback to localStorage
 async function loadBookmarksFromServer() {
   try {
@@ -754,8 +763,8 @@ async function loadBookmarksFromServer() {
 }
 
 function createBookmark() {
-  if (!window.map) {
-    console.error("Map not initialized. Cannot create bookmark.");
+  if (!window.map || typeof window.map.getCenter !== 'function') {
+    console.error("Map not properly initialized. Cannot create bookmark.");
     alert("Map not ready. Please try again in a moment.");
     return;
   }

@@ -7,6 +7,22 @@ if (typeof window.QDProEditor === 'undefined') {
   window.QDProEditor = {};
 }
 
+// Toggle bookmarks dropdown visibility
+function toggleBookmarksDropdown() {
+  const dropdown = document.getElementById('bookmarksDropdown');
+  if (!dropdown) {
+    console.error("Bookmarks dropdown element not found");
+    return;
+  }
+  
+  if (dropdown.style.display === 'block') {
+    dropdown.style.display = 'none';
+  } else {
+    updateBookmarksDropdown();
+    dropdown.style.display = 'block';
+  }
+}
+
 // Create bookmark from current map view
 function createBookmark() {
   const name = prompt("Enter a name for this view:");
@@ -29,6 +45,46 @@ function createBookmark() {
   
   saveBookmarkToStorage(name, bookmark);
   updateBookmarksDropdown();
+}
+
+// Update bookmarks dropdown with current bookmarks
+async function updateBookmarksDropdown() {
+  console.log("updateBookmarksDropdown called");
+  try {
+    // Check if required elements exist
+    const dropdown = document.getElementById('bookmarksDropdown');
+    if (!dropdown) {
+      console.error("Bookmarks dropdown element not found");
+      return;
+    }
+    
+    // Get bookmarks
+    const bookmarks = await loadBookmarksFromServer();
+    
+    // Clear current dropdown items
+    while (dropdown.firstChild) {
+      dropdown.removeChild(dropdown.firstChild);
+    }
+    
+    // Add bookmarks to dropdown
+    Object.keys(bookmarks).forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'dropdown-item';
+      item.textContent = name;
+      item.addEventListener('click', () => loadBookmark(name));
+      dropdown.appendChild(item);
+    });
+    
+    // Add "Create New" option
+    const createNew = document.createElement('div');
+    createNew.className = 'dropdown-item create-new';
+    createNew.textContent = '+ Create New Bookmark';
+    createNew.addEventListener('click', createBookmark);
+    dropdown.appendChild(createNew);
+    
+  } catch (e) {
+    console.error("Error updating bookmarks dropdown:", e);
+  }
 }
 
 // Save bookmark to server or localStorage
@@ -106,6 +162,13 @@ async function loadBookmarksFromServer() {
 // Load a specific bookmark
 async function loadBookmark(name) {
   try {
+    // Check if map is initialized
+    if (!window.map || typeof window.map.setView !== 'function') {
+      console.error("Map not properly initialized. Cannot load bookmark.");
+      alert("Map not ready. Please try again in a moment.");
+      return;
+    }
+
     // First try to load from server
     const locationId = window.QDPro?.currentLocationId;
     let bookmark = null;
@@ -134,12 +197,8 @@ async function loadBookmark(name) {
     }
     
     // Set map view to the bookmarked position
-    if (window.map) {
-      window.map.setView(bookmark.center, bookmark.zoom);
-      console.log(`Loaded bookmark "${name}"`);
-    } else {
-      console.error("Map not available to load bookmark");
-    }
+    window.map.setView(bookmark.center, bookmark.zoom);
+    console.log(`Loaded bookmark "${name}"`);
   } catch (e) {
     console.error(`Error loading bookmark:`, e);
   }
