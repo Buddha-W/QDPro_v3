@@ -344,6 +344,18 @@ function closeFeaturePropertiesModal() {
   const modal = document.getElementById('featurePropertiesModal');
   if (modal) {
     modal.style.display = 'none';
+    
+    // Make sure any form data is cleared
+    const form = document.getElementById('featurePropertiesForm');
+    if (form) {
+      form.reset();
+    }
+    
+    // Ensure explosive section is hidden regardless of current state
+    const explosiveSection = document.getElementById('explosiveSection');
+    if (explosiveSection) {
+      explosiveSection.style.display = 'none';
+    }
   }
 
   // Reset active editing layer
@@ -376,10 +388,17 @@ function closeFeaturePropertiesModal() {
         if (layer._wasClicked) delete layer._wasClicked;
         if (layer._popupClosed) delete layer._popupClosed;
         if (layer._editPending) delete layer._editPending;
+        if (layer._editTimestamp) delete layer._editTimestamp;
       }
     });
 
     console.log("Modal closed, popup state fully reset");
+  }
+
+  // Ensure any QDProEditor flags are reset
+  if (window.QDProEditor) {
+    window.QDProEditor.isEditorOpen = false;
+    window.QDProEditor.activeEditingLayer = null;
   }
 
   // Dispatch custom event for other components to respond to
