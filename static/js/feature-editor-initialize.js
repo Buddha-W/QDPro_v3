@@ -580,6 +580,12 @@ window.addEventListener('load', function() {
 
 // Bookmark management functions
 function createBookmark() {
+  if (!window.map) {
+    console.error("Map not initialized. Cannot create bookmark.");
+    alert("Map not ready. Please try again in a moment.");
+    return;
+  }
+  
   const currentView = {
     center: window.map.getCenter(),
     zoom: window.map.getZoom()
@@ -588,7 +594,7 @@ function createBookmark() {
   // Create a modal to name the bookmark
   const modal = document.createElement('div');
   modal.className = 'modal';
-  modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
+  modal.style = 'display: block; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
 
   const modalContent = `
     <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
@@ -606,6 +612,12 @@ function createBookmark() {
 
   modal.innerHTML = modalContent;
   document.body.appendChild(modal);
+
+  // Focus on input field
+  setTimeout(() => {
+    const input = document.getElementById('bookmarkName');
+    if (input) input.focus();
+  }, 100);
 
   // Add event listeners
   document.getElementById('cancelBookmarkBtn').addEventListener('click', function() {
@@ -689,75 +701,129 @@ function deleteBookmark(name) {
 
 function updateBookmarksDropdown() {
   const dropdown = document.getElementById('bookmarksDropdown');
-  if (!dropdown) return;
+  if (!dropdown) {
+    console.error("Bookmarks dropdown element not found");
+    return;
+  }
   
   // Clear existing items
   dropdown.innerHTML = '';
+  
+  // Make sure the dropdown is visible
+  dropdown.style.display = 'block';
+  
+  // Add a proper heading and styling to make it visible
+  dropdown.style.backgroundColor = '#fff';
+  dropdown.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+  dropdown.style.borderRadius = '4px';
+  dropdown.style.minWidth = '200px';
+  dropdown.style.padding = '5px 0';
+  dropdown.style.zIndex = '3000';
   
   // Get bookmarks from storage
   const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
   
   // Create a header
   const header = document.createElement('div');
-  header.style.padding = '8px';
+  header.style.padding = '10px';
   header.style.fontWeight = 'bold';
   header.style.borderBottom = '1px solid #ccc';
+  header.style.backgroundColor = '#f5f5f5';
   header.textContent = 'Saved Views';
   dropdown.appendChild(header);
   
-  // Add each bookmark
-  Object.keys(bookmarks).forEach(name => {
-    const item = document.createElement('div');
-    item.style.padding = '8px';
-    item.style.cursor = 'pointer';
-    item.style.display = 'flex';
-    item.style.justifyContent = 'space-between';
-    item.style.alignItems = 'center';
-    item.style.borderBottom = '1px solid #eee';
-    
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = name;
-    nameSpan.style.flex = '1';
-    nameSpan.style.overflow = 'hidden';
-    nameSpan.style.textOverflow = 'ellipsis';
-    nameSpan.style.whiteSpace = 'nowrap';
-    
-    const deleteBtn = document.createElement('button');
-    deleteBtn.innerHTML = '&times;';
-    deleteBtn.style.marginLeft = '8px';
-    deleteBtn.style.background = 'none';
-    deleteBtn.style.border = 'none';
-    deleteBtn.style.color = '#f44336';
-    deleteBtn.style.fontWeight = 'bold';
-    deleteBtn.style.fontSize = '16px';
-    deleteBtn.style.cursor = 'pointer';
-    
-    item.appendChild(nameSpan);
-    item.appendChild(deleteBtn);
-    
-    // Add event listeners
-    nameSpan.addEventListener('click', function(e) {
-      e.stopPropagation();
-      loadBookmark(name);
-      dropdown.style.display = 'none';
+  // Check if we have any bookmarks
+  const bookmarkKeys = Object.keys(bookmarks);
+  if (bookmarkKeys.length === 0) {
+    const noBookmarks = document.createElement('div');
+    noBookmarks.style.padding = '10px';
+    noBookmarks.style.fontStyle = 'italic';
+    noBookmarks.style.color = '#666';
+    noBookmarks.textContent = 'No bookmarks saved yet';
+    dropdown.appendChild(noBookmarks);
+  } else {
+    // Add each bookmark
+    bookmarkKeys.forEach(name => {
+      const item = document.createElement('div');
+      item.style.padding = '8px 10px';
+      item.style.cursor = 'pointer';
+      item.style.display = 'flex';
+      item.style.justifyContent = 'space-between';
+      item.style.alignItems = 'center';
+      item.style.borderBottom = '1px solid #eee';
+      item.style.transition = 'background-color 0.2s';
+      
+      // Add hover effect
+      item.addEventListener('mouseover', function() {
+        this.style.backgroundColor = '#f0f0f0';
+      });
+      item.addEventListener('mouseout', function() {
+        this.style.backgroundColor = '';
+      });
+      
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = name;
+      nameSpan.style.flex = '1';
+      nameSpan.style.overflow = 'hidden';
+      nameSpan.style.textOverflow = 'ellipsis';
+      nameSpan.style.whiteSpace = 'nowrap';
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.innerHTML = '&times;';
+      deleteBtn.style.marginLeft = '8px';
+      deleteBtn.style.background = 'none';
+      deleteBtn.style.border = 'none';
+      deleteBtn.style.color = '#f44336';
+      deleteBtn.style.fontWeight = 'bold';
+      deleteBtn.style.fontSize = '16px';
+      deleteBtn.style.cursor = 'pointer';
+      deleteBtn.title = 'Delete bookmark';
+      
+      item.appendChild(nameSpan);
+      item.appendChild(deleteBtn);
+      
+      // Add event listeners
+      nameSpan.addEventListener('click', function(e) {
+        e.stopPropagation();
+        loadBookmark(name);
+        dropdown.style.display = 'none';
+      });
+      
+      // Make the whole item clickable except for the delete button
+      item.addEventListener('click', function(e) {
+        if (e.target !== deleteBtn) {
+          loadBookmark(name);
+          dropdown.style.display = 'none';
+        }
+      });
+      
+      deleteBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        deleteBookmark(name);
+      });
+      
+      dropdown.appendChild(item);
     });
-    
-    deleteBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      deleteBookmark(name);
-    });
-    
-    dropdown.appendChild(item);
-  });
+  }
   
   // Add option to create new bookmark
   const addNewItem = document.createElement('div');
-  addNewItem.style.padding = '8px';
+  addNewItem.style.padding = '10px';
   addNewItem.style.cursor = 'pointer';
   addNewItem.style.color = '#4CAF50';
   addNewItem.style.fontWeight = 'bold';
+  addNewItem.style.backgroundColor = '#f5f5f5';
   addNewItem.style.textAlign = 'center';
+  addNewItem.style.borderTop = bookmarkKeys.length > 0 ? '1px solid #ccc' : 'none';
   addNewItem.textContent = '+ Add New Bookmark';
+  
+  // Add hover effect
+  addNewItem.addEventListener('mouseover', function() {
+    this.style.backgroundColor = '#e8f5e9';
+  });
+  addNewItem.addEventListener('mouseout', function() {
+    this.style.backgroundColor = '#f5f5f5';
+  });
   
   addNewItem.addEventListener('click', function() {
     dropdown.style.display = 'none';
@@ -765,6 +831,14 @@ function updateBookmarksDropdown() {
   });
   
   dropdown.appendChild(addNewItem);
+  
+  // Add event listener to close dropdown when clicking outside
+  document.addEventListener('click', function closeDropdown(e) {
+    if (!dropdown.contains(e.target) && e.target.id !== 'bookmarksTool') {
+      dropdown.style.display = 'none';
+      document.removeEventListener('click', closeDropdown);
+    }
+  });
 }
 
 // Expose functions globally for use in HTML
@@ -772,6 +846,40 @@ window.createBookmark = createBookmark;
 window.loadBookmark = loadBookmark;
 window.deleteBookmark = deleteBookmark;
 window.updateBookmarksDropdown = updateBookmarksDropdown;
+
+// Function to toggle bookmarks dropdown
+window.toggleBookmarksDropdown = function() {
+  const dropdown = document.getElementById('bookmarksDropdown');
+  if (!dropdown) {
+    console.error("Bookmarks dropdown element not found");
+    return;
+  }
+  
+  const isVisible = dropdown.style.display === 'block';
+  
+  // Hide any other open dropdowns
+  document.querySelectorAll('.base-layer-dropdown').forEach(dd => {
+    if (dd.id !== 'bookmarksDropdown') {
+      dd.style.display = 'none';
+    }
+  });
+  
+  if (isVisible) {
+    dropdown.style.display = 'none';
+  } else {
+    // Position the dropdown
+    const button = document.getElementById('bookmarksTool');
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      dropdown.style.position = 'absolute';
+      dropdown.style.top = (rect.bottom + 5) + 'px';
+      dropdown.style.left = rect.left + 'px';
+    }
+    
+    // Update and show the dropdown
+    updateBookmarksDropdown();
+  }
+};
 
   document.openFeatureEditor = openFeatureEditor;
 });
