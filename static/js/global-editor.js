@@ -68,49 +68,25 @@ window.QDProEditor = {
 
   closeFeatureEditor: function() {
     console.log("QDProEditor: Closing feature editor");
-
-    // Hide the modal
-    const modal = document.getElementById('featurePropertiesModal');
-    if (modal) {
-      modal.style.display = 'none';
-    }
-
-    // Close any popups
-    if (window.map) {
-      if (typeof window.map.closePopup === 'function') {
-        window.map.closePopup();
-      } else {
-        // Alternative approach if closePopup is not available
-        console.log("map.closePopup is not a function, trying alternatives");
+    if (this.activeEditingLayer) {
+      // Remove any editing flags to allow immediate re-editing
+      if (this.activeEditingLayer._editingActive) {
+        delete this.activeEditingLayer._editingActive;
       }
 
-      // Try to close all popups via layers
-      if (typeof window.map.eachLayer === 'function') {
-        window.map.eachLayer(function(layer) {
-          if (layer.closePopup) {
-            layer.closePopup();
-          }
-        });
-      } else if (window.map._layers) {
-        // Direct access to layers if eachLayer isn't available
-        console.log("Using fallback layer access method");
-        Object.values(window.map._layers || {}).forEach(function(layer) {
-          if (layer && typeof layer.closePopup === 'function') {
-            layer.closePopup();
-          }
-        });
+      // Reset state
+      this.activeEditingLayer = null;
+      this.isEditorOpen = false;
+
+      // Close any open popups
+      try {
+        if (window.map && typeof window.map.closePopup === 'function') {
+          window.map.closePopup();
+        }
+      } catch (e) {
+        console.warn('Error closing popups:', e);
       }
     }
-
-    // Reset flags to allow immediate editing of another feature
-    this.isEditorOpen = false;
-
-    // Store the previously active layer before clearing it
-    const previousLayer = this.activeEditingLayer;
-
-    // Reset active editing layer immediately
-    this.activeEditingLayer = null;
-
 
     // Reset any layer-specific popup states
     // This is critical to allowing immediate re-editing of features
@@ -254,6 +230,19 @@ window.QDProEditor = {
     if (typeof QDPro !== 'undefined' && QDPro.saveProject) {
       QDPro.saveProject();
     }
+  },
+  runQDAnalysis: function() {
+    console.log("QDProEditor: Running QD Analysis");
+    // Add your QD analysis logic here.  This is a placeholder.
+    alert("QD Analysis initiated!");
+  },
+  showMeasurementTool: function() {
+    console.log("QDProEditor: Showing Measurement Tool");
+    if (window.map && window.map.measureControl) {
+        window.map.measureControl.start();
+    } else {
+        console.error("Map or measureControl not available.");
+    }
   }
 };
 
@@ -272,6 +261,14 @@ window.saveFeatureProperties = function() {
 
 window.forceOpenEditor = function(btn) {
   window.QDProEditor.forceOpenEditor(btn);
+};
+
+window.runQDAnalysis = function() {
+  window.QDProEditor.runQDAnalysis();
+};
+
+window.showMeasurementTool = function() {
+  window.QDProEditor.showMeasurementTool();
 };
 
 
