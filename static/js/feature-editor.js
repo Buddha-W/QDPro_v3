@@ -1,3 +1,4 @@
+
 // Global variables for feature editing
 let map;
 let activeEditingLayer = null;
@@ -74,89 +75,86 @@ function openFeatureEditor(layerData) {
 }
 
 /**
- * Creates the modal for feature properties if it doesn't exist in the DOM
+ * Create the feature properties modal if it doesn't exist
  */
 function createFeaturePropertiesModal() {
   console.log("Creating feature properties modal");
 
   // Check if modal already exists
   if (document.getElementById('featurePropertiesModal')) {
+    console.log("Modal already exists, skipping creation");
     return;
   }
 
-  // Create modal element
-  const modalElement = document.createElement('div');
-  modalElement.id = 'featurePropertiesModal';
-  modalElement.className = 'modal';
+  // Create modal container
+  const modal = document.createElement('div');
+  modal.id = 'featurePropertiesModal';
+  modal.className = 'modal';
 
-  // Set modal content HTML
-  modalElement.innerHTML = `
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Feature Properties</h2>
-        <span id="closeFeaturePropertiesBtn" class="close" onclick="closeFeaturePropertiesModal()">&times;</span>
+  // Create modal content
+  const modalContent = document.createElement('div');
+  modalContent.className = 'modal-content';
+
+  // Create form
+  const form = document.createElement('form');
+  form.id = 'featurePropertiesForm';
+
+  // Create form contents
+  form.innerHTML = `
+    <h3>Feature Properties</h3>
+    <div class="form-group">
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required>
+    </div>
+    <div class="form-group">
+      <label for="type">Type:</label>
+      <select id="type" name="type">
+        <option value="Polygon">Polygon</option>
+        <option value="Marker">Marker</option>
+        <option value="Line">Line</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="description">Description:</label>
+      <textarea id="description" name="description"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="is_facility">Is Facility:</label>
+      <input type="checkbox" id="is_facility" name="is_facility">
+    </div>
+    <div class="form-group">
+      <label for="has_explosive">Has Explosive:</label>
+      <input type="checkbox" id="has_explosive" name="has_explosive" onchange="toggleExplosiveSection()">
+    </div>
+    <div id="explosiveSection" style="display:none;">
+      <div class="form-group">
+        <label for="net_explosive_weight">Net Explosive Weight (lbs):</label>
+        <input type="number" id="net_explosive_weight" name="net_explosive_weight" min="0">
       </div>
-      <div class="modal-body">
-        <form id="featurePropertiesForm">
-          <div class="form-group">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" />
-          </div>
-          <div class="form-group">
-            <label for="type">Type:</label>
-            <input type="text" id="type" name="type" />
-          </div>
-          <div class="form-group">
-            <label for="description">Description:</label>
-            <textarea id="description" name="description"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="is_facility">Is Facility:</label>
-            <input type="checkbox" id="is_facility" name="is_facility" />
-          </div>
-          <div class="form-group">
-            <label for="has_explosive">Has Explosive:</label>
-            <input type="checkbox" id="has_explosive" name="has_explosive" onchange="toggleExplosiveSection()" />
-          </div>
-          <div id="explosiveSection" style="display:none;">
-            <div class="form-group">
-              <label for="explosive_type">Explosive Type:</label>
-              <select id="explosive_type" name="explosive_type">
-                <option value="1.1">1.1 - Mass Explosion</option>
-                <option value="1.2">1.2 - Projection but not Mass Explosion</option>
-                <option value="1.3">1.3 - Fire and Minor Blast</option>
-                <option value="1.4">1.4 - Moderate Fire</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="net_explosive_weight">Net Explosive Weight (lbs):</label>
-              <input type="number" id="net_explosive_weight" name="net_explosive_weight" min="0" />
-            </div>
-          </div>
-          <div class="form-actions">
-            <button type="button" onclick="saveFeatureProperties()">Save</button>
-            <button type="button" onclick="closeFeaturePropertiesModal()">Cancel</button>
-          </div>
-        </form>
+      <div class="form-group">
+        <label for="hazard_division">Hazard Division:</label>
+        <select id="hazard_division" name="hazard_division">
+          <option value="1.1">1.1 - Mass Detonation</option>
+          <option value="1.2">1.2 - Non-mass Detonation, Fragment Producing</option>
+          <option value="1.3">1.3 - Mass Fire, Minor Blast or Fragment</option>
+          <option value="1.4">1.4 - Moderate Fire, No Blast or Fragment</option>
+        </select>
       </div>
+    </div>
+    <div class="button-group">
+      <button type="button" onclick="saveFeatureProperties()">Save</button>
+      <button type="button" onclick="closeFeaturePropertiesModal()">Cancel</button>
     </div>
   `;
 
-  // Append modal to document body
-  document.body.appendChild(modalElement);
+  // Add form to modal content
+  modalContent.appendChild(form);
+  modal.appendChild(modalContent);
 
-  console.log("Feature properties modal created");
-}
+  // Add modal to document body
+  document.body.appendChild(modal);
 
-/**
- * Toggle the explosive section visibility based on checkbox state
- */
-function toggleExplosiveSection() {
-  const hasExplosive = document.getElementById('has_explosive').checked;
-  const explosiveSection = document.getElementById('explosiveSection');
-  if (explosiveSection) {
-    explosiveSection.style.display = hasExplosive ? 'block' : 'none';
-  }
+  console.log("Feature properties modal created successfully");
 }
 
 /**
@@ -167,12 +165,16 @@ function closeFeaturePropertiesModal() {
   if (modal) {
     modal.style.display = "none";
   }
+  activeEditingLayer = null;
+  selectedFeatureProps = null;
 }
 
 /**
- * Save the feature properties from the form
+ * Save feature properties to the active layer
  */
 function saveFeatureProperties() {
+  console.log("Saving feature properties");
+
   const form = document.getElementById('featurePropertiesForm');
   if (!form) {
     console.error("Form not found");
@@ -180,165 +182,215 @@ function saveFeatureProperties() {
   }
 
   // Get form values
-  const properties = {
-    name: document.getElementById('name').value,
-    type: document.getElementById('type').value,
-    description: document.getElementById('description').value
+  const name = document.getElementById('name').value;
+  const type = document.getElementById('type').value;
+  const description = document.getElementById('description').value;
+  
+  // Get optional fields if they exist
+  let isFacility = false;
+  if (document.getElementById('is_facility')) {
+    isFacility = document.getElementById('is_facility').checked;
+  }
+  
+  let hasExplosive = false;
+  let netExplosiveWeight = 0;
+  let hazardDivision = "1.1";
+  
+  if (document.getElementById('has_explosive')) {
+    hasExplosive = document.getElementById('has_explosive').checked;
+    
+    if (hasExplosive) {
+      if (document.getElementById('net_explosive_weight')) {
+        netExplosiveWeight = parseFloat(document.getElementById('net_explosive_weight').value) || 0;
+      }
+      
+      if (document.getElementById('hazard_division')) {
+        hazardDivision = document.getElementById('hazard_division').value;
+      }
+    }
+  }
+
+  // Update selected feature properties
+  const updatedProperties = {
+    name,
+    type,
+    description,
+    is_facility: isFacility,
+    has_explosive: hasExplosive,
+    net_explosive_weight: netExplosiveWeight,
+    hazard_division: hazardDivision
   };
 
-  // Handle facility-specific and explosive-specific properties
-  if (document.getElementById('is_facility')) {
-    properties.is_facility = document.getElementById('is_facility').checked;
-  }
+  console.log("Updated properties:", updatedProperties);
 
-  if (document.getElementById('has_explosive')) {
-    properties.has_explosive = document.getElementById('has_explosive').checked;
-
-    if (properties.has_explosive) {
-      properties.explosive_type = document.getElementById('explosive_type').value;
-      properties.net_explosive_weight = parseFloat(document.getElementById('net_explosive_weight').value);
+  // Update the active editing layer if available
+  if (activeEditingLayer && activeEditingLayer.feature) {
+    activeEditingLayer.feature.properties = {
+      ...activeEditingLayer.feature.properties,
+      ...updatedProperties
+    };
+    
+    // Update popup content if applicable
+    if (typeof updateLayerPopup === 'function') {
+      updateLayerPopup(activeEditingLayer);
+    }
+    
+    // Update layer style if applicable
+    if (typeof updateLayerStyle === 'function') {
+      updateLayerStyle(activeEditingLayer, type);
     }
   }
 
-  // Update the active layer if it exists
-  if (activeEditingLayer) {
-    // Update the layer's feature properties
-    if (!activeEditingLayer.feature) {
-      activeEditingLayer.feature = { type: "Feature", properties: {} };
-    }
-    activeEditingLayer.feature.properties = properties;
-
-    // Update any visual styling based on properties
-    if (activeEditingLayer.setStyle) {
-      // Example: change style based on type
-      const color = properties.has_explosive ? '#ff3300' : '#3388ff';
-      activeEditingLayer.setStyle({ color: color });
-    }
-
-    // Update popup content if the layer has a popup
-    if (activeEditingLayer.getPopup()) {
-      activeEditingLayer.setPopupContent(createPopupContent(properties));
-    }
-  }
+  // Save to project data if needed
+  saveProjectData();
 
   // Close the modal
   closeFeaturePropertiesModal();
-
-  console.log("Feature properties saved:", properties);
 }
 
 /**
- * Create popup content based on properties
- * @param {Object} properties - Feature properties
- * @returns {String} HTML content for popup
+ * Toggle the explosive section based on checkbox state
  */
-function createPopupContent(properties) {
-  let content = '<div class="feature-popup">';
-  if (properties.name) {
-    content += `<h4>${properties.name}</h4>`;
+function toggleExplosiveSection() {
+  const hasExplosive = document.getElementById('has_explosive').checked;
+  const explosiveSection = document.getElementById('explosiveSection');
+  
+  if (explosiveSection) {
+    explosiveSection.style.display = hasExplosive ? 'block' : 'none';
   }
-  if (properties.type) {
-    content += `<p><strong>Type:</strong> ${properties.type}</p>`;
-  }
-  if (properties.description) {
-    content += `<p>${properties.description}</p>`;
-  }
-  content += '</div>';
-  return content;
 }
 
 /**
- * Add click handlers to all layers
- * @param {Array} layers - Array of layers to add handlers to
+ * Add click handlers to a layer
+ * @param {L.Layer} layer - The layer to add click handlers to
  */
-function addLayerClickHandlers(layers) {
-  if (!Array.isArray(layers)) {
-    console.error("Expected array of layers, got:", typeof layers);
+function addLayerClickHandlers(layer) {
+  if (!layer) {
+    console.error("Cannot add click handlers to undefined layer");
     return;
   }
-
-  layers.forEach(layer => {
-    layer.on('click', function(e) {
-      // Stop propagation to prevent map click handler from firing
-      L.DomEvent.stopPropagation(e);
-
-      // Set this as the active editing layer
-      activeEditingLayer = layer;
-
-      // Get layer data/properties
-      const layerData = layer.feature ? layer.feature.properties : {};
-
-      // Open the feature editor
-      openFeatureEditor(layerData);
-    });
+  
+  layer.on('click', function(e) {
+    L.DomEvent.stopPropagation(e);
+    activeEditingLayer = layer;
+    
+    // Use layer's feature properties if available
+    if (layer.feature && layer.feature.properties) {
+      openFeatureEditor(layer.feature.properties);
+    } else {
+      // Default properties if none exist
+      openFeatureEditor({
+        name: "New Feature",
+        type: "Polygon",
+        description: ""
+      });
+    }
   });
 }
 
 /**
- * Set up click handlers for all map layers
+ * Setup click handlers for all existing layers
  */
 function setupAllLayerEditHandlers() {
   if (!map) {
-    console.error("Map not initialized, cannot setup layer handlers");
+    console.error("Map is not initialized, cannot setup layer handlers");
     return;
   }
-
-  const layers = [];
+  
   map.eachLayer(function(layer) {
-    // Only add handlers to vector layers (polygons, markers, etc.)
-    if (layer instanceof L.Path || layer instanceof L.Marker) {
-      layers.push(layer);
+    // Check if this is a feature layer
+    if (layer.feature) {
+      addLayerClickHandlers(layer);
+    }
+    
+    // Check if this is a layer group
+    if (layer.eachLayer) {
+      layer.eachLayer(function(sublayer) {
+        if (sublayer.feature) {
+          addLayerClickHandlers(sublayer);
+        }
+      });
     }
   });
-
-  addLayerClickHandlers(layers);
+  
+  console.log("All layer edit handlers set up");
 }
 
 /**
- * Set up the map click handler for deselecting features
+ * Setup map click handler to deactivate editing
  */
 function setupMapClickHandler() {
   if (!map) {
-    console.error("Map not initialized, cannot setup map click handler");
+    console.error("Map is not initialized, cannot setup map click handler");
     return;
   }
-
+  
   map.on('click', function() {
-    // Deselect any active editing layer
-    if (activeEditingLayer) {
-      // Remove any visual indication of selection
-      if (activeEditingLayer.setStyle) {
-        activeEditingLayer.setStyle({ color: '#3388ff' });
-      }
-    }
-
-    // Clear active editing layer
+    // Deactivate any active editing when clicking on the map
     activeEditingLayer = null;
   });
+  
+  console.log("Map click handler set up");
 }
 
 /**
- * Clear all layers from the map
+ * Save project data to localStorage
+ */
+function saveProjectData() {
+  // Collect all layers with their properties
+  const layers = [];
+  
+  if (map) {
+    map.eachLayer(function(layer) {
+      if (layer.feature && layer.feature.properties) {
+        // Get coordinates depending on the layer type
+        let coordinates = [];
+        
+        if (layer instanceof L.Polygon || layer instanceof L.Polyline) {
+          coordinates = layer.getLatLngs()[0].map(latlng => [latlng.lat, latlng.lng]);
+        } else if (layer instanceof L.Marker) {
+          const latlng = layer.getLatLng();
+          coordinates = [[latlng.lat, latlng.lng]];
+        }
+        
+        if (coordinates.length > 0) {
+          layers.push({
+            ...layer.feature.properties,
+            coordinates
+          });
+        }
+      }
+    });
+  }
+  
+  // Save to localStorage
+  localStorage.setItem("savedProject", JSON.stringify({ layers }));
+  console.log("Project data saved");
+}
+
+/**
+ * Clear all polygon layers from the map
  */
 function clearLayers() {
   if (!map) {
-    console.error("Cannot clear layers: map is not initialized");
+    console.error("Map is not initialized.");
     return;
   }
-
+  
   map.eachLayer(function(layer) {
-    // Don't remove the base tile layer
-    if (layer instanceof L.TileLayer) {
-      return;
+    // Only remove feature layers, not base layers
+    if (layer instanceof L.Polygon || 
+        layer instanceof L.Polyline || 
+        layer instanceof L.Marker) {
+      map.removeLayer(layer);
     }
-
-    // Remove all other layers
-    map.removeLayer(layer);
   });
+  
+  console.log("All layers cleared");
 }
 
 /**
- * Load project from localStorage
+ * Load project data from localStorage
  */
 function loadProject() {
   clearLayers();
@@ -386,7 +438,7 @@ window.loadProject = loadProject;
 // Initialize when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
   console.log("Feature editor module loaded");
-
+  
   // Create the modal if it doesn't exist
   createFeaturePropertiesModal();
 

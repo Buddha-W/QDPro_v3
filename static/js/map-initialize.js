@@ -107,3 +107,183 @@ document.addEventListener('DOMContentLoaded', function() {
 // Make functions globally available
 window.initMap = initMap;
 window.polygonClickHandler = polygonClickHandler;
+// Global map variable
+let map;
+
+/**
+ * Initialize the Leaflet map
+ */
+function initMap() {
+  console.log("Initializing map...");
+  
+  // Create the map if it doesn't exist
+  if (!window.map) {
+    window.map = L.map('map').setView([40.7128, -74.0060], 5);
+    
+    // Add the base tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(window.map);
+    
+    console.log("Map initialized successfully");
+  } else {
+    console.log("Map already initialized");
+  }
+  
+  // Store map in global variable
+  map = window.map;
+  
+  // Return the map instance
+  return map;
+}
+
+/**
+ * Load saved project data onto the map
+ */
+function loadProject() {
+  // Make sure map is initialized
+  if (!window.map) {
+    console.error("Map not initialized. Cannot load project.");
+    return;
+  }
+  
+  // Clear existing layers
+  if (typeof window.clearLayers === 'function') {
+    window.clearLayers();
+  } else {
+    // Fallback layer clearing if clearLayers is not available
+    window.map.eachLayer(function(layer) {
+      if (layer instanceof L.Polygon || 
+          layer instanceof L.Polyline || 
+          layer instanceof L.Marker) {
+        window.map.removeLayer(layer);
+      }
+    });
+  }
+
+  // Load project data from localStorage
+  const projectData = JSON.parse(localStorage.getItem("savedProject"));
+  if (!projectData || !projectData.layers) {
+    console.error("No valid project data found.");
+    return;
+  }
+
+  // Add each layer to the map
+  projectData.layers.forEach(layer => {
+    if (!layer.coordinates || layer.coordinates.length === 0) {
+      console.warn("Layer missing coordinates:", layer);
+      return;
+    }
+    
+    // Create the appropriate layer type
+    let mapLayer;
+    if (layer.type === "Marker") {
+      mapLayer = L.marker(layer.coordinates[0]).addTo(window.map);
+    } else if (layer.type === "Line") {
+      mapLayer = L.polyline(layer.coordinates).addTo(window.map);
+    } else {
+      // Default to polygon
+      mapLayer = L.polygon(layer.coordinates).addTo(window.map);
+    }
+
+    // Set feature properties
+    mapLayer.feature = {
+      type: "Feature",
+      properties: {
+        ...layer  // spread all properties
+      }
+    };
+
+    // Add click handler to open feature editor
+    mapLayer.on('click', function(e) {
+      L.DomEvent.stopPropagation(e);
+      
+      // Stop event propagation to prevent map click
+      if (e && e.originalEvent) {
+        L.DomEvent.stopPropagation(e.originalEvent);
+        L.DomEvent.preventDefault(e.originalEvent);
+      }
+      
+      // Open feature editor
+      if (typeof window.openFeatureEditor === 'function') {
+        window.openFeatureEditor(mapLayer.feature.properties);
+      } else {
+        console.error("openFeatureEditor function not found");
+        alert("Cannot edit feature: editor not loaded");
+      }
+    });
+  });
+
+  console.log('Project loaded successfully with', projectData.layers.length, 'layers');
+}
+
+// Sample project data for testing
+const sampleProjectData = {
+  layers: [
+    {
+      name: "Polygon A",
+      type: "Polygon",
+      description: "Sample polygon A",
+      coordinates: [
+        [40.7128, -74.0060],
+        [40.7228, -74.0160],
+        [40.7328, -74.0060]
+      ]
+    },
+    {
+      name: "Polygon B",
+      type: "Polygon",
+      description: "Sample polygon B",
+      coordinates: [
+        [41.7128, -75.0060],
+        [41.7228, -75.0160],
+        [41.7328, -75.0060]
+      ]
+    }
+  ]
+};
+
+// Make sure we have sample data for testing
+function ensureSampleData() {
+  if (!localStorage.getItem("savedProject")) {
+    localStorage.setItem("savedProject", JSON.stringify(sampleProjectData));
+    console.log("Sample project data created");
+  }
+}
+
+// Initialize when the document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Map initialization module loaded");
+  
+  // Initialize the map
+  initMap();
+  
+  // Ensure we have sample data
+  ensureSampleData();
+  
+  // Add edit button functionality if present
+  const editButton = document.getElementById('editButton');
+  if (editButton) {
+    editButton.addEventListener('click', function() {
+      if (typeof window.openFeatureEditor === 'function') {
+        window.openFeatureEditor({
+          name: "Test Feature",
+          type: "Polygon", 
+          description: "This is a test feature"
+        });
+      } else {
+        console.error("openFeatureEditor function not found");
+        alert("Cannot test editor: openFeatureEditor not loaded");
+      }
+    });
+  }
+  
+  // Load project data after a short delay to ensure all scripts are loaded
+  setTimeout(function() {
+    loadProject();
+  }, 300);
+  
+  // Make functions globally available
+  window.initMap = initMap;
+  window.loadProject = loadProject;
+});
