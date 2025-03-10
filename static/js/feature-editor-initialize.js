@@ -302,10 +302,36 @@ function saveFeatureProperties() {
   console.log("Feature properties saved:", layer.feature.properties);
 }
 
+// Make functions available globally and ensure they're properly defined
+function ensureGlobalFunctions() {
+  // Ensure openFeatureEditor is properly defined on the global scope
+  if (typeof window.openFeatureEditor !== 'function') {
+    window.openFeatureEditor = openFeatureEditor;
+  }
+  
+  // Ensure saveFeatureProperties is properly defined on the global scope
+  if (typeof window.saveFeatureProperties !== 'function') {
+    window.saveFeatureProperties = saveFeatureProperties;
+  }
+  
+  // Ensure closeFeaturePropertiesModal is properly defined on the global scope
+  if (typeof window.closeFeaturePropertiesModal !== 'function') {
+    window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
+  }
+  
+  console.log("Global function references established");
+}
+
 // Make functions available globally
 window.openFeatureEditor = openFeatureEditor;
 window.saveFeatureProperties = saveFeatureProperties;
 window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
+
+// Call the function to ensure globals are set
+ensureGlobalFunctions();
+
+// Add a fallback to window.onload to ensure everything is properly defined
+window.addEventListener('load', ensureGlobalFunctions);
 
 
 // Add Layer Click Handlers for editing properties
@@ -318,7 +344,7 @@ function addLayerClickHandlers(layer) {
       <p>Type: ${properties.type || 'Unknown'}</p>
       ${properties.net_explosive_weight ? `<p>NEW: ${properties.net_explosive_weight} lbs</p>` : ''}
       ${properties.description ? `<p>${properties.description}</p>` : ''}
-      <button class="edit-properties-btn" onclick="window.openFeatureEditor(this._layer)">Edit Properties</button>
+      <button class="edit-properties-btn">Edit Properties</button>
     </div>
   `;
   
@@ -331,14 +357,55 @@ function addLayerClickHandlers(layer) {
     if (popup && popup._contentNode) {
       const editBtn = popup._contentNode.querySelector('.edit-properties-btn');
       if (editBtn) {
-        // Store reference to layer directly on the button
-        editBtn._layer = layer;
-        console.log('Edit button found, attached layer reference');
+        console.log('Edit button found, attaching click handler');
+        // Remove any existing event listeners
+        const newEditBtn = editBtn.cloneNode(true);
+        editBtn.parentNode.replaceChild(newEditBtn, editBtn);
         
-        // Add click handler as a fallback
-        editBtn.addEventListener('click', function() {
+        // Add new event listener with explicitly defined handler
+        newEditBtn.addEventListener('click', function() {
           console.log('Edit button clicked, opening feature editor');
-          window.openFeatureEditor(layer);
+          if (typeof openFeatureEditor === 'function') {
+            openFeatureEditor(layer);
+          } else if (typeof window.openFeatureEditor === 'function') {
+            window.openFeatureEditor(layer);
+          } else {
+            // Emergency fallback - define a minimal implementation
+            console.warn('openFeatureEditor not found, using emergency fallback');
+            const modal = document.getElementById('featurePropertiesModal');
+            if (modal) {
+              window.activeEditingLayer = layer;
+              modal.style.display = 'block';
+              
+              // Populate the form
+              if (layer.feature && layer.feature.properties) {
+                const props = layer.feature.properties;
+                document.getElementById('name').value = props.name || '';
+                document.getElementById('type').value = props.type || 'Building';
+                document.getElementById('description').value = props.description || '';
+                
+                if (document.getElementById('is_facility')) {
+                  document.getElementById('is_facility').checked = props.is_facility || false;
+                }
+                
+                if (document.getElementById('has_explosive')) {
+                  document.getElementById('has_explosive').checked = props.has_explosive || false;
+                }
+                
+                if (document.getElementById('explosiveSection')) {
+                  document.getElementById('explosiveSection').style.display = 
+                    props.has_explosive ? 'block' : 'none';
+                    
+                  if (document.getElementById('net_explosive_weight')) {
+                    document.getElementById('net_explosive_weight').value = 
+                      props.net_explosive_weight || '';
+                  }
+                }
+              }
+            } else {
+              console.error('Feature properties modal not found');
+            }
+          }
         });
       } else {
         console.warn('Edit button not found in popup');
