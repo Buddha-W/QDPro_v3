@@ -79,6 +79,34 @@ document.addEventListener('DOMContentLoaded', function() {
       map.invalidateSize();
     }
   });
+  
+  // Global event delegation for popup edit buttons
+  // This catches all clicks on the entire document and handles edit buttons
+  document.addEventListener('click', function(e) {
+    // Check if the clicked element is an edit button in a popup
+    if (e.target && (e.target.classList.contains('edit-properties-btn') || 
+                    (e.target.parentElement && e.target.parentElement.classList.contains('edit-properties-btn')))) {
+      console.log("Edit button clicked via global handler");
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Find the associated layer
+      const popup = e.target.closest('.leaflet-popup');
+      if (popup && popup._source) {
+        const layer = popup._source;
+        console.log("Found layer for edit button:", layer);
+        
+        // Use the global function
+        if (typeof window.openFeatureEditor === 'function') {
+          window.openFeatureEditor(layer);
+        } else {
+          console.error("openFeatureEditor not found in global scope");
+          alert("Error: Editor function not available. Please refresh the page.");
+        }
+      }
+      return false;
+    }
+  });
 });
 
 // Make initMap available globally
