@@ -308,8 +308,15 @@ function addLayerClickHandlers(layer) {
             e.preventDefault();
             e.stopPropagation();
             console.log("Edit button clicked, calling openFeatureEditor");
-            // This will use the globally defined function
-            window.openFeatureEditor(layer);
+            // Call the function directly first, falling back to window
+            if (typeof openFeatureEditor === 'function') {
+              openFeatureEditor(layer);
+            } else if (typeof window.openFeatureEditor === 'function') {
+              window.openFeatureEditor(layer);
+            } else {
+              console.error("openFeatureEditor function not found!");
+              alert("Error: Could not open editor. Please refresh the page.");
+            }
             return false;
           });
         } else {
@@ -345,6 +352,15 @@ window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
 window.saveFeatureProperties = saveFeatureProperties;
 window.addLayerClickHandlers = addLayerClickHandlers;
 window.setupMapClickHandler = setupMapClickHandler;
+
+// Also expose directly on the window object for IE compatibility
+try {
+  window["openFeatureEditor"] = openFeatureEditor;
+  // Create a global variable reference directly
+  openFeatureEditor = openFeatureEditor;
+} catch (e) {
+  console.warn("Could not create global reference to openFeatureEditor");
+}
 
 // Fallback to ensure functions are properly exposed
 window.addEventListener('load', function() {
