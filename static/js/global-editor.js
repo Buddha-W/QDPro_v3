@@ -57,10 +57,17 @@ window.QDProEditor = {
       window.map.closePopup();
     } else {
       // Alternative approach if closePopup is not available
-      if (window.map) {
+      if (window.map && typeof window.map.eachLayer === 'function') {
         // Try to close all popups via layers
         window.map.eachLayer(function(layer) {
           if (layer.closePopup) {
+            layer.closePopup();
+          }
+        });
+      } else if (window.map && window.map._layers) {
+        // Direct access to layers if eachLayer isn't available
+        Object.values(window.map._layers).forEach(function(layer) {
+          if (layer && typeof layer.closePopup === 'function') {
             layer.closePopup();
           }
         });
@@ -126,10 +133,17 @@ window.QDProEditor = {
     if (window.map) {
       if (typeof window.map.closePopup === 'function') {
         window.map.closePopup();
-      } else {
+      } else if (typeof window.map.eachLayer === 'function') {
         // Alternative approach - close popups on each layer
         window.map.eachLayer(function(layer) {
           if (layer.closePopup) {
+            layer.closePopup();
+          }
+        });
+      } else if (window.map._layers) {
+        // Direct access to layers if eachLayer isn't available
+        Object.values(window.map._layers).forEach(function(layer) {
+          if (layer && typeof layer.closePopup === 'function') {
             layer.closePopup();
           }
         });
