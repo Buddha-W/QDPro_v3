@@ -233,8 +233,18 @@ window.QDProEditor = {
   },
   runQDAnalysis: function() {
     console.log("QDProEditor: Running QD Analysis");
-    // Add your QD analysis logic here.  This is a placeholder.
-    alert("QD Analysis initiated!");
+    if (typeof QDPro !== 'undefined' && typeof QDPro.analyzeLocation === 'function') {
+      try {
+        QDPro.analyzeLocation();
+        console.log("QD Analysis started via QDPro.analyzeLocation");
+      } catch (error) {
+        console.error("Error running QD analysis:", error);
+        alert("Error running QD analysis: " + error.message);
+      }
+    } else {
+      console.error("QDPro.analyzeLocation is not available");
+      alert("QD Analysis functionality not available. Please check the console for details.");
+    }
   },
   showMeasurementTool: function() {
     console.log("QDProEditor: Showing Measurement Tool");
