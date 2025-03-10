@@ -995,22 +995,31 @@ window.updateBookmarksDropdown = updateBookmarksDropdown;
 // Add a direct global reference when the document loads
 document.addEventListener('DOMContentLoaded', function() {
   // Extra safety - ensure function references are available globally
-  window.updateBookmarksDropdown = updateBookmarksDropdown;
-  window.toggleBookmarksDropdown = toggleBookmarksDropdown;
-  
-  // Define on global window
-  if (typeof window.QDProEditor === 'undefined') {
-    window.QDProEditor = {};
+  // Load bookmark functions from bookmark-manager.js
+  if (typeof updateBookmarksDropdown === 'function') {
+    window.updateBookmarksDropdown = updateBookmarksDropdown;
+    window.toggleBookmarksDropdown = toggleBookmarksDropdown;
+    
+    // Define on global window
+    if (typeof window.QDProEditor === 'undefined') {
+      window.QDProEditor = {};
+    }
+    
+    // Add to QDProEditor namespace for additional reliability
+    window.QDProEditor.updateBookmarksDropdown = updateBookmarksDropdown;
+    window.QDProEditor.toggleBookmarksDropdown = toggleBookmarksDropdown;
+    
+    console.log("Bookmark functions exposed globally");
+  } else {
+    console.warn("Bookmark functions not available - ensure bookmark-manager.js is loaded");
   }
-  
-  // Add to QDProEditor namespace for additional reliability
-  window.QDProEditor.updateBookmarksDropdown = updateBookmarksDropdown;
-  window.QDProEditor.toggleBookmarksDropdown = toggleBookmarksDropdown;
-  
-  console.log("Bookmark functions exposed globally");
 });
 
-// Expose globally for other scripts to use
+// Import bookmark functions if they exist
+if (typeof window.updateBookmarksDropdown === 'function') {
+  updateBookmarksDropdown = window.updateBookmarksDropdown;
+  toggleBookmarksDropdown = window.toggleBookmarksDropdown;
+}
 if (typeof window !== 'undefined') {
   window.updateBookmarksDropdown = updateBookmarksDropdown;
   window.toggleBookmarksDropdown = toggleBookmarksDropdown;

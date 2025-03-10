@@ -507,12 +507,12 @@
       toggleBaseLayerDropdown: function() {
         const dropdown = document.getElementById("baseLayerDropdown");
         const bookmarksDropdown = document.getElementById("bookmarksDropdown");
-        
+
         // Hide bookmarks dropdown if open
         if (bookmarksDropdown.style.display === "block") {
           bookmarksDropdown.style.display = "none";
         }
-        
+
         if (dropdown.style.display === "block") {
           dropdown.style.display = "none";
         } else {
@@ -536,7 +536,7 @@
           dropdown.style.display = "block";
         }
       },
-      
+
       toggleBookmarksDropdown: function() {
         // Use the global function from feature-editor-initialize.js
         if (typeof window.toggleBookmarksDropdown === 'function') {
@@ -544,12 +544,12 @@
         } else {
           const bookmarksDropdown = document.getElementById("bookmarksDropdown");
           const baseLayerDropdown = document.getElementById("baseLayerDropdown");
-          
+
           // Hide base layer dropdown if open
           if (baseLayerDropdown.style.display === "block") {
             baseLayerDropdown.style.display = "none";
           }
-          
+
           if (bookmarksDropdown.style.display === "block") {
             bookmarksDropdown.style.display = "none";
           } else {
@@ -563,7 +563,7 @@
             bookmarksDropdown.style.backgroundColor = "#fff";
             bookmarksDropdown.style.boxShadow = "0 2px 10px rgba(0,0,0,0.2)";
             bookmarksDropdown.style.minWidth = "200px";
-            
+
             // Update the bookmarks dropdown
             if (typeof window.updateBookmarksDropdown === 'function') {
               window.updateBookmarksDropdown();
@@ -572,7 +572,7 @@
             } else {
               console.error("updateBookmarksDropdown function not found");
             }
-            
+
             // Show the dropdown
             bookmarksDropdown.style.display = "block";
           }
@@ -2217,7 +2217,9 @@
     document.addEventListener("DOMContentLoaded", () => QDPro.init());
   </script>
   <script src="/static/js/custom-modal.js"></script>
-</body>
-</html>
-<line_number>6</line_number>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+  <script src="/static/js/bookmark-manager.js"></script>
+
+  <!-- Feature Editor & Layer Management -->
+  <script src="/static/js/feature-editor-initialize.js"></script>
+  <script src="/static/js/layer-manager.js"></script>
