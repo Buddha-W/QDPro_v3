@@ -577,6 +577,202 @@ window.addEventListener('load', function() {
   window.forceOpenEditor = handleEditButtonClick; // Added for direct editor opening
 
   // Add a direct reference for popups to use
+
+// Bookmark management functions
+function createBookmark() {
+  const currentView = {
+    center: window.map.getCenter(),
+    zoom: window.map.getZoom()
+  };
+  
+  // Create a modal to name the bookmark
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
+
+  const modalContent = `
+    <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+      <h2>Save Bookmark</h2>
+      <div style="margin-bottom: 15px;">
+        <label for="bookmarkName">Bookmark Name:</label>
+        <input type="text" id="bookmarkName" style="width: 100%; padding: 5px; margin-top: 5px;" placeholder="Enter a name for this view">
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="cancelBookmarkBtn" style="padding: 8px 15px; margin-right: 10px;">Cancel</button>
+        <button id="saveBookmarkBtn" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none;">Save</button>
+      </div>
+    </div>
+  `;
+
+  modal.innerHTML = modalContent;
+  document.body.appendChild(modal);
+
+  // Add event listeners
+  document.getElementById('cancelBookmarkBtn').addEventListener('click', function() {
+    document.body.removeChild(modal);
+  });
+
+  document.getElementById('saveBookmarkBtn').addEventListener('click', function() {
+    const name = document.getElementById('bookmarkName').value.trim();
+    if (!name) {
+      alert('Please enter a bookmark name');
+      return;
+    }
+    
+    // Save the bookmark
+    saveBookmarkToStorage(name, currentView);
+    
+    // Remove the modal
+    document.body.removeChild(modal);
+    
+    // Update bookmarks dropdown
+    updateBookmarksDropdown();
+  });
+}
+
+function saveBookmarkToStorage(name, view) {
+  // Get existing bookmarks
+  let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+  
+  // Add new bookmark
+  bookmarks[name] = {
+    center: [view.center.lat, view.center.lng],
+    zoom: view.zoom,
+    created: new Date().toISOString()
+  };
+  
+  // Save back to localStorage
+  localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
+  console.log(`Bookmark "${name}" saved`);
+}
+
+function loadBookmark(name) {
+  // Get bookmarks from storage
+  const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+  
+  if (!bookmarks[name]) {
+    console.error(`Bookmark "${name}" not found`);
+    return;
+  }
+  
+  const bookmark = bookmarks[name];
+  
+  // Set map view to the bookmarked position
+  window.map.setView(bookmark.center, bookmark.zoom);
+  console.log(`Loaded bookmark "${name}"`);
+}
+
+function deleteBookmark(name) {
+  // Get existing bookmarks
+  let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+  
+  if (!bookmarks[name]) {
+    console.error(`Bookmark "${name}" not found`);
+    return;
+  }
+  
+  // Confirm deletion
+  if (!confirm(`Are you sure you want to delete the bookmark "${name}"?`)) {
+    return;
+  }
+  
+  // Delete the bookmark
+  delete bookmarks[name];
+  
+  // Save back to localStorage
+  localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
+  console.log(`Bookmark "${name}" deleted`);
+  
+  // Update bookmarks dropdown
+  updateBookmarksDropdown();
+}
+
+function updateBookmarksDropdown() {
+  const dropdown = document.getElementById('bookmarksDropdown');
+  if (!dropdown) return;
+  
+  // Clear existing items
+  dropdown.innerHTML = '';
+  
+  // Get bookmarks from storage
+  const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+  
+  // Create a header
+  const header = document.createElement('div');
+  header.style.padding = '8px';
+  header.style.fontWeight = 'bold';
+  header.style.borderBottom = '1px solid #ccc';
+  header.textContent = 'Saved Views';
+  dropdown.appendChild(header);
+  
+  // Add each bookmark
+  Object.keys(bookmarks).forEach(name => {
+    const item = document.createElement('div');
+    item.style.padding = '8px';
+    item.style.cursor = 'pointer';
+    item.style.display = 'flex';
+    item.style.justifyContent = 'space-between';
+    item.style.alignItems = 'center';
+    item.style.borderBottom = '1px solid #eee';
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = name;
+    nameSpan.style.flex = '1';
+    nameSpan.style.overflow = 'hidden';
+    nameSpan.style.textOverflow = 'ellipsis';
+    nameSpan.style.whiteSpace = 'nowrap';
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.innerHTML = '&times;';
+    deleteBtn.style.marginLeft = '8px';
+    deleteBtn.style.background = 'none';
+    deleteBtn.style.border = 'none';
+    deleteBtn.style.color = '#f44336';
+    deleteBtn.style.fontWeight = 'bold';
+    deleteBtn.style.fontSize = '16px';
+    deleteBtn.style.cursor = 'pointer';
+    
+    item.appendChild(nameSpan);
+    item.appendChild(deleteBtn);
+    
+    // Add event listeners
+    nameSpan.addEventListener('click', function(e) {
+      e.stopPropagation();
+      loadBookmark(name);
+      dropdown.style.display = 'none';
+    });
+    
+    deleteBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      deleteBookmark(name);
+    });
+    
+    dropdown.appendChild(item);
+  });
+  
+  // Add option to create new bookmark
+  const addNewItem = document.createElement('div');
+  addNewItem.style.padding = '8px';
+  addNewItem.style.cursor = 'pointer';
+  addNewItem.style.color = '#4CAF50';
+  addNewItem.style.fontWeight = 'bold';
+  addNewItem.style.textAlign = 'center';
+  addNewItem.textContent = '+ Add New Bookmark';
+  
+  addNewItem.addEventListener('click', function() {
+    dropdown.style.display = 'none';
+    createBookmark();
+  });
+  
+  dropdown.appendChild(addNewItem);
+}
+
+// Expose functions globally for use in HTML
+window.createBookmark = createBookmark;
+window.loadBookmark = loadBookmark;
+window.deleteBookmark = deleteBookmark;
+window.updateBookmarksDropdown = updateBookmarksDropdown;
+
   document.openFeatureEditor = openFeatureEditor;
 });
 

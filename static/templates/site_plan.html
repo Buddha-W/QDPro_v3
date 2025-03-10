@@ -35,7 +35,7 @@
     .left-panel.visible { transform: translateX(0); }
     .panel-header { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #ccc; font-weight: bold; }
     .panel-content { padding: 15px; flex-grow: 1; overflow-y: auto; }
-    .base-layer-dropdown { position: fixed; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2800; display: none; }
+    .base-layer-dropdown { position: fixed; background: white; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 2800; display: none; min-width: 200px; max-width: 300px; }
     .modal-overlay { display: none; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; }
     .modal-overlay.visible { display: flex; }
     .modal-content { background: #fff; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; }
@@ -135,6 +135,7 @@
     <div class="tool-group">
       <button id="toggleLayersPanel" class="tool-button" title="Toggle Layers Panel"><i class="fas fa-bars"></i></button>
       <button id="baseLayerTool" class="tool-button" title="Base Layers"><i class="fas fa-layer-group"></i></button>
+      <button id="bookmarksTool" class="tool-button" title="Bookmarks"><i class="fas fa-bookmark"></i></button>
     </div>
     <div class="tool-group">
       <button id="zoomInBtn" class="tool-button" title="Zoom In"><i class="fas fa-search-plus"></i></button>
@@ -195,6 +196,7 @@
   </div>
 
   <div id="baseLayerDropdown" class="base-layer-dropdown"></div>
+  <div id="bookmarksDropdown" class="base-layer-dropdown"></div>
   <div id="map"></div>
 
   <div id="newLocationModal" class="modal-overlay">
@@ -355,6 +357,7 @@
           }
         });
         document.getElementById("baseLayerTool").addEventListener("click", () => this.toggleBaseLayerDropdown());
+        document.getElementById("bookmarksTool").addEventListener("click", () => this.toggleBookmarksDropdown());
         document.getElementById("zoomInBtn").addEventListener("click", () => this.map.zoomIn());
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.map.zoomOut());
         document.getElementById("drawMarker").addEventListener("click", () => this.activateTool("marker", "drawMarker"));
@@ -499,6 +502,13 @@
       },
       toggleBaseLayerDropdown: function() {
         const dropdown = document.getElementById("baseLayerDropdown");
+        const bookmarksDropdown = document.getElementById("bookmarksDropdown");
+        
+        // Hide bookmarks dropdown if open
+        if (bookmarksDropdown.style.display === "block") {
+          bookmarksDropdown.style.display = "none";
+        }
+        
         if (dropdown.style.display === "block") {
           dropdown.style.display = "none";
         } else {
@@ -520,6 +530,34 @@
           dropdown.style.top = rect.bottom + "px";
           dropdown.style.left = rect.left + "px";
           dropdown.style.display = "block";
+        }
+      },
+      
+      toggleBookmarksDropdown: function() {
+        const bookmarksDropdown = document.getElementById("bookmarksDropdown");
+        const baseLayerDropdown = document.getElementById("baseLayerDropdown");
+        
+        // Hide base layer dropdown if open
+        if (baseLayerDropdown.style.display === "block") {
+          baseLayerDropdown.style.display = "none";
+        }
+        
+        if (bookmarksDropdown.style.display === "block") {
+          bookmarksDropdown.style.display = "none";
+        } else {
+          // Position the dropdown
+          const btn = document.getElementById("bookmarksTool");
+          let rect = btn.getBoundingClientRect();
+          bookmarksDropdown.style.top = rect.bottom + "px";
+          bookmarksDropdown.style.left = rect.left + "px";
+          
+          // Update the bookmarks dropdown
+          if (typeof updateBookmarksDropdown === 'function') {
+            updateBookmarksDropdown();
+          }
+          
+          // Show the dropdown
+          bookmarksDropdown.style.display = "block";
         }
       },
       switchBaseLayer: function(name) {
