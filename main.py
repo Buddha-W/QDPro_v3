@@ -692,14 +692,29 @@ async def analyze_location(request: Request):
 
             # Check for violations using enhanced analysis
             try:
+                # Combine all features for analysis, excluding the current facility
+                all_analysis_features = other_features + [f for f in facilities if f.get('id') != facility.get('id')]
+                logger.info(f"Analyzing facility {properties.get('name', 'unknown')} against {len(all_analysis_features)} other features")
+                
+                # Log analysis parameters for debugging
+                logger.info(f"Analysis parameters: k_factor_type={k_factor_type}, unit_type={unit_type}")
+                logger.info(f"Facility explosives: {new_value} {unit_type}")
+                
                 facility_analysis = qd_engine.analyze_facility(
                     facility=facility,
-                    surrounding_features=other_features + [f for f in facilities if f.get('id') != facility.get('id')],
+                    surrounding_features=all_analysis_features,
                     k_factor_type=k_factor_type,
                     unit_type=unit_type
                 )
+                
+                # Log findings
+                violations_count = len(facility_analysis.get("violations", []))
+                logger.info(f"Analysis complete: {violations_count} violations found")
+                if violations_count > 0:
+                    logger.info(f"Violations: {json.dumps(facility_analysis.get('violations', []), indent=2)}")
+                
             except Exception as analysis_error:
-                logger.error(f"Facility analysis error: {str(analysis_error)}")
+                logger.error(f"Facility analysis error: {str(analysis_error)}\n{traceback.format_exc()}")
                 facility_analysis = {"violations": [], "error": str(analysis_error)}
 
             # Get unit-converted values for display

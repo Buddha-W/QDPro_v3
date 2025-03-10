@@ -556,17 +556,27 @@ QD engine calculation steps:
                 logger.error(f"Distance calculation error: {str(e)}")
                 continue
                 
-            # Check for violation
+            # Check for violation with enhanced logging
             if distance < safe_distance:
-                results["violations"].append({
+                feature_name = feature.get("properties", {}).get("name", "Unknown Feature")
+                logger.warning(f"VIOLATION DETECTED: {feature_name} is at {distance:.2f} ft, but requires {safe_distance:.2f} ft")
+                
+                # Log detailed information about the violation
+                violation_info = {
                     "feature_id": feature.get("id", "unknown"),
-                    "feature_name": feature.get("properties", {}).get("name", "Unknown Feature"),
+                    "feature_name": feature_name,
                     "distance": round(distance, 2),
                     "required": safe_distance,
                     "deficiency": round(safe_distance - distance, 2),
                     "percent_deficient": round(100 * (safe_distance - distance) / safe_distance, 1),
                     "standard_reference": self.get_standard_text(k_factor_type, "summary")
-                })
+                }
+                logger.info(f"Violation details: {json.dumps(violation_info, indent=2)}")
+                
+                results["violations"].append(violation_info)
+            else:
+                feature_name = feature.get("properties", {}).get("name", "Unknown Feature") 
+                logger.info(f"No violation: {feature_name} is at {distance:.2f} ft, which is >= required {safe_distance:.2f} ft")
                 
         return results
 
@@ -605,15 +615,23 @@ QD engine calculation steps:
                 centroid2 = self.get_centroid(geometry2)
                 return self.calculate_distance(centroid1, centroid2)
             
+            # Scale factor for coordinate-based distances (compensates for longitude/latitude distortion)
+            # This multiplier converts degrees to approximate feet at mid-latitudes
+            # More accurate would be using a proper geodesic calculation
+            scale_factor = 364000  # ~364,000 feet per degree at mid-latitudes
+            
             # Calculate minimum distance between all points
             min_distance = float('inf')
             for p1 in coords1:
                 for p2 in coords2:
-                    dist = self.calculate_distance(p1, p2)
-                    min_distance = min(min_distance, dist)
+                    # Get raw coordinate distance
+                    raw_dist = self.calculate_distance(p1, p2)
+                    # Convert to approximate feet
+                    dist_feet = raw_dist * scale_factor
+                    min_distance = min(min_distance, dist_feet)
             
             # Log detailed distance information for debugging
-            logger.info(f"Distance calculation between geometries: {min_distance}")
+            logger.info(f"Distance calculation between geometries: {min_distance:.2f} ft")
             logger.info(f"Geometry1 type: {geometry1.get('type')}, coords count: {len(coords1)}")
             logger.info(f"Geometry2 type: {geometry2.get('type')}, coords count: {len(coords2)}")
             
