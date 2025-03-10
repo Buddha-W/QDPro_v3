@@ -550,6 +550,27 @@ async function loadBookmark(name) {
               };
             }
             
+            // Also patch flyTo if missing
+            if (typeof window.map.flyTo !== 'function') {
+              console.log("Manually patching missing flyTo method");
+              window.map.flyTo = function(center, zoom, options) {
+                console.log("Using patched flyTo method:", center, zoom);
+                // Just redirect to setView if it exists
+                if (typeof window.map.setView === 'function') {
+                  return window.map.setView(center, zoom);
+                } else {
+                  // Direct property setting
+                  if (window.map._lastCenter) {
+                    window.map._lastCenter = L.latLng(center);
+                  }
+                  if (window.map._zoom) {
+                    window.map._zoom = zoom;
+                  }
+                  return window.map;
+                }
+              };
+            }
+            
             console.log("Recovery attempt completed - proceeding with bookmark load");
           } catch (recoveryErr) {
             console.error("Map recovery failed:", recoveryErr);
@@ -618,13 +639,29 @@ async function loadBookmark(name) {
           const center = L.latLng(bookmark.center[0], bookmark.center[1]);
           const zoom = parseInt(bookmark.zoom);
           
-          // Use flyTo for smoother animation to the bookmarked location
-          window.map.flyTo(center, zoom, {
-            duration: 1.5,  // Animation duration in seconds
-            easeLinearity: 0.25
-          });
-          
-          console.log(`Loaded bookmark "${name}" successfully:`, center, zoom);
+          // Check if flyTo is available, otherwise use setView
+          if (typeof window.map.flyTo === 'function') {
+            // Use flyTo for smoother animation to the bookmarked location
+            window.map.flyTo(center, zoom, {
+              duration: 1.5,  // Animation duration in seconds
+              easeLinearity: 0.25
+            });
+            console.log(`Loaded bookmark "${name}" successfully with flyTo:`, center, zoom);
+          } else if (typeof window.map.setView === 'function') {
+            // Fall back to setView if flyTo is not available
+            window.map.setView(center, zoom);
+            console.log(`Loaded bookmark "${name}" successfully with setView:`, center, zoom);
+          } else {
+            // Last resort attempt - try to directly set properties
+            console.warn("Neither flyTo nor setView available. Attempting direct property setting");
+            if (window.map._zoom) window.map._zoom = zoom;
+            if (window.map._lastCenter) window.map._lastCenter = center;
+            if (window.map.options) {
+              window.map.options.center = center;
+              window.map.options.zoom = zoom;
+            }
+            console.log(`Attempted to load bookmark "${name}" by direct property setting:`, center, zoom);
+          }
         } catch (viewError) {
           console.error("Error setting map view:", viewError);
           alert("Error loading bookmark: Invalid map coordinates");
