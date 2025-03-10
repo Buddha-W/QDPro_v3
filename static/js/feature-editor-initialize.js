@@ -13,6 +13,7 @@ window.featureEditor = {
  */
 function initializeFeatureEditor() {
   console.log('Initializing feature editor...');
+  setupEventHandlers(); // Call the new setup function
 
   if (!window.map) {
     console.error('Map is not initialized');
@@ -249,6 +250,89 @@ function setupAllLayerEditHandlers() {
   // You can add more feature groups here if needed
 }
 
+//From Edited Code
+function setupEventHandlers() {
+  // Setup File > New handler
+  document.getElementById('newProject').addEventListener('click', function() {
+    if (confirm('Create new project? This will clear all current data.')) {
+      window.drawnItems.clearLayers();
+      if (window.facilitiesLayer) window.facilitiesLayer.clearLayers(); // Check if facilitiesLayer exists
+      if (window.arcsLayer) window.arcsLayer.clearLayers(); //Check if arcsLayer exists
+    }
+  });
+
+  // Setup File > Save handler
+  document.getElementById('saveProject').addEventListener('click', function() {
+    saveProject();
+  });
+
+  // Setup File > Load handler
+  document.getElementById('loadProject').addEventListener('click', function() {
+    loadProject();
+  });
+}
+
+//New function from edited code.  Handles simplified popup
+function openFacilityEditPopup(layer) {
+  console.log('Opening edit popup for layer:', layer);
+
+  // Get existing properties or initialize new ones
+  const props = layer.properties || {};
+
+  // Create popup content
+  const popupContent = document.createElement('div');
+  popupContent.className = 'feature-edit-popup';
+
+  // Add facility name input
+  const nameLabel = document.createElement('label');
+  nameLabel.textContent = 'Facility Name:';
+  popupContent.appendChild(nameLabel);
+
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.value = props.name || '';
+  popupContent.appendChild(nameInput);
+
+  // Add facility type dropdown
+  const typeLabel = document.createElement('label');
+  typeLabel.textContent = 'Facility Type:';
+  popupContent.appendChild(typeLabel);
+
+  const typeSelect = document.createElement('select');
+  const types = ['PES', 'ES', 'Other'];
+  types.forEach(type => {
+    const option = document.createElement('option');
+    option.value = type;
+    option.textContent = type;
+    if (props.type === type) {
+      option.selected = true;
+    }
+    typeSelect.appendChild(option);
+  });
+  popupContent.appendChild(typeSelect);
+
+  // Add save button
+  const saveButton = document.createElement('button');
+  saveButton.textContent = 'Save';
+  saveButton.addEventListener('click', function() {
+    // Save properties to layer
+    layer.properties = {
+      name: nameInput.value,
+      type: typeSelect.value
+    };
+
+    // Close popup
+    layer.closePopup();
+  });
+  popupContent.appendChild(saveButton);
+
+  // Bind popup to layer
+  layer.bindPopup(popupContent).openPopup();
+}
+
+
+// Rest of the original code (functions from line 252 onwards) remains here:
+
 /**
  * Open the feature properties editor
  */
@@ -350,6 +434,7 @@ function openFeatureEditor(properties, layer) {
     }
   };
 }
+
 
 
 /**
@@ -736,3 +821,4 @@ window.closeFacilityModal = closeFacilityModal;
 window.saveFacilityProperties = saveFacilityProperties;
 window.setupFeatureEditorListeners = setupFeatureEditorListeners;
 window.closeFeatureEditor = closeFeatureEditor;
+window.setupEventHandlers = setupEventHandlers; //Add this to make setupEventHandlers available globally.

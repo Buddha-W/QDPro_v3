@@ -3,101 +3,161 @@
 
 // Initialize the map when the DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Map initializer loaded');
-  initializeMap();
-
-  // Add save button event listener
-  const saveButton = document.getElementById('saveButton');
-  if (saveButton) {
-    saveButton.addEventListener('click', saveLayers);
-  }
+  initMap();
 });
 
 // Map Initialization Script for QDPro
 // This script handles setting up the Leaflet map and basic controls
 
 // Initialize map and related components
-function initializeMap() {
+function initMap() {
   console.log('Initializing map...');
 
-  // Initialize the map with a default view
-  window.map = L.map('map', {
-    center: [39.8283, -98.5795],
-    zoom: 5
-  });
+  try {
+    // Create map instance
+    window.map = L.map('map', {
+      center: [38.8977, -77.0365],
+      zoom: 15,
+      zoomControl: true,
+      attributionControl: true
+    });
 
-  // Add the base tile layers
-  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(window.map);
+    // Add base layers
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      crossOrigin: "anonymous"
+    });
 
-  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-  });
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      crossOrigin: "anonymous"
+    });
 
-  const baseMaps = {
-    "OpenStreetMap": osmLayer,
-    "Satellite": satelliteLayer
-  };
+    // Create layer groups for drawn items
+    window.drawnItems = new L.FeatureGroup();
+    window.facilitiesLayer = new L.FeatureGroup();
+    window.arcsLayer = new L.FeatureGroup();
 
-  // Initialize drawn items layer
-  window.drawnItems = new L.FeatureGroup();
-  window.map.addLayer(window.drawnItems);
+    // Add layers to map
+    osmLayer.addTo(map);
+    window.drawnItems.addTo(map);
+    window.facilitiesLayer.addTo(map);
+    window.arcsLayer.addTo(map);
 
-  // Initialize the layer control
-  L.control.layers(baseMaps, {
-    "Drawn Items": window.drawnItems
-  }).addTo(window.map);
+    // Setup base layers and overlays
+    const baseLayers = {
+      "OpenStreetMap": osmLayer,
+      "Satellite": satelliteLayer
+    };
 
-  // Initialize Leaflet.Draw controls
+    const overlays = {
+      "Drawn Items": window.drawnItems,
+      "Facilities": window.facilitiesLayer,
+      "Arcs": window.arcsLayer
+    };
+
+    // Add layer control
+    L.control.layers(baseLayers, overlays).addTo(map);
+
+    // Initialize draw controls
+    initializeDrawControls();
+
+    // Setup layer click handlers
+    setupLayerClickHandlers();
+
+    console.log('Map initialized successfully');
+    document.dispatchEvent(new Event('map-initialized'));
+  } catch (err) {
+    console.error('Map initialization failed:', err);
+    alert('Failed to initialize map. Please refresh the page and try again.');
+  }
+}
+
+function initializeDrawControls() {
+  // Setup draw controls
   const drawControl = new L.Control.Draw({
-    edit: {
-      featureGroup: window.drawnItems
-    },
     draw: {
       polyline: true,
       polygon: true,
-      rectangle: true,
       circle: true,
+      rectangle: true,
       marker: true
+    },
+    edit: {
+      featureGroup: window.drawnItems
     }
   });
 
-  window.map.addControl(drawControl);
+  map.addControl(drawControl);
 
-  // Set up event handlers for drawn items
-  window.map.on('draw:created', function(e) {
+  // Handle draw created event
+  map.on('draw:created', function(e) {
     const layer = e.layer;
-
-    // Initialize feature properties
-    layer.feature = {
-      type: 'Feature',
-      properties: {
-        name: 'New Feature',
-        type: e.layerType,
-        description: ''
-      }
-    };
-
-    // Add the layer to our feature group
     window.drawnItems.addLayer(layer);
-
-    // Bind popup to the layer
-    layer.bindPopup(createPopupContent(layer));
+    openFacilityEditPopup(layer);
   });
 
-  window.map.on('draw:edited', function(e) {
-    console.log('Features edited:', e.layers);
-    e.layers.eachLayer(function(layer) {
-      if (layer.getPopup()) {
-        layer.setPopup(createPopupContent(layer));
-      }
-    });
+  // Handle edit events
+  map.on('draw:edited', function(e) {
+    const layers = e.layers;
+    console.log('Layers edited:', layers);
   });
 
-  console.log('Map initialized successfully');
-  return window.map;
+  map.on('draw:deleted', function(e) {
+    const layers = e.layers;
+    console.log('Layers deleted:', layers);
+  });
 }
+
+function setupLayerClickHandlers() {
+  // Setup click handler for facilities
+  window.facilitiesLayer.on('click', function(e) {
+    const layer = e.layer;
+    openFacilityEditPopup(layer);
+  });
+
+  // Setup click handler for drawn items
+  window.drawnItems.on('click', function(e) {
+    const layer = e.layer;
+    openFacilityEditPopup(layer);
+  });
+}
+
+// Function to load saved project data
+function loadProjectData(data) {
+  try {
+    console.log('Loading project data:', data);
+
+    // Clear existing layers
+    window.drawnItems.clearLayers();
+    window.facilitiesLayer.clearLayers();
+    window.arcsLayer.clearLayers();
+
+    // Load GeoJSON data
+    if (data.features) {
+      L.geoJSON(data, {
+        onEachFeature: function(feature, layer) {
+          if (feature.properties && feature.properties.type === 'facility') {
+            window.facilitiesLayer.addLayer(layer);
+          } else {
+            window.drawnItems.addLayer(layer);
+          }
+
+          // Add properties to layer
+          if (feature.properties) {
+            layer.properties = feature.properties;
+          }
+        }
+      });
+    }
+
+    console.log('Project data loaded successfully');
+  } catch (err) {
+    console.error('Failed to load project data:', err);
+    alert('Failed to load project data. Please try again.');
+  }
+}
+
 
 function createPopupContent(layer) {
   const properties = layer.feature ? layer.feature.properties : {};
@@ -336,8 +396,15 @@ function initializeMapErrorHandling() {
   }
 }
 
+//Added function to handle facility edit popup
+function openFacilityEditPopup(layer){
+    //this function needs to be implemented based on the featurePropertiesModal
+    openFeatureEditor(layer.properties, layer);
+
+}
+
 // Make functions available globally
-window.initializeMap = initializeMap;
+window.initMap = initMap;
 window.saveLayers = saveLayers;
 window.loadSavedLayers = loadSavedLayers;
 window.openEditPopup = openEditPopup;
@@ -346,3 +413,5 @@ window.openFeatureEditor = openFeatureEditor;
 window.saveFeatureProperties = saveFeatureProperties;
 window.closeModal = closeModal;
 window.initializeMapErrorHandling = initializeMapErrorHandling;
+window.loadProjectData = loadProjectData;
+window.openFacilityEditPopup = openFacilityEditPopup;
