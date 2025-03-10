@@ -105,3 +105,54 @@
     </div>
   </div>
 </div>
+<div id="featurePropertiesModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Feature Properties</h2>
+      <span id="closeFeaturePropertiesBtn" class="close" onclick="closeFeaturePropertiesModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="featurePropertiesForm">
+        <div class="form-group">
+          <label for="name">Name:</label>
+          <input type="text" id="name" name="name" />
+        </div>
+        <div class="form-group">
+          <label for="type">Type:</label>
+          <input type="text" id="type" name="type" />
+        </div>
+        <div class="form-group">
+          <label for="description">Description:</label>
+          <textarea id="description" name="description"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="is_facility">Is Facility:</label>
+          <input type="checkbox" id="is_facility" name="is_facility" />
+        </div>
+        <div class="form-group">
+          <label for="has_explosive">Has Explosive:</label>
+          <input type="checkbox" id="has_explosive" name="has_explosive" onchange="toggleExplosiveSection()" />
+        </div>
+        <div id="explosiveSection" style="display:none;">
+          <div class="form-group">
+            <label for="explosive_type">Explosive Type:</label>
+            <select id="explosive_type" name="explosive_type">
+              <option value="1.1">1.1 - Mass Explosion</option>
+              <option value="1.2">1.2 - Projection but not Mass Explosion</option>
+              <option value="1.3">1.3 - Fire and Minor Blast</option>
+              <option value="1.4">1.4 - Moderate Fire</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="net_explosive_weight">Net Explosive Weight (lbs):</label>
+            <input type="number" id="net_explosive_weight" name="net_explosive_weight" min="0" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" onclick="saveFeatureProperties()">Save</button>
+          <button type="button" onclick="closeFeaturePropertiesModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
