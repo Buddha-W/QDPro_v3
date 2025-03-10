@@ -110,19 +110,16 @@ document.addEventListener('DOMContentLoaded', function() {
           layer.closePopup();
         }
         
-        // Use immediately available openFeatureEditor function with minimal delay
-        setTimeout(function() {
-          if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-            window.QDProEditor.openFeatureEditor(layer);
-          } else if (typeof window.openFeatureEditor === 'function') {
-            window.openFeatureEditor(layer);
-          } else if (typeof openFeatureEditor === 'function') {
-            openFeatureEditor(layer);
-          } else {
-            console.error("Editor function not available - critical error");
-            alert("Critical error: Editor function not found. Please refresh the page and try again.");
-          }
-        }, 10); // Reduced timeout for faster response
+        // Open feature editor immediately
+        if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
+          window.QDProEditor.openFeatureEditor(layer);
+        } else if (typeof window.openFeatureEditor === 'function') {
+          window.openFeatureEditor(layer);
+        } else {
+          console.error("Editor function not available - critical error");
+          console.log("Available window functions:", Object.keys(window).filter(k => typeof window[k] === 'function'));
+          alert("Critical error: Editor function not found. Please refresh the page and try again.");
+        }
       }
       return false;
     }
