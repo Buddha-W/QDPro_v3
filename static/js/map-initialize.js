@@ -96,21 +96,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const layer = popup._source;
         console.log("Found layer for edit button:", layer);
         
-        // Try multiple ways to access the function
-        if (typeof openFeatureEditor === 'function') {
-          openFeatureEditor(layer);
+        // Use the QDProEditor module which is guaranteed to be global
+        if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
+          window.QDProEditor.openFeatureEditor(layer);
         } else if (typeof window.openFeatureEditor === 'function') {
           window.openFeatureEditor(layer);
-        } else if (typeof document.openFeatureEditor === 'function') {
-          document.openFeatureEditor(layer);
         } else {
-          // Last resort - try to load from another script
-          if (typeof window.featureEditorInitialize === 'object' && 
-              typeof window.featureEditorInitialize.openFeatureEditor === 'function') {
-            window.featureEditorInitialize.openFeatureEditor(layer);
-          } else {
-            console.error("openFeatureEditor not found in any scope");
-            alert("Error: Editor function not available. Please refresh the page.");
+          console.error("Editor function not available - critical error");
+          alert("Critical error: Editor function not found. Please refresh the page and try again.");
+          // Force a direct implementation as last resort
+          const modal = document.getElementById('featurePropertiesModal');
+          if (modal) {
+            window.activeEditingLayer = layer;
+            modal.style.display = 'block';
           }
         }
       }
