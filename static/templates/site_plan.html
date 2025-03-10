@@ -1292,33 +1292,63 @@
           return;
         }
 
-        // Get all selectable features from all layers
-        const allFeatures = [];
-        Object.entries(this.layers).forEach(([layerName, layer]) => {
-          layer.eachLayer(l => {
-            if (l.toGeoJSON) {
-              const feature = l.toGeoJSON();
-              // Make sure to preserve properties
-              if (l.feature && l.feature.properties) {
-                feature.properties = {...feature.properties, ...l.feature.properties};
-              }
-              // Add layer name and ID for reference
-              feature.properties.layerName = layerName;
-              feature.properties.featureId = l._leaflet_id || Math.random().toString(36).substr(2, 9);
-              // Add a human-readable name for display
-              feature.properties.displayName = feature.properties.name || feature.properties.facility_name || 
+        console.log("Starting QD analysis for location:", this.currentLocationId);
+
+        try {
+          // Get all selectable features from all layers
+          const allFeatures = [];
+          let explosiveFeatureCount = 0;
+          
+          Object.entries(this.layers).forEach(([layerName, layer]) => {
+            layer.eachLayer(l => {
+              if (l.toGeoJSON) {
+                const feature = l.toGeoJSON();
+                
+                // Make sure to preserve properties
+                if (l.feature && l.feature.properties) {
+                  feature.properties = {...feature.properties, ...l.feature.properties};
+                }
+                
+                // Ensure properties object exists
+                if (!feature.properties) {
+                  feature.properties = {};
+                }
+                
+                // Check if this is an explosive feature
+                if (feature.properties.has_explosive || 
+                    feature.properties.net_explosive_weight > 0 || 
+                    (feature.properties.type && feature.properties.type.toLowerCase().includes('explos'))) {
+                  explosiveFeatureCount++;
+                }
+                
+                // Add layer name and ID for reference
+                feature.properties.layerName = layerName;
+                feature.properties.featureId = l._leaflet_id || Math.random().toString(36).substr(2, 9);
+                
+                // Add a human-readable name for display
+                feature.properties.displayName = feature.properties.name || feature.properties.facility_name || 
                                                (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${String(feature.properties.featureId).slice(-4)}`);
-              allFeatures.push(feature);
-            }
+                
+                // Add debug info to help troubleshoot
+                console.log(`Feature added for analysis: ID=${feature.properties.featureId}, Name=${feature.properties.displayName}, Type=${feature.geometry.type}`);
+                
+                allFeatures.push(feature);
+              }
+            });
           });
-        });
 
-        if (allFeatures.length === 0) {
-          alert("No shapes to analyze. Please draw some shapes first.");
-          return;
-        }
+          if (allFeatures.length === 0) {
+            alert("No shapes to analyze. Please draw some shapes first.");
+            return;
+          }
+          
+          console.log(`Found ${allFeatures.length} total features, ${explosiveFeatureCount} with explosives`);
+          
+          if (explosiveFeatureCount === 0) {
+            console.warn("No features with explosives found - analysis may not produce meaningful results");
+          }
 
-        // Create a selection modal for choosing features to analyze
+          // Create a selection modal for choosing features to analyze
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.id = 'analysisSelectionModal';
@@ -1435,31 +1465,106 @@
             // Show loading indicator
             setStatusMessage("Running QD analysis...", "info");
 
-            // Call the backend API
+            console.log(`Sending analysis request with ${selectedFeatures.length} features`);
+            
+            // Check for valid features with explosives before proceeding
+            const explosiveFeatures = selectedFeatures.filter(f => 
+              f.properties && (
+                f.properties.has_explosive || 
+                (f.properties.net_explosive_weight && parseFloat(f.properties.net_explosive_weight) > 0)
+              )
+            );
+            
+            if (explosiveFeatures.length === 0) {
+              console.warn("No explosive features in selection");
+            }
+
+            // Call the backend API with detailed logging
+            console.log("Sending API request to /api/analyze-location");
+            const apiStartTime = Date.now();
+            
             const response = await fetch("/api/analyze-location", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 location_id: self.currentLocationId,
-                features: selectedFeatures
+                features: selectedFeatures,
+                analysis_options: {
+                  include_fragments: true,
+                  include_standards: true,
+                  display_unit: "lbs"
+                }
               })
             });
+            
+            console.log(`API request completed in ${Date.now() - apiStartTime}ms with status ${response.status}`);
 
             if (!response.ok) {
-              throw new Error(`Analysis failed: ${response.statusText}`);
+              let errorDetail = response.statusText;
+              
+              try {
+                // Try to get more detailed error information
+                const errorData = await response.json();
+                if (errorData && errorData.error) {
+                  errorDetail = `${errorData.error} - ${errorData.message || ''}`;
+                }
+              } catch (e) {
+                console.warn("Could not parse error response as JSON");
+              }
+              
+              throw new Error(`Analysis failed: ${errorDetail}`);
             }
 
             const result = await response.json();
             console.log("Analysis results:", result);
+            
+            // Validate the response data
+            if (!result || typeof result !== 'object') {
+              throw new Error("Invalid response data: not an object");
+            }
+            
+            if (!result.facilities_analyzed || !Array.isArray(result.facilities_analyzed)) {
+              console.warn("No facilities_analyzed array in response");
+            }
 
             // Display results on the map
             self.displayAnalysisResults(result);
 
             // Update status
-            setStatusMessage(`Analysis complete: ${result.total_facilities} facilities analyzed, ${result.total_violations} violations found`, "success");
+            setStatusMessage(`Analysis complete: ${result.total_facilities || 0} facilities analyzed, ${result.total_violations || 0} violations found`, "success");
           } catch (error) {
             console.error("Error during analysis:", error);
             setStatusMessage(`Analysis failed: ${error.message}`, "error");
+            
+            // Show a more detailed error dialog
+            const errorModal = document.createElement('div');
+            errorModal.className = 'modal';
+            errorModal.style.display = 'block';
+            errorModal.style.position = 'fixed';
+            errorModal.style.zIndex = '2000';
+            errorModal.style.left = '0';
+            errorModal.style.top = '0';
+            errorModal.style.width = '100%';
+            errorModal.style.height = '100%';
+            errorModal.style.overflow = 'auto';
+            errorModal.style.backgroundColor = 'rgba(0,0,0,0.4)';
+            
+            errorModal.innerHTML = `
+              <div style="background-color: #fff0f0; margin: 15% auto; padding: 20px; border: 1px solid #f44336; width: 60%; max-width: 600px;">
+                <h2 style="color: #d32f2f;">Analysis Error</h2>
+                <p><strong>Error:</strong> ${error.message}</p>
+                <p><strong>Troubleshooting:</strong></p>
+                <ul>
+                  <li>Ensure you have selected at least one feature with explosive properties</li>
+                  <li>Check that features have valid geometry (no self-intersecting polygons)</li>
+                  <li>Verify that explosive weights are valid numbers</li>
+                  <li>Try analyzing a smaller set of features</li>
+                </ul>
+                <button onclick="document.body.removeChild(this.parentNode.parentNode)" style="background-color: #d32f2f; color: white; padding: 10px 15px; border: none; cursor: pointer; margin-top: 15px;">Close</button>
+              </div>
+            `;
+            
+            document.body.appendChild(errorModal);
           }
         });
       },

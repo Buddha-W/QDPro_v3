@@ -233,20 +233,90 @@ window.QDProEditor = {
   },
   runQDAnalysis: function() {
     console.log("QDProEditor: Running QD Analysis");
+    
+    // Check if QDPro exists and has analyzeLocation function
     if (typeof QDPro !== 'undefined' && typeof QDPro.analyzeLocation === 'function') {
       try {
-        QDPro.analyzeLocation();
-        console.log("QD Analysis started via QDPro.analyzeLocation");
+        // Show loading indicator
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'qd-analysis-loading';
+        loadingDiv.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; z-index:9999; border-radius:5px; box-shadow:0 0 10px rgba(0,0,0,0.3);';
+        loadingDiv.innerHTML = '<h3>Running QD Analysis...</h3><p>Please wait while we process the data.</p>';
+        document.body.appendChild(loadingDiv);
         
-        // Wait for analysis to complete, then show detailed report
-        setTimeout(() => {
-          if (QDPro.analysisLayer) {
-            this.displayDetailedReport();
+        // Clear any previous analysis data
+        if (QDPro.analysisLayer) {
+          QDPro.map.removeLayer(QDPro.analysisLayer);
+          QDPro.analysisLayer = null;
+        }
+        
+        // Run the analysis with a timeout for error handling
+        const analysisPromise = new Promise((resolve, reject) => {
+          try {
+            QDPro.analyzeLocation();
+            console.log("QD Analysis started via QDPro.analyzeLocation");
+            
+            // Check for analysis results periodically
+            let checkCount = 0;
+            const maxChecks = 20; // 10 seconds total (20 * 500ms)
+            
+            const checkInterval = setInterval(() => {
+              if (QDPro.analysisLayer) {
+                clearInterval(checkInterval);
+                resolve();
+              } else if (checkCount >= maxChecks) {
+                clearInterval(checkInterval);
+                reject(new Error("Analysis timed out. No results generated."));
+              }
+              checkCount++;
+            }, 500);
+          } catch (e) {
+            reject(e);
           }
-        }, 1000);
+        });
+        
+        // Handle the analysis promise
+        analysisPromise
+          .then(() => {
+            // Remove loading indicator
+            document.body.removeChild(document.getElementById('qd-analysis-loading'));
+            
+            // Show detailed report if analysis layer exists
+            if (QDPro.analysisLayer) {
+              this.displayDetailedReport();
+            } else {
+              console.warn("Analysis completed but no layer was created");
+            }
+          })
+          .catch(error => {
+            // Remove loading indicator
+            if (document.getElementById('qd-analysis-loading')) {
+              document.body.removeChild(document.getElementById('qd-analysis-loading'));
+            }
+            
+            console.error("Error running QD analysis:", error);
+            
+            // Show detailed error message
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff0f0; padding:20px; z-index:9999; border-radius:5px; box-shadow:0 0 10px rgba(0,0,0,0.3); max-width:500px;';
+            errorDiv.innerHTML = `
+              <h3 style="color:#d32f2f;">QD Analysis Error</h3>
+              <p>${error.message}</p>
+              <p style="margin-top:15px;font-size:14px;color:#666;">Possible causes:</p>
+              <ul style="font-size:14px;color:#666;">
+                <li>Missing or invalid feature data</li>
+                <li>No explosive weights defined on features</li>
+                <li>Server connection issue</li>
+                <li>Internal calculation error</li>
+              </ul>
+              <button onclick="this.parentNode.remove()" style="margin-top:15px;padding:8px 12px;background:#d32f2f;color:white;border:none;border-radius:4px;cursor:pointer;">Close</button>
+            `;
+            document.body.appendChild(errorDiv);
+          });
+          
       } catch (error) {
-        console.error("Error running QD analysis:", error);
-        alert("Error running QD analysis: " + error.message);
+        console.error("Error initiating QD analysis:", error);
+        alert("Failed to start QD analysis: " + error.message);
       }
     } else {
       console.error("QDPro.analyzeLocation is not available");
