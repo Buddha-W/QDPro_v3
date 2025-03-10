@@ -207,3 +207,36 @@
     </form>
   </div>
 </div>
+<div id="feature-editor-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="close">&times;</span>
+      <h2>Edit Feature Properties</h2>
+    </div>
+    <div class="modal-body">
+      <form id="feature-form">
+        <div class="form-group">
+          <label for="feature-name">Name:</label>
+          <input type="text" id="feature-name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="feature-type">Type:</label>
+          <select id="feature-type" name="type">
+            <option value="Polygon">Polygon</option>
+            <option value="Facility">Facility</option>
+            <option value="Zone">Zone</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="feature-description">Description:</label>
+          <textarea id="feature-description" name="description" rows="4"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <button type="button" class="btn btn-secondary cancel-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

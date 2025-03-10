@@ -457,3 +457,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }, 100);
 });
+/**
+ * Feature Editor Module
+ * Handles editing of map features/polygons
+ */
+
+// Ensure global availability by attaching to window object
+window.openFeatureEditor = function(layerData) {
+  if (!layerData || !layerData.name) {
+    console.error("Invalid layer data:", layerData);
+    return;
+  }
+  
+  console.log("Opening feature editor for:", layerData.name);
+  
+  // For now, display an alert; later you can replace with a modal
+  alert("Editing feature: " + layerData.name + 
+        (layerData.type ? " (Type: " + layerData.type + ")" : ""));
+  
+  // Here you would typically show a modal with form fields
+  // to edit the layerData properties
+};
+
+// Additional helper functions for the feature editor can be added here
+
+console.log("Feature editor module loaded");
