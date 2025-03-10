@@ -2,6 +2,95 @@
 // Bookmark Manager
 // This file contains functions for managing map bookmarks
 
+// Import the custom modal functionality if it doesn't exist
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof openCustomModal !== 'function') {
+    console.log("Loading custom modal functionality");
+    // Check if we need to load the CSS
+    let modalCss = document.querySelector('link[href*="custom-modal.css"]');
+    if (!modalCss) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/static/css/custom-modal.css';
+      document.head.appendChild(link);
+    }
+    
+    // Create the openCustomModal function if it doesn't exist
+    if (typeof openCustomModal !== 'function') {
+      window.openCustomModal = function(message, defaultValue = '', callback) {
+        // Create modal container if it doesn't exist
+        let modalContainer = document.getElementById('custom-prompt-modal');
+        if (!modalContainer) {
+          modalContainer = document.createElement('div');
+          modalContainer.id = 'custom-prompt-modal';
+          modalContainer.className = 'modal-overlay';
+          
+          const modalContent = document.createElement('div');
+          modalContent.className = 'modal-content';
+          
+          const modalTitle = document.createElement('h3');
+          modalTitle.id = 'modal-prompt-message';
+          
+          const modalInput = document.createElement('input');
+          modalInput.id = 'modal-prompt-input';
+          modalInput.type = 'text';
+          
+          const buttonContainer = document.createElement('div');
+          buttonContainer.style.display = 'flex';
+          buttonContainer.style.justifyContent = 'flex-end';
+          buttonContainer.style.marginTop = '15px';
+          
+          const cancelButton = document.createElement('button');
+          cancelButton.textContent = 'Cancel';
+          cancelButton.onclick = () => {
+            modalContainer.style.display = 'none';
+            if (callback) callback(null);
+          };
+          
+          const okButton = document.createElement('button');
+          okButton.textContent = 'OK';
+          okButton.style.marginLeft = '10px';
+          okButton.onclick = () => {
+            const value = document.getElementById('modal-prompt-input').value;
+            modalContainer.style.display = 'none';
+            if (callback) callback(value);
+          };
+          
+          buttonContainer.appendChild(cancelButton);
+          buttonContainer.appendChild(okButton);
+          
+          modalContent.appendChild(modalTitle);
+          modalContent.appendChild(modalInput);
+          modalContent.appendChild(buttonContainer);
+          modalContainer.appendChild(modalContent);
+          
+          document.body.appendChild(modalContainer);
+        }
+        
+        // Set modal content
+        document.getElementById('modal-prompt-message').textContent = message;
+        document.getElementById('modal-prompt-input').value = defaultValue;
+        
+        // Show modal
+        modalContainer.style.display = 'flex';
+        document.getElementById('modal-prompt-input').focus();
+        
+        // Also add keyboard support for Enter and Escape
+        const input = document.getElementById('modal-prompt-input');
+        input.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') {
+            modalContainer.style.display = 'none';
+            if (callback) callback(input.value);
+          } else if (e.key === 'Escape') {
+            modalContainer.style.display = 'none';
+            if (callback) callback(null);
+          }
+        });
+      };
+    }
+  }
+});
+
 // Make sure QDProEditor namespace exists
 if (typeof window.QDProEditor === 'undefined') {
   window.QDProEditor = {};
@@ -79,30 +168,61 @@ function createBookmarkSimple() {
       }
     }
     
-    const name = prompt("Enter a name for this view:");
-    if (!name || name.trim() === '') return;
-    
-    const center = window.map.getCenter();
-    const zoom = window.map.getZoom();
+    // Use custom modal instead of prompt()
+    if (typeof openCustomModal === 'function') {
+      openCustomModal("Enter a name for this view:", "", function(name) {
+        if (!name || name.trim() === '') return;
+        
+        const center = window.map.getCenter();
+        const zoom = window.map.getZoom();
+        
+        const bookmark = {
+          center: [center.lat, center.lng],
+          zoom: zoom,
+          created: new Date().toISOString()
+        };
+        
+        saveBookmarkToStorage(name, bookmark);
+        
+        // Check if the function exists before calling it
+        if (typeof updateBookmarksDropdown === 'function') {
+          updateBookmarksDropdown();
+        } else if (typeof window.updateBookmarksDropdown === 'function') {
+          window.updateBookmarksDropdown();
+        } else {
+          console.warn("updateBookmarksDropdown function not found");
+        }
+        
+        console.log(`Bookmark "${name}" created successfully`);
+      });
+      return; // Return early since the callback will handle the rest
+    } else {
+      console.error("Custom modal function not found, trying to use alert");
+      const name = window.prompt("Enter a name for this view:");
+      if (!name || name.trim() === '') return;
+      
+      const center = window.map.getCenter();
+      const zoom = window.map.getZoom();
     
     const bookmark = {
-      center: [center.lat, center.lng],
-      zoom: zoom,
-      created: new Date().toISOString()
-    };
-    
-    saveBookmarkToStorage(name, bookmark);
-    
-    // Check if the function exists before calling it
-    if (typeof updateBookmarksDropdown === 'function') {
-      updateBookmarksDropdown();
-    } else if (typeof window.updateBookmarksDropdown === 'function') {
-      window.updateBookmarksDropdown();
-    } else {
-      console.warn("updateBookmarksDropdown function not found");
+        center: [center.lat, center.lng],
+        zoom: zoom,
+        created: new Date().toISOString()
+      };
+      
+      saveBookmarkToStorage(name, bookmark);
+      
+      // Check if the function exists before calling it
+      if (typeof updateBookmarksDropdown === 'function') {
+        updateBookmarksDropdown();
+      } else if (typeof window.updateBookmarksDropdown === 'function') {
+        window.updateBookmarksDropdown();
+      } else {
+        console.warn("updateBookmarksDropdown function not found");
+      }
+      
+      console.log(`Bookmark "${name}" created successfully`);
     }
-    
-    console.log(`Bookmark "${name}" created successfully`);
   } catch (error) {
     console.error("Error creating bookmark:", error);
     alert("Error creating bookmark: " + error.message);
