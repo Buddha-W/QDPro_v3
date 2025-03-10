@@ -583,10 +583,24 @@ async def analyze_location(request: Request):
 
         for feature in features:
             properties = feature.get("properties", {})
-            # Consider any feature with explosive weight as a facility
-            if properties and float(properties.get("net_explosive_weight", 0)) > 0:
-                facilities.append(feature)
-            else:
+            try:
+                # Convert explosive weight safely with proper error handling
+                new_value = properties.get("net_explosive_weight")
+                if new_value is None or new_value == "":
+                    new_value = 0
+                elif isinstance(new_value, str):
+                    new_value = float(new_value.strip() or 0)
+                else:
+                    new_value = float(new_value)
+                
+                # Consider any feature with explosive weight as a facility
+                if properties and new_value > 0:
+                    facilities.append(feature)
+                else:
+                    other_features.append(feature)
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Feature has invalid NEW value: {str(e)}")
+                # Add to other features if conversion fails
                 other_features.append(feature)
 
         # Run analysis for each facility with improved logging

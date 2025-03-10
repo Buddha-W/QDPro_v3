@@ -696,7 +696,10 @@ QD engine calculation steps:
             new_str = properties.get("net_explosive_weight", "0")
             logger.debug(f"Raw NEW value: {new_str}, type: {type(new_str)}")
             
-            if isinstance(new_str, (int, float)):
+            if new_str is None:
+                new_value = 0
+                logger.debug("NEW value is None, defaulting to 0")
+            elif isinstance(new_str, (int, float)):
                 new_value = float(new_str)
             elif isinstance(new_str, str) and new_str.strip():
                 new_value = float(new_str)
