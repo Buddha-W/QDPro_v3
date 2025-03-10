@@ -96,41 +96,93 @@ document.addEventListener('DOMContentLoaded', function() {
         const layer = popup._source;
         console.log("Found layer for edit button:", layer);
 
-        // Store layer in global variable for immediate access
+        // Store layer references in multiple places for redundant access
         window.activeEditingLayer = layer;
-
-        // Force close any open popups first
+        window.lastClickedLayer = layer;
+        
+        // Mark edit button as clicked to prevent double-click issues
+        e.target.setAttribute('data-clicked', 'true');
+        
+        // Force close all popups immediately
         if (window.map) {
           window.map.closePopup();
         }
+        
+        // Remove any lingering popup DOM elements
+        document.querySelectorAll('.leaflet-popup').forEach(p => {
+          p.remove();
+        });
 
-        // Clear any existing modal and reset state
+        // Handle the case where a modal is already open
         const existingModal = document.getElementById('featurePropertiesModal');
         if (existingModal && existingModal.style.display === 'block') {
+          // If already open, close it first
           existingModal.style.display = 'none';
-
-          // Force a small delay to ensure clean state
+          
+          // Clear all editing state
+          if (window.QDProEditor) {
+            window.QDProEditor.activeEditingLayer = null;
+            window.QDProEditor.isEditorOpen = false;
+          }
+          
+          // Use a minimal delay to ensure clean state
           setTimeout(() => {
             openEditorWithLayer(layer);
-          }, 50);
+          }, 10);
         } else {
           // Immediately open if no modal is showing
           openEditorWithLayer(layer);
         }
 
         function openEditorWithLayer(layerObj) {
-          // Close the popup if still open
+          console.log("Opening editor for layer:", layerObj);
+          
+          // Ensure all popups are closed
           if (layerObj.closePopup) {
             layerObj.closePopup();
           }
-
-          // Open feature editor
+          
+          if (window.map) {
+            window.map.closePopup();
+          }
+          
+          // Remove all popup DOM elements
+          document.querySelectorAll('.leaflet-popup').forEach(p => {
+            p.remove();
+          });
+          
+          // Store reference globally in multiple places
+          window.activeEditingLayer = layerObj;
+          window.lastClickedLayer = layerObj;
+          
+          // Use the first available editor function
+          let editorOpened = false;
+          
+          // First try the QDProEditor
           if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-            window.QDProEditor.openFeatureEditor(layerObj);
-          } else if (typeof window.openFeatureEditor === 'function') {
-            window.openFeatureEditor(layerObj);
-          } else {
-            console.error("Editor function not available - critical error");
+            try {
+              window.QDProEditor.openFeatureEditor(layerObj);
+              editorOpened = true;
+              console.log("Editor opened via QDProEditor");
+            } catch (e) {
+              console.error("Error opening via QDProEditor:", e);
+            }
+          }
+          
+          // If that failed, try the global function
+          if (!editorOpened && typeof window.openFeatureEditor === 'function') {
+            try {
+              window.openFeatureEditor(layerObj);
+              editorOpened = true;
+              console.log("Editor opened via global openFeatureEditor");
+            } catch (e) {
+              console.error("Error opening via global function:", e);
+            }
+          }
+          
+          // Final fallback
+          if (!editorOpened) {
+            console.error("All editor functions failed - critical error");
             console.log("Available window functions:", Object.keys(window).filter(k => typeof window[k] === 'function'));
             alert("Critical error: Editor function not found. Please refresh the page and try again.");
           }

@@ -275,17 +275,32 @@ function closeFeaturePropertiesModal() {
   
   // Reset active editing layer
   window.activeEditingLayer = null;
+  window.lastClickedLayer = null;
   
   // Reset popup state to allow immediate editing of another feature
   if (window.map) {
     // Close any open popups
     window.map.closePopup();
     
-    // Force any queued events to complete
-    setTimeout(function() {
-      console.log("Modal closed, popup state reset");
-    }, 5);
+    // Remove any lingering popup DOM elements
+    document.querySelectorAll('.leaflet-popup').forEach(popup => {
+      popup.remove();
+    });
+    
+    // Force complete state reset
+    document.querySelectorAll('.edit-properties-btn').forEach(btn => {
+      // Remove and recreate edit buttons to clear event listeners
+      const newBtn = btn.cloneNode(true);
+      if (btn.parentNode) {
+        btn.parentNode.replaceChild(newBtn, btn);
+      }
+    });
+    
+    console.log("Modal closed, popup state fully reset");
   }
+  
+  // Dispatch custom event for other components to respond to
+  document.dispatchEvent(new CustomEvent('editor-closed'));
 }
 
 // Function to save feature properties

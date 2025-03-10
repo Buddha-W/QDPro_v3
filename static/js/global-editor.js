@@ -54,17 +54,29 @@ window.QDProEditor = {
 
     // Reset flags to allow immediate editing of another feature
     this.isEditorOpen = false;
-
-    // Immediately close any open popups to reset state
+    
+    // Reset active editing layer immediately
+    this.activeEditingLayer = null;
+    
+    // Force close any active popups on the map
     if (window.map) {
       window.map.closePopup();
     }
-
-    // Short delay to ensure DOM is updated before allowing new popups
-    setTimeout(() => {
-      this.activeEditingLayer = null;
-      console.log("QDProEditor: Editor fully closed, ready for new interactions");
-    }, 50);
+    
+    // Reset any layer-specific popup states
+    // This is critical to allowing immediate re-editing of features
+    document.querySelectorAll('.leaflet-popup').forEach(popup => {
+      popup.remove();
+    });
+    
+    // Reset all other state flags that might interfere with new popups
+    window.lastClickedLayer = null;
+    window.activeEditingLayer = null;
+    
+    console.log("QDProEditor: Editor fully closed, ready for new interactions");
+    
+    // Dispatch a custom event to notify the system the editor is fully closed
+    document.dispatchEvent(new CustomEvent('editor-closed'));
   },
 
   saveFeatureProperties: function() {
