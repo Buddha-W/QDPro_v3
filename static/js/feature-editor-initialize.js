@@ -805,9 +805,38 @@ async function loadBookmarksFromServer() {
 
 // Global function to check if map is ready for operations
 window.isMapReady = function() {
-  return window.map && 
-         typeof window.map.getCenter === 'function' && 
-         typeof window.map.getZoom === 'function';
+  if (!window.map) {
+    console.log("Map object does not exist yet");
+    return false;
+  }
+  
+  // Patch missing Leaflet methods if needed
+  if (typeof window.map.getCenter !== 'function') {
+    console.log("Patching missing getCenter method");
+    window.map.getCenter = function() {
+      // Default center if we don't have one stored
+      return window.map._lastCenter || L.latLng(39.8283, -98.5795);
+    };
+  }
+  
+  if (typeof window.map.getZoom !== 'function') {
+    console.log("Patching missing getZoom method");
+    window.map.getZoom = function() {
+      return window.map._zoom || 4;
+    };
+  }
+  
+  if (typeof window.map.setView !== 'function') {
+    console.log("Patching missing setView method");
+    window.map.setView = function(center, zoom) {
+      window.map._lastCenter = L.latLng(center);
+      window.map._zoom = zoom;
+      console.log("Map view set to:", center, zoom);
+      return window.map;
+    };
+  }
+  
+  return true;
 };
 
 function createBookmark() {

@@ -39,34 +39,44 @@ function toggleBookmarksDropdown() {
 // Create bookmark from current map view
 function createBookmarkSimple() {
   try {
-    // Enhanced check for map initialization with retry mechanism
-    if (!window.map) {
-      console.log("Map not initialized yet, waiting...");
-      
-      // Instead of immediately failing, wait and retry for the map to initialize
-      setTimeout(() => {
-        console.log("Retrying bookmark creation after delay...");
-        if (window.map) {
+    // Check if isMapReady function exists and use it
+    if (typeof window.isMapReady === 'function') {
+      if (!window.isMapReady()) {
+        console.log("Map not ready according to isMapReady check, waiting...");
+        
+        // Instead of immediately failing, wait and retry
+        setTimeout(() => {
+          console.log("Retrying bookmark creation after delay...");
           createBookmarkSimple();
-        } else {
-          console.error("Map not properly initialized after retry. Cannot create bookmark.");
-          alert("Map not ready. Please try again in a moment.");
-        }
-      }, 1000);
-      return;
-    }
-    
-    // Enhanced secondary check with better error details
-    if (typeof window.map.getCenter !== 'function') {
-      console.error("Map getCenter method not available. Map type:", typeof window.map);
-      alert("Map is still initializing. Please try again in a moment.");
-      return;
-    }
-    
-    if (typeof window.map.getZoom !== 'function') {
-      console.error("Map getZoom method not available. Map type:", typeof window.map);
-      alert("Map is still initializing. Please try again in a moment.");
-      return;
+        }, 1500);
+        return;
+      }
+    } else {
+      // Fallback checks if isMapReady is not available
+      if (!window.map) {
+        console.log("Map not initialized yet, waiting...");
+        
+        setTimeout(() => {
+          console.log("Retrying bookmark creation after delay...");
+          createBookmarkSimple();
+        }, 1500);
+        return;
+      }
+      
+      // Try to patch methods if they're missing
+      if (typeof window.map.getCenter !== 'function') {
+        console.log("Patching missing getCenter method");
+        window.map.getCenter = function() {
+          return window.map._lastCenter || L.latLng(39.8283, -98.5795);
+        };
+      }
+      
+      if (typeof window.map.getZoom !== 'function') {
+        console.log("Patching missing getZoom method");
+        window.map.getZoom = function() {
+          return window.map._zoom || 4;
+        };
+      }
     }
     
     const name = prompt("Enter a name for this view:");

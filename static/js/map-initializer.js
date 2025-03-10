@@ -1,5 +1,81 @@
 
 /**
+ * Map initialization and helper functions
+ */
+
+// Make sure global namespace exists
+if (typeof window.QDProEditor === 'undefined') {
+  window.QDProEditor = {};
+}
+
+// Function to initialize map correctly
+function initializeMap() {
+  console.log("Initializing map...");
+  
+  // Check if map container exists
+  const mapContainer = document.getElementById('map');
+  if (!mapContainer) {
+    console.error('Map container not found');
+    return;
+  }
+  
+  // Create map if it doesn't exist
+  if (!window.map) {
+    try {
+      // Create a basic map with default settings
+      window.map = L.map('map', {
+        center: [39.8283, -98.5795], // Default to center of US
+        zoom: 4,
+        maxZoom: 19
+      });
+      
+      // Store initial values
+      window.map._lastCenter = window.map.getCenter();
+      window.map._zoom = window.map.getZoom();
+      
+      // Add a default tile layer if none exists
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(window.map);
+      
+      console.log("Map initialized successfully");
+      
+      // Store center and zoom whenever they change
+      window.map.on('moveend', function() {
+        window.map._lastCenter = window.map.getCenter();
+        window.map._zoom = window.map.getZoom();
+      });
+    } catch (error) {
+      console.error("Error initializing map:", error);
+    }
+  }
+  
+  return window.map;
+}
+
+// Initialize on document load
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Document loaded, initializing map...");
+  
+  // Try to initialize map
+  const map = initializeMap();
+  
+  if (map) {
+    console.log("Map initialized successfully in DOMContentLoaded");
+  } else {
+    console.warn("Map initialization failed in DOMContentLoaded");
+    
+    // Retry after a delay
+    setTimeout(initializeMap, 1000);
+  }
+});
+
+// Expose functions globally
+window.initializeMap = initializeMap;
+
+
+/**
  * Map initialization and error handling for QDPro
  */
 
