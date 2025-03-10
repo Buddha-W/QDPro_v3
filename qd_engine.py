@@ -3,11 +3,17 @@ import numpy as np
 import math
 import json
 import logging
-from typing import List, Dict, Tuple, Optional, Literal, Union
+from typing import List, Dict, Tuple, Optional, Literal, Union, Any
 from dataclasses import dataclass
 from enum import Enum
 
 logger = logging.getLogger(__name__)
+
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 @dataclass
 class MaterialProperties:
@@ -71,10 +77,13 @@ class QDParameters:
 def get_engine(site_type: str = "DOD") -> 'QDEngine':
     """Create and return a QDEngine instance based on site type."""
     site_type = site_type.upper()
-    if site_type not in [st.value for st in SiteType]:
+    valid_site_types = [st.value for st in SiteType]
+    
+    if site_type not in valid_site_types:
         logger.warning(f"Unknown site type {site_type}, defaulting to DOD")
         site_type = "DOD"
-        
+    
+    logger.info(f"Creating QD engine instance for site type: {site_type}")
     return QDEngine(site_type=site_type)
 
 class QDEngine:
