@@ -333,6 +333,14 @@ ensureGlobalFunctions();
 // Add a fallback to window.onload to ensure everything is properly defined
 window.addEventListener('load', ensureGlobalFunctions);
 
+// Add one more fallback to make absolutely sure the function is available
+setTimeout(() => {
+  if (typeof window.openFeatureEditor !== 'function') {
+    console.log("Re-applying global openFeatureEditor function");
+    window.openFeatureEditor = openFeatureEditor;
+  }
+}, 1000);
+
 
 // Add Layer Click Handlers for editing properties
 function addLayerClickHandlers(layer) {
@@ -365,13 +373,9 @@ function addLayerClickHandlers(layer) {
         // Add new event listener with explicitly defined handler
         newEditBtn.addEventListener('click', function() {
           console.log('Edit button clicked, opening feature editor');
-          if (typeof window.openFeatureEditor === 'function') {
-            window.openFeatureEditor(layer);
-          } else if (typeof openFeatureEditor === 'function') {
-            openFeatureEditor(layer);
-          } else {
-            // Emergency fallback - define a minimal implementation
-            console.warn('openFeatureEditor not found, using emergency fallback');
+          // Direct function call - most reliable approach
+          openFeatureEditor(layer);
+          return false; // Prevent event bubbling
             const modal = document.getElementById('featurePropertiesModal');
             if (modal) {
               window.activeEditingLayer = layer;
