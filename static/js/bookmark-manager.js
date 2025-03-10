@@ -374,11 +374,35 @@ async function loadBookmarksFromServer() {
 // Load a specific bookmark
 async function loadBookmark(name) {
   try {
-    // Check if map is initialized
+    // Wait for map to be ready before proceeding
     if (!window.map || typeof window.map.setView !== 'function') {
-      console.error("Map not properly initialized. Cannot load bookmark.");
-      alert("Map not ready. Please try again in a moment.");
-      return;
+      console.log("Map not fully initialized. Waiting for map to be ready...");
+      
+      // Try to wait for map initialization
+      let attempts = 0;
+      const waitForMap = () => {
+        return new Promise((resolve, reject) => {
+          const checkMap = setInterval(() => {
+            attempts++;
+            if (window.map && typeof window.map.setView === 'function') {
+              clearInterval(checkMap);
+              console.log("Map initialization detected, continuing bookmark load");
+              resolve(true);
+            } else if (attempts > 15) { // 3 seconds max wait
+              clearInterval(checkMap);
+              reject(new Error("Map initialization timeout"));
+            }
+          }, 200);
+        });
+      };
+      
+      try {
+        await waitForMap();
+      } catch (err) {
+        console.error("Map initialization timed out. Cannot load bookmark.", err);
+        alert("Map not ready. Please try again in a moment.");
+        return;
+      }
     }
 
     // First try to load from server
@@ -408,11 +432,30 @@ async function loadBookmark(name) {
       return;
     }
     
-    // Set map view to the bookmarked position
-    window.map.setView(bookmark.center, bookmark.zoom);
-    console.log(`Loaded bookmark "${name}"`);
+    // Double check that map is ready before attempting to set view
+    if (window.map && typeof window.map.setView === 'function') {
+      // Verify bookmark data
+      if (Array.isArray(bookmark.center) && bookmark.center.length === 2 && 
+          !isNaN(bookmark.center[0]) && !isNaN(bookmark.center[1]) && 
+          !isNaN(bookmark.zoom)) {
+        try {
+          window.map.setView(bookmark.center, bookmark.zoom);
+          console.log(`Loaded bookmark "${name}" successfully`);
+        } catch (viewError) {
+          console.error("Error setting map view:", viewError);
+          alert("Error loading bookmark: Invalid map coordinates");
+        }
+      } else {
+        console.error("Invalid bookmark data format:", bookmark);
+        alert("Error: Bookmark data is in an invalid format");
+      }
+    } else {
+      console.error("Map still not properly initialized after waiting");
+      alert("Map not ready. Please refresh the page and try again.");
+    }
   } catch (e) {
     console.error(`Error loading bookmark:`, e);
+    alert(`Error loading bookmark: ${e.message}`);
   }
 }
 
