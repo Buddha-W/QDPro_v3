@@ -1287,13 +1287,23 @@
         return newLayer;
       },
       analyzeLocation: async function() {
+        // Add debug information
+        console.log("Starting analyzeLocation function");
+        
         if (!this.currentLocationId) {
+          console.warn("No location selected for analysis");
           alert("Please open a location before running analysis");
           return;
         }
-
+        
+        console.log("Current location ID:", this.currentLocationId);
+        console.log("Current location name:", this.currentLocationName);
+        
         // Get all selectable features from all layers
         const allFeatures = [];
+        
+        // Debug information about available layers
+        console.log("Available layers for analysis:", Object.keys(this.layers).length);
         Object.entries(this.layers).forEach(([layerName, layer]) => {
           layer.eachLayer(l => {
             if (l.toGeoJSON) {
@@ -1434,21 +1444,50 @@
           try {
             // Show loading indicator
             setStatusMessage("Running QD analysis...", "info");
+            
+            // Debug info before sending 
+            console.log("Preparing to send analysis request:");
+            console.log("- Location ID:", self.currentLocationId);
+            console.log("- Selected features count:", selectedFeatures.length);
+            
+            // Format request payload
+            const requestPayload = {
+              location_id: self.currentLocationId,
+              features: selectedFeatures
+            };
+            
+            console.log("Request payload summary:", {
+              location_id: requestPayload.location_id,
+              feature_count: requestPayload.features.length
+            });
 
-            // Call the backend API
+            // Call the backend API with improved error handling
+            console.log("Sending request to /api/analyze-location");
             const response = await fetch("/api/analyze-location", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                location_id: self.currentLocationId,
-                features: selectedFeatures
-              })
+              body: JSON.stringify(requestPayload)
             });
-
+            
+            console.log("Response status:", response.status);
+            
             if (!response.ok) {
-              throw new Error(`Analysis failed: ${response.statusText}`);
+              let errorDetail = response.statusText;
+              
+              // Try to get detailed error message from response
+              try {
+                const errorJson = await response.json();
+                if (errorJson.detail) {
+                  errorDetail = errorJson.detail;
+                }
+              } catch (e) {
+                console.warn("Could not parse error response:", e);
+              }
+              
+              throw new Error(`Analysis failed: ${errorDetail}`);
             }
 
+            console.log("Successfully received response, parsing JSON");
             const result = await response.json();
             console.log("Analysis results:", result);
 
@@ -1880,6 +1919,77 @@
         this.analysisLayer.eachLayer(layer => {
           if (layer.closePopup) {
             layer.closePopup();
+          }
+        });
+      },
+      
+      // Function to generate and export a PDF report
+      exportPDF: async function() {
+        if (!this.currentAnalysisResults) {
+          alert("No analysis results available to export");
+          return;
+        }
+        
+        try {
+          // Show loading status
+          setStatusMessage("Generating PDF report...", "info");
+          
+          // Capture the current map view
+          const mapImage = await this.captureMapImage();
+          
+          // Generate PDF on server with map image
+          const response = await fetch("/api/generate-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              location_id: this.currentLocationId,
+              analysis: this.currentAnalysisResults,
+              map_image: mapImage
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error("Failed to generate PDF report");
+          }
+          
+          // Get the PDF URL from the response
+          const result = await response.json();
+          
+          // Open the PDF in a new tab
+          window.open(result.report_url, '_blank');
+          
+          setStatusMessage("PDF report generated successfully", "success");
+        } catch (error) {
+          console.error("Error generating PDF report:", error);
+          setStatusMessage("Failed to generate PDF: " + error.message, "error");
+        }
+      },
+      
+      // Helper function to capture the current map view as a base64 image
+      captureMapImage: function() {
+        return new Promise((resolve, reject) => {
+          try {
+            if (typeof html2canvas !== 'function') {
+              console.warn("html2canvas not available, skipping map capture");
+              resolve(null);
+              return;
+            }
+            
+            const mapElement = document.getElementById('map');
+            html2canvas(mapElement, {
+              useCORS: true,
+              allowTaint: true,
+              logging: false
+            }).then(canvas => {
+              const imageData = canvas.toDataURL('image/png');
+              resolve(imageData);
+            }).catch(err => {
+              console.error("Error capturing map:", err);
+              resolve(null); // Resolve with null to continue without map image
+            });
+          } catch (e) {
+            console.error("Map capture error:", e);
+            resolve(null);
           }
         });
       }

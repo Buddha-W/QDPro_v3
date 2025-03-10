@@ -235,7 +235,67 @@ window.QDProEditor = {
     console.log("QDProEditor: Running QD Analysis");
     if (typeof QDPro !== 'undefined' && typeof QDPro.analyzeLocation === 'function') {
       try {
-        QDPro.analyzeLocation();
+        // Add detailed status feedback
+        const statusElement = document.getElementById('dbStatus');
+        if (statusElement) {
+          statusElement.textContent = "Running QD analysis...";
+        }
+
+        // Create a status element if it doesn't exist
+        if (!document.getElementById('statusMessage')) {
+          const messageDiv = document.createElement('div');
+          messageDiv.id = 'statusMessage';
+          messageDiv.style.position = 'fixed';
+          messageDiv.style.bottom = '20px';
+          messageDiv.style.left = '20px';
+          messageDiv.style.padding = '10px 20px';
+          messageDiv.style.backgroundColor = '#ffc107';
+          messageDiv.style.color = '#000';
+          messageDiv.style.borderRadius = '4px';
+          messageDiv.style.zIndex = '3000';
+          messageDiv.style.display = 'none';
+          document.body.appendChild(messageDiv);
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+          const statusMsg = document.getElementById('statusMessage');
+          if (statusMsg) {
+            statusMsg.textContent = message;
+            statusMsg.style.backgroundColor = type === 'error' ? '#f44336' : 
+                                             type === 'success' ? '#4CAF50' : '#ffc107';
+            statusMsg.style.color = type === 'error' ? '#fff' : '#000';
+            statusMsg.style.display = 'block';
+
+            // Auto-hide after 5 seconds unless it's an error
+            if (type !== 'error') {
+              setTimeout(() => {
+                statusMsg.style.display = 'none';
+              }, 5000);
+            }
+          }
+        }
+
+        showStatus("Starting QD analysis...", "info");
+
+        // Add a timeout to prevent infinite waiting
+        let analysisTimeout = setTimeout(() => {
+          showStatus("Analysis is taking longer than expected, please wait...", "info");
+        }, 3000);
+
+        // Call analysis with proper error handling
+        QDPro.analyzeLocation().catch(error => {
+          clearTimeout(analysisTimeout);
+          console.error("Error running QD analysis:", error);
+          showStatus("Error running QD analysis: " + error.message, "error");
+
+          // Reset status in the header
+          if (statusElement) {
+            statusElement.textContent = QDPro.currentLocationName ? 
+              `Location: ${QDPro.currentLocationName}` : "No location loaded";
+          }
+        });
+
         console.log("QD Analysis started via QDPro.analyzeLocation");
 
         // Wait for analysis to complete, then show detailed report
