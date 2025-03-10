@@ -337,6 +337,11 @@ function saveFeatureProperties() {
     layer.feature.properties = {};
   }
 
+  // Ensure the feature has an ID for QD analysis
+  if (!layer.feature.id) {
+    layer.feature.id = `feature_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  }
+
   // Get values from form
   const name = document.getElementById('name').value;
   const type = document.getElementById('type').value;

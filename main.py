@@ -605,9 +605,23 @@ async def analyze_location(request: Request):
 
         # Run analysis for each facility with improved logging
         logger.info(f"Starting QD analysis for {len(facilities)} facilities and {len(other_features)} other features")
+        logger.info(f"Full feature count breakdown: Facilities={len(facilities)}, Other features={len(other_features)}, Total={len(features)}")
+        
+        # Log facility layer info for debugging
+        layers_info = {}
+        for facility in facilities:
+            layer_name = facility.get("properties", {}).get("layerName", "unknown")
+            if layer_name not in layers_info:
+                layers_info[layer_name] = 0
+            layers_info[layer_name] += 1
+        
+        logger.info(f"Facilities by layer: {layers_info}")
+        
         results = []
         for facility in facilities:
-            logger.info(f"Analyzing facility ID: {facility.get('id')}")
+            facility_id = facility.get('id', 'unknown')
+            layer_name = facility.get("properties", {}).get("layerName", "unknown")
+            logger.info(f"Analyzing facility ID: {facility_id} from layer: {layer_name}")
             properties = facility.get("properties", {})
 
             # Get explosive weight and unit
@@ -615,12 +629,14 @@ async def analyze_location(request: Request):
                 new_value = float(properties.get("net_explosive_weight", 0))
                 unit_type = properties.get("unit", "lbs")
                 hazard_division = properties.get("hazard_division", "1.1")
+                logger.info(f"Facility {facility_id} NEW: {new_value} {unit_type}")
             except (ValueError, TypeError) as e:
                 logger.error(f"Invalid facility properties: {str(e)}")
                 continue
 
             # Skip if NEW is 0
             if new_value <= 0:
+                logger.warning(f"Skipping facility {facility_id} with NEW value of 0")
                 continue
 
             # Create parameters object for QD calculations
@@ -693,12 +709,30 @@ async def analyze_location(request: Request):
             # Check for violations using enhanced analysis
             try:
                 # Combine all features for analysis, excluding the current facility
+                # Ensure we analyze against ALL other features from ALL layers
                 all_analysis_features = other_features + [f for f in facilities if f.get('id') != facility.get('id')]
-                logger.info(f"Analyzing facility {properties.get('name', 'unknown')} against {len(all_analysis_features)} other features")
+                
+                facility_name = properties.get('name', 'unknown')
+                logger.info(f"Analyzing facility {facility_name} (ID: {facility.get('id')}) against {len(all_analysis_features)} other features")
+                
+                # Print the first few surrounding features for debugging
+                for i, feat in enumerate(all_analysis_features[:3]):
+                    feat_name = feat.get("properties", {}).get("name", "unnamed")
+                    feat_layer = feat.get("properties", {}).get("layerName", "unknown")
+                    feat_id = feat.get("id", "unknown")
+                    logger.info(f"Surrounding feature {i}: {feat_name} (ID: {feat_id}) from layer: {feat_layer}")
                 
                 # Log analysis parameters for debugging
                 logger.info(f"Analysis parameters: k_factor_type={k_factor_type}, unit_type={unit_type}")
                 logger.info(f"Facility explosives: {new_value} {unit_type}")
+                
+                # Force facility and all features to have IDs for proper identification
+                if not facility.get("id"):
+                    facility["id"] = f"facility_{hash(json.dumps(facility))}"
+                
+                for af in all_analysis_features:
+                    if not af.get("id"):
+                        af["id"] = f"feature_{hash(json.dumps(af))}"
                 
                 facility_analysis = qd_engine.analyze_facility(
                     facility=facility,
@@ -709,7 +743,7 @@ async def analyze_location(request: Request):
                 
                 # Log findings
                 violations_count = len(facility_analysis.get("violations", []))
-                logger.info(f"Analysis complete: {violations_count} violations found")
+                logger.info(f"Analysis complete for {facility_name}: {violations_count} violations found")
                 if violations_count > 0:
                     logger.info(f"Violations: {json.dumps(facility_analysis.get('violations', []), indent=2)}")
                 

@@ -484,8 +484,13 @@ QD engine calculation steps:
         facility_longitude = facility_centroid[0] if len(facility_centroid) > 0 else 0
         
         # Log the facility data for analysis debugging
-        logger.info(f"Analyzing facility: {facility_data['name']}, NEW: {new_value} {unit}")
+        logger.info(f"Analyzing facility: {facility_data['name']}, NEW: {new_value} {unit}, ID: {facility.get('id')}")
+        logger.info(f"Facility layer: {facility.get('properties', {}).get('layerName', 'unknown')}")
         logger.info(f"Surrounding features count: {len(surrounding_features)}")
+        
+        # Print first few features for debugging
+        for i, feat in enumerate(surrounding_features[:5]):
+            logger.info(f"Surrounding feature {i}: ID={feat.get('id')}, Layer={feat.get('properties', {}).get('layerName', 'unknown')}")
         
         # Skip if no explosive weight
         if new_value <= 0:
@@ -624,11 +629,13 @@ QD engine calculation steps:
             min_distance = float('inf')
             for p1 in coords1:
                 for p2 in coords2:
-                    # Get raw coordinate distance
-                    raw_dist = self.calculate_distance(p1, p2)
-                    # Convert to approximate feet
-                    dist_feet = raw_dist * scale_factor
-                    min_distance = min(min_distance, dist_feet)
+                    # Make sure points have two coordinates
+                    if len(p1) >= 2 and len(p2) >= 2:
+                        # Get raw coordinate distance
+                        raw_dist = self.calculate_distance(p1, p2)
+                        # Convert to approximate feet
+                        dist_feet = raw_dist * scale_factor
+                        min_distance = min(min_distance, dist_feet)
             
             # Log detailed distance information for debugging
             logger.info(f"Distance calculation between geometries: {min_distance:.2f} ft")
