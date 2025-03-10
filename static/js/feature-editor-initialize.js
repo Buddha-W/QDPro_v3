@@ -6,7 +6,7 @@
 // Global handler for edit button clicks to ensure first-click response
 function handleEditButtonClick(button) {
   console.log("Edit button clicked via direct onclick handler");
-  
+
   try {
     // Find the popup and associated layer
     const popup = button.closest('.leaflet-popup');
@@ -14,19 +14,19 @@ function handleEditButtonClick(button) {
       console.warn("No popup found for edit button");
       return false;
     }
-    
+
     if (!popup._source) {
       console.warn("No source layer found for popup");
       return false;
     }
-    
+
     const layer = popup._source;
     console.log("Found layer for edit button:", layer._leaflet_id || "unknown id");
 
     // Store layer globally for immediate access with safeguards
     window.activeEditingLayer = layer;
     window.lastClickedLayer = layer;
-    
+
     // Add a timestamp to track when this layer was selected for editing
     layer._editTimestamp = Date.now();
 
@@ -58,7 +58,7 @@ function openEditorForLayer(layer) {
     console.error("Cannot open editor: layer is undefined");
     return;
   }
-  
+
   try {
     // Close popup if it exists
     if (layer.closePopup) {
@@ -68,7 +68,7 @@ function openEditorForLayer(layer) {
     // Force close any popups on the map
     if (window.map) {
       window.map.closePopup();
-      
+
       // Remove any lingering popup DOM elements
       document.querySelectorAll('.leaflet-popup').forEach(popup => {
         popup.remove();
@@ -76,7 +76,7 @@ function openEditorForLayer(layer) {
     }
 
     console.log("Opening editor for layer:", layer._leaflet_id || "unknown");
-    
+
     // Select the right editor function with more detailed logging
     if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
       console.log("Using QDProEditor.openFeatureEditor");
@@ -90,7 +90,7 @@ function openEditorForLayer(layer) {
     } else {
       console.error("Feature editor function not found! Available global functions:", 
                    Object.keys(window).filter(k => typeof window[k] === 'function').join(', '));
-      
+
       // Last resort - try to use the modal directly
       const modal = document.getElementById('featurePropertiesModal');
       if (modal) {
@@ -111,11 +111,11 @@ document.addEventListener('click', function(e) {
   if (e.target && (e.target.classList.contains('edit-properties-btn') || 
                   (e.target.parentElement && e.target.parentElement.classList.contains('edit-properties-btn')))) {
     console.log("Edit button clicked via global document handler");
-    
+
     // Get the actual button element
     const button = e.target.classList.contains('edit-properties-btn') ? 
                   e.target : e.target.parentElement;
-    
+
     // Prevent multiple rapid clicks
     if (button.getAttribute('data-processing') === 'true') {
       console.log("Ignoring duplicate click on edit button");
@@ -123,18 +123,18 @@ document.addEventListener('click', function(e) {
       e.stopPropagation();
       return false;
     }
-    
+
     // Mark button as being processed
     button.setAttribute('data-processing', 'true');
-    
+
     // Process the click
     handleEditButtonClick(button);
-    
+
     // Reset processing state after a delay
     setTimeout(() => {
       button.removeAttribute('data-processing');
     }, 500);
-    
+
     e.preventDefault();
     e.stopPropagation();
     return false;
@@ -344,13 +344,13 @@ function closeFeaturePropertiesModal() {
   const modal = document.getElementById('featurePropertiesModal');
   if (modal) {
     modal.style.display = 'none';
-    
+
     // Make sure any form data is cleared
     const form = document.getElementById('featurePropertiesForm');
     if (form) {
       form.reset();
     }
-    
+
     // Ensure explosive section is hidden regardless of current state
     const explosiveSection = document.getElementById('explosiveSection');
     if (explosiveSection) {
@@ -581,19 +581,19 @@ window.addEventListener('load', function() {
 // Bookmark management functions
 function updateBookmarksDropdown() {
   console.log("updateBookmarksDropdown called");
-  
+
   const dropdown = document.getElementById('bookmarksDropdown');
   if (!dropdown) {
     console.error("Bookmarks dropdown element not found");
     return;
   }
-  
+
   // Clear existing items
   dropdown.innerHTML = '';
-  
+
   // Make sure the dropdown is visible
   dropdown.style.display = 'block';
-  
+
   // Add proper styling to make it visible
   dropdown.style.backgroundColor = '#fff';
   dropdown.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
@@ -602,7 +602,7 @@ function updateBookmarksDropdown() {
   dropdown.style.padding = '5px 0';
   dropdown.style.zIndex = '3000';
   dropdown.style.position = 'absolute';
-  
+
   // Create a header
   const header = document.createElement('div');
   header.style.padding = '10px';
@@ -611,7 +611,7 @@ function updateBookmarksDropdown() {
   header.style.backgroundColor = '#f5f5f5';
   header.textContent = 'Saved Views';
   dropdown.appendChild(header);
-  
+
   // Load bookmarks from server or fallback to localStorage
   loadBookmarksFromServer().then(bookmarks => {
     // Check if we have any bookmarks
@@ -634,7 +634,7 @@ function updateBookmarksDropdown() {
         item.style.alignItems = 'center';
         item.style.borderBottom = '1px solid #eee';
         item.style.transition = 'background-color 0.2s';
-        
+
         // Add hover effect
         item.addEventListener('mouseover', function() {
           this.style.backgroundColor = '#f0f0f0';
@@ -642,14 +642,14 @@ function updateBookmarksDropdown() {
         item.addEventListener('mouseout', function() {
           this.style.backgroundColor = '';
         });
-        
+
         const nameSpan = document.createElement('span');
         nameSpan.textContent = name;
         nameSpan.style.flex = '1';
         nameSpan.style.overflow = 'hidden';
         nameSpan.style.textOverflow = 'ellipsis';
         nameSpan.style.whiteSpace = 'nowrap';
-        
+
         const deleteBtn = document.createElement('button');
         deleteBtn.innerHTML = '&times;';
         deleteBtn.style.marginLeft = '8px';
@@ -660,17 +660,17 @@ function updateBookmarksDropdown() {
         deleteBtn.style.fontSize = '16px';
         deleteBtn.style.cursor = 'pointer';
         deleteBtn.title = 'Delete bookmark';
-        
+
         item.appendChild(nameSpan);
         item.appendChild(deleteBtn);
-        
+
         // Add event listeners
         nameSpan.addEventListener('click', function(e) {
           e.stopPropagation();
           loadBookmark(name);
           dropdown.style.display = 'none';
         });
-        
+
         // Make the whole item clickable except for the delete button
         item.addEventListener('click', function(e) {
           if (e.target !== deleteBtn) {
@@ -678,16 +678,16 @@ function updateBookmarksDropdown() {
             dropdown.style.display = 'none';
           }
         });
-        
+
         deleteBtn.addEventListener('click', function(e) {
           e.stopPropagation();
           deleteBookmark(name);
         });
-        
+
         dropdown.appendChild(item);
       });
     }
-    
+
     // Add option to create new bookmark
     const addNewItem = document.createElement('div');
     addNewItem.style.padding = '10px';
@@ -698,7 +698,7 @@ function updateBookmarksDropdown() {
     addNewItem.style.textAlign = 'center';
     addNewItem.style.borderTop = bookmarkKeys.length > 0 ? '1px solid #ccc' : 'none';
     addNewItem.textContent = '+ Add New Bookmark';
-    
+
     // Add hover effect
     addNewItem.addEventListener('mouseover', function() {
       this.style.backgroundColor = '#e8f5e9';
@@ -706,14 +706,14 @@ function updateBookmarksDropdown() {
     addNewItem.addEventListener('mouseout', function() {
       this.style.backgroundColor = '#f5f5f5';
     });
-    
+
     addNewItem.addEventListener('click', function() {
       dropdown.style.display = 'none';
       createBookmark();
     });
-    
+
     dropdown.appendChild(addNewItem);
-    
+
     // Add event listener to close dropdown when clicking outside
     document.addEventListener('click', function closeDropdown(e) {
       if (!dropdown.contains(e.target) && e.target.id !== 'bookmarksTool') {
@@ -740,13 +740,13 @@ function ensureMapInitialized() {
 async function loadBookmarksFromServer() {
   try {
     const locationId = window.QDPro?.currentLocationId;
-    
+
     // If no location ID is available, use localStorage
     if (!locationId) {
       console.log("No location ID available, using localStorage");
       return JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
     }
-    
+
     const response = await fetch(`/api/bookmarks?location_id=${locationId}`);
     if (response.ok) {
       const data = await response.json();
@@ -768,12 +768,12 @@ function createBookmark() {
     alert("Map not ready. Please try again in a moment.");
     return;
   }
-  
+
   const currentView = {
     center: window.map.getCenter(),
     zoom: window.map.getZoom()
   };
-  
+
   // Create a modal to name the bookmark
   const modal = document.createElement('div');
   modal.className = 'modal';
@@ -809,20 +809,22 @@ function createBookmark() {
   });
 
   document.getElementById('saveBookmarkBtn').addEventListener('click', function() {
-    const name = document.getElementById('bookmarkName').value.trim();
-    if (!name) {
-      alert('Please enter a bookmark name');
-      return;
+    const bookmarkName = document.getElementById('bookmarkName').value.trim();
+    if (bookmarkName) {
+      try {
+        saveBookmarkToStorage(bookmarkName, currentView);
+        // Ensure updateBookmarksDropdown is called with proper context
+        if (typeof window.updateBookmarksDropdown === 'function') {
+          window.updateBookmarksDropdown();
+        }
+        document.body.removeChild(modal);
+      } catch (error) {
+        console.error("Error saving bookmark:", error);
+        alert("Error saving bookmark: " + error.message);
+      }
+    } else {
+      alert("Please enter a name for the bookmark.");
     }
-    
-    // Save the bookmark
-    saveBookmarkToStorage(name, currentView);
-    
-    // Remove the modal
-    document.body.removeChild(modal);
-    
-    // Update bookmarks dropdown
-    updateBookmarksDropdown();
   });
 }
 
@@ -831,18 +833,18 @@ async function saveBookmarkToStorage(name, view) {
   try {
     // Get existing bookmarks from localStorage
     let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-    
+
     // Create bookmark object
     const bookmarkData = {
       center: [view.center.lat, view.center.lng],
       zoom: view.zoom,
       created: new Date().toISOString()
     };
-    
+
     // Add to localStorage
     bookmarks[name] = bookmarkData;
     localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
-    
+
     // Now save to server if possible
     const locationId = QDPro?.currentLocationId;
     if (locationId) {
@@ -857,7 +859,7 @@ async function saveBookmarkToStorage(name, view) {
           bookmark_data: bookmarkData
         })
       });
-      
+
       if (response.ok) {
         console.log(`Bookmark "${name}" saved to server`);
       } else {
@@ -877,7 +879,7 @@ async function loadBookmark(name) {
     // First try to load from server
     const locationId = QDPro?.currentLocationId;
     let bookmark = null;
-    
+
     if (locationId) {
       try {
         const response = await fetch(`/api/bookmarks/${encodeURIComponent(name)}?location_id=${locationId}`);
@@ -889,18 +891,18 @@ async function loadBookmark(name) {
         console.warn(`Error loading bookmark from server:`, e);
       }
     }
-    
+
     // If not found on server or no location ID, fall back to localStorage
     if (!bookmark) {
       const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
       bookmark = bookmarks[name];
     }
-    
+
     if (!bookmark) {
       console.error(`Bookmark "${name}" not found`);
       return;
     }
-    
+
     // Set map view to the bookmarked position
     if (window.map) {
       window.map.setView(bookmark.center, bookmark.zoom);
@@ -919,14 +921,14 @@ async function deleteBookmark(name) {
     if (!confirm(`Are you sure you want to delete the bookmark "${name}"?`)) {
       return;
     }
-    
+
     // Delete from localStorage
     let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
     if (bookmarks[name]) {
       delete bookmarks[name];
       localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
     }
-    
+
     // Delete from server if possible
     const locationId = QDPro?.currentLocationId;
     if (locationId) {
@@ -939,7 +941,7 @@ async function deleteBookmark(name) {
           location_id: locationId
         })
       });
-      
+
       if (response.ok) {
         console.log(`Bookmark "${name}" deleted from server`);
       } else {
@@ -948,7 +950,7 @@ async function deleteBookmark(name) {
     } else {
       console.log(`Bookmark "${name}" deleted from localStorage only (no location ID available)`);
     }
-    
+
     // Update bookmarks dropdown
     updateBookmarksDropdown();
   } catch (e) {
@@ -963,16 +965,16 @@ function toggleBookmarksDropdown() {
     console.error("Bookmarks dropdown element not found");
     return;
   }
-  
+
   const isVisible = dropdown.style.display === 'block';
-  
+
   // Hide any other open dropdowns
   document.querySelectorAll('.base-layer-dropdown').forEach(dd => {
     if (dd.id !== 'bookmarksDropdown') {
       dd.style.display = 'none';
     }
   });
-  
+
   if (isVisible) {
     dropdown.style.display = 'none';
   } else {
@@ -984,7 +986,7 @@ function toggleBookmarksDropdown() {
       dropdown.style.top = (rect.bottom + 5) + 'px';
       dropdown.style.left = rect.left + 'px';
     }
-    
+
     // Update and show the dropdown
     updateBookmarksDropdown();
   }
@@ -1008,16 +1010,16 @@ document.addEventListener('DOMContentLoaded', function() {
   if (typeof updateBookmarksDropdown === 'function') {
     window.updateBookmarksDropdown = updateBookmarksDropdown;
     window.toggleBookmarksDropdown = toggleBookmarksDropdown;
-    
+
     // Define on global window
     if (typeof window.QDProEditor === 'undefined') {
       window.QDProEditor = {};
     }
-    
+
     // Add to QDProEditor namespace for additional reliability
     window.QDProEditor.updateBookmarksDropdown = updateBookmarksDropdown;
     window.QDProEditor.toggleBookmarksDropdown = toggleBookmarksDropdown;
-    
+
     console.log("Bookmark functions exposed globally");
   } else {
     console.warn("Bookmark functions not available - ensure bookmark-manager.js is loaded");

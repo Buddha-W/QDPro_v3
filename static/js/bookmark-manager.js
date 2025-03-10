@@ -24,27 +24,44 @@ function toggleBookmarksDropdown() {
 }
 
 // Create bookmark from current map view
-function createBookmark() {
-  const name = prompt("Enter a name for this view:");
-  if (!name) return;
-  
-  if (!window.map) {
-    console.error("Map not available for creating bookmark");
-    alert("Cannot create bookmark: Map not available");
-    return;
+function createBookmarkSimple() {
+  try {
+    // Check if map is properly initialized
+    if (!window.map || typeof window.map.getCenter !== 'function') {
+      console.error("Map not properly initialized. Cannot create bookmark.");
+      alert("Map not ready. Please try again in a moment.");
+      return;
+    }
+    
+    const name = prompt("Enter a name for this view:");
+    if (!name) return;
+    
+    const center = window.map.getCenter();
+    const zoom = window.map.getZoom();
+    
+    const bookmark = {
+      center: [center.lat, center.lng],
+      zoom: zoom,
+      created: new Date().toISOString()
+    };
+    
+    saveBookmarkToStorage(name, bookmark);
+    updateBookmarksDropdown();
+  } catch (error) {
+    console.error("Error creating bookmark:", error);
+    alert("Error creating bookmark: " + error.message);
   }
-  
-  const center = window.map.getCenter();
-  const zoom = window.map.getZoom();
-  
-  const bookmark = {
-    center: [center.lat, center.lng],
-    zoom: zoom,
-    created: new Date().toISOString()
-  };
-  
-  saveBookmarkToStorage(name, bookmark);
-  updateBookmarksDropdown();
+}
+
+// For backwards compatibility - redirects to the appropriate function
+function createBookmark() {
+  // Use the main createBookmark function from feature-editor-initialize.js if it exists,
+  // otherwise use the local implementation
+  if (typeof window.createBookmark === 'function' && window.createBookmark !== createBookmark) {
+    window.createBookmark();
+  } else {
+    createBookmarkSimple();
+  }
 }
 
 // Update bookmarks dropdown with current bookmarks
