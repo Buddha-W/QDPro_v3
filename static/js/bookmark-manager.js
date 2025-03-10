@@ -614,8 +614,17 @@ async function loadBookmark(name) {
           !isNaN(bookmark.center[0]) && !isNaN(bookmark.center[1]) && 
           !isNaN(bookmark.zoom)) {
         try {
-          window.map.setView(bookmark.center, bookmark.zoom);
-          console.log(`Loaded bookmark "${name}" successfully`);
+          // Create a proper Leaflet LatLng object
+          const center = L.latLng(bookmark.center[0], bookmark.center[1]);
+          const zoom = parseInt(bookmark.zoom);
+          
+          // Use flyTo for smoother animation to the bookmarked location
+          window.map.flyTo(center, zoom, {
+            duration: 1.5,  // Animation duration in seconds
+            easeLinearity: 0.25
+          });
+          
+          console.log(`Loaded bookmark "${name}" successfully:`, center, zoom);
         } catch (viewError) {
           console.error("Error setting map view:", viewError);
           alert("Error loading bookmark: Invalid map coordinates");

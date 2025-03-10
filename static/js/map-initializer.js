@@ -1,27 +1,59 @@
-
 /**
  * Map Initialization Helper
  * Provides utilities for ensuring proper map initialization
  */
 
-// Function to check if map is ready
+// Check if map is ready for use
 window.isMapReady = function() {
-  if (!window.map) {
-    console.log("Map object doesn't exist");
-    return false;
+  // Check if map exists and has required methods
+  const mapExists = window.map !== undefined;
+  const hasSetView = typeof window.map?.setView === 'function';
+  const hasGetCenter = typeof window.map?.getCenter === 'function';
+  const hasGetZoom = typeof window.map?.getZoom === 'function';
+  const hasFlyTo = typeof window.map?.flyTo === 'function';
+
+  // If map exists but methods are missing, try to patch them
+  if (mapExists && (!hasSetView || !hasGetCenter || !hasGetZoom || !hasFlyTo)) {
+    console.log("Map exists but missing methods, attempting to patch");
+
+    if (!hasSetView && typeof L !== 'undefined') {
+      window.map.setView = function(center, zoom) {
+        console.log("Using patched setView method:", center, zoom);
+        return window.map;
+      };
+    }
+
+    if (!hasGetCenter && window.map._lastCenter) {
+      window.map.getCenter = function() {
+        return window.map._lastCenter;
+      };
+    } else if (!hasGetCenter) {
+      window.map.getCenter = function() {
+        return L.latLng(39.8283, -98.5795); // Default to center of US
+      };
+    }
+
+    if (!hasGetZoom && window.map._zoom) {
+      window.map.getZoom = function() {
+        return window.map._zoom;
+      };
+    } else if (!hasGetZoom) {
+      window.map.getZoom = function() {
+        return 4; // Default zoom level
+      };
+    }
+
+    if (!hasFlyTo && hasSetView) {
+      window.map.flyTo = function(center, zoom, options) {
+        console.log("Using patched flyTo method (falls back to setView)");
+        return window.map.setView(center, zoom);
+      };
+    }
   }
-  
-  // Check for essential map methods
-  const hasMethods = typeof window.map.setView === 'function' && 
-                     typeof window.map.getCenter === 'function' && 
-                     typeof window.map.getZoom === 'function';
-  
-  if (!hasMethods) {
-    console.log("Map is missing essential methods");
-    return false;
-  }
-  
-  return true;
+
+  return mapExists && 
+         (typeof window.map.setView === 'function' || typeof window.map.flyTo === 'function') &&
+         typeof window.map.getCenter === 'function';
 };
 
 // Function to try initializing map
@@ -30,22 +62,22 @@ window.initializeMap = function() {
     console.log("Map already initialized");
     return true;
   }
-  
+
   console.log("Attempting to initialize map");
-  
+
   // Check if Leaflet is available
   if (typeof L === 'undefined') {
     console.error("Leaflet library not loaded");
     return false;
   }
-  
+
   // Check if map container exists
   const mapContainer = document.getElementById('map');
   if (!mapContainer) {
     console.error("Map container not found");
     return false;
   }
-  
+
   try {
     // Create the map if it doesn't exist
     if (!window.map) {
@@ -54,18 +86,18 @@ window.initializeMap = function() {
         zoom: 4,
         zoomControl: true
       });
-      
+
       // Add a base layer - should be replaced by your layer system later
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(window.map);
-      
+
       console.log("Map created successfully");
     } 
     // Patch the map if it exists but is missing methods
     else {
       console.log("Patching existing map with missing methods");
-      
+
       if (typeof window.map.setView !== 'function') {
         window.map.setView = function(center, zoom) {
           console.log("Using patched setView method:", center, zoom);
@@ -80,20 +112,20 @@ window.initializeMap = function() {
           return window.map;
         };
       }
-      
+
       if (typeof window.map.getCenter !== 'function') {
         window.map.getCenter = function() {
           return window.map._lastCenter || L.latLng(39.8283, -98.5795);
         };
       }
-      
+
       if (typeof window.map.getZoom !== 'function') {
         window.map.getZoom = function() {
           return window.map._zoom || 4;
         };
       }
     }
-    
+
     // Track map state if not already doing so
     if (typeof window.map.on === 'function') {
       window.map.on('moveend', function() {
@@ -102,12 +134,12 @@ window.initializeMap = function() {
         console.log("Updated map state:", window.map._lastCenter, window.map._zoom);
       });
     }
-    
+
     // Notify that map is ready
     if (typeof window.notifyMapReady === 'function') {
       window.notifyMapReady();
     }
-    
+
     return true;
   } catch (e) {
     console.error("Error initializing map:", e);
@@ -118,11 +150,11 @@ window.initializeMap = function() {
 // Initialize the map when document is ready
 document.addEventListener('DOMContentLoaded', function() {
   console.log("Checking map initialization status on page load");
-  
+
   // Wait a short time for other scripts to load
   setTimeout(function() {
     window.initializeMap();
-    
+
     // Set up a check to periodically verify map status
     setInterval(function() {
       if (!window.isMapReady()) {
@@ -146,14 +178,14 @@ if (typeof window.QDProEditor === 'undefined') {
 // Function to initialize map correctly
 function initializeMap() {
   console.log("Initializing map...");
-  
+
   // Check if map container exists
   const mapContainer = document.getElementById('map');
   if (!mapContainer) {
     console.error('Map container not found');
     return;
   }
-  
+
   // Create map if it doesn't exist
   if (!window.map) {
     try {
@@ -163,19 +195,19 @@ function initializeMap() {
         zoom: 4,
         maxZoom: 19
       });
-      
+
       // Store initial values
       window.map._lastCenter = window.map.getCenter();
       window.map._zoom = window.map.getZoom();
-      
+
       // Add a default tile layer if none exists
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
       }).addTo(window.map);
-      
+
       console.log("Map initialized successfully");
-      
+
       // Store center and zoom whenever they change
       window.map.on('moveend', function() {
         window.map._lastCenter = window.map.getCenter();
@@ -185,22 +217,22 @@ function initializeMap() {
       console.error("Error initializing map:", error);
     }
   }
-  
+
   return window.map;
 }
 
 // Initialize on document load
 document.addEventListener('DOMContentLoaded', function() {
   console.log("Document loaded, initializing map...");
-  
+
   // Try to initialize map
   const map = initializeMap();
-  
+
   if (map) {
     console.log("Map initialized successfully in DOMContentLoaded");
   } else {
     console.warn("Map initialization failed in DOMContentLoaded");
-    
+
     // Retry after a delay
     setTimeout(initializeMap, 1000);
   }
@@ -216,7 +248,7 @@ window.initializeMap = initializeMap;
 
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Map initializer script loaded');
-  
+
   // Check if the map container exists
   const mapContainer = document.getElementById('map');
   if (!mapContainer) {
@@ -224,14 +256,14 @@ document.addEventListener('DOMContentLoaded', function() {
     showErrorNotification('Map container not found', 'DOM error', 0);
     return;
   }
-  
+
   // Make sure Leaflet is loaded
   if (typeof L === 'undefined') {
     console.error('Leaflet library not loaded. Check script inclusion order.');
     showErrorNotification('Leaflet library not loaded', 'Script error', 0);
     return;
   }
-  
+
   // Initialize map error handlers
   setupMapErrorHandlers();
 });
@@ -240,29 +272,29 @@ function setupMapErrorHandlers() {
   // Override Leaflet's error handling for tile loading
   if (L && L.TileLayer) {
     const originalOnError = L.TileLayer.prototype._tileOnError;
-    
+
     L.TileLayer.prototype._tileOnError = function(done, tile, e) {
       console.warn('Tile load error:', e);
-      
+
       // Try to fall back to OpenStreetMap if another provider fails
       if (this._url && !this._url.includes('openstreetmap')) {
         console.log('Attempting to fall back to OpenStreetMap tiles');
-        
+
         // Only attempt fallback once to prevent loops
         if (!this._hasAttemptedFallback) {
           this._hasAttemptedFallback = true;
-          
+
           // Create a fallback layer using OpenStreetMap
           const fallbackLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
           });
-          
+
           // If this tile layer is attached to a map, add the fallback
           if (this._map) {
             this._map.removeLayer(this);
             fallbackLayer.addTo(this._map);
-            
+
             // Show a notification about the fallback
             if (typeof showErrorNotification === 'function') {
               showErrorNotification('Map tile provider error - switched to OpenStreetMap', 'Map error', 0);
@@ -270,12 +302,12 @@ function setupMapErrorHandlers() {
           }
         }
       }
-      
+
       // Call the original error handler
       return originalOnError.call(this, done, tile, e);
     };
   }
-  
+
   /**
  * QDPro Map Initializer
  * Handles map initialization and common error recovery
@@ -288,13 +320,13 @@ function initializeMapErrorHandling() {
     const checkForDrawErrors = function() {
       const mapInstance = window.QDPro && window.QDPro.map;
       if (!mapInstance) return;
-      
+
       // Check if there are any phantom drawing modes active
       for (const type in L.Draw.Event.CREATED) {
         const drawControl = mapInstance._toolbars && mapInstance._toolbars[type.toLowerCase()];
         if (drawControl && drawControl._active) {
           console.warn('Found active drawing mode that might be stuck:', type);
-          
+
           // Try to deactivate it
           try {
             drawControl.disable();
@@ -304,7 +336,7 @@ function initializeMapErrorHandling() {
         }
       }
     };
-    
+
     // Run this check periodically
     setInterval(checkForDrawErrors, 30000);
   }
@@ -323,9 +355,9 @@ function showErrorNotification(message, source, line) {
   if (window.showErrorNotification) {
     return window.showErrorNotification(message, source, line);
   }
-  
+
   console.error(`${source} (${line}): ${message}`);
-  
+
   // Create a simple notification
   const notification = document.createElement('div');
   notification.style.position = 'fixed';
@@ -338,7 +370,7 @@ function showErrorNotification(message, source, line) {
   notification.style.zIndex = '10000';
   notification.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
   notification.innerHTML = `<strong>Error:</strong> ${message}`;
-  
+
   // Add a close button
   const closeBtn = document.createElement('span');
   closeBtn.innerHTML = '&times;';
@@ -349,10 +381,10 @@ function showErrorNotification(message, source, line) {
   closeBtn.onclick = function() {
     document.body.removeChild(notification);
   };
-  
+
   notification.appendChild(closeBtn);
   document.body.appendChild(notification);
-  
+
   // Auto-hide after 8 seconds
   setTimeout(function() {
     if (notification.parentNode) {
@@ -380,13 +412,13 @@ function initializeMap() {
     console.error('Map container not found!');
     return;
   }
-  
+
   // Check if map is already initialized
   if (window.map) {
     console.log('Map already initialized');
     return;
   }
-  
+
   try {
     // Initialize the map with a default view
     window.map = L.map('map', {
@@ -394,45 +426,45 @@ function initializeMap() {
       zoom: 5,
       zoomControl: true
     });
-    
+
     // Add base layers
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       crossOrigin: "anonymous"
     });
-    
+
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
       crossOrigin: "anonymous"
     });
-    
+
     // Add layers to map
     osmLayer.addTo(window.map);
-    
+
     // Setup base layers control
     const baseLayers = {
       "Street Map": osmLayer,
       "Satellite": satelliteLayer
     };
-    
+
     // Create overlay layers object for features
     window.overlayLayers = {
       "Features": new L.FeatureGroup()
     };
-    
+
     // Add overlay layers to map
     window.overlayLayers.Features.addTo(window.map);
-    
+
     // Setup layer control
     L.control.layers(baseLayers, window.overlayLayers).addTo(window.map);
-    
+
     // Initialize draw controls if available
     if (L.Control.Draw) {
       initializeDrawControls();
     }
-    
+
     console.log('Map initialized successfully');
-    
+
     // Dispatch event that map is ready
     document.dispatchEvent(new Event('map-initialized'));
   } catch (error) {
@@ -472,15 +504,15 @@ function initializeDrawControls() {
       featureGroup: window.overlayLayers.Features
     }
   };
-  
+
   // Add draw control to map
   window.drawControl = new L.Control.Draw(drawOptions);
   window.map.addControl(window.drawControl);
-  
+
   // Setup draw events
   window.map.on(L.Draw.Event.CREATED, function(event) {
     const layer = event.layer;
-    
+
     // Add default properties
     layer.feature = {
       type: 'Feature',
@@ -491,10 +523,10 @@ function initializeDrawControls() {
         description: ''
       }
     };
-    
+
     // Add layer to feature group
     window.overlayLayers.Features.addLayer(layer);
-    
+
     // Open edit popup for new feature
     if (typeof openEditPopup === 'function') {
       openEditPopup(layer);
