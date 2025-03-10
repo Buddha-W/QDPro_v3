@@ -4,381 +4,356 @@
 <head>
     <title>QDPro Site Plan</title>
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- Leaflet Draw CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" crossorigin=""/>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="/static/css/modal.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/modal.css" />
     <style>
         body, html {
-            height: 100%;
             margin: 0;
             padding: 0;
+            height: 100%;
             font-family: Arial, sans-serif;
         }
-        .container-fluid {
-            height: 100%;
-            padding: 0;
+        
+        #container {
+            display: flex;
+            height: 100vh;
         }
+        
+        #menu-bar {
+            width: 100%;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .menu-item {
+            cursor: pointer;
+            margin-right: 15px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .menu-item:hover .dropdown-content {
+            display: block;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+        
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+        
+        #sidebar {
+            width: 250px;
+            background-color: #f5f5f5;
+            padding: 10px;
+            height: calc(100vh - 20px);
+            overflow-y: auto;
+            margin-top: 50px;
+        }
+        
+        #map-container {
+            flex: 1;
+            height: calc(100vh - 50px);
+            margin-top: 50px;
+        }
+        
         #map {
             height: 100%;
             width: 100%;
         }
-        .controls-panel {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            z-index: 1000;
-            background-color: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        
+        .tool-section {
+            margin-bottom: 20px;
         }
-        .layers-panel {
-            position: absolute;
-            top: 10px;
-            right: 60px;
-            z-index: 1000;
-            background-color: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            min-width: 200px;
-        }
-        .panel-header {
-            font-weight: bold;
-            margin-bottom: 5px;
-            border-bottom: 1px solid #ddd;
+        
+        .tool-section h3 {
+            margin-top: 0;
             padding-bottom: 5px;
-        }
-        .tool-button {
-            margin-bottom: 5px;
-            width: 100%;
-        }
-        .dropdown-menu {
-            min-width: 200px;
-        }
-        .menu-bar {
-            background-color: #f8f9fa;
-            padding: 5px;
             border-bottom: 1px solid #ddd;
         }
-        .menu-item {
+        
+        .tool-button {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 5px;
+            background-color: #e0e0e0;
+            border: none;
+            border-radius: 4px;
             cursor: pointer;
-            margin-right: 15px;
-            display: inline-block;
+            text-align: left;
         }
-        .menu-item:hover {
-            text-decoration: underline;
+        
+        .tool-button:hover {
+            background-color: #d0d0d0;
         }
-        #feature-properties-container {
-            margin-top: 10px;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
         }
-        #draw-controls {
-            margin-top: 10px;
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
         }
-        .form-group {
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+        
+        .layer-item {
+            padding: 5px;
+            margin-bottom: 2px;
+            background-color: #e8e8e8;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .layer-controls {
+            display: flex;
+        }
+        
+        .layer-control-btn {
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 5px;
+            background-color: #d0d0d0;
+            border-radius: 3px;
+        }
+        
+        /* Additional styles for the facility edit popup */
+        .edit-popup {
+            padding: 10px;
+        }
+        
+        .edit-popup h3 {
+            margin-top: 0;
             margin-bottom: 10px;
         }
-        .form-select {
-            width: 100%;
+        
+        .edit-popup label {
+            display: block;
+            margin-top: 5px;
         }
-        .marker-label {
-            background-color: white;
-            border: 1px solid #ccc;
+        
+        .edit-popup input,
+        .edit-popup textarea,
+        .edit-popup select {
+            width: 100%;
             padding: 5px;
+            margin-bottom: 5px;
+            box-sizing: border-box;
+        }
+        
+        .edit-popup button {
+            padding: 5px 10px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
             border-radius: 3px;
-            white-space: nowrap;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        /* Checkbox label styling */
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .checkbox-label input[type="checkbox"] {
+            margin-right: 5px;
+            width: auto;
         }
     </style>
 </head>
 <body>
-    <div class="menu-bar">
-        <div class="menu-item" onclick="showModal('fileMenu')">File</div>
-        <div class="menu-item" onclick="showModal('editMenu')">Edit</div>
-        <div class="menu-item" onclick="showModal('viewMenu')">View</div>
-        <div class="menu-item" onclick="showModal('toolsMenu')">Tools</div>
-        <div class="menu-item" onclick="showModal('helpMenu')">Help</div>
-    </div>
-
-    <div class="container-fluid">
-        <div id="map"></div>
-        
-        <!-- Controls Panel -->
-        <div class="controls-panel">
-            <div class="panel-header">Drawing Tools</div>
-            <button class="btn btn-sm btn-outline-primary tool-button" id="polygon-tool">Polygon</button>
-            <button class="btn btn-sm btn-outline-primary tool-button" id="rectangle-tool">Rectangle</button>
-            <button class="btn btn-sm btn-outline-primary tool-button" id="circle-tool">Circle</button>
-            <button class="btn btn-sm btn-outline-primary tool-button" id="marker-tool">Marker</button>
-            <button class="btn btn-sm btn-outline-danger tool-button" id="delete-tool">Delete</button>
-            <button class="btn btn-sm btn-outline-secondary tool-button" id="edit-tool">Edit</button>
-            
-            <div id="draw-controls">
-                <div class="form-group">
-                    <label for="draw-to-layer">Draw to Layer:</label>
-                    <select class="form-select form-select-sm" id="draw-to-layer">
-                        <option value="default">Default Layer</option>
-                    </select>
+    <!-- Menu Bar -->
+    <div id="menu-bar">
+        <div>
+            <div class="menu-item">
+                File
+                <div class="dropdown-content">
+                    <a href="#" id="newProjectBtn">New</a>
+                    <a href="#" id="openProjectBtn">Open</a>
+                    <a href="#" id="saveProjectBtn">Save</a>
+                    <a href="#" id="exportBtn">Export</a>
                 </div>
-                <button class="btn btn-sm btn-outline-success tool-button" id="new-layer-btn">New Layer</button>
+            </div>
+            <div class="menu-item">
+                Edit
+                <div class="dropdown-content">
+                    <a href="#" id="undoBtn">Undo</a>
+                    <a href="#" id="redoBtn">Redo</a>
+                    <a href="#" id="deleteSelectedBtn">Delete Selected</a>
+                </div>
+            </div>
+            <div class="menu-item">
+                View
+                <div class="dropdown-content">
+                    <a href="#" id="showAllLayersBtn">Show All Layers</a>
+                    <a href="#" id="hideAllLayersBtn">Hide All Layers</a>
+                </div>
+            </div>
+            <div class="menu-item">
+                Tools
+                <div class="dropdown-content">
+                    <a href="#" id="qdCalculationBtn">QD Calculation</a>
+                    <a href="#" id="reportGeneratorBtn">Report Generator</a>
+                </div>
+            </div>
+            <div class="menu-item">
+                Help
+                <div class="dropdown-content">
+                    <a href="#" id="userGuideBtn">User Guide</a>
+                    <a href="#" id="aboutBtn">About</a>
+                </div>
             </div>
         </div>
-        
-        <!-- Layers Panel -->
-        <div class="layers-panel">
-            <div class="panel-header">Layers</div>
-            <div id="layer-controls">
-                <!-- Layers will be populated here -->
-            </div>
-            <div id="base-layers-control">
-                <!-- Base layers will be populated here -->
-            </div>
+        <div>
+            <span id="status-bar">Ready</span>
         </div>
     </div>
     
-    <!-- Feature Properties Modal -->
-    <div id="featurePropertiesModal" class="modal">
+    <div id="container">
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <div class="tool-section">
+                <h3>Layers</h3>
+                <button id="newLayerBtn" class="tool-button">Create New Layer</button>
+                <div id="layerList">
+                    <!-- Layer items will be populated here -->
+                </div>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Draw To Layer</h3>
+                <select id="drawToLayerSelect" class="tool-button">
+                    <option value="drawnItems">Default Layer</option>
+                </select>
+            </div>
+            
+            <div class="tool-section">
+                <h3>Analysis Tools</h3>
+                <button id="calculateQDBtn" class="tool-button">Quantity Distance</button>
+                <button id="generateReportBtn" class="tool-button">Generate Report</button>
+            </div>
+        </div>
+        
+        <!-- Map Container -->
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <!-- New Layer Dialog -->
+    <div id="newLayerDialog" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Feature Properties</h3>
-            <form id="feature-properties-form">
-                <div class="form-group">
-                    <label for="feature-name">Name:</label>
-                    <input type="text" class="form-control" id="feature-name" placeholder="Enter feature name">
-                </div>
-                <div class="form-group">
-                    <label for="feature-description">Description:</label>
-                    <textarea class="form-control" id="feature-description" rows="3" placeholder="Enter description"></textarea>
-                </div>
-                <button type="button" class="btn btn-primary" onclick="saveFeatureProperties()">Save</button>
-                <button type="button" class="btn btn-secondary" onclick="closeFeatureEditor()">Cancel</button>
+            <span id="closeNewLayerBtn" class="close">&times;</span>
+            <h2>Create New Layer</h2>
+            <form id="newLayerForm">
+                <label for="newLayerName">Layer Name:</label>
+                <input type="text" id="newLayerName" required>
+                
+                <label for="newLayerColor">Layer Color:</label>
+                <input type="color" id="newLayerColor" value="#3388ff">
+                
+                <button type="submit">Create Layer</button>
             </form>
         </div>
     </div>
     
-    <!-- File Menu Modal -->
-    <div id="fileMenu" class="modal">
+    <!-- Facility Properties Dialog -->
+    <div id="facilityPropertiesDialog" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>File Menu</h3>
-            <button class="btn btn-outline-primary w-100 mb-2" onclick="showNewProjectModal()">New</button>
-            <button class="btn btn-outline-primary w-100 mb-2" onclick="loadProject()">Open</button>
-            <button class="btn btn-outline-primary w-100 mb-2" onclick="saveProject()">Save</button>
-            <button class="btn btn-outline-primary w-100 mb-2" onclick="exportProject()">Export</button>
-            <button class="btn btn-outline-primary w-100 mb-2" onclick="closeModal('fileMenu')">Close</button>
+            <span id="closeFacilityPropertiesBtn" class="close">&times;</span>
+            <h2>Facility Properties</h2>
+            <form id="facilityPropertiesForm">
+                <label for="facilityName">Name:</label>
+                <input type="text" id="facilityName" required>
+                
+                <label for="facilityDescription">Description:</label>
+                <textarea id="facilityDescription"></textarea>
+                
+                <label for="facilityType">Facility Type:</label>
+                <select id="facilityType">
+                    <option value="PES">PES (Potential Explosion Site)</option>
+                    <option value="ES">ES (Exposed Site)</option>
+                </select>
+                
+                <label for="newValue">Net Explosive Weight (lbs):</label>
+                <input type="number" id="newValue" min="0">
+                
+                <label for="hdValue">Hazard Division:</label>
+                <select id="hdValue">
+                    <option value="1.1">1.1 - Mass Explosion</option>
+                    <option value="1.2">1.2 - Projection but not Mass Explosion</option>
+                    <option value="1.3">1.3 - Fire and Minor Blast</option>
+                    <option value="1.4">1.4 - No Significant Hazard</option>
+                </select>
+                
+                <button type="submit">Save</button>
+            </form>
         </div>
     </div>
-
-    <!-- New Project Modal -->
-    <div id="newProjectModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>Create New Project</h3>
-            <div class="form-group">
-                <label for="new-project-name">Project Name:</label>
-                <input type="text" class="form-control" id="new-project-name" placeholder="Enter project name">
-            </div>
-            <div class="form-group">
-                <label for="new-project-description">Description:</label>
-                <textarea class="form-control" id="new-project-description" rows="3" placeholder="Enter description"></textarea>
-            </div>
-            <button type="button" class="btn btn-primary" onclick="createNewProject()">Create</button>
-            <button type="button" class="btn btn-secondary" onclick="closeModal('newProjectModal')">Cancel</button>
-        </div>
-    </div>
-
-    <!-- Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <!-- Leaflet Draw JavaScript -->
-    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js" crossorigin=""></script>
-    <!-- Bootstrap JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom JavaScript -->
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Draw JS -->
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <!-- Custom JS -->
+    <script src="/static/js/error-detector.js"></script>
     <script src="/static/js/map-initialize.js"></script>
     <script src="/static/js/feature-editor-initialize.js"></script>
     <script src="/static/js/ui-controls.js"></script>
-    <script src="/static/js/error-detector.js"></script>
-    
-    <script>
-        // Global variables
-        window.drawnItems = new L.FeatureGroup();
-        window.activeLayer = null;
-        window.featureEditor = {
-            activeFeature: null
-        };
-    
-        // Show modal function
-        function showModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.style.display = "block";
-            }
-        }
-        
-        // Close modal function
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if (modal) {
-                modal.style.display = "none";
-            }
-        }
-        
-        // Add event listeners to close buttons
-        document.querySelectorAll('.close').forEach(closeBtn => {
-            closeBtn.addEventListener('click', function() {
-                this.closest('.modal').style.display = 'none';
-            });
-        });
-        
-        // Close modal when clicking outside
-        window.addEventListener('click', function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        });
-        
-        // Show New Project Modal
-        function showNewProjectModal() {
-            closeModal('fileMenu');
-            showModal('newProjectModal');
-        }
-        
-        // Create New Project
-        function createNewProject() {
-            const projectName = document.getElementById('new-project-name').value;
-            const projectDesc = document.getElementById('new-project-description').value;
-            
-            if (!projectName) {
-                alert('Please enter a project name');
-                return;
-            }
-            
-            // Reset map data
-            window.drawnItems.clearLayers();
-            
-            // TODO: Add server-side project creation
-            
-            closeModal('newProjectModal');
-            alert(`New project "${projectName}" created`);
-        }
-        
-        // Save Project
-        function saveProject() {
-            // Get all layers
-            const layers = [];
-            window.drawnItems.eachLayer(function(layer) {
-                if (layer.feature) {
-                    layers.push(layer.toGeoJSON());
-                }
-            });
-            
-            // Prepare data for saving
-            const projectData = {
-                features: layers
-            };
-            
-            // Send to server
-            fetch('/api/save', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(projectData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Project saved:', data);
-                alert('Project saved successfully');
-                closeModal('fileMenu');
-            })
-            .catch(error => {
-                console.error('Error saving project:', error);
-                alert('Error saving project');
-            });
-        }
-        
-        // Load Project
-        function loadProject() {
-            console.log('Loading project...');
-            fetch('/api/load')
-            .then(response => response.json())
-            .then(data => {
-                console.log('Project loaded:', data);
-                
-                // Clear existing layers
-                window.drawnItems.clearLayers();
-                
-                // Add features to map
-                if (data.features && data.features.length > 0) {
-                    const geoJsonLayer = L.geoJSON(data.features, {
-                        onEachFeature: function(feature, layer) {
-                            window.drawnItems.addLayer(layer);
-                            
-                            // Bind popup if properties exist
-                            if (feature.properties) {
-                                layer.bindPopup(createPopupContent(layer));
-                            }
-                            
-                            // Add click event for editing
-                            layer.on('click', function() {
-                                if (window.editMode) {
-                                    openFeatureEditor(layer);
-                                }
-                            });
-                        }
-                    });
-                    
-                    alert('Project loaded successfully');
-                } else {
-                    alert('No features found in project');
-                }
-                
-                closeModal('fileMenu');
-            })
-            .catch(error => {
-                console.error('Error loading project:', error);
-                alert('Error loading project');
-            });
-        }
-        
-        // Export Project
-        function exportProject() {
-            // Get all layers
-            const layers = [];
-            window.drawnItems.eachLayer(function(layer) {
-                if (layer.feature) {
-                    layers.push(layer.toGeoJSON());
-                }
-            });
-            
-            // Prepare data for export
-            const projectData = {
-                type: 'FeatureCollection',
-                features: layers
-            };
-            
-            // Create a blob and download link
-            const dataStr = JSON.stringify(projectData, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            
-            const link = document.createElement('a');
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'site_plan_export.json');
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            closeModal('fileMenu');
-        }
-    </script>
 </body>
 </html>

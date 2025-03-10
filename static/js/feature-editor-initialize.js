@@ -184,48 +184,6 @@ function closeFeatureEditor() {
   window.featureEditor.activeFeature = null;
 }
 
-/**
- * Load project data from the server
- */
-function loadProject() {
-  console.log('Loading project...');
-  fetch('/api/load')
-    .then(response => response.json())
-    .then(data => {
-      console.log('Project loaded:', data);
-
-      // Clear existing layers
-      window.drawnItems.clearLayers();
-
-      // Add features to map
-      if (data.features && data.features.length > 0) {
-        const geoJsonLayer = L.geoJSON(data.features, {
-          onEachFeature: function(feature, layer) {
-            window.drawnItems.addLayer(layer);
-
-            // Bind popup if properties exist
-            if (feature.properties) {
-              layer.bindPopup(createPopupContent(layer));
-            }
-
-            // Add click event for editing
-            layer.on('click', function() {
-              if (window.editMode) {
-                openFeatureEditor(layer);
-              }
-            });
-          }
-        });
-
-        console.log(`Loaded ${data.features.length} features`);
-      } else {
-        console.log('No features found in project');
-      }
-    })
-    .catch(error => {
-      console.error('Error loading project:', error);
-    });
-}
 
 function closeFacilityModal() {
   const modal = document.getElementById('facilityPropertiesModal');
@@ -235,24 +193,290 @@ function closeFacilityModal() {
   window.currentFacilityLayer = null;
 }
 
-// QDPro Feature Editor Initialization
+// Feature Editor Initialization for QDPro
 // Handles feature editing, properties, and related UI
 
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Feature editor initializer loaded');
+// Function to setup the new layer dialog
+function setupNewLayerDialog() {
+    // Get the dialog elements
+    const newLayerBtn = document.getElementById('newLayerBtn');
+    const newLayerDialog = document.getElementById('newLayerDialog');
+    const newLayerForm = document.getElementById('newLayerForm');
+    const closeNewLayerBtn = document.getElementById('closeNewLayerBtn');
 
-  // Wait for map to be initialized
-  const waitForMap = setInterval(function() {
-    if (window.map) {
-      clearInterval(waitForMap);
-      initializeFeatureEditor();
-      setupAllLayerEditHandlers(); //Call this after map is initialized
+    // If elements don't exist, return
+    if (!newLayerBtn || !newLayerDialog || !newLayerForm) {
+        console.log('New layer dialog elements not found');
+        return;
     }
-  }, 100);
 
-  // Set up event listeners for the feature editor
-  setupFeatureEditorListeners();
-});
+    // Open dialog when new layer button is clicked
+    newLayerBtn.addEventListener('click', function() {
+        newLayerDialog.style.display = 'block';
+    });
+
+    // Close dialog when close button is clicked
+    if (closeNewLayerBtn) {
+        closeNewLayerBtn.addEventListener('click', function() {
+            newLayerDialog.style.display = 'none';
+        });
+    }
+
+    // Handle form submission
+    newLayerForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Get form values
+        const layerName = document.getElementById('newLayerName').value;
+        const layerColor = document.getElementById('newLayerColor').value;
+
+        // Create new layer
+        createNewLayer(layerName, layerColor);
+
+        // Reset form and close dialog
+        newLayerForm.reset();
+        newLayerDialog.style.display = 'none';
+    });
+}
+
+// Function to create a new custom layer
+function createNewLayer(name, color) {
+    if (!name) {
+        alert('Layer name is required');
+        return;
+    }
+
+    // Check if layer already exists
+    if (window.customLayers && window.customLayers[name]) {
+        alert('A layer with this name already exists');
+        return;
+    }
+
+    // Create new feature group
+    const newLayer = new L.FeatureGroup();
+
+    // Set custom style for the layer if color is provided
+    if (color) {
+        newLayer.options = {
+            style: {
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.4
+            }
+        };
+    }
+
+    // Add to map
+    window.map.addLayer(newLayer);
+
+    // Add to custom layers
+    if (!window.customLayers) {
+        window.customLayers = {};
+    }
+    window.customLayers[name] = newLayer;
+
+    // Add to overlay controls if they exist
+    if (window.layerControl) {
+        window.layerControl.addOverlay(newLayer, name);
+    }
+
+    // Update draw-to-layer select if it exists
+    if (typeof window.updateDrawToLayerSelect === 'function') {
+        window.updateDrawToLayerSelect();
+    }
+
+    console.log(`New layer "${name}" created`);
+}
+
+// Function to save the current project
+function saveProject() {
+    console.log('Saving project...');
+
+    // Check if save function exists in map-initialize.js
+    if (typeof saveLayers === 'function') {
+        saveLayers();
+        return;
+    }
+
+    // Fallback if saveLayers function is not available
+    // Collect all layers
+    var allLayers = [];
+
+    // Process drawn items
+    window.drawnItems.eachLayer(function(layer) {
+        if (layer.toGeoJSON) {
+            allLayers.push({
+                geometry: layer.toGeoJSON().geometry,
+                properties: layer.properties || {},
+                layerType: 'drawnItems'
+            });
+        }
+    });
+
+    // Process ESQD arcs if they exist
+    if (window.esqdArcs) {
+        window.esqdArcs.eachLayer(function(layer) {
+            if (layer.toGeoJSON) {
+                allLayers.push({
+                    geometry: layer.toGeoJSON().geometry,
+                    properties: layer.properties || {},
+                    layerType: 'esqdArc'
+                });
+            }
+        });
+    }
+
+    // Process custom layers
+    var customLayersData = {};
+    if (window.customLayers) {
+        for (var layerName in window.customLayers) {
+            customLayersData[layerName] = true;
+            window.customLayers[layerName].eachLayer(function(layer) {
+                if (layer.toGeoJSON) {
+                    allLayers.push({
+                        geometry: layer.toGeoJSON().geometry,
+                        properties: layer.properties || {},
+                        layerType: 'custom',
+                        customLayerName: layerName
+                    });
+                }
+            });
+        }
+    }
+
+    // Send data to server
+    fetch('/api/save', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            layers: allLayers,
+            customLayers: customLayersData
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Project saved:', data);
+        if (data.status === 'success') {
+            alert('Project saved successfully');
+        } else {
+            alert('Error saving project: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving project:', error);
+        alert('Error saving project: ' + error.message);
+    });
+}
+
+function loadProject() {
+    console.log('Loading project...');
+    fetch('/api/load')
+    .then(response => response.json())
+    .then(data => {
+        console.log('Project loaded:', data);
+
+        // Check if load function exists in map-initialize.js
+        if (typeof loadLayers === 'function') {
+            loadLayers();
+            return;
+        }
+
+        // Fallback if loadLayers function is not available
+        if (data.layers) {
+            // Clear existing layers
+            window.drawnItems.clearLayers();
+            if (window.esqdArcs) window.esqdArcs.clearLayers();
+
+            // Recreate custom layers if they exist in the data
+            if (data.customLayers) {
+                for (var layerName in data.customLayers) {
+                    if (!window.customLayers[layerName]) {
+                        window.customLayers[layerName] = new L.FeatureGroup();
+                        window.map.addLayer(window.customLayers[layerName]);
+                    } else {
+                        window.customLayers[layerName].clearLayers();
+                    }
+                }
+            }
+
+            // Add layers from the data
+            data.layers.forEach(layerData => {
+                try {
+                    var geoJson = L.geoJSON(layerData.geometry);
+                    geoJson.eachLayer(function(layer) {
+                        // Set properties
+                        layer.properties = layerData.properties;
+
+                        // Add to appropriate layer
+                        if (layerData.layerType === 'esqdArc' && window.esqdArcs) {
+                            window.esqdArcs.addLayer(layer);
+                        } else if (layerData.customLayerName && window.customLayers[layerData.customLayerName]) {
+                            window.customLayers[layerData.customLayerName].addLayer(layer);
+                        } else {
+                            window.drawnItems.addLayer(layer);
+                        }
+
+                        // Store in layer store if it exists
+                        if (window.layerStore) {
+                            var layerId = L.Util.stamp(layer);
+                            window.layerStore[layerId] = layer;
+                        }
+
+                        // Bind popup if it's a facility and the function exists
+                        if (layer.properties.facility_type && typeof window.openFacilityEditPopup === 'function') {
+                            layer.on('click', function() {
+                                window.openFacilityEditPopup(layer);
+                            });
+                        }
+                    });
+                } catch (e) {
+                    console.error('Error processing layer:', e);
+                }
+            });
+
+            // Update the draw-to-layer select if it exists
+            if (typeof window.updateDrawToLayerSelect === 'function') {
+                window.updateDrawToLayerSelect();
+            }
+
+            // Trigger QD calculations if necessary
+            if (typeof calculateQD === 'function') {
+                calculateQD();
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error loading project:', error);
+    });
+}
+
+/**
+ * Load project data from the server
+ */
+
+
+function createPopupContent(layer) {
+  // This function needs to be implemented based on your actual popup content requirements
+  return "Popup content for layer: " + layer.feature.properties.name;
+}
+
+// Make functions available globally
+window.initializeFeatureEditor = initializeFeatureEditor;
+window.openFeatureEditor = openFeatureEditor;
+window.saveFeatureProperties = saveFeatureProperties;
+window.closeFeatureEditor = closeFeatureEditor;
+window.loadProject = loadProject;
+window.saveProject = saveProject;
+window.addLayerClickHandlers = addLayerClickHandlers;
+window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
+window.setupFeatureEditorListeners = setupFeatureEditorListeners;
+window.setupEventHandlers = setupEventHandlers;
+window.closeFacilityModal = closeFacilityModal;
+window.createNewLayer = createNewLayer;
+window.setupNewLayerDialog = setupNewLayerDialog;
+
 
 /**
  * Set up event listeners for the feature editor UI
@@ -288,103 +512,34 @@ function setupAllLayerEditHandlers() {
   console.log('All layer edit handlers set up');
 }
 
-function saveProject() {
-  console.log('Saving project...');
 
-  // Collect GeoJSON for all layers
-  const layers = [];
-
-  if (window.drawnItems) {
-    window.drawnItems.eachLayer(function(layer) {
-      if (layer.toGeoJSON) {
-        layers.push(layer.toGeoJSON());
-      }
-    });
-  }
-
-  // Create data object
-  const data = {
-    layers: layers,
-    metadata: {
-      name: 'My Project',
-      created: new Date().toISOString(),
-      version: '1.0'
+function initializeUIControls() {
+    // Setup Save button
+    const saveBtn = document.getElementById('saveProjectBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveProject);
     }
-  };
 
-  // Send data to server
-  fetch('/api/save', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      return response.json();
-    })
-    .then(result => {
-      console.log('Project saved:', result);
-      alert('Project saved successfully!');
-    })
-    .catch(error => {
-      console.error('Error saving project:', error);
-      alert('Error saving project: ' + error.message);
-    });
+    // Setup Load button
+    const loadBtn = document.getElementById('loadProjectBtn');
+    if (loadBtn) {
+        loadBtn.addEventListener('click', loadProject);
+    }
 }
 
-
-function createPopupContent(layer) {
-  // This function needs to be implemented based on your actual popup content requirements
-  return "Popup content for layer: " + layer.feature.properties.name;
+// Call initialization functions
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initializeUIControls();
+} else {
+    document.addEventListener('DOMContentLoaded', initializeUIControls);
 }
 
-// Make functions available globally
-window.initializeFeatureEditor = initializeFeatureEditor;
-window.openFeatureEditor = openFeatureEditor;
-window.saveFeatureProperties = saveFeatureProperties;
-window.closeFeatureEditor = closeFeatureEditor;
-window.loadProject = loadProject;
-window.saveProject = saveProject;
-window.addLayerClickHandlers = addLayerClickHandlers;
-window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
-window.setupFeatureEditorListeners = setupFeatureEditorListeners;
-window.setupEventHandlers = setupEventHandlers;
-window.closeFacilityModal = closeFacilityModal;
-
-
-/**
- * Create a new layer for drawing
- */
-function createNewLayer() {
-  const layerName = prompt('Enter layer name:');
-  if (!layerName) return;
-
-  // Add to layer select dropdown
-  const layerSelect = document.getElementById('draw-to-layer');
-  const option = document.createElement('option');
-  option.value = layerName;
-  option.text = layerName;
-  layerSelect.add(option);
-
-  // Select the new layer
-  layerSelect.value = layerName;
-
-  // Create a new feature group for this layer
-  window.layers = window.layers || {};
-  window.layers[layerName] = new L.FeatureGroup();
-  window.map.addLayer(window.layers[layerName]);
-
-  console.log(`Created new layer: ${layerName}`);
-}
-
-// Add event listener for the new layer button
 document.addEventListener('DOMContentLoaded', function() {
-  const newLayerBtn = document.getElementById('new-layer-btn');
-  if (newLayerBtn) {
-    newLayerBtn.addEventListener('click', createNewLayer);
-  }
+    console.log('Feature editor initialization script loaded');
+
+    // Setup New Layer functionality
+    setupNewLayerDialog();
+
+    // Load existing project data
+    loadProject();
 });
