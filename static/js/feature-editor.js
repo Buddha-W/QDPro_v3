@@ -28,15 +28,125 @@ window.openFeatureEditor = function(layerData) {
     console.error("No layer data provided to openFeatureEditor");
     return;
   }
-
-  // Get the modal
-  const modal = document.getElementById('featurePropertiesModal');
+  
+  // Create the modal if it doesn't exist
+  let modal = document.getElementById('featurePropertiesModal');
   if (!modal) {
-    console.error("Feature properties modal not found");
-    alert("Cannot edit feature: Modal not found");
-    return;
+    console.log("Creating feature properties modal");
+    modal = document.createElement('div');
+    modal.id = 'featurePropertiesModal';
+    modal.className = 'modal';
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    
+    // Create header
+    const modalHeader = document.createElement('div');
+    modalHeader.className = 'modal-header';
+    
+    const modalTitle = document.createElement('h2');
+    modalTitle.textContent = 'Feature Properties';
+    
+    const closeBtn = document.createElement('span');
+    closeBtn.id = 'closeFeaturePropertiesBtn';
+    closeBtn.className = 'close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.setAttribute('onclick', 'closeFeaturePropertiesModal()');
+    
+    modalHeader.appendChild(modalTitle);
+    modalHeader.appendChild(closeBtn);
+    
+    // Create body
+    const modalBody = document.createElement('div');
+    modalBody.className = 'modal-body';
+    
+    // Create form
+    const form = document.createElement('form');
+    form.id = 'featurePropertiesForm';
+    
+    // Name field
+    const nameGroup = document.createElement('div');
+    nameGroup.className = 'form-group';
+    
+    const nameLabel = document.createElement('label');
+    nameLabel.setAttribute('for', 'name');
+    nameLabel.textContent = 'Name:';
+    
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.id = 'name';
+    nameInput.name = 'name';
+    
+    nameGroup.appendChild(nameLabel);
+    nameGroup.appendChild(nameInput);
+    
+    // Is facility field
+    const facilityGroup = document.createElement('div');
+    facilityGroup.className = 'form-group';
+    
+    const facilityLabel = document.createElement('label');
+    facilityLabel.setAttribute('for', 'is_facility');
+    facilityLabel.textContent = 'Is Facility:';
+    
+    const facilityInput = document.createElement('input');
+    facilityInput.type = 'checkbox';
+    facilityInput.id = 'is_facility';
+    facilityInput.name = 'is_facility';
+    
+    facilityGroup.appendChild(facilityLabel);
+    facilityGroup.appendChild(facilityInput);
+    
+    // Has explosive field
+    const explosiveGroup = document.createElement('div');
+    explosiveGroup.className = 'form-group';
+    
+    const explosiveLabel = document.createElement('label');
+    explosiveLabel.setAttribute('for', 'has_explosive');
+    explosiveLabel.textContent = 'Has Explosive:';
+    
+    const explosiveInput = document.createElement('input');
+    explosiveInput.type = 'checkbox';
+    explosiveInput.id = 'has_explosive';
+    explosiveInput.name = 'has_explosive';
+    explosiveInput.setAttribute('onchange', 'toggleExplosiveSection()');
+    
+    explosiveGroup.appendChild(explosiveLabel);
+    explosiveGroup.appendChild(explosiveInput);
+    
+    // Explosive section
+    const explosiveSection = document.createElement('div');
+    explosiveSection.id = 'explosiveSection';
+    explosiveSection.style.display = 'none';
+    
+    // Save button
+    const buttonGroup = document.createElement('div');
+    buttonGroup.className = 'form-group button-group';
+    
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.textContent = 'Save';
+    saveButton.className = 'save-btn';
+    saveButton.setAttribute('onclick', 'saveFeatureProperties()');
+    
+    buttonGroup.appendChild(saveButton);
+    
+    // Add all to form
+    form.appendChild(nameGroup);
+    form.appendChild(facilityGroup);
+    form.appendChild(explosiveGroup);
+    form.appendChild(explosiveSection);
+    form.appendChild(buttonGroup);
+    
+    modalBody.appendChild(form);
+    
+    modalContent.appendChild(modalHeader);
+    modalContent.appendChild(modalBody);
+    
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
   }
-
+  
   // Populate the form fields with the layer's properties
   const nameField = document.getElementById('name');
   if (nameField) {
@@ -389,3 +499,14 @@ window.saveProject = saveProject;
 
 
 console.log("Feature editor module loaded");
+/**
+ * Toggle the explosive section based on the checkbox state
+ */
+function toggleExplosiveSection() {
+  const hasExplosive = document.getElementById('has_explosive');
+  const explosiveSection = document.getElementById('explosiveSection');
+  
+  if (explosiveSection) {
+    explosiveSection.style.display = hasExplosive && hasExplosive.checked ? 'block' : 'none';
+  }
+}
