@@ -6,62 +6,135 @@
 // Global handler for edit button clicks to ensure first-click response
 function handleEditButtonClick(button) {
   console.log("Edit button clicked via direct onclick handler");
-
-  // Find the popup and associated layer
-  const popup = button.closest('.leaflet-popup');
-  if (popup && popup._source) {
+  
+  try {
+    // Find the popup and associated layer
+    const popup = button.closest('.leaflet-popup');
+    if (!popup) {
+      console.warn("No popup found for edit button");
+      return false;
+    }
+    
+    if (!popup._source) {
+      console.warn("No source layer found for popup");
+      return false;
+    }
+    
     const layer = popup._source;
+    console.log("Found layer for edit button:", layer._leaflet_id || "unknown id");
 
-    // Store layer globally for immediate access
+    // Store layer globally for immediate access with safeguards
     window.activeEditingLayer = layer;
     window.lastClickedLayer = layer;
+    
+    // Add a timestamp to track when this layer was selected for editing
+    layer._editTimestamp = Date.now();
 
     // Check if editor is currently open and force close it first
     if (window.QDProEditor && window.QDProEditor.isEditorOpen) {
-      window.QDProEditor.closeFeatureEditor();
+      try {
+        window.QDProEditor.closeFeatureEditor();
+      } catch (closeError) {
+        console.warn("Error closing feature editor:", closeError);
+      }
 
       // Use a short delay to ensure clean state before opening new editor
       setTimeout(function() {
         openEditorForLayer(layer);
-      }, 50);
+      }, 100); // Slightly longer delay for more reliability
     } else {
       openEditorForLayer(layer);
     }
+  } catch (err) {
+    console.error("Error in handleEditButtonClick:", err);
   }
 
   return false;
 }
 
-// Helper function to open editor for a layer
+// Helper function to open editor for a layer with additional error handling
 function openEditorForLayer(layer) {
-  // Close popup if it exists
-  if (layer.closePopup) {
-    layer.closePopup();
+  if (!layer) {
+    console.error("Cannot open editor: layer is undefined");
+    return;
   }
+  
+  try {
+    // Close popup if it exists
+    if (layer.closePopup) {
+      layer.closePopup();
+    }
 
-  // Force close any popups on the map
-  if (window.map) {
-    window.map.closePopup();
-  }
+    // Force close any popups on the map
+    if (window.map) {
+      window.map.closePopup();
+      
+      // Remove any lingering popup DOM elements
+      document.querySelectorAll('.leaflet-popup').forEach(popup => {
+        popup.remove();
+      });
+    }
 
-  // Select the right editor function
-  if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-    window.QDProEditor.openFeatureEditor(layer);
-  } else if (typeof window.openFeatureEditor === 'function') {
-    window.openFeatureEditor(layer);
-  } else if (typeof openFeatureEditor === 'function') {
-    openFeatureEditor(layer);
-  } else {
-    console.error("Feature editor function not found in global handler!");
-    alert("Error: Could not open editor. Please refresh the page.");
+    console.log("Opening editor for layer:", layer._leaflet_id || "unknown");
+    
+    // Select the right editor function with more detailed logging
+    if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
+      console.log("Using QDProEditor.openFeatureEditor");
+      window.QDProEditor.openFeatureEditor(layer);
+    } else if (typeof window.openFeatureEditor === 'function') {
+      console.log("Using window.openFeatureEditor");
+      window.openFeatureEditor(layer);
+    } else if (typeof openFeatureEditor === 'function') {
+      console.log("Using local openFeatureEditor");
+      openFeatureEditor(layer);
+    } else {
+      console.error("Feature editor function not found! Available global functions:", 
+                   Object.keys(window).filter(k => typeof window[k] === 'function').join(', '));
+      
+      // Last resort - try to use the modal directly
+      const modal = document.getElementById('featurePropertiesModal');
+      if (modal) {
+        console.log("Attempting to open modal directly as fallback");
+        modal.style.display = 'block';
+      } else {
+        alert("Error: Could not open editor. Please refresh the page.");
+      }
+    }
+  } catch (err) {
+    console.error("Error in openEditorForLayer:", err);
   }
 }
 
-// Create a global document-level handler for edit buttons
+// Create a global document-level handler for edit buttons with improved reliability
 document.addEventListener('click', function(e) {
-  if (e.target && e.target.classList.contains('edit-properties-btn')) {
+  // Check for both the button itself and any child elements (like icons)
+  if (e.target && (e.target.classList.contains('edit-properties-btn') || 
+                  (e.target.parentElement && e.target.parentElement.classList.contains('edit-properties-btn')))) {
     console.log("Edit button clicked via global document handler");
-    handleEditButtonClick(e.target);
+    
+    // Get the actual button element
+    const button = e.target.classList.contains('edit-properties-btn') ? 
+                  e.target : e.target.parentElement;
+    
+    // Prevent multiple rapid clicks
+    if (button.getAttribute('data-processing') === 'true') {
+      console.log("Ignoring duplicate click on edit button");
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+    
+    // Mark button as being processed
+    button.setAttribute('data-processing', 'true');
+    
+    // Process the click
+    handleEditButtonClick(button);
+    
+    // Reset processing state after a delay
+    setTimeout(() => {
+      button.removeAttribute('data-processing');
+    }, 500);
+    
     e.preventDefault();
     e.stopPropagation();
     return false;
