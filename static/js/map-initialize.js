@@ -204,13 +204,10 @@ function loadProject() {
         L.DomEvent.preventDefault(e.originalEvent);
       }
       
-      // Open feature editor
-      if (typeof window.openFeatureEditor === 'function') {
-        window.openFeatureEditor(mapLayer.feature.properties);
-      } else {
-        console.error("openFeatureEditor function not found");
-        alert("Cannot edit feature: editor not loaded");
-      }
+      console.log("Layer clicked:", mapLayer.feature.properties.name);
+      
+      // Open feature editor - use window.openFeatureEditor to ensure global scope
+      window.openFeatureEditor(mapLayer.feature.properties);
     });
   });
 
