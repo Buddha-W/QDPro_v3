@@ -242,7 +242,20 @@ function closeFeaturePropertiesModal() {
   if (modal) {
     modal.style.display = 'none';
   }
+  
+  // Reset active editing layer
   window.activeEditingLayer = null;
+  
+  // Reset popup state to allow immediate editing of another feature
+  if (window.map) {
+    // Close any open popups
+    window.map.closePopup();
+    
+    // Force any queued events to complete
+    setTimeout(function() {
+      console.log("Modal closed, popup state reset");
+    }, 5);
+  }
 }
 
 // Function to save feature properties

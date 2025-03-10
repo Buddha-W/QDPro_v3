@@ -99,6 +99,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Store layer in global variable for immediate access
         window.activeEditingLayer = layer;
         
+        // Clear any existing modal
+        const existingModal = document.getElementById('featurePropertiesModal');
+        if (existingModal && existingModal.style.display === 'block') {
+          existingModal.style.display = 'none';
+        }
+        
         // Close the popup immediately
         if (layer.closePopup) {
           layer.closePopup();
