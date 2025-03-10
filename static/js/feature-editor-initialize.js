@@ -318,29 +318,31 @@ function addLayerClickHandlers(layer) {
       <p>Type: ${properties.type || 'Unknown'}</p>
       ${properties.net_explosive_weight ? `<p>NEW: ${properties.net_explosive_weight} lbs</p>` : ''}
       ${properties.description ? `<p>${properties.description}</p>` : ''}
-      <button class="edit-properties-btn">Edit Properties</button>
+      <button class="edit-properties-btn" onclick="window.openFeatureEditor(this._layer)">Edit Properties</button>
     </div>
   `;
   
   layer.bindPopup(popupContent);
   
-  // Then add the click handler for the popup
+  // Store reference to the layer in the popup for direct access
   layer.on('popupopen', function(e) {
     console.log('Popup opened, attaching edit button handler');
-    setTimeout(() => {
-      const popup = e.popup;
-      if (popup && popup._contentNode) {
-        const editBtn = popup._contentNode.querySelector('.edit-properties-btn');
-        if (editBtn) {
-          console.log('Edit button found, attaching click handler');
-          editBtn.addEventListener('click', function() {
-            console.log('Edit button clicked, opening feature editor');
-            openFeatureEditor(layer);
-          });
-        } else {
-          console.warn('Edit button not found in popup');
-        }
+    const popup = e.popup;
+    if (popup && popup._contentNode) {
+      const editBtn = popup._contentNode.querySelector('.edit-properties-btn');
+      if (editBtn) {
+        // Store reference to layer directly on the button
+        editBtn._layer = layer;
+        console.log('Edit button found, attached layer reference');
+        
+        // Add click handler as a fallback
+        editBtn.addEventListener('click', function() {
+          console.log('Edit button clicked, opening feature editor');
+          window.openFeatureEditor(layer);
+        });
+      } else {
+        console.warn('Edit button not found in popup');
       }
-    }, 100);
+    }
   });
 }

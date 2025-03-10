@@ -83,3 +83,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Make initMap available globally
 window.initMap = initMap;
+
+// Make sure openFeatureEditor is available globally
+if (typeof window.openFeatureEditor !== 'function') {
+  window.openFeatureEditor = function(layer) {
+    console.log("Opening feature editor from map-initialize.js");
+    if (typeof window.activeEditingLayer !== 'undefined') {
+      window.activeEditingLayer = layer;
+    }
+    
+    // Get the modal
+    const modal = document.getElementById('featurePropertiesModal');
+    if (!modal) {
+      console.error("Feature properties modal not found");
+      return;
+    }
+    
+    // Get properties from the layer
+    const properties = layer.feature ? layer.feature.properties : {};
+    
+    // Fill in the form fields
+    document.getElementById('name').value = properties.name || '';
+    document.getElementById('type').value = properties.type || 'Building';
+    document.getElementById('description').value = properties.description || '';
+    
+    if (document.getElementById('is_facility')) {
+      document.getElementById('is_facility').checked = properties.is_facility || false;
+    }
+    
+    if (document.getElementById('has_explosive')) {
+      document.getElementById('has_explosive').checked = properties.has_explosive || false;
+    }
+    
+    // Show/hide explosive section based on checkbox
+    const explosiveSection = document.getElementById('explosiveSection');
+    if (explosiveSection) {
+      explosiveSection.style.display = properties.has_explosive ? 'block' : 'none';
+      
+      if (document.getElementById('net_explosive_weight')) {
+        document.getElementById('net_explosive_weight').value = properties.net_explosive_weight || '';
+      }
+    }
+    
+    // Display the modal
+    modal.style.display = 'block';
+  };
+}
