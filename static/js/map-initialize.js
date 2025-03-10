@@ -137,6 +137,11 @@ document.addEventListener('DOMContentLoaded', function() {
         function openEditorWithLayer(layerObj) {
           console.log("Opening editor for layer:", layerObj);
           
+          // Mark the layer as being edited to prevent needing double-clicks
+          if (layerObj) {
+            layerObj._editingActive = true;
+          }
+          
           // Ensure all popups are closed
           if (layerObj.closePopup) {
             layerObj.closePopup();
@@ -154,6 +159,11 @@ document.addEventListener('DOMContentLoaded', function() {
           // Store reference globally in multiple places
           window.activeEditingLayer = layerObj;
           window.lastClickedLayer = layerObj;
+          
+          // Reset any editor state that might prevent reopening
+          if (window.QDProEditor) {
+            window.QDProEditor.isEditorOpen = false;
+          }
           
           // Use the first available editor function
           let editorOpened = false;

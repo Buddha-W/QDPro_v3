@@ -296,11 +296,28 @@ function closeFeaturePropertiesModal() {
       }
     });
     
+    // Clear any internal flag in map layers that might prevent re-clicking
+    window.map.eachLayer(function(layer) {
+      if (layer.feature) {
+        // Clear any state flags that might prevent re-clicking
+        if (layer._wasClicked) delete layer._wasClicked;
+        if (layer._popupClosed) delete layer._popupClosed;
+        if (layer._editPending) delete layer._editPending;
+      }
+    });
+    
     console.log("Modal closed, popup state fully reset");
   }
   
   // Dispatch custom event for other components to respond to
   document.dispatchEvent(new CustomEvent('editor-closed'));
+  
+  // Force map to refresh its state
+  setTimeout(function() {
+    if (window.map) {
+      window.map.invalidateSize();
+    }
+  }, 10);
 }
 
 // Function to save feature properties

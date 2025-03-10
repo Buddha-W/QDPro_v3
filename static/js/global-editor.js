@@ -55,6 +55,9 @@ window.QDProEditor = {
     // Reset flags to allow immediate editing of another feature
     this.isEditorOpen = false;
     
+    // Store the previously active layer before clearing it
+    const previousLayer = this.activeEditingLayer;
+    
     // Reset active editing layer immediately
     this.activeEditingLayer = null;
     
@@ -73,10 +76,30 @@ window.QDProEditor = {
     window.lastClickedLayer = null;
     window.activeEditingLayer = null;
     
+    // Clear any editing flags on all layers to allow immediate re-editing
+    if (window.map) {
+      window.map.eachLayer(function(layer) {
+        if (layer.feature) {
+          // Clear any state that might prevent re-clicking
+          if (layer._editingActive) delete layer._editingActive;
+          if (layer._wasClicked) delete layer._wasClicked;
+          if (layer._popupClosed) delete layer._popupClosed;
+        }
+      });
+    }
+    
     console.log("QDProEditor: Editor fully closed, ready for new interactions");
     
     // Dispatch a custom event to notify the system the editor is fully closed
     document.dispatchEvent(new CustomEvent('editor-closed'));
+    
+    // Force a brief delay to ensure the DOM is updated before allowing new clicks
+    setTimeout(function() {
+      if (window.map) {
+        // Invalidate the map size to force a redraw
+        window.map.invalidateSize();
+      }
+    }, 10);
   },
 
   saveFeatureProperties: function() {
