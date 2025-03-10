@@ -1,3 +1,4 @@
+
 /**
  * Feature Editor Initialization Module
  * Handles drawing tools and feature property editing
@@ -82,262 +83,268 @@ function initializeFeatureEditor() {
  * Add click handlers to a layer for property editing
  */
 function addLayerClickHandlers(layer) {
-  if (!layer) return;
-
   layer.on('click', function(e) {
-    // Stop propagation to prevent map click from closing the modal
+    // Stop propagation to prevent map click
     L.DomEvent.stopPropagation(e);
-
-    // Open feature properties editor
-    openFeatureEditor(layer.feature.properties, layer);
-
-    // Set active feature
-    window.featureEditor.activeFeature = layer;
+    
+    // Check if layer has feature properties
+    if (layer.feature && layer.feature.properties) {
+      openFeatureEditor(layer.feature.properties, layer);
+    } else {
+      // Create default properties if none exist
+      layer.feature = {
+        type: 'Feature',
+        properties: {
+          name: 'Unnamed Feature',
+          type: 'Generic',
+          description: ''
+        }
+      };
+      openFeatureEditor(layer.feature.properties, layer);
+    }
   });
-
-  // Make function globally available
-  window.addLayerClickHandlers = addLayerClickHandlers;
 }
 
 /**
- * Open the feature properties editor modal
+ * Set up click handlers for all layers in all feature groups
+ */
+function setupAllLayerEditHandlers() {
+  console.log('Setting up click handlers for all layers...');
+  
+  // Handle drawn items
+  if (window.drawnItems) {
+    window.drawnItems.eachLayer(function(layer) {
+      addLayerClickHandlers(layer);
+    });
+  }
+  
+  // You can add more feature groups here if needed
+}
+
+/**
+ * Open the feature properties editor
  */
 function openFeatureEditor(properties, layer) {
-  console.log('Opening feature editor with properties:', properties);
-
-  // Get modal and form elements
-  const modal = document.getElementById('featurePropertiesModal');
-  const form = document.getElementById('featurePropertiesForm');
-  const nameInput = document.getElementById('featureName');
-  const typeSelect = document.getElementById('featureType');
-  const descriptionTextarea = document.getElementById('featureDescription');
-
-  // Fill the form with properties
-  nameInput.value = properties.name || '';
-  if (typeSelect && properties.type) {
-    typeSelect.value = properties.type;
+  console.log('Opening feature editor for:', properties);
+  
+  // Store the active feature for later use
+  window.featureEditor.activeFeature = layer;
+  
+  // Populate the form with the feature properties
+  document.getElementById('featureName').value = properties.name || '';
+  document.getElementById('featureType').value = properties.type || 'Generic';
+  document.getElementById('featureDescription').value = properties.description || '';
+  
+  // Show/hide explosive properties section
+  toggleExplosiveSection(properties.type);
+  
+  // Populate explosive properties if they exist
+  if (properties.explosiveHD) {
+    document.getElementById('explosiveHD').value = properties.explosiveHD;
   }
-  descriptionTextarea.value = properties.description || '';
-
+  
+  if (properties.explosiveWeight) {
+    document.getElementById('explosiveWeight').value = properties.explosiveWeight;
+  }
+  
+  if (properties.newqd_type) {
+    document.getElementById('explosive_newqd_type').value = properties.newqd_type;
+  }
+  
   // Show the modal
-  modal.style.display = 'block';
-
-  // Handle form submission
-  form.onsubmit = function(e) {
-    e.preventDefault();
-
-    // Update feature properties
-    const updatedProperties = {
-      name: nameInput.value,
-      type: typeSelect ? typeSelect.value : properties.type,
-      description: descriptionTextarea.value
-    };
-
-    // Update the layer properties if layer is provided
-    if (layer && layer.feature) {
-      layer.feature.properties = updatedProperties;
-    }
-
-    // Update active feature if no specific layer was provided
-    if (!layer && window.featureEditor.activeFeature) {
-      window.featureEditor.activeFeature.feature.properties = updatedProperties;
-    }
-
-    // Close the modal
-    modal.style.display = 'none';
-    console.log('Feature properties updated:', updatedProperties);
-  };
-
-  // Make function globally available
-  window.openFeatureEditor = openFeatureEditor;
+  document.getElementById('featurePropertiesModal').style.display = 'block';
 }
 
 /**
- * Save the current project to the server
+ * Toggle the explosive properties section based on feature type
+ */
+function toggleExplosiveSection(featureType) {
+  const explosiveSection = document.getElementById('explosiveProperties');
+  const explosiveTypes = ['ExplosiveSite', 'ESQD'];
+  
+  if (explosiveTypes.includes(featureType)) {
+    explosiveSection.style.display = 'block';
+  } else {
+    explosiveSection.style.display = 'none';
+  }
+}
+
+/**
+ * Close the feature properties modal
+ */
+function closeFeaturePropertiesModal() {
+  document.getElementById('featurePropertiesModal').style.display = 'none';
+  window.featureEditor.activeFeature = null;
+}
+
+/**
+ * Save the feature properties from the form
+ */
+function saveFeatureProperties() {
+  if (!window.featureEditor.activeFeature) {
+    console.error('No active feature to save properties for');
+    return;
+  }
+  
+  // Get values from the form
+  const name = document.getElementById('featureName').value;
+  const type = document.getElementById('featureType').value;
+  const description = document.getElementById('featureDescription').value;
+  
+  // Get the feature
+  const feature = window.featureEditor.activeFeature.feature;
+  
+  // Update properties
+  feature.properties.name = name;
+  feature.properties.type = type;
+  feature.properties.description = description;
+  
+  // Handle explosive properties if applicable
+  const explosiveTypes = ['ExplosiveSite', 'ESQD'];
+  if (explosiveTypes.includes(type)) {
+    feature.properties.explosiveHD = document.getElementById('explosiveHD').value;
+    feature.properties.explosiveWeight = document.getElementById('explosiveWeight').value;
+    feature.properties.newqd_type = document.getElementById('explosive_newqd_type').value;
+  }
+  
+  console.log('Saved properties:', feature.properties);
+  
+  // Close the modal
+  closeFeaturePropertiesModal();
+}
+
+/**
+ * Function to save the current project
  */
 function saveProject() {
   console.log('Saving project...');
-  // Collect all feature data
-  const featureData = [];
-  window.featureEditor.drawnItems.eachLayer(function(layer) {
-    if (layer.feature) {
-      featureData.push(layer.feature);
+  
+  // Get all layers and their data
+  const layerData = {
+    layers: {
+      "Drawn Items": {
+        properties: {
+          isQDAnalyzed: false
+        },
+        features: []
+      }
     }
-  });
-
+  };
+  
+  // Get all features from drawn items
+  if (window.drawnItems) {
+    window.drawnItems.eachLayer(function(layer) {
+      if (layer.feature) {
+        layerData.layers["Drawn Items"].features.push(layer.feature);
+      } else {
+        // Convert to GeoJSON if no feature property exists
+        const geoJson = layer.toGeoJSON();
+        if (!geoJson.properties) {
+          geoJson.properties = {
+            name: 'Unnamed Feature',
+            type: 'Unknown',
+            description: ''
+          };
+        }
+        layerData.layers["Drawn Items"].features.push(geoJson);
+      }
+    });
+  }
+  
+  // Convert to JSON
+  const jsonData = JSON.stringify(layerData, null, 2);
+  console.log('Project data:', jsonData);
+  
   // Send data to server
   fetch('/api/save', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      features: featureData
-    })
+    body: jsonData
   })
   .then(response => response.json())
   .then(data => {
     console.log('Project saved:', data);
-    showSuccessNotification('Project saved successfully');
+    alert('Project saved successfully!');
   })
   .catch(error => {
     console.error('Error saving project:', error);
-    showErrorNotification('Failed to save project: ' + error.message);
+    alert('Error saving project: ' + error.message);
   });
 }
 
-/**
- * Load a project from the server
- */
 function loadProject() {
   console.log('Loading project...');
   fetch('/api/load')
   .then(response => response.json())
   .then(data => {
     console.log('Project loaded:', data);
-
-    // Clear existing features
-    window.featureEditor.drawnItems.clearLayers();
-
-    // Add loaded features to the map
-    if (data.features && data.features.length > 0) {
-      data.features.forEach(function(feature) {
-        const layer = L.geoJSON(feature).getLayers()[0];
-        window.featureEditor.drawnItems.addLayer(layer);
-        addLayerClickHandlers(layer);
-      });
-
-      // Fit map to show all features
-      window.map.fitBounds(window.featureEditor.drawnItems.getBounds());
+    
+    // Clear existing layers
+    if (window.drawnItems) {
+      window.drawnItems.clearLayers();
     }
-
-    showSuccessNotification('Project loaded successfully');
+    
+    // Process and add layers
+    if (data.layers && data.layers["Drawn Items"] && data.layers["Drawn Items"].features) {
+      const features = data.layers["Drawn Items"].features;
+      
+      features.forEach(feature => {
+        let layer;
+        
+        // Create appropriate layer based on geometry type
+        if (feature.geometry) {
+          switch (feature.geometry.type) {
+            case 'Point':
+              const coords = feature.geometry.coordinates;
+              layer = L.marker([coords[1], coords[0]]);
+              break;
+            case 'LineString':
+              const points = feature.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+              layer = L.polyline(points);
+              break;
+            case 'Polygon':
+              const polygonPoints = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
+              layer = L.polygon(polygonPoints);
+              break;
+            case 'Circle':
+              // Circles are complex in GeoJSON - we would need radius stored in properties
+              if (feature.properties && feature.properties.radius) {
+                const center = feature.geometry.coordinates;
+                layer = L.circle([center[1], center[0]], {radius: feature.properties.radius});
+              }
+              break;
+            default:
+              console.warn('Unsupported geometry type:', feature.geometry.type);
+              return;
+          }
+          
+          // Add properties to the layer
+          layer.feature = feature;
+          
+          // Add to the drawn items layer
+          window.drawnItems.addLayer(layer);
+          
+          // Add click handler
+          addLayerClickHandlers(layer);
+        }
+      });
+    }
   })
   .catch(error => {
     console.error('Error loading project:', error);
-    showErrorNotification('Failed to load project: ' + error.message);
+    // Don't alert here as it might be annoying on first load
   });
 }
 
-/**
- * Create a new project
- */
-function createNewProject() {
-  console.log('Creating new project...');
-
-  // Clear existing features
-  window.featureEditor.drawnItems.clearLayers();
-
-  // Reset map view
-  window.map.setView([39.8283, -98.5795], 5);
-
-  showSuccessNotification('New project created');
-}
-
-/**
- * Show a success notification
- */
-function showSuccessNotification(message) {
-  console.log(message);
-  if (typeof window.showNotification === 'function') {
-    window.showNotification('success', message);
-  } else {
-    alert(message);
-  }
-}
-
-/**
- * Show an error notification
- */
-function showErrorNotification(message) {
-  console.error(message);
-  if (typeof window.showNotification === 'function') {
-    window.showNotification('error', message);
-  } else {
-    alert(message);
-  }
-}
-
-// Initialize the feature editor when the document is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Feature editor initializer loaded');
-
-  // Wait for map to be initialized before initializing feature editor
-  const waitForMap = setInterval(function() {
-    if (window.map) {
-      clearInterval(waitForMap);
-      initializeFeatureEditor();
-
-      // Set up UI event handlers
-      setupUIEventHandlers();
-    }
-  }, 100);
-});
-
-/**
- * Set up event handlers for UI controls
- */
-function setupUIEventHandlers() {
-  // File menu button
-  const fileMenuButton = document.getElementById('fileMenuButton');
-  const fileModal = document.getElementById('fileModal');
-  const closeFileModal = document.getElementById('closeFileModal');
-
-  if (fileMenuButton) {
-    fileMenuButton.addEventListener('click', function() {
-      fileModal.style.display = 'block';
-    });
-  }
-
-  if (closeFileModal) {
-    closeFileModal.addEventListener('click', function() {
-      fileModal.style.display = 'none';
-    });
-  }
-
-  // Feature properties modal close button
-  const closeFeaturePropertiesModal = document.getElementById('closeFeaturePropertiesModal');
-  const featurePropertiesModal = document.getElementById('featurePropertiesModal');
-
-  if (closeFeaturePropertiesModal) {
-    closeFeaturePropertiesModal.addEventListener('click', function() {
-      featurePropertiesModal.style.display = 'none';
-    });
-  }
-
-  // Project operation buttons
-  const newProjectButton = document.getElementById('newProjectButton');
-  const saveProjectButton = document.getElementById('saveProjectButton');
-  const loadProjectButton = document.getElementById('loadProjectButton');
-
-  if (newProjectButton) {
-    newProjectButton.addEventListener('click', function() {
-      createNewProject();
-      fileModal.style.display = 'none';
-    });
-  }
-
-  if (saveProjectButton) {
-    saveProjectButton.addEventListener('click', function() {
-      saveProject();
-      fileModal.style.display = 'none';
-    });
-  }
-
-  if (loadProjectButton) {
-    loadProjectButton.addEventListener('click', function() {
-      loadProject();
-      fileModal.style.display = 'none';
-    });
-  }
-
-  // Close modals when clicking outside
-  window.addEventListener('click', function(event) {
-    if (event.target === fileModal) {
-      fileModal.style.display = 'none';
-    }
-    if (event.target === featurePropertiesModal) {
-      featurePropertiesModal.style.display = 'none';
-    }
-  });
-}
+// Make functions available globally
+window.initializeFeatureEditor = initializeFeatureEditor;
+window.openFeatureEditor = openFeatureEditor;
+window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
+window.saveFeatureProperties = saveFeatureProperties;
+window.toggleExplosiveSection = toggleExplosiveSection;
+window.addLayerClickHandlers = addLayerClickHandlers;
+window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
+window.loadProject = loadProject;
+window.saveProject = saveProject;
