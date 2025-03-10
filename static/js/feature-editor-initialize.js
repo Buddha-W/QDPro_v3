@@ -579,7 +579,7 @@ window.addEventListener('load', function() {
   // Add a direct reference for popups to use
 
 // Bookmark management functions
-function updateBookmarksDropdown() {
+window.updateBookmarksDropdown = function() {
   console.log("updateBookmarksDropdown called");
   
   const dropdown = document.getElementById('bookmarksDropdown');
@@ -853,7 +853,7 @@ function deleteBookmark(name) {
 }
 
 // Function to toggle bookmarks dropdown
-function toggleBookmarksDropdown() {
+window.toggleBookmarksDropdown = function() {
   const dropdown = document.getElementById('bookmarksDropdown');
   if (!dropdown) {
     console.error("Bookmarks dropdown element not found");
@@ -886,12 +886,21 @@ function toggleBookmarksDropdown() {
   }
 }
 
-// Export all bookmark functions to the global scope
+// Make sure all bookmark functions are properly exposed to the global scope
 window.createBookmark = createBookmark;
 window.saveBookmarkToStorage = saveBookmarkToStorage;
 window.loadBookmark = loadBookmark;
 window.deleteBookmark = deleteBookmark;
 window.toggleBookmarksDropdown = toggleBookmarksDropdown;
+window.updateBookmarksDropdown = updateBookmarksDropdown;
+
+// Add a direct global reference when the document loads
+document.addEventListener('DOMContentLoaded', function() {
+  // Ensure function references are available globally
+  window.updateBookmarksDropdown = updateBookmarksDropdown;
+  window.toggleBookmarksDropdown = toggleBookmarksDropdown;
+  console.log("Bookmark functions exposed globally");
+});
 
   document.openFeatureEditor = openFeatureEditor;
 });
