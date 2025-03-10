@@ -403,3 +403,116 @@ modalCss.textContent = `
 }
 `;
 document.head.appendChild(modalCss);
+/**
+ * QDPro Map Initializer
+ * Handles map initialization and common error recovery
+ */
+
+// Initialize the map when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Map initializer loaded');
+  
+  // Initialize the map if it doesn't exist yet
+  if (!window.map && document.getElementById('map')) {
+    try {
+      initializeMap();
+    } catch (e) {
+      console.error('Error initializing map:', e);
+      showErrorNotification('Failed to initialize map: ' + e.message);
+    }
+  }
+  
+  // Set up error handling for Leaflet components
+  initializeMapErrorHandling();
+});
+
+// Function to initialize the map
+function initializeMap() {
+  console.log('Initializing map...');
+  
+  // Create map in the 'map' div with default settings
+  window.map = L.map('map', {
+    center: [39.8283, -98.5795], // Center of the US
+    zoom: 5,
+    zoomControl: true,
+    attributionControl: true
+  });
+  
+  // Add the default OpenStreetMap tile layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(window.map);
+  
+  console.log('Map initialized successfully');
+  
+  // Setup layer click handlers
+  if (typeof setupLayerClickHandlers === 'function') {
+    setupLayerClickHandlers();
+  }
+}
+
+// Map error handling functions
+function initializeMapErrorHandling() {
+  if (L && L.Draw) {
+    // Fix for draw handlers
+    const checkForDrawErrors = function() {
+      if (window.map && window.map._renderer && !window.map._renderer._bounds) {
+        console.warn('Renderer bounds missing, attempting to fix');
+        try {
+          window.map._renderer._bounds = L.bounds(
+            L.point(0, 0),
+            L.point(window.map.getSize().x, window.map.getSize().y)
+          );
+        } catch (e) {
+          console.error('Failed to fix renderer bounds:', e);
+        }
+      }
+    };
+    
+    // Add periodic check for renderer issues
+    setInterval(checkForDrawErrors, 5000);
+  }
+}
+
+// Global handler for layer clicks
+window.handleLayerClick = function(layer) {
+  console.log('Layer clicked:', layer);
+  if (layer.feature && layer.feature.properties) {
+    console.log('Feature properties:', layer.feature.properties);
+    
+    // Open appropriate editor based on feature type
+    if (typeof openEditPopup === 'function') {
+      openEditPopup(layer);
+    }
+  }
+};
+
+// Helper to show error notifications
+function showErrorNotification(message, source, line) {
+  console.error(message, source, line);
+  
+  // Use built-in notification function if available
+  if (typeof window.showErrorNotification === 'function') {
+    window.showErrorNotification(message, source, line);
+  } else {
+    // Create a simple notification if the main one isn't available
+    const notification = document.createElement('div');
+    notification.style.position = 'fixed';
+    notification.style.bottom = '20px';
+    notification.style.right = '20px';
+    notification.style.backgroundColor = '#f44336';
+    notification.style.color = 'white';
+    notification.style.padding = '15px';
+    notification.style.borderRadius = '5px';
+    notification.style.zIndex = '5000';
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 5 seconds
+    setTimeout(function() {
+      notification.remove();
+    }, 5000);
+  }
+}
