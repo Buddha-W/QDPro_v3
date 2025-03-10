@@ -237,7 +237,7 @@ window.QDProEditor = {
       try {
         QDPro.analyzeLocation();
         console.log("QD Analysis started via QDPro.analyzeLocation");
-        
+
         // Wait for analysis to complete, then show detailed report
         setTimeout(() => {
           if (QDPro.analysisLayer) {
@@ -253,28 +253,28 @@ window.QDProEditor = {
       alert("QD Analysis functionality not available. Please check the console for details.");
     }
   },
-  
+
   displayDetailedReport: function() {
     console.log("Displaying detailed QD analysis report");
-    
+
     // Check if analysis results exist
     if (!QDPro.currentAnalysisResults) {
       alert("No analysis results available. Please run the analysis first.");
       return;
     }
-    
+
     // Create a comprehensive report modal
     const reportModal = document.createElement('div');
     reportModal.className = 'modal';
     reportModal.id = 'detailedAnalysisReport';
     reportModal.style = 'display: block; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
-    
+
     // Get analysis data
     const analysis = QDPro.currentAnalysisResults;
     const totalFacilities = analysis.total_facilities || 0;
     const totalViolations = analysis.total_violations || 0;
     const facilitiesAnalyzed = analysis.facilities_analyzed || [];
-    
+
     // Build detailed HTML content for the report
     let reportContent = `
       <div style="background-color: #fff; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 90%; max-width: 900px; max-height: 80vh; overflow-y: auto;">
@@ -284,12 +284,15 @@ window.QDProEditor = {
             <button id="printReportBtn" style="background-color: #4CAF50; color: white; padding: 8px 12px; margin-right: 10px; border: none; cursor: pointer; border-radius: 4px;">
               <i class="fas fa-print"></i> Print Report
             </button>
+            <button id="exportPDFBtn" style="background-color: #4CAF50; color: white; padding: 8px 12px; margin-right: 10px; border: none; cursor: pointer; border-radius: 4px;">
+              <i class="fas fa-file-pdf"></i> Export PDF
+            </button>
             <button id="closeReportBtn" style="background-color: #f44336; color: white; padding: 8px 12px; border: none; cursor: pointer; border-radius: 4px;">
               <i class="fas fa-times"></i> Close
             </button>
           </div>
         </div>
-        
+
         <div style="padding: 15px; background-color: #f9f9f9; border-radius: 4px; margin-bottom: 20px;">
           <h3 style="margin-top: 0; color: #4CAF50;">Analysis Summary</h3>
           <div style="display: flex; flex-wrap: wrap;">
@@ -304,7 +307,7 @@ window.QDProEditor = {
           </div>
         </div>
     `;
-    
+
     if (facilitiesAnalyzed.length === 0) {
       reportContent += `
         <div style="padding: 15px; background-color: #fff0f0; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #f44336;">
@@ -321,12 +324,12 @@ window.QDProEditor = {
     } else {
       // Add details for each facility analyzed
       reportContent += `<h3 style="color: #333;">Analyzed Facilities</h3>`;
-      
+
       facilitiesAnalyzed.forEach((facility, index) => {
         const hasViolations = facility.violations && facility.violations.length > 0;
         const safeDistance = facility.safe_distance || 0;
         const new_value = facility.net_explosive_weight || 0;
-        
+
         reportContent += `
           <div style="padding: 15px; background-color: ${hasViolations ? '#fff8f8' : '#f8fff8'}; 
             border-radius: 4px; margin-bottom: 15px; border-left: 4px solid ${hasViolations ? '#f44336' : '#4CAF50'};">
@@ -334,7 +337,7 @@ window.QDProEditor = {
               ${facility.facility_name || `Facility ${index + 1}`}
               ${hasViolations ? ' (VIOLATIONS FOUND)' : ' (COMPLIANT)'}
             </h4>
-            
+
             <div style="display: flex; flex-wrap: wrap;">
               <div style="flex: 1; min-width: 250px; margin-right: 15px;">
                 <p><strong>Net Explosive Weight:</strong> ${new_value} ${facility.unit || 'lbs'}</p>
@@ -347,14 +350,14 @@ window.QDProEditor = {
                 <p><strong>Standards Reference:</strong> ${facility.standards_reference || 'DoD 6055.09-M'}</p>
               </div>
             </div>
-            
+
             <div style="margin-top: 15px; padding: 10px; background-color: #f9f9f9; border-radius: 4px;">
               <h5 style="margin-top: 0;">K-Factor Calculation</h5>
               <p><code>Safe Distance = K × ∛NEW</code></p>
               <p><code>Safe Distance = ${facility.k_factor_value || 40} × ∛${new_value} = ${safeDistance.toFixed(2)} ft</code></p>
             </div>
         `;
-        
+
         // Show violations if any
         if (hasViolations) {
           reportContent += `
@@ -371,7 +374,7 @@ window.QDProEditor = {
                 </thead>
                 <tbody>
           `;
-          
+
           facility.violations.forEach(violation => {
             reportContent += `
               <tr>
@@ -382,7 +385,7 @@ window.QDProEditor = {
               </tr>
             `;
           });
-          
+
           reportContent += `
                 </tbody>
               </table>
@@ -395,18 +398,18 @@ window.QDProEditor = {
             </div>
           `;
         }
-        
+
         reportContent += `</div>`;
       });
     }
-    
+
     // Add recommendations section
     reportContent += `
       <div style="padding: 15px; background-color: #f9f9f9; border-radius: 4px; margin-top: 20px;">
         <h3 style="margin-top: 0; color: #333;">Recommendations</h3>
         <ul>
     `;
-    
+
     if (totalViolations > 0) {
       reportContent += `
         <li>Review all highlighted violations and assess the risk level for each.</li>
@@ -421,28 +424,32 @@ window.QDProEditor = {
         <li>Maintain current safety protocols and documentation.</li>
       `;
     }
-    
+
     reportContent += `
         </ul>
       </div>
-      
+
       <div style="margin-top: 30px; font-size: 0.8em; text-align: center; color: #777; border-top: 1px solid #eee; padding-top: 15px;">
         <p>Generated by QDPro Analysis Engine • ${new Date().toLocaleDateString()}</p>
       </div>
     </div>
     `;
-    
-    // Set the modal content
+
     reportModal.innerHTML = reportContent;
     document.body.appendChild(reportModal);
-    
-    // Add event listeners
+
+    // Add event handlers for buttons
     document.getElementById('closeReportBtn').addEventListener('click', function() {
       document.body.removeChild(reportModal);
     });
-    
+
     document.getElementById('printReportBtn').addEventListener('click', function() {
       window.print();
+    });
+
+    document.getElementById('exportPDFBtn').addEventListener('click', () => {
+      this.exportAnalysisReport();
+      document.body.removeChild(reportModal);
     });
   },
   showMeasurementTool: function() {
@@ -452,6 +459,12 @@ window.QDProEditor = {
     } else {
         console.error("Map or measureControl not available.");
     }
+  },
+  exportAnalysisReport: function() {
+    // Placeholder for PDF export logic.  Implementation required.
+    console.log("Exporting analysis report to PDF...");
+    // Add your PDF generation code here using a library like jsPDF or similar.
+    alert("PDF export functionality not yet implemented.");
   }
 };
 
