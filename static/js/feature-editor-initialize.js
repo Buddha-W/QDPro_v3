@@ -579,7 +579,7 @@ window.addEventListener('load', function() {
   // Add a direct reference for popups to use
 
 // Bookmark management functions
-function createBookmark() {
+window.createBookmark = function() {
   if (!window.map) {
     console.error("Map not initialized. Cannot create bookmark.");
     alert("Map not ready. Please try again in a moment.");
@@ -633,17 +633,17 @@ function createBookmark() {
     }
     
     // Save the bookmark
-    saveBookmarkToStorage(name, currentView);
+    window.saveBookmarkToStorage(name, currentView);
     
     // Remove the modal
     document.body.removeChild(modal);
     
     // Update bookmarks dropdown
-    updateBookmarksDropdown();
+    window.updateBookmarksDropdown();
   });
-}
+};
 
-function saveBookmarkToStorage(name, view) {
+window.saveBookmarkToStorage = function(name, view) {
   // Get existing bookmarks
   let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
   
@@ -657,9 +657,9 @@ function saveBookmarkToStorage(name, view) {
   // Save back to localStorage
   localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
   console.log(`Bookmark "${name}" saved`);
-}
+};
 
-function loadBookmark(name) {
+window.loadBookmark = function(name) {
   // Get bookmarks from storage
   const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
   
@@ -677,9 +677,9 @@ function loadBookmark(name) {
   } else {
     console.error("Map not available to load bookmark");
   }
-}
+};
 
-function deleteBookmark(name) {
+window.deleteBookmark = function(name) {
   // Get existing bookmarks
   let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
   
@@ -701,10 +701,12 @@ function deleteBookmark(name) {
   console.log(`Bookmark "${name}" deleted`);
   
   // Update bookmarks dropdown
-  updateBookmarksDropdown();
-}
+  window.updateBookmarksDropdown();
+};
 
-function updateBookmarksDropdown() {
+window.updateBookmarksDropdown = function() {
+  console.log("updateBookmarksDropdown called");
+  
   const dropdown = document.getElementById('bookmarksDropdown');
   if (!dropdown) {
     console.error("Bookmarks dropdown element not found");
@@ -791,21 +793,21 @@ function updateBookmarksDropdown() {
       // Add event listeners
       nameSpan.addEventListener('click', function(e) {
         e.stopPropagation();
-        loadBookmark(name);
+        window.loadBookmark(name);
         dropdown.style.display = 'none';
       });
       
       // Make the whole item clickable except for the delete button
       item.addEventListener('click', function(e) {
         if (e.target !== deleteBtn) {
-          loadBookmark(name);
+          window.loadBookmark(name);
           dropdown.style.display = 'none';
         }
       });
       
       deleteBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        deleteBookmark(name);
+        window.deleteBookmark(name);
       });
       
       dropdown.appendChild(item);
@@ -833,7 +835,7 @@ function updateBookmarksDropdown() {
   
   addNewItem.addEventListener('click', function() {
     dropdown.style.display = 'none';
-    createBookmark();
+    window.createBookmark();
   });
   
   dropdown.appendChild(addNewItem);
@@ -845,13 +847,7 @@ function updateBookmarksDropdown() {
       document.removeEventListener('click', closeDropdown);
     }
   });
-}
-
-// Expose functions globally for use in HTML
-window.createBookmark = createBookmark;
-window.loadBookmark = loadBookmark;
-window.deleteBookmark = deleteBookmark;
-window.updateBookmarksDropdown = updateBookmarksDropdown;
+};
 
 // Function to toggle bookmarks dropdown
 window.toggleBookmarksDropdown = function() {
@@ -883,7 +879,22 @@ window.toggleBookmarksDropdown = function() {
     }
     
     // Update and show the dropdown
-    updateBookmarksDropdown();
+    if (typeof window.updateBookmarksDropdown === 'function') {
+      window.updateBookmarksDropdown();
+    } else {
+      console.error("updateBookmarksDropdown function not found");
+      
+      // Create minimal dropdown with error message
+      dropdown.innerHTML = `
+        <div style="padding: 10px; font-weight: bold; border-bottom: 1px solid #ccc; background-color: #f5f5f5;">
+          Bookmarks
+        </div>
+        <div style="padding: 10px; color: #f44336;">
+          Error: Bookmark functionality not available
+        </div>
+      `;
+      dropdown.style.display = 'block';
+    }
   }
 };
 
