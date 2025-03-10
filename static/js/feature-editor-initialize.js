@@ -579,132 +579,7 @@ window.addEventListener('load', function() {
   // Add a direct reference for popups to use
 
 // Bookmark management functions
-window.createBookmark = function() {
-  if (!window.map) {
-    console.error("Map not initialized. Cannot create bookmark.");
-    alert("Map not ready. Please try again in a moment.");
-    return;
-  }
-  
-  const currentView = {
-    center: window.map.getCenter(),
-    zoom: window.map.getZoom()
-  };
-  
-  // Create a modal to name the bookmark
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.id = 'bookmarkModal';
-  modal.style = 'display: block; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
-
-  const modalContent = `
-    <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
-      <h2>Save Bookmark</h2>
-      <div style="margin-bottom: 15px;">
-        <label for="bookmarkName">Bookmark Name:</label>
-        <input type="text" id="bookmarkName" style="width: 100%; padding: 5px; margin-top: 5px;" placeholder="Enter a name for this view">
-      </div>
-      <div style="display: flex; justify-content: flex-end;">
-        <button id="cancelBookmarkBtn" style="padding: 8px 15px; margin-right: 10px;">Cancel</button>
-        <button id="saveBookmarkBtn" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none;">Save</button>
-      </div>
-    </div>
-  `;
-
-  modal.innerHTML = modalContent;
-  document.body.appendChild(modal);
-
-  // Focus on input field
-  setTimeout(() => {
-    const input = document.getElementById('bookmarkName');
-    if (input) input.focus();
-  }, 100);
-
-  // Add event listeners
-  document.getElementById('cancelBookmarkBtn').addEventListener('click', function() {
-    document.body.removeChild(modal);
-  });
-
-  document.getElementById('saveBookmarkBtn').addEventListener('click', function() {
-    const name = document.getElementById('bookmarkName').value.trim();
-    if (!name) {
-      alert('Please enter a bookmark name');
-      return;
-    }
-    
-    // Save the bookmark
-    window.saveBookmarkToStorage(name, currentView);
-    
-    // Remove the modal
-    document.body.removeChild(modal);
-    
-    // Update bookmarks dropdown
-    window.updateBookmarksDropdown();
-  });
-};
-
-window.saveBookmarkToStorage = function(name, view) {
-  // Get existing bookmarks
-  let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-  
-  // Add new bookmark
-  bookmarks[name] = {
-    center: [view.center.lat, view.center.lng],
-    zoom: view.zoom,
-    created: new Date().toISOString()
-  };
-  
-  // Save back to localStorage
-  localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
-  console.log(`Bookmark "${name}" saved`);
-};
-
-window.loadBookmark = function(name) {
-  // Get bookmarks from storage
-  const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-  
-  if (!bookmarks[name]) {
-    console.error(`Bookmark "${name}" not found`);
-    return;
-  }
-  
-  const bookmark = bookmarks[name];
-  
-  // Set map view to the bookmarked position
-  if (window.map) {
-    window.map.setView(bookmark.center, bookmark.zoom);
-    console.log(`Loaded bookmark "${name}"`);
-  } else {
-    console.error("Map not available to load bookmark");
-  }
-};
-
-window.deleteBookmark = function(name) {
-  // Get existing bookmarks
-  let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
-  
-  if (!bookmarks[name]) {
-    console.error(`Bookmark "${name}" not found`);
-    return;
-  }
-  
-  // Confirm deletion
-  if (!confirm(`Are you sure you want to delete the bookmark "${name}"?`)) {
-    return;
-  }
-  
-  // Delete the bookmark
-  delete bookmarks[name];
-  
-  // Save back to localStorage
-  localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
-  console.log(`Bookmark "${name}" deleted`);
-  
-  // Update bookmarks dropdown
-  window.updateBookmarksDropdown();
-};
-
-window.updateBookmarksDropdown = function() {
+function updateBookmarksDropdown() {
   console.log("updateBookmarksDropdown called");
   
   const dropdown = document.getElementById('bookmarksDropdown');
@@ -793,21 +668,21 @@ window.updateBookmarksDropdown = function() {
       // Add event listeners
       nameSpan.addEventListener('click', function(e) {
         e.stopPropagation();
-        window.loadBookmark(name);
+        loadBookmark(name);
         dropdown.style.display = 'none';
       });
       
       // Make the whole item clickable except for the delete button
       item.addEventListener('click', function(e) {
         if (e.target !== deleteBtn) {
-          window.loadBookmark(name);
+          loadBookmark(name);
           dropdown.style.display = 'none';
         }
       });
       
       deleteBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        window.deleteBookmark(name);
+        deleteBookmark(name);
       });
       
       dropdown.appendChild(item);
@@ -835,7 +710,7 @@ window.updateBookmarksDropdown = function() {
   
   addNewItem.addEventListener('click', function() {
     dropdown.style.display = 'none';
-    window.createBookmark();
+    createBookmark();
   });
   
   dropdown.appendChild(addNewItem);
@@ -847,10 +722,138 @@ window.updateBookmarksDropdown = function() {
       document.removeEventListener('click', closeDropdown);
     }
   });
-};
+}
+
+// Make updateBookmarksDropdown available globally 
+window.updateBookmarksDropdown = updateBookmarksDropdown;
+
+function createBookmark() {
+  if (!window.map) {
+    console.error("Map not initialized. Cannot create bookmark.");
+    alert("Map not ready. Please try again in a moment.");
+    return;
+  }
+  
+  const currentView = {
+    center: window.map.getCenter(),
+    zoom: window.map.getZoom()
+  };
+  
+  // Create a modal to name the bookmark
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'bookmarkModal';
+  modal.style = 'display: block; position: fixed; z-index: 4000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
+
+  const modalContent = `
+    <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px;">
+      <h2>Save Bookmark</h2>
+      <div style="margin-bottom: 15px;">
+        <label for="bookmarkName">Bookmark Name:</label>
+        <input type="text" id="bookmarkName" style="width: 100%; padding: 5px; margin-top: 5px;" placeholder="Enter a name for this view">
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="cancelBookmarkBtn" style="padding: 8px 15px; margin-right: 10px;">Cancel</button>
+        <button id="saveBookmarkBtn" style="padding: 8px 15px; background-color: #4CAF50; color: white; border: none;">Save</button>
+      </div>
+    </div>
+  `;
+
+  modal.innerHTML = modalContent;
+  document.body.appendChild(modal);
+
+  // Focus on input field
+  setTimeout(() => {
+    const input = document.getElementById('bookmarkName');
+    if (input) input.focus();
+  }, 100);
+
+  // Add event listeners
+  document.getElementById('cancelBookmarkBtn').addEventListener('click', function() {
+    document.body.removeChild(modal);
+  });
+
+  document.getElementById('saveBookmarkBtn').addEventListener('click', function() {
+    const name = document.getElementById('bookmarkName').value.trim();
+    if (!name) {
+      alert('Please enter a bookmark name');
+      return;
+    }
+    
+    // Save the bookmark
+    saveBookmarkToStorage(name, currentView);
+    
+    // Remove the modal
+    document.body.removeChild(modal);
+    
+    // Update bookmarks dropdown
+    updateBookmarksDropdown();
+  });
+}
+
+function saveBookmarkToStorage(name, view) {
+  // Get existing bookmarks
+  let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+  
+  // Add new bookmark
+  bookmarks[name] = {
+    center: [view.center.lat, view.center.lng],
+    zoom: view.zoom,
+    created: new Date().toISOString()
+  };
+  
+  // Save back to localStorage
+  localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
+  console.log(`Bookmark "${name}" saved`);
+}
+
+function loadBookmark(name) {
+  // Get bookmarks from storage
+  const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+  
+  if (!bookmarks[name]) {
+    console.error(`Bookmark "${name}" not found`);
+    return;
+  }
+  
+  const bookmark = bookmarks[name];
+  
+  // Set map view to the bookmarked position
+  if (window.map) {
+    window.map.setView(bookmark.center, bookmark.zoom);
+    console.log(`Loaded bookmark "${name}"`);
+  } else {
+    console.error("Map not available to load bookmark");
+  }
+}
+
+function deleteBookmark(name) {
+  // Get existing bookmarks
+  let bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+  
+  if (!bookmarks[name]) {
+    console.error(`Bookmark "${name}" not found`);
+    return;
+  }
+  
+  // Confirm deletion
+  if (!confirm(`Are you sure you want to delete the bookmark "${name}"?`)) {
+    return;
+  }
+  
+  // Delete the bookmark
+  delete bookmarks[name];
+  
+  // Save back to localStorage
+  localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
+  console.log(`Bookmark "${name}" deleted`);
+  
+  // Update bookmarks dropdown
+  updateBookmarksDropdown();
+}
 
 // Function to toggle bookmarks dropdown
-window.toggleBookmarksDropdown = function() {
+function toggleBookmarksDropdown() {
   const dropdown = document.getElementById('bookmarksDropdown');
   if (!dropdown) {
     console.error("Bookmarks dropdown element not found");
@@ -879,24 +882,16 @@ window.toggleBookmarksDropdown = function() {
     }
     
     // Update and show the dropdown
-    if (typeof window.updateBookmarksDropdown === 'function') {
-      window.updateBookmarksDropdown();
-    } else {
-      console.error("updateBookmarksDropdown function not found");
-      
-      // Create minimal dropdown with error message
-      dropdown.innerHTML = `
-        <div style="padding: 10px; font-weight: bold; border-bottom: 1px solid #ccc; background-color: #f5f5f5;">
-          Bookmarks
-        </div>
-        <div style="padding: 10px; color: #f44336;">
-          Error: Bookmark functionality not available
-        </div>
-      `;
-      dropdown.style.display = 'block';
-    }
+    updateBookmarksDropdown();
   }
-};
+}
+
+// Export all bookmark functions to the global scope
+window.createBookmark = createBookmark;
+window.saveBookmarkToStorage = saveBookmarkToStorage;
+window.loadBookmark = loadBookmark;
+window.deleteBookmark = deleteBookmark;
+window.toggleBookmarksDropdown = toggleBookmarksDropdown;
 
   document.openFeatureEditor = openFeatureEditor;
 });
