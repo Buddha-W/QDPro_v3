@@ -100,13 +100,35 @@ if (typeof window.QDProEditor === 'undefined') {
 document.addEventListener('DOMContentLoaded', function() {
   console.log("Bookmark manager initializing...");
   
+  // Create a custom event for map ready status
+  window.mapReadyEvent = new CustomEvent('mapReady');
+  
+  // Function to dispatch event when map is ready
+  function notifyMapReady() {
+    console.log("Dispatching mapReady event");
+    document.dispatchEvent(window.mapReadyEvent);
+  }
+  
   // Check if map exists every second until it's ready
   const mapReadyCheck = setInterval(() => {
     if (window.isMapReady && window.isMapReady()) {
       console.log("Map is ready for bookmarks");
       clearInterval(mapReadyCheck);
+      notifyMapReady();
     }
   }, 1000);
+  
+  // Also expose the notification function
+  window.notifyMapReady = notifyMapReady;
+});
+
+// Listen for explicit map initialization
+document.addEventListener('mapReady', function() {
+  console.log("Map ready event received - bookmarks system fully operational");
+  // Refresh the bookmarks if dropdown is visible
+  if (document.getElementById('bookmarksDropdown')?.style.display === 'block') {
+    updateBookmarksDropdown();
+  }
 });
 
 // Toggle bookmarks dropdown visibility
@@ -319,26 +341,29 @@ async function saveBookmarkToStorage(name, bookmark) {
       });
       
       if (response.ok) {
-        console.log(`Bookmark "${name}" saved to server`);
+        console.log(`Bookmark "${name}" saved to server for location ${locationId}`);
         return;
       } else {
-        console.warn(`Failed to save bookmark to server, using localStorage`);
+        console.warn(`Failed to save bookmark to server, using location-specific localStorage`);
       }
     }
     
-    // Fallback to localStorage
-    const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+    // Fallback to localStorage with location-specific key
+    const storageKey = locationId ? `mapBookmarks_location_${locationId}` : 'mapBookmarks_default';
+    const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '{}');
     bookmarks[name] = bookmark;
-    localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
-    console.log(`Bookmark "${name}" saved to localStorage`);
+    localStorage.setItem(storageKey, JSON.stringify(bookmarks));
+    console.log(`Bookmark "${name}" saved to localStorage with key ${storageKey}`);
   } catch (e) {
     console.error(`Error saving bookmark:`, e);
     
-    // Final fallback - force save to localStorage
+    // Final fallback - force save to location-specific localStorage
     try {
-      const bookmarks = JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+      const locationId = window.QDPro?.currentLocationId;
+      const storageKey = locationId ? `mapBookmarks_location_${locationId}` : 'mapBookmarks_default';
+      const bookmarks = JSON.parse(localStorage.getItem(storageKey) || '{}');
       bookmarks[name] = bookmark;
-      localStorage.setItem('mapBookmarks', JSON.stringify(bookmarks));
+      localStorage.setItem(storageKey, JSON.stringify(bookmarks));
     } catch (innerError) {
       console.error(`Complete failure saving bookmark:`, innerError);
     }
@@ -350,10 +375,11 @@ async function loadBookmarksFromServer() {
   try {
     const locationId = window.QDPro?.currentLocationId;
     
-    // If no location ID is available, use localStorage
+    // If no location ID is available, use localStorage with location-specific storage key
     if (!locationId) {
-      console.log("No location ID available, using localStorage");
-      return JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+      console.log("No location ID available, using location-specific localStorage");
+      const storageKey = 'mapBookmarks_default';
+      return JSON.parse(localStorage.getItem(storageKey) || '{}');
     }
     
     const response = await fetch(`/api/bookmarks?location_id=${locationId}`);
@@ -362,12 +388,16 @@ async function loadBookmarksFromServer() {
       console.log("Loaded bookmarks from server:", data.bookmarks);
       return data.bookmarks || {};
     } else {
-      console.warn("Failed to load bookmarks from server, using localStorage");
-      return JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+      console.warn("Failed to load bookmarks from server, using location-specific localStorage");
+      const storageKey = `mapBookmarks_location_${locationId}`;
+      return JSON.parse(localStorage.getItem(storageKey) || '{}');
     }
   } catch (e) {
     console.error("Error loading bookmarks:", e);
-    return JSON.parse(localStorage.getItem('mapBookmarks') || '{}');
+    // Use location-specific storage key as fallback
+    const locationId = window.QDPro?.currentLocationId;
+    const storageKey = locationId ? `mapBookmarks_location_${locationId}` : 'mapBookmarks_default';
+    return JSON.parse(localStorage.getItem(storageKey) || '{}');
   }
 }
 
@@ -737,6 +767,17 @@ function toggleBookmarksDropdown() {
   }
 }
 
+// Function to clear bookmarks when switching locations
+function clearBookmarksCache() {
+  console.log("Clearing bookmarks cache for location switch");
+  // We don't delete saved bookmarks, just clear the dropdown
+  const dropdown = document.getElementById('bookmarksDropdown');
+  if (dropdown) {
+    dropdown.innerHTML = '';
+    dropdown.style.display = 'none';
+  }
+}
+
 // When document is loaded, make sure bookmark functions are available globally
 document.addEventListener('DOMContentLoaded', function() {
   // Expose bookmark functions globally
@@ -746,6 +787,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.deleteBookmark = deleteBookmark;
   window.toggleBookmarksDropdown = toggleBookmarksDropdown;
   window.updateBookmarksDropdown = updateBookmarksDropdown;
+  window.clearBookmarksCache = clearBookmarksCache;
   
   // Also add to QDProEditor namespace
   window.QDProEditor.createBookmark = createBookmark;
@@ -754,6 +796,13 @@ document.addEventListener('DOMContentLoaded', function() {
   window.QDProEditor.deleteBookmark = deleteBookmark;
   window.QDProEditor.toggleBookmarksDropdown = toggleBookmarksDropdown;
   window.QDProEditor.updateBookmarksDropdown = updateBookmarksDropdown;
+  window.QDProEditor.clearBookmarksCache = clearBookmarksCache;
+  
+  // Listen for location changes
+  document.addEventListener('locationChanged', function(e) {
+    console.log("Location changed event detected, clearing bookmarks cache");
+    clearBookmarksCache();
+  });
   
   console.log("Bookmark functions initialized and exposed globally");
 });

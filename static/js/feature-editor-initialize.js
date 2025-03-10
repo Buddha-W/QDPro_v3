@@ -1125,3 +1125,36 @@ if (typeof window !== 'undefined') {
 
 // Additional safety measure - directly assign to document
 document.openFeatureEditor = openFeatureEditor;
+// Hook for location changes to clear bookmark cache
+document.addEventListener('DOMContentLoaded', function() {
+  // Find all location-switching elements
+  const locationSwitchers = document.querySelectorAll('.location-switcher, #locationDropdown, #selectLocation');
+  
+  locationSwitchers.forEach(element => {
+    element.addEventListener('change', function() {
+      console.log('Location change detected, dispatching event');
+      // Create and dispatch a custom event
+      const event = new CustomEvent('locationChanged', {
+        detail: { locationId: this.value }
+      });
+      document.dispatchEvent(event);
+      
+      // Also clear bookmarks cache directly if the function exists
+      if (typeof window.clearBookmarksCache === 'function') {
+        window.clearBookmarksCache();
+      }
+    });
+  });
+  
+  // Also hook into any location-specific buttons
+  const createLocationBtn = document.querySelector('#createLocationBtn, .create-location-btn');
+  if (createLocationBtn) {
+    createLocationBtn.addEventListener('click', function() {
+      console.log('New location creation detected');
+      setTimeout(() => {
+        const event = new CustomEvent('locationChanged');
+        document.dispatchEvent(event);
+      }, 500); // Delay to allow UI to update
+    });
+  }
+});
