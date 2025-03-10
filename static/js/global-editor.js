@@ -47,26 +47,33 @@ window.QDProEditor = {
 
   closeFeatureEditor: function() {
     console.log("QDProEditor: Closing feature editor");
+
+    // Hide the modal
     const modal = document.getElementById('featurePropertiesModal');
     if (modal) {
       modal.style.display = 'none';
     }
 
-    // Close any open popups - make sure the method exists before calling
-    if (window.map && typeof window.map.closePopup === 'function') {
-      window.map.closePopup();
-    } else {
-      // Alternative approach if closePopup is not available
-      if (window.map && typeof window.map.eachLayer === 'function') {
-        // Try to close all popups via layers
+    // Close any popups
+    if (window.map) {
+      if (typeof window.map.closePopup === 'function') {
+        window.map.closePopup();
+      } else {
+        // Alternative approach if closePopup is not available
+        console.log("map.closePopup is not a function, trying alternatives");
+      }
+
+      // Try to close all popups via layers
+      if (typeof window.map.eachLayer === 'function') {
         window.map.eachLayer(function(layer) {
           if (layer.closePopup) {
             layer.closePopup();
           }
         });
-      } else if (window.map && window.map._layers) {
+      } else if (window.map._layers) {
         // Direct access to layers if eachLayer isn't available
-        Object.values(window.map._layers).forEach(function(layer) {
+        console.log("Using fallback layer access method");
+        Object.values(window.map._layers || {}).forEach(function(layer) {
           if (layer && typeof layer.closePopup === 'function') {
             layer.closePopup();
           }
@@ -95,16 +102,18 @@ window.QDProEditor = {
 
     // Force reset all click states on all layers
     if (window.map) {
-      window.map.eachLayer(function(layer) {
-        if (layer.feature) {
-          // Remove any state that might prevent clicking
-          if (layer._editingActive) delete layer._editingActive;
-          if (layer._wasClicked) delete layer._wasClicked;
-          if (layer._popupOpen) delete layer._popupOpen;
-          if (layer._popupClosed) delete layer._popupClosed;
-          if (layer._editPending) delete layer._editPending;
-        }
-      });
+      if (typeof window.map.eachLayer === 'function') {
+        window.map.eachLayer(function(layer) {
+          if (layer.feature) {
+            // Remove any state that might prevent clicking
+            if (layer._editingActive) delete layer._editingActive;
+            if (layer._wasClicked) delete layer._wasClicked;
+            if (layer._popupOpen) delete layer._popupOpen;
+            if (layer._popupClosed) delete layer._popupClosed;
+            if (layer._editPending) delete layer._editPending;
+          }
+        });
+      }
     }
 
     console.log("QDProEditor: Editor fully closed, ready for new interactions");
@@ -162,11 +171,17 @@ window.QDProEditor = {
 
   saveFeatureProperties: function() {
     console.log("QDProEditor: Saving feature properties");
-    const layer = this.activeEditingLayer;
+
+    // Get the layer we're editing - try multiple possible references
+    const layer = window.activeEditingLayer || window.lastClickedLayer;
     if (!layer) {
-      console.error("No active layer to save properties to");
+      console.log("No active layer to save properties to");
+      // Close the modal anyway to prevent getting stuck
+      this.closeFeatureEditor();
       return;
     }
+
+    console.log("Saving properties to layer:", layer._leaflet_id || "unknown ID");
 
     // Ensure feature and properties objects exist
     if (!layer.feature) {
