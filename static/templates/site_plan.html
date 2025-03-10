@@ -293,12 +293,12 @@
       window.activeEditingLayer = null;
       console.log("Editor state tracking initialized");
     };
-    
+
     // Run on page load
     document.addEventListener('DOMContentLoaded', function() {
       window.initEditorState();
     });
-  
+
     window.toggleMenu = function(element, menuId) {
       const dropdown = document.getElementById(menuId);
       document.querySelectorAll(".menu-dropdown").forEach(dd => {
@@ -616,7 +616,7 @@
         try {
           const response = await fetch(`/api/load-layers?location_id=${locationId}`);
           if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json;
             throw new Error(`Error loading location: ${errorData.error || response.statusText}`);
           }
 
@@ -1290,69 +1290,69 @@
         try {
           // Add debug information
           console.log("Starting analyzeLocation function");
-          
+
           if (!this.currentLocationId) {
             console.warn("No location selected for analysis");
             alert("Please open a location before running analysis");
             return;
           }
-          
+
           console.log("Current location ID:", this.currentLocationId);
           console.log("Current location name:", this.currentLocationName);
-          
+
           // Get all selectable features from all layers
           const allFeatures = [];
-          
+
           // Debug information about available layers
           console.log("Available layers for analysis:", Object.keys(this.layers).length);
-          
+
           // Detailed validation for each layer and feature
           Object.entries(this.layers).forEach(([layerName, layer]) => {
             console.log(`Processing layer: ${layerName}, has ${layer.getLayers ? layer.getLayers().length : 'unknown'} features`);
-            
+
             if (!layer.eachLayer) {
               console.error(`Layer ${layerName} does not have eachLayer method!`);
               return;
             }
-            
+
             layer.eachLayer(l => {
               try {
                 if (!l) {
                   console.error("Found null layer in", layerName);
                   return;
                 }
-                
+
                 if (!l.toGeoJSON) {
                   console.error(`Layer in ${layerName} does not have toGeoJSON method:`, l);
                   return;
                 }
-                
+
                 const feature = l.toGeoJSON();
-                
+
                 // Validate GeoJSON
                 if (!feature || !feature.type || !feature.geometry) {
                   console.error(`Invalid GeoJSON from layer in ${layerName}:`, feature);
                   return;
                 }
-                
+
                 // Make sure to preserve properties
                 if (l.feature && l.feature.properties) {
                   feature.properties = {...feature.properties, ...l.feature.properties};
                 }
-                
+
                 // Ensure properties object exists
                 if (!feature.properties) {
                   feature.properties = {};
                 }
-                
+
                 // Add layer name and ID for reference
                 feature.properties.layerName = layerName;
                 feature.properties.featureId = l._leaflet_id || Math.random().toString(36).substr(2, 9);
-                
+
                 // Add a human-readable name for display
                 feature.properties.displayName = feature.properties.name || feature.properties.facility_name || 
                                                (feature.properties.type ? `${feature.properties.type} Feature` : `Feature ${String(feature.properties.featureId).slice(-4)}`);
-                
+
                 // Log explosive features for debugging
                 if (feature.properties.net_explosive_weight) {
                   console.log(`Found explosive feature in ${layerName}:`, {
@@ -1362,7 +1362,7 @@
                     geometry_type: feature.geometry.type
                   });
                 }
-                
+
                 allFeatures.push(feature);
               } catch (layerError) {
                 console.error(`Error processing layer in ${layerName}:`, layerError);
@@ -1376,168 +1376,166 @@
             return;
           }
 
-        // Create a selection modal for choosing features to analyze
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.id = 'analysisSelectionModal';
-        modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
+          // Create a selection modal for choosing features to analyze
+          const modal = document.createElement('div');
+          modal.className = 'modal';
+          modal.id = 'analysisSelectionModal';
+          modal.style = 'display: block; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);';
 
-        let modalContent = `
-          <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px;">
-            <h2>Select Features for Analysis</h2>
-            <div style="margin-bottom: 10px;">
-              <button id="selectAllFeatures" style="margin-right: 10px;">Select All</button>
-              <button id="deselectAllFeatures">Deselect All</button>
-            </div>
-            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 15px;">
-        `;
-
-        // Group features by layer for better organization
-        const featuresByLayer = {};
-        allFeatures.forEach(feature => {
-          const layerName = feature.properties.layerName;
-          if (!featuresByLayer[layerName]) {
-            featuresByLayer[layerName] = [];
-          }
-          featuresByLayer[layerName].push(feature);
-        });
-
-        // Add feature selection checkboxes grouped by layer
-        Object.entries(featuresByLayer).forEach(([layerName, features]) => {
-          modalContent += `<div style="margin-bottom: 10px;"><strong>${layerName}</strong></div>`;
-
-          features.forEach(feature => {
-            const featureId = feature.properties.featureId;
-            const isExplosiveFacility = feature.properties.net_explosive_weight || 
-                                        feature.properties.new || 
-                                        feature.properties.type === 'Facility' || 
-                                        feature.properties.type === 'Bunker';
-
-            modalContent += `
-              <div style="margin-left: 20px; margin-bottom: 5px;">
-                <input type="checkbox" id="feature-${featureId}" 
-                       data-feature-id="${featureId}" 
-                       ${isExplosiveFacility ? 'checked' : ''}>
-                <label for="feature-${featureId}">
-                  ${feature.properties.displayName || 'Unnamed Feature'}
-                  ${isExplosiveFacility ? ' (Explosive Facility)' : ''}
-                </label>
+          let modalContent = `
+            <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px;">
+              <h2>Select Features for Analysis</h2>
+              <div style="margin-bottom: 10px;">
+                <button id="selectAllFeatures" style="margin-right: 10px;">Select All</button>
+                <button id="deselectAllFeatures">Deselect All</button>
               </div>
-            `;
+              <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 15px;">
+          `;
+
+          // Group features by layer for better organization
+          const featuresByLayer = {};
+          allFeatures.forEach(feature => {
+            const layerName = feature.properties.layerName;
+            if (!featuresByLayer[layerName]) {
+              featuresByLayer[layerName] = [];
+            }
+            featuresByLayer[layerName].push(feature);
           });
-        });
 
-        modalContent += `
-            </div>
-            <div>
-              <button id="runAnalysisBtn" style="background-color: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; margin-right: 10px;">
-                Run Analysis
-              </button>
-              <button id="cancelAnalysisBtn" style="padding: 10px 15px; border: 1px solid #ddd; cursor: pointer;">
-                Cancel
-              </button>
-            </div>
-          </div>
-        `;
+          // Add feature selection checkboxes grouped by layer
+          Object.entries(featuresByLayer).forEach(([layerName, features]) => {
+            modalContent += `<div style="margin-bottom: 10px;"><strong>${layerName}</strong></div>`;
 
-        modal.innerHTML = modalContent;
-        document.body.appendChild(modal);
+            features.forEach(feature => {
+              const featureId = feature.properties.featureId;
+              const isExplosiveFacility = feature.properties.net_explosive_weight || 
+                                          feature.properties.new || 
+                                          feature.properties.type === 'Facility' || 
+                                          feature.properties.type === 'Bunker';
 
-        // Add event listeners to buttons
-        document.getElementById('selectAllFeatures').addEventListener('click', () => {
-          document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]').forEach(cb => {
-            cb.checked = true;
-          });
-        });
-
-        document.getElementById('deselectAllFeatures').addEventListener('click', () => {
-          document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]').forEach(cb => {
-            cb.checked = false;
-          });
-        });
-
-        document.getElementById('cancelAnalysisBtn').addEventListener('click', () => {
-          document.body.removeChild(modal);
-        });
-
-        const self = this;
-        document.getElementById('runAnalysisBtn').addEventListener('click', async function() {
-          // Get selected features
-          const selectedCheckboxes = Array.from(
-            document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]:checked')
-          );
-
-          console.log("Selected checkboxes:", selectedCheckboxes.length);
-
-          // Get the feature IDs from the checkboxes
-          const selectedFeatureIds = selectedCheckboxes.map(cb => cb.getAttribute('data-feature-id'));
-          console.log("Selected feature IDs:", selectedFeatureIds);
-
-          // Convert all IDs to strings for consistent comparison
-          const selectedFeatures = allFeatures.filter(f => 
-            selectedFeatureIds.includes(String(f.properties.featureId))
-          );
-
-          console.log("Selected features after filtering:", selectedFeatures.length);
-          console.log("All features available:", allFeatures.length);
-
-          if (selectedFeatures.length === 0) {
-            alert("Please select at least one feature to analyze.");
-            return;
-          }
-
-          // Remove modal
-          document.body.removeChild(modal);
-
-          try {
-            // Show loading indicator
-            setStatusMessage("Running QD analysis...", "info");
-            
-            // Debug info before sending 
-            console.log("Preparing to send analysis request:");
-            console.log("- Location ID:", self.currentLocationId);
-            console.log("- Selected features count:", selectedFeatures.length);
-            
-            // Format request payload
-            const requestPayload = {
-              location_id: self.currentLocationId,
-              features: selectedFeatures
-            };
-            
-            console.log("Request payload summary:", {
-              location_id: requestPayload.location_id,
-              feature_count: requestPayload.features.length
+              modalContent += `
+                <div style="margin-left: 20px; margin-bottom: 5px;">
+                  <input type="checkbox" id="feature-${featureId}" 
+                         data-feature-id="${featureId}" 
+                         ${isExplosiveFacility ? 'checked' : ''}>
+                  <label for="feature-${featureId}">
+                    ${feature.properties.displayName || 'Unnamed Feature'}
+                    ${isExplosiveFacility ? ' (Explosive Facility)' : ''}
+                  </label>
+                </div>
+              `;
             });
+          });
 
-            // Call the backend API with comprehensive error handling
-            console.log("Sending request to /api/analyze-location");
-            console.log("Request payload summary:", {
-              location_id: requestPayload.location_id,
-              features_count: requestPayload.features.length,
-              explosive_features: requestPayload.features.filter(f => 
-                f.properties && f.properties.net_explosive_weight && 
-                parseFloat(f.properties.net_explosive_weight) > 0
-              ).length
+          modalContent += `
+              </div>
+              <div>
+                <button id="runAnalysisBtn" style="background-color: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; margin-right: 10px;">
+                  Run Analysis
+                </button>
+                <button id="cancelAnalysisBtn" style="padding: 10px 15px; border: 1px solid #ddd; cursor: pointer;">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          `;
+
+          modal.innerHTML = modalContent;
+          document.body.appendChild(modal);
+
+          // Add event listeners to buttons
+          document.getElementById('selectAllFeatures').addEventListener('click', () => {
+            document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]').forEach(cb => {
+              cb.checked = true;
             });
-            
+          });
+
+          document.getElementById('deselectAllFeatures').addEventListener('click', () => {
+            document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]').forEach(cb => {
+              cb.checked = false;
+            });
+          });
+
+          document.getElementById('cancelAnalysisBtn').addEventListener('click', () => {
+            document.body.removeChild(modal);
+          });
+
+          const self = this;
+          document.getElementById('runAnalysisBtn').addEventListener('click', async function() {
+            // Get selected features
+            const selectedCheckboxes = Array.from(
+              document.querySelectorAll('#analysisSelectionModal input[type="checkbox"]:checked')
+            );
+
+            console.log("Selected checkboxes:", selectedCheckboxes.length);
+
+            // Get the feature IDs from the checkboxes
+            const selectedFeatureIds = selectedCheckboxes.map(cb => cb.getAttribute('data-feature-id'));
+            console.log("Selected feature IDs:", selectedFeatureIds);
+
+            // Convert all IDs to strings for consistent comparison
+            const selectedFeatures = allFeatures.filter(f => 
+              selectedFeatureIds.includes(String(f.properties.featureId))
+            );
+
+            console.log("Selected features after filtering:", selectedFeatures.length);
+            console.log("All features available:", allFeatures.length);
+
+            if (selectedFeatures.length === 0) {
+              alert("Please select at least one feature to analyze.");
+              return;
+            }
+
+            // Remove modal
+            document.body.removeChild(modal);
+
             try {
+              // Show loading indicator
+              setStatusMessage("Running QD analysis...", "info");
+
+              // Debug info before sending 
+              console.log("Preparing to send analysis request:");
+              console.log("- Location ID:", self.currentLocationId);
+              console.log("- Selected features count:", selectedFeatures.length);
+
+              // Format request payload
+              const requestPayload = {
+                location_id: self.currentLocationId,
+                features: selectedFeatures
+              };
+
+              console.log("Request payload summary:", {
+                location_id: requestPayload.location_id,
+                feature_count: requestPayload.features.length
+              });
+
+              console.log("Sending request to /api/analyze-location");
+              console.log("Request payload summary:", {
+                location_id: requestPayload.location_id,
+                features_count: requestPayload.features.length,
+                explosive_features: requestPayload.features.filter(f => 
+                  f.properties && f.properties.net_explosive_weight && 
+                  parseFloat(f.properties.net_explosive_weight) > 0
+                ).length
+              });
+
               const response = await fetch("/api/analyze-location", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "applicationjson" },
                 body: JSON.stringify(requestPayload)
               });
-              
+
               console.log("Response status:", response.status);
-              
+
               if (!response.ok) {
                 let errorDetail = response.statusText;
                 let errorData = null;
-                
+
                 // Try to get detailed error message from response
                 try {
                   errorData = await response.json();
                   console.error("Server error response:", errorData);
-                  
+
                   if (errorData.detail) {
                     errorDetail = errorData.detail;
                   } else if (errorData.error) {
@@ -1558,7 +1556,7 @@
                     console.warn("Could not get error response text:", textError);
                   }
                 }
-                
+
                 throw new Error(`Analysis failed: ${errorDetail}`);
               }
 
@@ -1566,16 +1564,20 @@
               const result = await response.json();
               console.log("Analysis results:", result);
 
-            // Display results on the map
-            self.displayAnalysisResults(result);
+              // Display results on the map
+              self.displayAnalysisResults(result);
 
-            // Update status
-            setStatusMessage(`Analysis complete: ${result.total_facilities} facilities analyzed, ${result.total_violations} violations found`, "success");
-          } catch (error) {
-            console.error("Error during analysis:", error);
-            setStatusMessage(`Analysis failed: ${error.message}`, "error");
-          }
-        });
+              // Update status
+              setStatusMessage(`Analysis complete: ${result.total_facilities} facilities analyzed, ${result.total_violations} violations found`, "success");
+            } catch (error) {
+              console.error("Error during analysis:", error);
+              setStatusMessage(`Analysis failed: ${error.message}`, "error");
+            }
+          });
+        } catch (error) {
+          console.error("Error in analyzeLocation:", error);
+          alert("Error analyzing location: " + error.message);
+        }
       },
       displayAnalysisResults: function(analysis) {
         // Clear any existing analysis layers
@@ -1828,7 +1830,7 @@
           }
           document.body.removeChild(summaryPanel);
         });
-        
+
         // Handle view detailed report button
         document.getElementById('viewDetailedReportBtn').addEventListener('click', () => {
           if (window.QDProEditor && typeof window.QDProEditor.displayDetailedReport === 'function') {
@@ -1997,21 +1999,21 @@
           }
         });
       },
-      
+
       // Function to generate and export a PDF report
       exportPDF: async function() {
         if (!this.currentAnalysisResults) {
           alert("No analysis results available to export");
           return;
         }
-        
+
         try {
           // Show loading status
           setStatusMessage("Generating PDF report...", "info");
-          
+
           // Capture the current map view
           const mapImage = await this.captureMapImage();
-          
+
           // Generate PDF on server with map image
           const response = await fetch("/api/generate-report", {
             method: "POST",
@@ -2022,24 +2024,24 @@
               map_image: mapImage
             })
           });
-          
+
           if (!response.ok) {
             throw new Error("Failed to generate PDF report");
           }
-          
+
           // Get the PDF URL from the response
           const result = await response.json();
-          
+
           // Open the PDF in a new tab
           window.open(result.report_url, '_blank');
-          
+
           setStatusMessage("PDF report generated successfully", "success");
         } catch (error) {
           console.error("Error generating PDF report:", error);
           setStatusMessage("Failed to generate PDF: " + error.message, "error");
         }
       },
-      
+
       // Helper function to capture the current map view as a base64 image
       captureMapImage: function() {
         return new Promise((resolve, reject) => {
@@ -2049,7 +2051,7 @@
               resolve(null);
               return;
             }
-            
+
             const mapElement = document.getElementById('map');
             html2canvas(mapElement, {
               useCORS: true,
