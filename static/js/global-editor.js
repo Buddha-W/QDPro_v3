@@ -1,8 +1,29 @@
 // QDPro Global Editor Module
 // This script centralizes editor functions to ensure they're globally accessible
 
-// Create a global namespace for editor functions
+// Initialize QDProEditor as a globally accessible object with integrated QD engine
 window.QDProEditor = {
+  // QD engine parameters
+  qdEngine: {
+    kFactors: {
+      "IBD": 40,
+      "ILD": 18, 
+      "IMD": 9,
+      "PTRD": 24
+    },
+    standards: {
+      "IBD": "DESR 6055.09, Vol 3, Section 5.4.1.2",
+      "ILD": "DESR 6055.09, Vol 3, Section 5.4.2.1",
+      "IMD": "DESR 6055.09, Vol 3, Section 5.4.3.1",
+      "PTRD": "DESR 6055.09, Vol 3, Section 5.4.4.1"
+    },
+    // Convert units to pounds
+    unitConversions: {
+      "g": 0.00220462,
+      "kg": 2.20462,
+      "lbs": 1.0
+    }
+  },
   activeEditingLayer: null,
   isEditorOpen: false,
   lastPopupLayer: null,
