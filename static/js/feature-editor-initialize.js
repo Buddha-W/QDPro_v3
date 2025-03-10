@@ -14,29 +14,59 @@ function handleEditButtonClick(button) {
     
     // Store layer globally for immediate access
     window.activeEditingLayer = layer;
+    window.lastClickedLayer = layer;
     
-    // Close popup
-    if (layer.closePopup) {
-      layer.closePopup();
+    // Check if editor is currently open and force close it first
+    if (window.QDProEditor && window.QDProEditor.isEditorOpen) {
+      window.QDProEditor.closeFeatureEditor();
+      
+      // Use a short delay to ensure clean state before opening new editor
+      setTimeout(function() {
+        openEditorForLayer(layer);
+      }, 50);
+    } else {
+      openEditorForLayer(layer);
     }
-    
-    // Open feature editor with minimal delay
-    setTimeout(function() {
-      if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-        window.QDProEditor.openFeatureEditor(layer);
-      } else if (typeof window.openFeatureEditor === 'function') {
-        window.openFeatureEditor(layer);
-      } else if (typeof openFeatureEditor === 'function') {
-        openFeatureEditor(layer);
-      } else {
-        console.error("Feature editor function not found in global handler!");
-        alert("Error: Could not open editor. Please refresh the page.");
-      }
-    }, 10);
   }
   
   return false;
 }
+
+// Helper function to open editor for a layer
+function openEditorForLayer(layer) {
+  // Close popup if it exists
+  if (layer.closePopup) {
+    layer.closePopup();
+  }
+  
+  // Force close any popups on the map
+  if (window.map) {
+    window.map.closePopup();
+  }
+  
+  // Select the right editor function
+  if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
+    window.QDProEditor.openFeatureEditor(layer);
+  } else if (typeof window.openFeatureEditor === 'function') {
+    window.openFeatureEditor(layer);
+  } else if (typeof openFeatureEditor === 'function') {
+    openFeatureEditor(layer);
+  } else {
+    console.error("Feature editor function not found in global handler!");
+    alert("Error: Could not open editor. Please refresh the page.");
+  }
+}
+
+// Create a global document-level handler for edit buttons
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.classList.contains('edit-properties-btn')) {
+    console.log("Edit button clicked via global document handler");
+    handleEditButtonClick(e.target);
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+});
 
 
  */
@@ -342,39 +372,51 @@ function addLayerClickHandlers(layer) {
   // Add popup open event handler - improved handling
   layer.on('popupopen', function() {
     console.log("Popup opened, setting up edit button handler");
-
-    // Find and set up the edit button with appropriate handler immediately
-    // Reduced timeout for more immediate response
+    
+    // Store current layer reference for direct access
+    window.lastClickedLayer = layer;
+    
+    // Process immediately but use a tiny delay to ensure DOM is ready
     setTimeout(function() {
       const popupContainer = document.querySelector('.leaflet-popup-content');
       if (popupContainer) {
         const editButton = popupContainer.querySelector('.edit-properties-btn');
         if (editButton) {
-          // Add direct onclick attribute for more reliable click handling
-          editButton.setAttribute('onclick', 'handleEditButtonClick(this)');
+          // First, remove any existing event listeners to prevent duplicates
+          const newButton = editButton.cloneNode(true);
+          editButton.parentNode.replaceChild(newButton, editButton);
           
-          // Also add standard event listener as backup
-          editButton.addEventListener('click', function(e) {
+          // Add direct onclick attribute for more reliable click handling
+          newButton.setAttribute('onclick', 'handleEditButtonClick(this)');
+          
+          // Add a completely direct click handler for maximum reliability
+          newButton.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log("Edit button clicked from popup via event listener");
             
-            // Store the layer globally for immediate access
-            window.activeEditingLayer = layer;
+            console.log("Edit button clicked via direct handler");
             
-            // Close the popup first to prevent UI issues
-            if (layer.closePopup) {
-              layer.closePopup();
+            // Force clear any existing editor state
+            if (window.QDProEditor) {
+              if (window.QDProEditor.isEditorOpen) {
+                window.QDProEditor.closeFeatureEditor();
+              }
             }
             
-            // Call editor function with minimal delay
+            // Use the most recently stored layer reference
+            const targetLayer = window.lastClickedLayer || layer;
+            
+            // Force close popup first
+            if (targetLayer.closePopup) {
+              targetLayer.closePopup();
+            }
+            
+            // Open the editor after a minimal delay to ensure clean state
             setTimeout(function() {
               if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-                window.QDProEditor.openFeatureEditor(layer);
+                window.QDProEditor.openFeatureEditor(targetLayer);
               } else if (typeof window.openFeatureEditor === 'function') {
-                window.openFeatureEditor(layer);
-              } else if (typeof openFeatureEditor === 'function') {
-                openFeatureEditor(layer);
+                window.openFeatureEditor(targetLayer);
               } else {
                 console.error("Feature editor function not found!");
                 alert("Error: Could not open editor. Please refresh the page.");
@@ -382,12 +424,12 @@ function addLayerClickHandlers(layer) {
             }, 10);
             
             return false;
-          });
+          };
         } else {
           console.warn("Edit button not found in popup");
         }
       }
-    }, 5);
+    }, 0);
   });
 }
 

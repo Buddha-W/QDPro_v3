@@ -1,94 +1,81 @@
-
 // QDPro Global Editor Module
 // This script centralizes editor functions to ensure they're globally accessible
 
-// Create a global QDProEditor object to avoid function conflicts
+// Create a global namespace for editor functions
 window.QDProEditor = {
-  // Current editing layer
   activeEditingLayer: null,
+  isEditorOpen: false,
+  lastPopupLayer: null,
 
-  // Function to open feature editor modal
   openFeatureEditor: function(layer) {
     console.log("QDProEditor: Opening feature editor for layer:", layer);
     this.activeEditingLayer = layer;
+    this.isEditorOpen = true;
 
     // Get feature properties
     const properties = layer.feature ? layer.feature.properties : {};
 
-    // Populate the form
-    const nameField = document.getElementById('name');
-    if (nameField) nameField.value = properties.name || '';
+    // Populate the form fields
+    document.getElementById('name').value = properties.name || '';
+    document.getElementById('type').value = properties.type || 'Building';
+    document.getElementById('description').value = properties.description || '';
 
-    const typeField = document.getElementById('type');
-    if (typeField) typeField.value = properties.type || 'Building';
+    if (document.getElementById('is_facility')) {
+      document.getElementById('is_facility').checked = properties.is_facility || false;
+    }
 
-    const descriptionField = document.getElementById('description');
-    if (descriptionField) descriptionField.value = properties.description || '';
+    if (document.getElementById('has_explosive')) {
+      document.getElementById('has_explosive').checked = properties.has_explosive || false;
 
-    const isFacilityField = document.getElementById('is_facility');
-    if (isFacilityField) isFacilityField.checked = properties.is_facility || false;
-
-    const hasExplosiveField = document.getElementById('has_explosive');
-    if (hasExplosiveField) {
-      hasExplosiveField.checked = properties.has_explosive || false;
       // Toggle explosive section visibility
       const explosiveSection = document.getElementById('explosiveSection');
       if (explosiveSection) {
-        explosiveSection.style.display = hasExplosiveField.checked ? 'block' : 'none';
+        explosiveSection.style.display = properties.has_explosive ? 'block' : 'none';
       }
-    }
 
-    // Show/hide explosive weight section
-    const explosiveSection = document.getElementById('explosiveSection');
-    if (explosiveSection) {
-      explosiveSection.style.display = properties.has_explosive ? 'block' : 'none';
-
-      const newField = document.getElementById('net_explosive_weight');
-      if (newField) newField.value = properties.net_explosive_weight || '';
+      if (document.getElementById('net_explosive_weight')) {
+        document.getElementById('net_explosive_weight').value = properties.net_explosive_weight || '';
+      }
     }
 
     // Show the modal
     const modal = document.getElementById('featurePropertiesModal');
     if (modal) {
       modal.style.display = 'block';
-    } else {
-      console.error("Feature properties modal not found");
     }
   },
 
-  // Function to close the feature editor modal
   closeFeatureEditor: function() {
     console.log("QDProEditor: Closing feature editor");
     const modal = document.getElementById('featurePropertiesModal');
     if (modal) {
       modal.style.display = 'none';
     }
-    
-    // Reset active editing layer
-    this.activeEditingLayer = null;
-    
-    // Reset popup state to allow immediate editing of another feature
+
+    // Reset flags to allow immediate editing of another feature
+    this.isEditorOpen = false;
+
+    // Immediately close any open popups to reset state
     if (window.map) {
-      // Close any open popups
       window.map.closePopup();
-      
-      // Force any queued events to complete
-      setTimeout(function() {
-        console.log("Modal closed, popup state reset");
-      }, 5);
     }
+
+    // Short delay to ensure DOM is updated before allowing new popups
+    setTimeout(() => {
+      this.activeEditingLayer = null;
+      console.log("QDProEditor: Editor fully closed, ready for new interactions");
+    }, 50);
   },
 
-  // Function to save feature properties
   saveFeatureProperties: function() {
     console.log("QDProEditor: Saving feature properties");
     const layer = this.activeEditingLayer;
     if (!layer) {
-      console.error("No active layer to save properties");
+      console.error("No active layer to save properties to");
       return;
     }
 
-    // Ensure the feature and properties objects exist
+    // Ensure feature and properties objects exist
     if (!layer.feature) {
       layer.feature = { type: 'Feature', properties: {} };
     }
@@ -116,35 +103,33 @@ window.QDProEditor = {
     layer.feature.properties.has_explosive = hasExplosive;
     layer.feature.properties.net_explosive_weight = netExplosiveWeight;
 
-    // Update popup content if one exists
+    // Update popup content
+    const popupContent = `
+      <div>
+        <h3>${name || 'Unnamed Feature'}</h3>
+        <p>Type: ${type || 'Unknown'}</p>
+        ${hasExplosive ? `<p>NEW: ${netExplosiveWeight} lbs</p>` : ''}
+        ${description ? `<p>${description}</p>` : ''}
+        <button class="edit-properties-btn">Edit Properties</button>
+      </div>
+    `;
+
     if (layer.getPopup()) {
-      const popupContent = `
-        <div>
-          <h3>${name || 'Unnamed Feature'}</h3>
-          <p>Type: ${type || 'Unknown'}</p>
-          ${hasExplosive ? `<p>NEW: ${netExplosiveWeight} lbs</p>` : ''}
-          ${description ? `<p>${description}</p>` : ''}
-          <button class="edit-properties-btn">Edit Properties</button>
-        </div>
-      `;
       layer.setPopupContent(popupContent);
     }
 
-    // Close the modal
+    // Close the editor
     this.closeFeatureEditor();
 
-    // Save the project to persist changes
+    // Save project state if available
     if (typeof QDPro !== 'undefined' && QDPro.saveProject) {
       QDPro.saveProject();
     }
-
-    console.log("Feature properties saved:", layer.feature.properties);
   }
 };
 
-// Create direct global references for the editor functions
+// Make functions globally available
 window.openFeatureEditor = function(layer) {
-  console.log("Global openFeatureEditor called with layer:", layer);
   window.QDProEditor.openFeatureEditor(layer);
 };
 
@@ -172,10 +157,10 @@ function setupExplosiveSectionToggle() {
 // Set up form event handlers
 document.addEventListener('DOMContentLoaded', function() {
   console.log("QDProEditor: Setting up event handlers");
-  
+
   // Setup explosive section toggle
   setupExplosiveSectionToggle();
-  
+
   // Setup save button
   const saveBtn = document.getElementById('savePropertiesBtn');
   if (saveBtn) {
@@ -183,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
       window.QDProEditor.saveFeatureProperties();
     });
   }
-  
+
   // Setup close button
   const closeBtn = document.getElementById('closeFeaturePropertiesBtn');
   if (closeBtn) {
@@ -191,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
       window.QDProEditor.closeFeatureEditor();
     });
   }
-  
+
   // Setup cancel button
   const cancelBtn = document.getElementById('cancelPropertiesBtn');
   if (cancelBtn) {
@@ -199,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
       window.QDProEditor.closeFeatureEditor();
     });
   }
-  
+
   // Fix any missing edit buttons in existing popups
   setTimeout(function() {
     const editButtons = document.querySelectorAll('.edit-properties-btn');
@@ -208,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.onclick = function(e) {
           e.preventDefault();
           e.stopPropagation();
-          
+
           const popup = this.closest('.leaflet-popup');
           if (popup && popup._source) {
             openFeatureEditor(popup._source);
@@ -217,27 +202,27 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }, 1000);
-  
+
   console.log("QDProEditor: Event handlers setup complete");
 });
 
 // Define a global function for popup edit button click handling
 window.handleEditButtonClick = function(button) {
   console.log("Edit button clicked via direct onclick handler");
-  
+
   // Find the popup and associated layer
   const popup = button.closest('.leaflet-popup');
   if (popup && popup._source) {
     const layer = popup._source;
-    
+
     // Close popup
     if (layer.closePopup) {
       layer.closePopup();
     }
-    
+
     // Open feature editor immediately
     window.openFeatureEditor(layer);
   }
-  
+
   return false;
 };

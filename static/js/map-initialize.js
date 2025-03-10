@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
       map.invalidateSize();
     }
   });
-  
+
   // Global event delegation for popup edit buttons
   // This catches all clicks on the entire document and handles edit buttons
   document.addEventListener('click', function(e) {
@@ -89,36 +89,51 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log("Edit button clicked via global handler");
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Find the associated layer
       const popup = e.target.closest('.leaflet-popup');
       if (popup && popup._source) {
         const layer = popup._source;
         console.log("Found layer for edit button:", layer);
-        
+
         // Store layer in global variable for immediate access
         window.activeEditingLayer = layer;
-        
-        // Clear any existing modal
+
+        // Force close any open popups first
+        if (window.map) {
+          window.map.closePopup();
+        }
+
+        // Clear any existing modal and reset state
         const existingModal = document.getElementById('featurePropertiesModal');
         if (existingModal && existingModal.style.display === 'block') {
           existingModal.style.display = 'none';
-        }
-        
-        // Close the popup immediately
-        if (layer.closePopup) {
-          layer.closePopup();
-        }
-        
-        // Open feature editor immediately
-        if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
-          window.QDProEditor.openFeatureEditor(layer);
-        } else if (typeof window.openFeatureEditor === 'function') {
-          window.openFeatureEditor(layer);
+
+          // Force a small delay to ensure clean state
+          setTimeout(() => {
+            openEditorWithLayer(layer);
+          }, 50);
         } else {
-          console.error("Editor function not available - critical error");
-          console.log("Available window functions:", Object.keys(window).filter(k => typeof window[k] === 'function'));
-          alert("Critical error: Editor function not found. Please refresh the page and try again.");
+          // Immediately open if no modal is showing
+          openEditorWithLayer(layer);
+        }
+
+        function openEditorWithLayer(layerObj) {
+          // Close the popup if still open
+          if (layerObj.closePopup) {
+            layerObj.closePopup();
+          }
+
+          // Open feature editor
+          if (window.QDProEditor && typeof window.QDProEditor.openFeatureEditor === 'function') {
+            window.QDProEditor.openFeatureEditor(layerObj);
+          } else if (typeof window.openFeatureEditor === 'function') {
+            window.openFeatureEditor(layerObj);
+          } else {
+            console.error("Editor function not available - critical error");
+            console.log("Available window functions:", Object.keys(window).filter(k => typeof window[k] === 'function'));
+            alert("Critical error: Editor function not found. Please refresh the page and try again.");
+          }
         }
       }
       return false;
@@ -136,40 +151,40 @@ if (typeof window.openFeatureEditor !== 'function') {
     if (typeof window.activeEditingLayer !== 'undefined') {
       window.activeEditingLayer = layer;
     }
-    
+
     // Get the modal
     const modal = document.getElementById('featurePropertiesModal');
     if (!modal) {
       console.error("Feature properties modal not found");
       return;
     }
-    
+
     // Get properties from the layer
     const properties = layer.feature ? layer.feature.properties : {};
-    
+
     // Fill in the form fields
     document.getElementById('name').value = properties.name || '';
     document.getElementById('type').value = properties.type || 'Building';
     document.getElementById('description').value = properties.description || '';
-    
+
     if (document.getElementById('is_facility')) {
       document.getElementById('is_facility').checked = properties.is_facility || false;
     }
-    
+
     if (document.getElementById('has_explosive')) {
       document.getElementById('has_explosive').checked = properties.has_explosive || false;
     }
-    
+
     // Show/hide explosive section based on checkbox
     const explosiveSection = document.getElementById('explosiveSection');
     if (explosiveSection) {
       explosiveSection.style.display = properties.has_explosive ? 'block' : 'none';
-      
+
       if (document.getElementById('net_explosive_weight')) {
         document.getElementById('net_explosive_weight').value = properties.net_explosive_weight || '';
       }
     }
-    
+
     // Display the modal
     modal.style.display = 'block';
   };
