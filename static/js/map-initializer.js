@@ -65,7 +65,13 @@ function setupMapErrorHandlers() {
     };
   }
   
-  // Handle issues with Leaflet Draw
+  /**
+ * QDPro Map Initializer
+ * Handles map initialization and common error recovery
+ */
+
+// Handle issues with Leaflet Draw
+function initializeMapErrorHandling() {
   if (L && L.Draw) {
     // Fix for draw handlers
     const checkForDrawErrors = function() {
@@ -91,6 +97,13 @@ function setupMapErrorHandlers() {
     // Run this check periodically
     setInterval(checkForDrawErrors, 30000);
   }
+}
+
+// Initialize the map when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Map initializer loaded');
+  initializeMapErrorHandling();
+});
 }
 
 // Helper to show error notifications if not defined elsewhere
