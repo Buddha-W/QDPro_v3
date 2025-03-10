@@ -308,17 +308,17 @@ function ensureGlobalFunctions() {
   if (typeof window.openFeatureEditor !== 'function') {
     window.openFeatureEditor = openFeatureEditor;
   }
-  
+
   // Ensure saveFeatureProperties is properly defined on the global scope
   if (typeof window.saveFeatureProperties !== 'function') {
     window.saveFeatureProperties = saveFeatureProperties;
   }
-  
+
   // Ensure closeFeaturePropertiesModal is properly defined on the global scope
   if (typeof window.closeFeaturePropertiesModal !== 'function') {
     window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
   }
-  
+
   console.log("Global function references established");
 }
 
@@ -347,9 +347,9 @@ function addLayerClickHandlers(layer) {
       <button class="edit-properties-btn">Edit Properties</button>
     </div>
   `;
-  
+
   layer.bindPopup(popupContent);
-  
+
   // Store reference to the layer in the popup for direct access
   layer.on('popupopen', function(e) {
     console.log('Popup opened, attaching edit button handler');
@@ -361,14 +361,14 @@ function addLayerClickHandlers(layer) {
         // Remove any existing event listeners
         const newEditBtn = editBtn.cloneNode(true);
         editBtn.parentNode.replaceChild(newEditBtn, editBtn);
-        
+
         // Add new event listener with explicitly defined handler
         newEditBtn.addEventListener('click', function() {
           console.log('Edit button clicked, opening feature editor');
-          if (typeof openFeatureEditor === 'function') {
-            openFeatureEditor(layer);
-          } else if (typeof window.openFeatureEditor === 'function') {
+          if (typeof window.openFeatureEditor === 'function') {
             window.openFeatureEditor(layer);
+          } else if (typeof openFeatureEditor === 'function') {
+            openFeatureEditor(layer);
           } else {
             // Emergency fallback - define a minimal implementation
             console.warn('openFeatureEditor not found, using emergency fallback');
@@ -376,26 +376,26 @@ function addLayerClickHandlers(layer) {
             if (modal) {
               window.activeEditingLayer = layer;
               modal.style.display = 'block';
-              
+
               // Populate the form
               if (layer.feature && layer.feature.properties) {
                 const props = layer.feature.properties;
                 document.getElementById('name').value = props.name || '';
                 document.getElementById('type').value = props.type || 'Building';
                 document.getElementById('description').value = props.description || '';
-                
+
                 if (document.getElementById('is_facility')) {
                   document.getElementById('is_facility').checked = props.is_facility || false;
                 }
-                
+
                 if (document.getElementById('has_explosive')) {
                   document.getElementById('has_explosive').checked = props.has_explosive || false;
                 }
-                
+
                 if (document.getElementById('explosiveSection')) {
                   document.getElementById('explosiveSection').style.display = 
                     props.has_explosive ? 'block' : 'none';
-                    
+
                   if (document.getElementById('net_explosive_weight')) {
                     document.getElementById('net_explosive_weight').value = 
                       props.net_explosive_weight || '';
