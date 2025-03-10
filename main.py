@@ -592,7 +592,7 @@ async def analyze_location(request: Request):
                     new_value = float(new_value.strip() or 0)
                 else:
                     new_value = float(new_value)
-                
+
                 # Consider any feature with explosive weight as a facility
                 if properties and new_value > 0:
                     facilities.append(feature)
@@ -603,185 +603,6 @@ async def analyze_location(request: Request):
                 # Add to other features if conversion fails
                 other_features.append(feature)
 
-# Bookmark API endpoints
-@app.get("/api/bookmarks")
-async def get_bookmarks(location_id: Optional[int] = None):
-    """Get all bookmarks for a location"""
-    try:
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
-        cur = conn.cursor()
-        
-        if location_id:
-            cur.execute("""
-                SELECT name, bookmark_data FROM map_bookmarks 
-                WHERE location_id = %s AND is_active = TRUE
-            """, (location_id,))
-        else:
-            cur.execute("""
-                SELECT name, bookmark_data FROM map_bookmarks 
-                WHERE is_active = TRUE
-            """)
-            
-        rows = cur.fetchall()
-        bookmarks = {}
-        
-        for row in rows:
-            name, data = row
-            bookmarks[name] = data
-            
-        return {"bookmarks": bookmarks}
-    except Exception as e:
-        logger.error(f"Error getting bookmarks: {str(e)}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-    finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
-
-@app.get("/api/bookmarks/{name}")
-async def get_bookmark(name: str, location_id: Optional[int] = None):
-    """Get a specific bookmark"""
-    try:
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
-        cur = conn.cursor()
-        
-        if location_id:
-            cur.execute("""
-                SELECT bookmark_data FROM map_bookmarks 
-                WHERE name = %s AND location_id = %s AND is_active = TRUE
-            """, (name, location_id))
-        else:
-            cur.execute("""
-                SELECT bookmark_data FROM map_bookmarks 
-                WHERE name = %s AND is_active = TRUE
-            """, (name,))
-            
-        row = cur.fetchone()
-        
-        if not row:
-            return JSONResponse(status_code=404, content={"error": f"Bookmark '{name}' not found"})
-            
-        return {"bookmark": row[0]}
-    except Exception as e:
-        logger.error(f"Error getting bookmark: {str(e)}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-    finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
-
-@app.post("/api/bookmarks")
-async def save_bookmark(request: Request):
-    """Save a bookmark"""
-    try:
-        data = await request.json()
-        name = data.get("name")
-        location_id = data.get("location_id")
-        bookmark_data = data.get("bookmark_data")
-        
-        if not name or not bookmark_data:
-            return JSONResponse(status_code=400, content={"error": "Name and bookmark_data are required"})
-        
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
-        cur = conn.cursor()
-        
-        # Check if bookmark already exists
-        if location_id:
-            cur.execute("""
-                SELECT id FROM map_bookmarks 
-                WHERE name = %s AND location_id = %s AND is_active = TRUE
-            """, (name, location_id))
-        else:
-            cur.execute("""
-                SELECT id FROM map_bookmarks 
-                WHERE name = %s AND location_id IS NULL AND is_active = TRUE
-            """, (name,))
-            
-        row = cur.fetchone()
-        
-        if row:
-            # Update existing bookmark
-            bookmark_id = row[0]
-            cur.execute("""
-                UPDATE map_bookmarks 
-                SET bookmark_data = %s 
-                WHERE id = %s
-            """, (json.dumps(bookmark_data), bookmark_id))
-        else:
-            # Create new bookmark
-            if location_id:
-                cur.execute("""
-                    INSERT INTO map_bookmarks (name, location_id, bookmark_data, is_active)
-                    VALUES (%s, %s, %s, TRUE)
-                """, (name, location_id, json.dumps(bookmark_data)))
-            else:
-                cur.execute("""
-                    INSERT INTO map_bookmarks (name, bookmark_data, is_active)
-                    VALUES (%s, %s, TRUE)
-                """, (name, json.dumps(bookmark_data)))
-        
-        conn.commit()
-        return {"status": "success", "message": f"Bookmark '{name}' saved successfully"}
-    except Exception as e:
-        logger.error(f"Error saving bookmark: {str(e)}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-    finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
-
-@app.delete("/api/bookmarks/{name}")
-async def delete_bookmark(name: str, request: Request):
-    """Delete a bookmark"""
-    try:
-        data = await request.json()
-        location_id = data.get("location_id")
-        
-        conn = psycopg2.connect(os.environ['DATABASE_URL'])
-        cur = conn.cursor()
-        
-        if location_id:
-            cur.execute("""
-                UPDATE map_bookmarks SET is_active = FALSE
-                WHERE name = %s AND location_id = %s
-            """, (name, location_id))
-        else:
-            cur.execute("""
-                UPDATE map_bookmarks SET is_active = FALSE
-                WHERE name = %s AND location_id IS NULL
-            """, (name,))
-        
-        conn.commit()
-        return {"status": "success", "message": f"Bookmark '{name}' deleted successfully"}
-    except Exception as e:
-        logger.error(f"Error deleting bookmark: {str(e)}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-    finally:
-        if 'cur' in locals(): cur.close()
-        if 'conn' in locals(): conn.close()
-
-            properties = feature.get("properties", {})
-            try:
-                # Convert explosive weight safely with proper error handling
-                new_value = properties.get("net_explosive_weight")
-                if new_value is None or new_value == "":
-                    new_value = 0
-                elif isinstance(new_value, str):
-                    new_value = float(new_value.strip() or 0)
-                else:
-                    new_value = float(new_value)
-                
-                # Consider any feature with explosive weight as a facility
-                if properties and new_value > 0:
-                    facilities.append(feature)
-                else:
-                    other_features.append(feature)
-            except (ValueError, TypeError) as e:
-                logger.warning(f"Feature has invalid NEW value: {str(e)}")
-                # Add to other features if conversion fails
-                other_features.append(feature)
-
-        # Run analysis for each facility with improved logging
-        logger.info(f"Starting QD analysis for {len(facilities)} facilities and {len(other_features)} other features")
-        logger.info(f"Full feature count breakdown: Facilities={len(facilities)}, Other features={len(other_features)}, Total={len(features)}")
-        
         # Log facility layer info for debugging
         layers_info = {}
         for facility in facilities:
@@ -789,9 +610,9 @@ async def delete_bookmark(name: str, request: Request):
             if layer_name not in layers_info:
                 layers_info[layer_name] = 0
             layers_info[layer_name] += 1
-        
+
         logger.info(f"Facilities by layer: {layers_info}")
-        
+
         results = []
         for facility in facilities:
             facility_id = facility.get('id', 'unknown')
@@ -886,42 +707,42 @@ async def delete_bookmark(name: str, request: Request):
                 # Combine all features for analysis, excluding the current facility
                 # Ensure we analyze against ALL other features from ALL layers
                 all_analysis_features = other_features + [f for f in facilities if f.get('id') != facility.get('id')]
-                
+
                 facility_name = properties.get('name', 'unknown')
                 logger.info(f"Analyzing facility {facility_name} (ID: {facility.get('id')}) against {len(all_analysis_features)} other features")
-                
+
                 # Print the first few surrounding features for debugging
                 for i, feat in enumerate(all_analysis_features[:3]):
                     feat_name = feat.get("properties", {}).get("name", "unnamed")
                     feat_layer = feat.get("properties", {}).get("layerName", "unknown")
                     feat_id = feat.get("id", "unknown")
                     logger.info(f"Surrounding feature {i}: {feat_name} (ID: {feat_id}) from layer: {feat_layer}")
-                
+
                 # Log analysis parameters for debugging
                 logger.info(f"Analysis parameters: k_factor_type={k_factor_type}, unit_type={unit_type}")
                 logger.info(f"Facility explosives: {new_value} {unit_type}")
-                
+
                 # Force facility and all features to have IDs for proper identification
                 if not facility.get("id"):
                     facility["id"] = f"facility_{hash(json.dumps(facility))}"
-                
+
                 for af in all_analysis_features:
                     if not af.get("id"):
                         af["id"] = f"feature_{hash(json.dumps(af))}"
-                
+
                 facility_analysis = qd_engine.analyze_facility(
                     facility=facility,
                     surrounding_features=all_analysis_features,
                     k_factor_type=k_factor_type,
                     unit_type=unit_type
                 )
-                
+
                 # Log findings
                 violations_count = len(facility_analysis.get("violations", []))
                 logger.info(f"Analysis complete for {facility_name}: {violations_count} violations found")
                 if violations_count > 0:
                     logger.info(f"Violations: {json.dumps(facility_analysis.get('violations', []), indent=2)}")
-                
+
             except Exception as analysis_error:
                 logger.error(f"Facility analysis error: {str(analysis_error)}\n{traceback.format_exc()}")
                 facility_analysis = {"violations": [], "error": str(analysis_error)}
@@ -1127,7 +948,7 @@ def init_db():
                 )
             """)
             print("Created map_bookmarks table")
-            
+
             # Add composite unique constraint for name and location_id
             try:
                 cur.execute("""
@@ -1213,3 +1034,157 @@ if __name__ == "__main__":
     init_db()
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True, access_log=True)
+
+# Bookmark API endpoints
+@app.get("/api/bookmarks")
+async def get_bookmarks(location_id: Optional[int] = None):
+    """Get all bookmarks for a location"""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+
+        if location_id:
+            cur.execute("""
+                SELECT name, bookmark_data FROM map_bookmarks 
+                WHERE location_id = %s AND is_active = TRUE
+            """, (location_id,))
+        else:
+            cur.execute("""
+                SELECT name, bookmark_data FROM map_bookmarks 
+                WHERE is_active = TRUE
+            """)
+
+        rows = cur.fetchall()
+        bookmarks = {}
+
+        for row in rows:
+            name, data = row
+            bookmarks[name] = data
+
+        return {"bookmarks": bookmarks}
+    except Exception as e:
+        logger.error(f"Error getting bookmarks: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
+@app.get("/api/bookmarks/{name}")
+async def get_bookmark(name: str, location_id: Optional[int] = None):
+    """Get a specific bookmark"""
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+
+        if location_id:
+            cur.execute("""
+                SELECT bookmark_data FROM map_bookmarks 
+                WHERE name = %s AND location_id = %s AND is_active = TRUE
+            """, (name, location_id))
+        else:
+            cur.execute("""
+                SELECT bookmark_data FROM map_bookmarks 
+                WHERE name = %s AND is_active = TRUE
+            """, (name,))
+
+        row = cur.fetchone()
+
+        if not row:
+            return JSONResponse(status_code=404, content={"error": f"Bookmark '{name}' not found"})
+
+        return {"bookmark": row[0]}
+    except Exception as e:
+        logger.error(f"Error getting bookmark: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
+@app.post("/api/bookmarks")
+async def save_bookmark(request: Request):
+    """Save a bookmark"""
+    try:
+        data = await request.json()
+        name = data.get("name")
+        location_id = data.get("location_id")
+        bookmark_data = data.get("bookmark_data")
+
+        if not name or not bookmark_data:
+            return JSONResponse(status_code=400, content={"error": "Name and bookmark_data are required"})
+
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+
+        # Check if bookmark already exists
+        if location_id:
+            cur.execute("""
+                SELECT id FROM map_bookmarks 
+                WHERE name = %s AND location_id = %s AND is_active = TRUE
+            """, (name, location_id))
+        else:
+            cur.execute("""
+                SELECT id FROM map_bookmarks 
+                WHERE name = %s AND location_id IS NULL AND is_active = TRUE
+            """, (name,))
+
+        row = cur.fetchone()
+
+        if row:
+            # Update existing bookmark
+            bookmark_id = row[0]
+            cur.execute("""
+                UPDATE map_bookmarks 
+                SET bookmark_data = %s 
+                WHERE id = %s
+            """, (json.dumps(bookmark_data), bookmark_id))
+        else:
+            # Create new bookmark
+            if location_id:
+                cur.execute("""
+                    INSERT INTO map_bookmarks (name, location_id, bookmark_data, is_active)
+                    VALUES (%s, %s, %s, TRUE)
+                """, (name, location_id, json.dumps(bookmark_data)))
+            else:
+                cur.execute("""
+                    INSERT INTO map_bookmarks (name, bookmark_data, is_active)
+                    VALUES (%s, %s, TRUE)
+                """, (name, json.dumps(bookmark_data)))
+
+        conn.commit()
+        return {"status": "success", "message": f"Bookmark '{name}' saved successfully"}
+    except Exception as e:
+        logger.error(f"Error saving bookmark: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
+
+@app.delete("/api/bookmarks/{name}")
+async def delete_bookmark(name: str, request: Request):
+    """Delete a bookmark"""
+    try:
+        data = await request.json()
+        location_id = data.get("location_id")
+
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+
+        if location_id:
+            cur.execute("""
+                UPDATE map_bookmarks SET is_active = FALSE
+                WHERE name = %s AND location_id = %s
+            """, (name, location_id))
+        else:
+            cur.execute("""
+                UPDATE map_bookmarks SET is_active = FALSE
+                WHERE name = %s AND location_id IS NULL
+            """, (name,))
+
+        conn.commit()
+        return {"status": "success", "message": f"Bookmark '{name}' deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting bookmark: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+    finally:
+        if 'cur' in locals(): cur.close()
+        if 'conn' in locals(): conn.close()
