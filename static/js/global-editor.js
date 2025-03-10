@@ -52,6 +52,21 @@ window.QDProEditor = {
       modal.style.display = 'none';
     }
 
+    // Close any open popups - make sure the method exists before calling
+    if (window.map && typeof window.map.closePopup === 'function') {
+      window.map.closePopup();
+    } else {
+      // Alternative approach if closePopup is not available
+      if (window.map) {
+        // Try to close all popups via layers
+        window.map.eachLayer(function(layer) {
+          if (layer.closePopup) {
+            layer.closePopup();
+          }
+        });
+      }
+    }
+
     // Reset flags to allow immediate editing of another feature
     this.isEditorOpen = false;
 
@@ -61,10 +76,6 @@ window.QDProEditor = {
     // Reset active editing layer immediately
     this.activeEditingLayer = null;
 
-    // Force close any active popups on the map
-    if (window.map) {
-      window.map.closePopup();
-    }
 
     // Reset any layer-specific popup states
     // This is critical to allowing immediate re-editing of features
@@ -113,7 +124,16 @@ window.QDProEditor = {
 
     // Close any open popups
     if (window.map) {
-      window.map.closePopup();
+      if (typeof window.map.closePopup === 'function') {
+        window.map.closePopup();
+      } else {
+        // Alternative approach - close popups on each layer
+        window.map.eachLayer(function(layer) {
+          if (layer.closePopup) {
+            layer.closePopup();
+          }
+        });
+      }
     }
 
     // Reset editor state
