@@ -90,6 +90,7 @@ QDPro is a DoD/DoE-compliant Geographic Information System (GIS) designed for ex
 - Secure Update Management
 - License Enforcement
 - Data Recovery Capabilities
+- Bookmark Management for Saved Locations
 
 ### Documentation & Support
 - Security Implementation Guides

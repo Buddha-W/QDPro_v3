@@ -1,3 +1,4 @@
+
 # QDPro GIS System User Guide
 
 ## Quick Start
@@ -30,6 +31,13 @@
 #### Weather Overlay
 1. Click "Weather Overlay" to toggle current weather conditions
 2. Data updates every 30 minutes
+
+### Bookmark Management
+1. Navigate to your desired map view
+2. Click "Bookmark" in the toolbar
+3. Enter a name for the bookmark
+4. To load a bookmark, click on the bookmark name in the sidebar
+5. Bookmarks can be updated, renamed, or deleted
 
 ### Measurement Tools
 - Use "Measure Distance" to calculate distances between points
@@ -79,12 +87,19 @@
    - Smart query optimization
    - Intelligent data recovery
 
+## GitHub Version Control
+- Regular commits capture changes
+- Retrievable version history
+- Secure backup of all configurations
+- Collaborative development support
+
 ## Troubleshooting
 - If map doesn't load, check your internet connection
 - For access issues, contact your system administrator
 - Report technical issues through the support portal
 - Database issues? Use the automated recovery tool
 - Analysis errors? Check input parameters
+- Bookmark problems? Try clearing browser cache
 
 ## Standards Compliance
 - DoD 6055.09-M

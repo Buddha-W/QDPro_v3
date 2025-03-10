@@ -20,8 +20,31 @@
 4. User provisioning
 5. Compliance verification
 
+## GitHub Integration
+1. Initialize Git repository
+   ```bash
+   git init
+   ```
+2. Add remote GitHub repository
+   ```bash
+   git remote add origin https://github.com/username/QDPro_v3.git
+   ```
+3. Stage changes
+   ```bash
+   git add .
+   ```
+4. Commit changes
+   ```bash
+   git commit -m "Update project with latest changes"
+   ```
+5. Push to GitHub
+   ```bash
+   git push -f origin main
+   ```
+
 ## Maintenance
 - Daily security checks
 - Weekly compliance reports
 - Monthly security updates
 - Quarterly penetration testing
+- Regular GitHub backups
