@@ -1,4 +1,3 @@
-
 // QDPro Map Initialization 
 // Handles core map functionality
 
@@ -6,142 +5,258 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Map initializer loaded');
   initializeMap();
+
+  // Add save button event listener
+  const saveButton = document.getElementById('saveButton');
+  if (saveButton) {
+    saveButton.addEventListener('click', saveLayers);
+  }
 });
 
-function initializeMap() {
-  // Check if map container exists
-  const mapContainer = document.getElementById('map');
-  if (!mapContainer) {
-    console.error('Map container not found');
-    return;
-  }
+// Map Initialization Script for QDPro
+// This script handles setting up the Leaflet map and basic controls
 
-  // Create the map if it doesn't exist
+// Initialize map and related components
+function initializeMap() {
+  console.log('Initializing map...');
+
+  // Create map if it doesn't exist
   if (!window.map) {
-    console.log('Creating new map instance');
+    // Set up the map centered on a default location
     window.map = L.map('map', {
-      center: [39.8283, -98.5795], // Default to center of US
-      zoom: 5,
-      layers: []
+      center: [38.8977, -77.0365],  // Default: Washington, DC
+      zoom: 15,
+      zoomControl: true,
+      attributionControl: true
     });
 
     // Add base layers
-    const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19
-    });
-    
-    const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    }).addTo(window.map);
+
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
       maxZoom: 19
     });
-    
-    const baseLayers = {
-      "Streets": streets,
-      "Satellite": satellite
-    };
-    
-    // Add the default layer
-    streets.addTo(window.map);
-    
+
+    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+      maxZoom: 17
+    });
+
     // Set up layer control
-    window.layerControl = L.control.layers(baseLayers, {}, {
-      position: 'topright',
-      collapsed: false
-    }).addTo(window.map);
-    
-    // Initialize the feature group to store editable layers
+    const baseLayers = {
+      "OpenStreetMap": osmLayer,
+      "Satellite": satelliteLayer,
+      "Topographic": topoLayer
+    };
+
+    // Initialize feature groups
     window.drawnItems = new L.FeatureGroup();
     window.map.addLayer(window.drawnItems);
-    
-    // Initialize draw controls
-    window.drawControl = new L.Control.Draw({
+
+    window.facilitiesLayer = new L.FeatureGroup();
+    window.map.addLayer(window.facilitiesLayer);
+
+    window.reportsLayer = new L.FeatureGroup();
+    window.map.addLayer(window.reportsLayer);
+
+    const overlays = {
+      "Drawn Items": window.drawnItems,
+      "Facilities": window.facilitiesLayer,
+      "Reports": window.reportsLayer
+    };
+
+    L.control.layers(baseLayers, overlays).addTo(window.map);
+
+    // Initialize Leaflet.draw control
+    const drawControl = new L.Control.Draw({
       edit: {
-        featureGroup: window.drawnItems,
-        poly: {
-          allowIntersection: false
-        }
+        featureGroup: window.drawnItems
       },
       draw: {
-        polygon: {
-          allowIntersection: false,
-          showArea: true
-        },
         polyline: true,
+        polygon: true,
         rectangle: true,
         circle: true,
         marker: true,
         circlemarker: false
       }
     });
-    window.map.addControl(window.drawControl);
-    
-    // Set up event handlers for draw events
-    window.map.on(L.Draw.Event.CREATED, function(event) {
-      const layer = event.layer;
+    window.map.addControl(drawControl);
+
+    // Set up event handlers for Leaflet.draw
+    window.map.on('draw:created', function(e) {
+      const layer = e.layer;
       window.drawnItems.addLayer(layer);
-      
-      // Assign a unique ID to the layer
-      layer.id = Date.now().toString();
-      
-      // Add a popup for the layer
-      layer.bindPopup(createPopupContent(layer));
-      
-      // Add click event to open the edit popup
-      layer.on('click', function() {
-        openEditPopup(layer);
-      });
-      
-      console.log('Layer created:', layer);
+
+      // Set default properties
+      layer.feature = {
+        type: 'Feature',
+        properties: {
+          name: 'New ' + e.layerType.charAt(0).toUpperCase() + e.layerType.slice(1),
+          type: e.layerType,
+          description: ''
+        }
+      };
+
+      // Add click handler
+      addLayerClickHandlers(layer);
+
+      // Open properties editor
+      openFeatureEditor(layer.feature.properties, layer);
     });
-    
-    // After a layer is edited
-    window.map.on(L.Draw.Event.EDITED, function(event) {
-      const layers = event.layers;
-      layers.eachLayer(function(layer) {
-        console.log('Layer edited:', layer);
-      });
+
+    window.map.on('draw:edited', function(e) {
+      console.log('Layers edited:', e.layers);
     });
-    
-    // After a layer is deleted
-    window.map.on(L.Draw.Event.DELETED, function(event) {
-      const layers = event.layers;
-      layers.eachLayer(function(layer) {
-        console.log('Layer deleted:', layer.id);
-      });
+
+    window.map.on('draw:deleted', function(e) {
+      console.log('Layers deleted:', e.layers);
     });
-    
+
+    // Load saved layers if available
+    loadSavedLayers();
+
     console.log('Map initialized successfully');
+  } else {
+    console.log('Map already initialized');
   }
-  
-  // Try to load saved layers
-  loadLayers();
 }
 
-// Function to create popup content
+// Function to create a popup content for a layer
 function createPopupContent(layer) {
-  const properties = layer.properties || {};
+  const properties = layer.feature ? layer.feature.properties : {};
   const type = layer instanceof L.Marker ? 'Marker' :
                layer instanceof L.Polygon ? 'Polygon' :
                layer instanceof L.Polyline ? 'Line' :
                layer instanceof L.Rectangle ? 'Rectangle' :
                layer instanceof L.Circle ? 'Circle' : 'Shape';
-  
+
   return `<strong>${properties.name || type}</strong><br>
-          <button onclick="openEditPopup('${layer.id}')">Edit</button>`;
+          <button onclick="openEditPopup('${layer._leaflet_id}')">Edit</button>`;
 }
 
 // Function to open a popup for editing a shape's properties
-function openEditPopup(layer) {
-  console.log('Opening edit popup for layer:', layer);
-  
-  // Get existing properties or initialize empty object
-  const properties = layer.properties || {};
-  
+function openEditPopup(layerId) {
+  // Find the layer by ID
+  let targetLayer = null;
+  window.drawnItems.eachLayer(function(layer) {
+    if (layer._leaflet_id === parseInt(layerId)) {
+      targetLayer = layer;
+    }
+  });
+
+  if (targetLayer) {
+    openFeatureEditor(targetLayer.feature.properties, targetLayer);
+  } else {
+    console.error('Layer not found:', layerId);
+  }
+}
+
+// Function to load saved layers from the server
+function loadSavedLayers() {
+  console.log('Loading saved layers...');
+
+  fetch('/api/load')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log('Saved layers loaded:', data);
+
+      if (data && data.layers) {
+        // Clear existing layers
+        window.drawnItems.clearLayers();
+
+        // Add each saved layer
+        data.layers.forEach(layerData => {
+          try {
+            const layer = L.geoJSON(layerData, {
+              onEachFeature: function(feature, layer) {
+                // Add click handler
+                addLayerClickHandlers(layer);
+              }
+            });
+
+            // Add layers to the drawnItems layer group
+            layer.eachLayer(function(l) {
+              window.drawnItems.addLayer(l);
+            });
+          } catch (err) {
+            console.error('Error adding layer:', err, layerData);
+          }
+        });
+      }
+    })
+    .catch(error => {
+      console.warn('Error loading saved layers:', error);
+      // Don't show an alert as this might be the first time using the app
+    });
+}
+
+// Function to save the current layers to the server
+function saveLayers() {
+  console.log('Saving layers...');
+
+  // Collect GeoJSON for all layers
+  const layers = [];
+  window.drawnItems.eachLayer(function(layer) {
+    if (layer.toGeoJSON) {
+      layers.push(layer.toGeoJSON());
+    }
+  });
+
+  // Create the data object
+  const data = {
+    layers: layers
+  };
+
+  // Send to the server
+  fetch('/api/save', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('Layers saved successfully:', data);
+    alert('Map data saved successfully!');
+  })
+  .catch(error => {
+    console.error('Error saving layers:', error);
+    alert('Error saving map data: ' + error.message);
+  });
+}
+
+
+// Function to add click handlers to layers for opening the editor
+function addLayerClickHandlers(layer) {
+  layer.on('click', function() {
+    openEditPopup(layer._leaflet_id);
+  });
+}
+
+// Function to open the feature editor modal
+function openFeatureEditor(properties, layer) {
+  console.log('Opening feature editor for layer:', layer);
+
   // Get the modal
   const modal = document.getElementById('featurePropertiesModal');
   const content = document.getElementById('modalContent');
-  
+
   // Create form content
   content.innerHTML = `
     <h2>Edit Feature Properties</h2>
@@ -162,196 +277,78 @@ function openEditPopup(layer) {
           <option value="Other" ${properties.type === 'Other' ? 'selected' : ''}>Other</option>
         </select>
       </div>
-      
+
       <div class="form-buttons">
-        <button type="button" onclick="saveFeatureProperties('${layer.id}')">Save</button>
+        <button type="button" onclick="saveFeatureProperties('${layer._leaflet_id}')">Save</button>
         <button type="button" onclick="closeModal()">Cancel</button>
       </div>
     </form>
   `;
-  
-  // Store the current layer being edited
-  window.currentEditLayer = layer;
-  
+
   // Show the modal
   modal.style.display = 'block';
 }
 
 // Function to save feature properties
 function saveFeatureProperties(layerId) {
-  const layer = window.currentEditLayer;
-  if (!layer) {
-    console.error('No layer found for editing');
+  // Find the layer by ID
+  let targetLayer = null;
+  window.drawnItems.eachLayer(function(layer) {
+    if (layer._leaflet_id === parseInt(layerId)) {
+      targetLayer = layer;
+    }
+  });
+
+  if (!targetLayer) {
+    console.error('Layer not found for editing:', layerId);
     return;
   }
-  
+
   // Get values from form
   const name = document.getElementById('featureName').value;
   const description = document.getElementById('featureDescription').value;
   const type = document.getElementById('featureType').value;
-  
-  // Store properties on the layer
-  layer.properties = {
+
+  // Update layer properties
+  targetLayer.feature.properties = {
     name: name,
     description: description,
     type: type
   };
-  
+
   // Update popup content
-  if (layer.getPopup()) {
-    layer.setPopupContent(createPopupContent(layer));
+  if (targetLayer.getPopup()) {
+    targetLayer.setPopupContent(createPopupContent(targetLayer));
   } else {
-    layer.bindPopup(createPopupContent(layer));
+    targetLayer.bindPopup(createPopupContent(targetLayer));
   }
-  
+
   // Close the modal
   closeModal();
-  
-  console.log('Saved properties for layer:', layer);
+
+  console.log('Saved properties for layer:', targetLayer);
 }
 
 // Function to close the modal
 function closeModal() {
   const modal = document.getElementById('featurePropertiesModal');
   modal.style.display = 'none';
-  window.currentEditLayer = null;
 }
 
-// Function to save layers to the server
-function saveLayers() {
-  console.log('Saving layers...');
-  
-  // Extract layer data
-  const layers = [];
-  window.drawnItems.eachLayer(function(layer) {
-    // Get layer properties
-    const properties = layer.properties || {};
-    
-    // Create a layer data object
-    const layerData = {
-      id: layer.id,
-      type: layer instanceof L.Marker ? 'marker' :
-            layer instanceof L.Polygon ? 'polygon' :
-            layer instanceof L.Polyline ? 'polyline' :
-            layer instanceof L.Rectangle ? 'rectangle' :
-            layer instanceof L.Circle ? 'circle' : 'unknown',
-      properties: properties
-    };
-    
-    // Get coordinates based on layer type
-    if (layer instanceof L.Marker) {
-      layerData.latlng = layer.getLatLng();
-    } else if (layer instanceof L.Circle) {
-      layerData.latlng = layer.getLatLng();
-      layerData.radius = layer.getRadius();
-    } else {
-      layerData.latlngs = layer.getLatLngs();
-    }
-    
-    layers.push(layerData);
-  });
-  
-  // Create data object to send to server
-  const data = {
-    layers: layers,
-    mapCenter: window.map.getCenter(),
-    mapZoom: window.map.getZoom()
-  };
-  
-  // Send data to server
-  fetch('/api/save', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Save successful:', data);
-    // Show success notification
-    alert('Map saved successfully!');
-  })
-  .catch(error => {
-    console.error('Error saving map:', error);
-    // Show error notification
-    alert('Error saving map. Please try again.');
-  });
-}
-
-// Function to load layers from the server
-function loadLayers() {
-  console.log('Loading layers...');
-  
-  fetch('/api/load')
-  .then(response => response.json())
-  .then(data => {
-    console.log('Load successful:', data);
-    
-    // Clear existing layers
-    window.drawnItems.clearLayers();
-    
-    // Add loaded layers
-    if (data.layers && Array.isArray(data.layers)) {
-      data.layers.forEach(layerData => {
-        let layer;
-        
-        // Create layer based on type
-        if (layerData.type === 'marker') {
-          layer = L.marker(layerData.latlng);
-        } else if (layerData.type === 'circle') {
-          layer = L.circle(layerData.latlng, { radius: layerData.radius });
-        } else if (layerData.type === 'polygon') {
-          layer = L.polygon(layerData.latlngs);
-        } else if (layerData.type === 'polyline') {
-          layer = L.polyline(layerData.latlngs);
-        } else if (layerData.type === 'rectangle') {
-          layer = L.rectangle(layerData.latlngs);
-        }
-        
-        if (layer) {
-          // Restore properties and ID
-          layer.id = layerData.id;
-          layer.properties = layerData.properties;
-          
-          // Add popup
-          layer.bindPopup(createPopupContent(layer));
-          
-          // Add click event
-          layer.on('click', function() {
-            openEditPopup(layer);
-          });
-          
-          // Add to feature group
-          window.drawnItems.addLayer(layer);
-        }
-      });
-    }
-    
-    // Restore map view if provided
-    if (data.mapCenter && data.mapZoom) {
-      window.map.setView(data.mapCenter, data.mapZoom);
-    }
-  })
-  .catch(error => {
-    console.error('Error loading map:', error);
-  });
-}
-
-// Initialize map error handling
+// Initialize map error handling (retained from original)
 function initializeMapErrorHandling() {
   if (L && L.Draw) {
     // Fix for draw handlers
     const checkForDrawErrors = function() {
       const mapInstance = window.map;
       if (!mapInstance) return;
-      
+
       // Check if there are any phantom drawing modes active
       for (const type in L.Draw.Event) {
         const drawControl = mapInstance._toolbars && mapInstance._toolbars[type.toLowerCase()];
         if (drawControl && drawControl._active) {
           console.warn('Found active drawing mode that might be stuck:', type);
-          
+
           // Try to deactivate it
           try {
             drawControl.disable();
@@ -361,8 +358,19 @@ function initializeMapErrorHandling() {
         }
       }
     };
-    
+
     // Run this check periodically
     setInterval(checkForDrawErrors, 30000);
   }
 }
+
+// Make functions available globally
+window.initializeMap = initializeMap;
+window.saveLayers = saveLayers;
+window.loadSavedLayers = loadSavedLayers;
+window.openEditPopup = openEditPopup;
+window.addLayerClickHandlers = addLayerClickHandlers;
+window.openFeatureEditor = openFeatureEditor;
+window.saveFeatureProperties = saveFeatureProperties;
+window.closeModal = closeModal;
+window.initializeMapErrorHandling = initializeMapErrorHandling;

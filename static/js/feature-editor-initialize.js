@@ -21,15 +21,15 @@ function initializeFeatureEditor() {
   }
 
   // Initialize drawn items layer if not already done
-  if (!window.featureEditor.drawnItems) {
-    window.featureEditor.drawnItems = new L.FeatureGroup();
-    window.map.addLayer(window.featureEditor.drawnItems);
+  if (!window.drawnItems) {
+    window.drawnItems = new L.FeatureGroup();
+    window.map.addLayer(window.drawnItems);
   }
 
-  // Set up Leaflet.Draw controls
+  // Set up Leaflet.Draw controls (removed from edited code, restoring from original)
   const drawControl = new L.Control.Draw({
     edit: {
-      featureGroup: window.featureEditor.drawnItems
+      featureGroup: window.drawnItems
     },
     draw: {
       polyline: true,
@@ -42,7 +42,7 @@ function initializeFeatureEditor() {
 
   window.map.addControl(drawControl);
 
-  // Handle newly created features
+  // Handle newly created features (from original code)
   window.map.on('draw:created', function(e) {
     const layer = e.layer;
 
@@ -57,7 +57,7 @@ function initializeFeatureEditor() {
     };
 
     // Add the layer to our feature group
-    window.featureEditor.drawnItems.addLayer(layer);
+    window.drawnItems.addLayer(layer);
 
     // Add click handler for editing properties
     addLayerClickHandlers(layer);
@@ -66,7 +66,7 @@ function initializeFeatureEditor() {
     openFeatureEditor(layer.feature.properties, layer);
   });
 
-  // Set up edit handlers for features
+  // Set up edit handlers for features (from edited code)
   window.map.on('draw:edited', function(e) {
     console.log('Features edited:', e.layers);
   });
@@ -124,135 +124,235 @@ function setupAllLayerEditHandlers() {
  * Open the feature properties editor
  */
 function openFeatureEditor(properties, layer) {
-  console.log('Opening feature editor for:', properties);
+  console.log('Opening feature editor for properties:', properties);
 
-  // Store the active feature for later use
-  window.featureEditor.activeFeature = layer;
-
-  // Populate the form with the feature properties
-  document.getElementById('featureName').value = properties.name || '';
-  document.getElementById('featureType').value = properties.type || 'Generic';
-  document.getElementById('featureDescription').value = properties.description || '';
-
-  // Show/hide explosive properties section
-  toggleExplosiveSection(properties.type);
-
-  // Populate explosive properties if they exist
-  if (properties.explosiveHD) {
-    document.getElementById('explosiveHD').value = properties.explosiveHD;
+  // Get the modal
+  const modal = document.getElementById('featurePropertiesModal');
+  if (!modal) {
+    console.error('Feature properties modal not found');
+    return;
   }
 
-  if (properties.explosiveWeight) {
-    document.getElementById('explosiveWeight').value = properties.explosiveWeight;
+  // Get the content container
+  const content = document.getElementById('featureModalContent');
+  if (!content) {
+    console.error('Feature modal content container not found');
+    return;
   }
 
-  if (properties.newqd_type) {
-    document.getElementById('explosive_newqd_type').value = properties.newqd_type;
-  }
+  // Determine the feature type
+  let featureType = 'Generic';
+  if (layer instanceof L.Marker) featureType = 'Marker';
+  else if (layer instanceof L.Polygon) featureType = 'Polygon';
+  else if (layer instanceof L.Polyline) featureType = 'Polyline';
+  else if (layer instanceof L.Rectangle) featureType = 'Rectangle';
+  else if (layer instanceof L.Circle) featureType = 'Circle';
+
+  // Create form content
+  content.innerHTML = `
+    <h2>Edit Feature Properties</h2>
+    <form id="featurePropertiesForm">
+      <div class="form-group">
+        <label for="featureName">Name:</label>
+        <input type="text" id="featureName" value="${properties.name || ''}" class="form-control">
+      </div>
+
+      <div class="form-group">
+        <label for="featureType">Type:</label>
+        <select id="featureType" class="form-control">
+          <option value="Generic" ${properties.type === 'Generic' ? 'selected' : ''}>Generic</option>
+          <option value="Building" ${properties.type === 'Building' ? 'selected' : ''}>Building</option>
+          <option value="Road" ${properties.type === 'Road' ? 'selected' : ''}>Road</option>
+          <option value="Boundary" ${properties.type === 'Boundary' ? 'selected' : ''}>Boundary</option>
+          <option value="Facility" ${properties.type === 'Facility' ? 'selected' : ''}>Facility</option>
+          <option value="PES" ${properties.type === 'PES' ? 'selected' : ''}>PES (Potential Explosion Site)</option>
+          <option value="ES" ${properties.type === 'ES' ? 'selected' : ''}>ES (Exposed Site)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="featureDescription">Description:</label>
+        <textarea id="featureDescription" class="form-control">${properties.description || ''}</textarea>
+      </div>
+
+      <div id="explosiveProperties" style="display: ${properties.type === 'PES' || properties.type === 'ES' ? 'block' : 'none'}">
+        <h3>Explosive Properties</h3>
+
+        <div class="form-group">
+          <label for="netExplosiveWeight">Net Explosive Weight (kg):</label>
+          <input type="number" id="netExplosiveWeight" value="${properties.netExplosiveWeight || 0}" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label for="hazardDivision">Hazard Division:</label>
+          <select id="hazardDivision" class="form-control">
+            <option value="1.1" ${properties.hazardDivision === '1.1' ? 'selected' : ''}>1.1 - Mass Explosion</option>
+            <option value="1.2" ${properties.hazardDivision === '1.2' ? 'selected' : ''}>1.2 - Projection</option>
+            <option value="1.3" ${properties.hazardDivision === '1.3' ? 'selected' : ''}>1.3 - Fire & Minor Blast</option>
+            <option value="1.4" ${properties.hazardDivision === '1.4' ? 'selected' : ''}>1.4 - Moderate Fire</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button type="button" id="saveFeatureProperties" class="btn btn-primary">Save</button>
+        <button type="button" id="cancelFeatureProperties" class="btn btn-secondary">Cancel</button>
+      </div>
+    </form>
+  `;
 
   // Show the modal
-  document.getElementById('featurePropertiesModal').style.display = 'block';
+  modal.style.display = 'block';
+
+  // Set up event handlers
+  document.getElementById('featureType').addEventListener('change', toggleExplosiveSection);
+  document.getElementById('saveFeatureProperties').addEventListener('click', function() {
+    saveFeatureProperties(layer);
+  });
+  document.getElementById('cancelFeatureProperties').addEventListener('click', closeFeaturePropertiesModal);
+
+  // Close modal when clicking on the X or outside the modal
+  const closeBtn = modal.querySelector('.close');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeFeaturePropertiesModal);
+  }
+
+  window.onclick = function(event) {
+    if (event.target === modal) {
+      closeFeaturePropertiesModal();
+    }
+  };
 }
 
 /**
  * Toggle the explosive properties section based on feature type
  */
-function toggleExplosiveSection(featureType) {
-  const explosiveSection = document.getElementById('explosiveProperties');
-  const explosiveTypes = ['ExplosiveSite', 'ESQD'];
+function toggleExplosiveSection() {
+  const featureType = document.getElementById('featureType').value;
+  const explosiveProperties = document.getElementById('explosiveProperties');
 
-  if (explosiveTypes.includes(featureType)) {
-    explosiveSection.style.display = 'block';
+  if (featureType === 'PES' || featureType === 'ES') {
+    explosiveProperties.style.display = 'block';
   } else {
-    explosiveSection.style.display = 'none';
+    explosiveProperties.style.display = 'none';
   }
-}
-
-/**
- * Close the feature properties modal
- */
-function closeFeaturePropertiesModal() {
-  document.getElementById('featurePropertiesModal').style.display = 'none';
-  window.featureEditor.activeFeature = null;
 }
 
 /**
  * Save the feature properties from the form
  */
-function saveFeatureProperties() {
-  if (!window.featureEditor.activeFeature) {
-    console.error('No active feature to save properties for');
-    return;
-  }
+function saveFeatureProperties(layer) {
+  console.log('Saving feature properties for layer:', layer);
 
-  // Get values from the form
+  // Get values from form
   const name = document.getElementById('featureName').value;
   const type = document.getElementById('featureType').value;
   const description = document.getElementById('featureDescription').value;
 
-  // Get the feature
-  const feature = window.featureEditor.activeFeature.feature;
-
-  // Update properties
-  feature.properties.name = name;
-  feature.properties.type = type;
-  feature.properties.description = description;
-
-  // Handle explosive properties if applicable
-  const explosiveTypes = ['ExplosiveSite', 'ESQD'];
-  if (explosiveTypes.includes(type)) {
-    feature.properties.explosiveHD = document.getElementById('explosiveHD').value;
-    feature.properties.explosiveWeight = document.getElementById('explosiveWeight').value;
-    feature.properties.newqd_type = document.getElementById('explosive_newqd_type').value;
+  // Update the layer's feature properties
+  if (!layer.feature) {
+    layer.feature = { type: 'Feature', properties: {} };
   }
 
-  console.log('Saved properties:', feature.properties);
+  layer.feature.properties.name = name;
+  layer.feature.properties.type = type;
+  layer.feature.properties.description = description;
+
+  // Add explosive properties if applicable
+  if (type === 'PES' || type === 'ES') {
+    layer.feature.properties.netExplosiveWeight = document.getElementById('netExplosiveWeight').value;
+    layer.feature.properties.hazardDivision = document.getElementById('hazardDivision').value;
+  }
+
+  // Update the layer's popup if it has one
+  if (layer.getPopup()) {
+    layer.setPopupContent(createPopupContent(layer));
+    layer.getPopup().update();
+  }
 
   // Close the modal
   closeFeaturePropertiesModal();
 }
 
 /**
- * Function to save the current project
+ * Close the feature properties modal
+ */
+function closeFeaturePropertiesModal() {
+  const modal = document.getElementById('featurePropertiesModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+/**
+ * Load a project from the server
+ */
+function loadProject() {
+  console.log('Loading project...');
+  fetch('/api/load')
+  .then(response => response.json())
+  .then(data => {
+    console.log('Project loaded:', data);
+
+    // Clear existing layers
+    if (window.drawnItems) {
+      window.drawnItems.clearLayers();
+    }
+
+    // Add the loaded layers to the map
+    if (data.layers && Array.isArray(data.layers)) {
+      data.layers.forEach(layerData => {
+        try {
+          const layer = L.geoJSON(layerData, {
+            onEachFeature: function(feature, layer) {
+              // Add click handler
+              addLayerClickHandlers(layer);
+            }
+          });
+
+          // Add the layer to drawnItems
+          layer.eachLayer(function(l) {
+            window.drawnItems.addLayer(l);
+          });
+        } catch (error) {
+          console.error('Error adding layer:', error, layerData);
+        }
+      });
+    }
+  })
+  .catch(error => {
+    console.error('Error loading project:', error);
+    // Don't alert here as it might be annoying on first load
+  });
+}
+
+
+/**
+ * Save the current project to the server
  */
 function saveProject() {
   console.log('Saving project...');
 
-  // Get all layers and their data
-  const layerData = {
-    layers: {
-      "Drawn Items": {
-        properties: {
-          isQDAnalyzed: false
-        },
-        features: []
-      }
-    }
-  };
+  // Collect GeoJSON for all layers
+  const layers = [];
 
-  // Get all features from drawn items
   if (window.drawnItems) {
     window.drawnItems.eachLayer(function(layer) {
-      if (layer.feature) {
-        layerData.layers["Drawn Items"].features.push(layer.feature);
-      } else {
-        // Convert to GeoJSON if no feature property exists
-        const geoJson = layer.toGeoJSON();
-        if (!geoJson.properties) {
-          geoJson.properties = {
-            name: 'Unnamed Feature',
-            type: 'Unknown',
-            description: ''
-          };
-        }
-        layerData.layers["Drawn Items"].features.push(geoJson);
+      if (layer.toGeoJSON) {
+        layers.push(layer.toGeoJSON());
       }
     });
   }
 
-  // Convert to JSON
-  const jsonData = JSON.stringify(layerData, null, 2);
-  console.log('Project data:', jsonData);
+  // Create data object
+  const data = {
+    layers: layers,
+    metadata: {
+      name: 'My Project',
+      created: new Date().toISOString(),
+      version: '1.0'
+    }
+  };
 
   // Send data to server
   fetch('/api/save', {
@@ -260,114 +360,27 @@ function saveProject() {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: jsonData
+    body: JSON.stringify(data)
   })
-    .then(response => response.json())
-    .then(data => {
-      console.log('Project saved:', data);
-      alert('Project saved successfully!');
-    })
-    .catch(error => {
-      console.error('Error saving project:', error);
-      alert('Error saving project: ' + error.message);
-    });
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    return response.json();
+  })
+  .then(result => {
+    console.log('Project saved:', result);
+    alert('Project saved successfully!');
+  })
+  .catch(error => {
+    console.error('Error saving project:', error);
+    alert('Error saving project: ' + error.message);
+  });
 }
 
-function loadProject() {
-  console.log('Loading project...');
-  fetch('/api/load')
-    .then(response => response.json())
-    .then(data => {
-      console.log('Project loaded:', data);
-
-      // Clear existing layers
-      if (window.drawnItems) {
-        window.drawnItems.clearLayers();
-      }
-
-      // Process and add layers
-      if (data.layers && data.layers["Drawn Items"] && data.layers["Drawn Items"].features) {
-        const features = data.layers["Drawn Items"].features;
-
-        features.forEach(feature => {
-          let layer;
-
-          // Create appropriate layer based on geometry type
-          if (feature.geometry) {
-            switch (feature.geometry.type) {
-              case 'Point':
-                const coords = feature.geometry.coordinates;
-                layer = L.marker([coords[1], coords[0]]);
-                break;
-              case 'LineString':
-                const points = feature.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-                layer = L.polyline(points);
-                break;
-              case 'Polygon':
-                const polygonPoints = feature.geometry.coordinates[0].map(coord => [coord[1], coord[0]]);
-                layer = L.polygon(polygonPoints);
-                break;
-              case 'Circle':
-                // Circles are complex in GeoJSON - we would need radius stored in properties
-                if (feature.properties && feature.properties.radius) {
-                  const center = feature.geometry.coordinates;
-                  layer = L.circle([center[1], center[0]], { radius: feature.properties.radius });
-                }
-                break;
-              default:
-                console.warn('Unsupported geometry type:', feature.geometry.type);
-                return;
-            }
-
-            // Add properties to the layer
-            layer.feature = feature;
-
-            // Add to the drawn items layer
-            window.drawnItems.addLayer(layer);
-
-            // Add click handler
-            addLayerClickHandlers(layer);
-          }
-        });
-      }
-    })
-    .catch(error => {
-      console.error('Error loading project:', error);
-      // Don't alert here as it might be annoying on first load
-    });
-}
-
-
-// QDPro Feature Editor Initialization
-// Handles feature editing, properties, and related UI
-
-document.addEventListener('DOMContentLoaded', function() {
-  console.log('Feature editor initializer loaded');
-
-  // Set up event listeners for the feature editor
-  setupFeatureEditorListeners();
-});
-
-function setupFeatureEditorListeners() {
-  // Set up listener for the save button
-  const saveButton = document.getElementById('saveButton');
-  if (saveButton) {
-    saveButton.addEventListener('click', function() {
-      saveProject(); // Use existing saveProject function
-    });
-  }
-
-  // Set up listener for the load button
-  const loadButton = document.getElementById('loadButton');
-  if (loadButton) {
-    loadButton.addEventListener('click', function() {
-      loadProject();
-    });
-  }
-}
-
-
-// Function to handle facility type selection
+/**
+ * Function to handle facility type selection
+ */
 function handleFacilityTypeChange() {
   const facilityType = document.getElementById('facilityType').value;
   const pesFieldsContainer = document.getElementById('pesFields');
@@ -385,7 +398,9 @@ function handleFacilityTypeChange() {
   }
 }
 
-// Function to open facility edit popup for a specific layer
+/**
+ * Function to open facility edit popup for a specific layer
+ */
 function openFacilityEditPopup(layer) {
   console.log('Opening facility edit popup for layer:', layer);
 
@@ -475,7 +490,9 @@ function openFacilityEditPopup(layer) {
   modal.style.display = 'block';
 }
 
-// Function to save facility properties
+/**
+ * Function to save facility properties
+ */
 function saveFacilityProperties(layerId) {
   const layer = window.currentFacilityLayer;
   if (!layer) {
@@ -524,7 +541,9 @@ function saveFacilityProperties(layerId) {
   console.log('Saved facility properties for layer:', layer);
 }
 
-// Function to close the facility modal
+/**
+ * Function to close the facility modal
+ */
 function closeFacilityModal() {
   const modal = document.getElementById('facilityPropertiesModal');
   if (modal) {
@@ -533,16 +552,46 @@ function closeFacilityModal() {
   window.currentFacilityLayer = null;
 }
 
+// QDPro Feature Editor Initialization
+// Handles feature editing, properties, and related UI
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Feature editor initializer loaded');
+
+  // Set up event listeners for the feature editor
+  setupFeatureEditorListeners();
+});
+
+/**
+ * Set up event listeners for the feature editor UI
+ */
+function setupFeatureEditorListeners() {
+  console.log('Setting up feature editor listeners');
+
+  // Listen for the load project button
+  const loadProjectButton = document.getElementById('loadProjectButton');
+  if (loadProjectButton) {
+    loadProjectButton.addEventListener('click', loadProject);
+  }
+
+  // Listen for the save project button
+  const saveProjectButton = document.getElementById('saveProjectButton');
+  if (saveProjectButton) {
+    saveProjectButton.addEventListener('click', saveProject);
+  }
+}
+
+
 // Make functions available globally
 window.initializeFeatureEditor = initializeFeatureEditor;
 window.openFeatureEditor = openFeatureEditor;
-window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
 window.saveFeatureProperties = saveFeatureProperties;
+window.closeFeaturePropertiesModal = closeFeaturePropertiesModal;
 window.toggleExplosiveSection = toggleExplosiveSection;
-window.addLayerClickHandlers = addLayerClickHandlers;
-window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
 window.loadProject = loadProject;
 window.saveProject = saveProject;
+window.addLayerClickHandlers = addLayerClickHandlers;
+window.setupAllLayerEditHandlers = setupAllLayerEditHandlers;
 window.openFacilityEditPopup = openFacilityEditPopup;
 window.handleFacilityTypeChange = handleFacilityTypeChange;
 window.closeFacilityModal = closeFacilityModal;
