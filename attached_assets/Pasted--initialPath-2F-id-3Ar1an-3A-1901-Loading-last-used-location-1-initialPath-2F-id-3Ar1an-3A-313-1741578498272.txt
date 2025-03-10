@@ -1,0 +1,35 @@
+?initialPath=%2F&id=%3Ar1an%3A:1901 Loading last used location: 1
+?initialPath=%2F&id=%3Ar1an%3A:313 Initializing QDPro...
+?initialPath=%2F&id=%3Ar1an%3A:738 Starting loadProject function
+?initialPath=%2F&id=%3Ar1an%3A:753 Found saved project in localStorage
+?initialPath=%2F&id=%3Ar1an%3A:758 Parsed project data: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: Default Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer Default properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: ES Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer ES properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: PES Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer PES properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: ECM Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer ECM properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: Fence Line Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer Fence Line properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:828 Project loaded successfully
+?initialPath=%2F&id=%3Ar1an%3A:609 Location data loaded: Object
+?initialPath=%2F&id=%3Ar1an%3A:738 Starting loadProject function
+?initialPath=%2F&id=%3Ar1an%3A:753 Found saved project in localStorage
+?initialPath=%2F&id=%3Ar1an%3A:758 Parsed project data: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: Default Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer Default properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: ES Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer ES properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: PES Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer PES properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: ECM Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer ECM properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:777 Processing saved layer: Fence Line Object
+?initialPath=%2F&id=%3Ar1an%3A:784 Restored layer Fence Line properties: Object
+?initialPath=%2F&id=%3Ar1an%3A:828 Project loaded successfully
+?initialPath=%2F&id=%3Ar1an%3A:1903 Last location loaded successfully
+?initialPath=%2F&id=%3Ar1an%3A:1019 Layer clicked: v
+?initialPath=%2F&id=%3Ar1an%3A:1011 Uncaught ReferenceError: openFeatureEditor is not defined
+    at HTMLButtonElement.<anonymous> (?initialPath=%2F&id=%3Ar1an%3A:1011:17)
