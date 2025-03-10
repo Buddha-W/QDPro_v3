@@ -1,0 +1,37 @@
+?initialPath=%2F&id=%3Ar2tl%3A:2175 Loading last used location: 1
+global-editor.js:537 QDProEditor: Setting up event handlers
+global-editor.js:584 QDProEditor: Event handlers setup complete
+?initialPath=%2F&id=%3Ar2tl%3A:296 Editor state tracking initialized
+?initialPath=%2F&id=%3Ar2tl%3A:330 Initializing QDPro...
+?initialPath=%2F&id=%3Ar2tl%3A:809 Starting loadProject function
+?initialPath=%2F&id=%3Ar2tl%3A:824 Found saved project in localStorage
+?initialPath=%2F&id=%3Ar2tl%3A:829 Parsed project data: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: Default Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer Default properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: ES Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer ES properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: PES Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer PES properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: ECM Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer ECM properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: Fence Line Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer Fence Line properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:899 Project loaded successfully
+?initialPath=%2F&id=%3Ar2tl%3A:680 Location data loaded: Object
+?initialPath=%2F&id=%3Ar2tl%3A:809 Starting loadProject function
+?initialPath=%2F&id=%3Ar2tl%3A:824 Found saved project in localStorage
+?initialPath=%2F&id=%3Ar2tl%3A:829 Parsed project data: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: Default Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer Default properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: ES Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer ES properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: PES Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer PES properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: ECM Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer ECM properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:848 Processing saved layer: Fence Line Object
+?initialPath=%2F&id=%3Ar2tl%3A:855 Restored layer Fence Line properties: Object
+?initialPath=%2F&id=%3Ar2tl%3A:899 Project loaded successfully
+?initialPath=%2F&id=%3Ar2tl%3A:2177 Last location loaded successfully
+?initialPath=%2F&id=%3Ar2tl%3A:573 updateBookmarksDropdown function not found
+toggleBookmarksDropdown @ ?initialPath=%2F&id=%3Ar2tl%3A:573
